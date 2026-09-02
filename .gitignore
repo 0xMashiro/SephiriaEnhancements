@@ -1,0 +1,34 @@
+# Build and test output
+**/bin/
+**/obj/
+artifacts/
+package/
+TestResults/
+
+# IDE and user-specific files
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userprefs
+*.rsuser
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local.props
+*.local.json
+
+# Logs, caches, backups, and generated binaries
+*.cache
+*.log
+*.jsonl
+*.tmp
+*.bak
+*.orig
+*.dll
+*.exe
+*.pdb
+*.zip

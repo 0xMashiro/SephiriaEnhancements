@@ -1,0 +1,7 @@
+{
+  "modName": "Sephiria Enhancements",
+  "modVersion": "0.5.0-alpha.1",
+  "modAuthor": "0xMashiro",
+  "dllFile": "SephiriaEnhancements.dll",
+  "entryClass": "SephiriaEnhancements.SephiriaEnhancementsMod"
+}

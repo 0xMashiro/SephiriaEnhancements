@@ -1,0 +1,125 @@
+<p align="center">
+  <img src="./assets/readme-header.webp" alt="Sephiria Enhancements" />
+</p>
+
+<p align="center">
+  <a href="./README.md">English</a> · <strong>简体中文</strong>
+</p>
+
+# Sephiria Enhancements / Sephiria 增强
+
+为 Sephiria 提供贴近原生体验的战斗、操作、探索、多人游戏和背包增强。基于游戏自带
+AddOns 系统，无需安装 BepInEx。
+
+## 功能亮点
+
+| 方向 | 提供的能力 |
+| --- | --- |
+| 键盘界面 | 纯键盘操作支持的菜单、地图、路线、奖励、背包和消息弹窗；Tab 切换组合界面分区 |
+| 战斗信息 | 滚动 DPS、遭遇结算、连续命中、召唤物归属、BOSS 数值血量和更清楚的敌友视觉 |
+| 索敌操作 | 可选的键盘攻击自动瞄准，以及键盘/手柄均可改键的目标切换 |
+| 探索 | 隐藏房间标记、本地化城镇 NPC 名称、本层地图叠加层和 75%–200% 镜头距离 |
+| 单人和联机 | 可选原生战斗伙伴、失败检查点、中途加入/重连和可配置的 1–4 人规则 |
+| 背包 | 实验性一键整理，可使用 Mod 的验证求解器或 Sephiria 的神器等级整理 |
+
+键盘支持以快速、无鼠标的菜单流程为目标，适合偏好纯键盘或速通式操作的玩家；同时遵循
+Sephiria 当前的语义操作和玩家改键。
+
+设置、快捷键和提示都集成在 Sephiria 原生界面中。自动索敌、原生战斗伙伴和开发工具等
+会改变玩法的功能默认关闭。
+
+## 安装
+
+1. 完全退出 Sephiria。
+2. 从[最新 Release](https://github.com/0xMashiro/SephiriaEnhancements/releases/latest)
+   下载 ZIP 和 `SHA256SUMS.txt`。
+3. 验证 ZIP 校验值。
+4. 解压到包含 `Sephiria.exe` 的目录；如果提示存在 `AddOns`，请选择合并。
+5. 启动游戏，打开
+   `选项 → 游戏性 → SEPHIRIA ENHANCEMENTS · by 0xMashiro`。
+
+安装后目录如下：
+
+```text
+Sephiria\
+  AddOns\
+    SephiriaEnhancements\
+      metadata.json
+      SephiriaEnhancements.dll
+      0Harmony.dll
+      THIRD-PARTY-NOTICES.txt
+```
+
+## 快捷键
+
+所有绑定都位于游戏原生键盘/手柄控制中的
+`SEPHIRIA ENHANCEMENTS 快捷键` 专区。
+
+| 操作 | 默认键位 |
+| --- | --- |
+| 切换锁定目标 | 鼠标中键或 `L`；手柄按下右摇杆 |
+| 开关本层地图叠加层 | `M` |
+| 开关伤害统计 | `C` |
+| 整理已打开的背包（实验性） | `F8` |
+| 次要界面操作 | Sephiria 当前的 `UI/ThrowItem` 绑定 |
+| 旋转物品或切换收藏 | Sephiria 当前的 `UI/RotateItem` 绑定 |
+| 刻印石板 | 原生绑定；缺失时尝试补充无冲突的 `Y` |
+| 打开可选开发者控制台 | Sephiria 原生 `/` 绑定 |
+
+游戏原生绑定和玩家改键始终优先；Mod 不会固化 Sephiria 当前版本的物理按键。
+
+## 重要行为
+
+- 背包整理属于实验功能。它读取安装者已同步的背包状态，并通过游戏正常操作应用结果；
+  不会直接修改存档文件。
+- 失败重试会恢复所选的楼层入口或 BOSS 检查点；联机使用还需要 Sephiria 开启
+  重连/中途存档支持。
+- 中途准入由房主控制。新玩家使用新角色和新存档槽；不会接管掉线角色，也不会补发
+  错过路线的奖励。
+- 多人规则预设覆盖 1–4 名已连接真人参与者。人数超出范围或检测到联机扩展时，默认
+  交还游戏或扩展处理，除非房主明确启用规则叠加。
+
+## 验证发布包
+
+在下载文件所在目录运行：
+
+```powershell
+$zip = Get-ChildItem -LiteralPath . -Filter 'SephiriaEnhancements-*.zip' |
+    Select-Object -First 1
+Get-FileHash -LiteralPath $zip.FullName -Algorithm SHA256
+Get-Content -LiteralPath .\SHA256SUMS.txt
+```
+
+解压前确认摘要和文件名一致。校验值只能证明下载内容没有变化，不代表代码绝对安全。
+
+## 从源码构建
+
+需要 PowerShell、`global.json` 指定的 .NET SDK，以及合法安装的 Sephiria。构建只从
+本机游戏目录读取程序集，本仓库不分发这些文件。
+
+在仓库根目录运行可移植检查：
+
+```powershell
+& .\scripts\test.ps1
+```
+
+使用包含 `Sephiria.exe` 的目录完成构建：
+
+```powershell
+& .\scripts\build.ps1 -GameDir "C:\Games\Sephiria"
+```
+
+在已忽略的 `artifacts/` 目录生成本地 ZIP 和 `SHA256SUMS.txt`：
+
+```powershell
+& .\scripts\package.ps1 -GameDir "C:\Games\Sephiria"
+```
+
+贡献代码应把游戏 API 限制在集成边界，在代码和玩家文案中统一使用同一套规范术语；
+能脱离私有游戏程序集验证的策略应补充可移植模型检查。请勿提交游戏文件、生成的 API
+桩、反编译源码、日志、本机路径或构建产物。
+
+## 许可证
+
+Sephiria Enhancements 使用 [MIT License](./LICENSE) 开源。
+Copyright (c) 2026 0xMashiro。

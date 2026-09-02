@@ -1,0 +1,81 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SephiriaEnhancements.ModelChecks</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Configuration\OptionsCategoryLocalization.cs" Link="Configuration\OptionsCategoryLocalization.cs" />
+    <Compile Include="..\..\Features\CombatRelationOutlines\Core\CombatRelationOutlinePolicy.cs" Link="CombatRelationOutlines\CombatRelationOutlinePolicy.cs" />
+    <Compile Include="..\..\Features\CombatVisuals\Core\CombatVisualPolicy.cs" Link="CombatVisuals\CombatVisualPolicy.cs" />
+    <Compile Include="..\..\Features\CombatVisuals\CombatVisualLocalization.cs" Link="CombatVisuals\CombatVisualLocalization.cs" />
+    <Compile Include="..\..\Features\NativeCompanion\Core\NativeCompanionPolicy.cs" Link="NativeCompanion\NativeCompanionPolicy.cs" />
+    <Compile Include="..\..\Features\CombatInsights\Core\BossEncounterTracker.cs" Link="Core\BossEncounterTracker.cs" />
+    <Compile Include="..\..\Features\CombatInsights\Core\HitStreakTracker.cs" Link="Core\HitStreakTracker.cs" />
+    <Compile Include="..\..\Features\CombatInsights\Core\DamageContextBuffer.cs" Link="Core\DamageContextBuffer.cs" />
+    <Compile Include="..\..\Features\CombatInsights\Core\DpsFormatter.cs" Link="Core\DpsFormatter.cs" />
+    <Compile Include="..\..\Features\CombatInsights\Core\EncounterScope.cs" Link="Core\EncounterScope.cs" />
+    <Compile Include="..\..\Features\CombatInsights\Core\RollingDamageWindow.cs" Link="Core\RollingDamageWindow.cs" />
+    <Compile Include="..\..\Features\CombatInsights\Core\EncounterDefeatTracker.cs" Link="Core\EncounterDefeatTracker.cs" />
+    <Compile Include="..\..\Features\CombatInsights\Core\EncounterReportSnapshot.cs" Link="Core\EncounterReportSnapshot.cs" />
+    <Compile Include="..\..\Features\CombatInsights\Core\ReportDisplayWindow.cs" Link="Core\ReportDisplayWindow.cs" />
+    <Compile Include="..\..\Features\RangedControls\Core\DirectionalAimMath.cs" Link="RangedControls\DirectionalAimMath.cs" />
+    <Compile Include="..\..\Features\MapEnhancements\Core\TownMapProjection.cs" Link="MapEnhancements\TownMapProjection.cs" />
+    <Compile Include="..\..\Integration\ModShortcuts.cs" Link="Integration\ModShortcuts.cs" />
+    <Compile Include="..\..\Integration\NativeActionId.cs" Link="Integration\NativeActionId.cs" />
+    <Compile Include="..\..\Integration\NativeUiActions.cs" Link="Integration\NativeUiActions.cs" />
+    <Compile Include="..\..\Features\DeveloperConsole\DeveloperConsoleContract.cs" Link="DeveloperConsole\DeveloperConsoleContract.cs" />
+    <Compile Include="..\..\Features\DeveloperTools\Core\DeveloperPlayerDamagePolicy.cs" Link="DeveloperTools\DeveloperPlayerDamagePolicy.cs" />
+    <Compile Include="..\..\Features\DefeatRetry\Core\DefeatRetryPolicy.cs" Link="DefeatRetry\DefeatRetryPolicy.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Core\MultiplayerRuleValue.cs" Link="MultiplayerRules\MultiplayerRuleValue.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Core\EnemyHealthRuleModel.cs" Link="MultiplayerRules\EnemyHealthRuleModel.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Core\MultiplayerRulesLifecyclePolicy.cs" Link="MultiplayerRules\MultiplayerRulesLifecyclePolicy.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Core\ActiveExplorationMultiplayerRules.cs" Link="MultiplayerRules\ActiveExplorationMultiplayerRules.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Core\EnemyHealthRuleResolver.cs" Link="MultiplayerRules\EnemyHealthRuleResolver.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Core\MultiplayerRuleCatalog.cs" Link="MultiplayerRules\MultiplayerRuleCatalog.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Core\MultiplayerRuleSnapshot.cs" Link="MultiplayerRules\MultiplayerRuleSnapshot.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Core\ActiveExplorationRulesPayloadCodec.cs" Link="MultiplayerRules\ActiveExplorationRulesPayloadCodec.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Integration\EnemySpawnRoutineContext.cs" Link="MultiplayerRules\EnemySpawnRoutineContext.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Presentation\MultiplayerRulesLocalization.cs" Link="MultiplayerRules\MultiplayerRulesLocalization.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Presentation\MultiplayerRulePresentationGroups.cs" Link="MultiplayerRules\MultiplayerRulePresentationGroups.cs" />
+    <Compile Include="..\..\Features\MultiplayerAccess\Core\MidRunAdmissionPolicy.cs" Link="MultiplayerAccess\MidRunAdmissionPolicy.cs" />
+    <Compile Include="..\..\Features\MultiplayerAccess\Presentation\MultiplayerAccessLocalization.cs" Link="MultiplayerAccess\MultiplayerAccessLocalization.cs" />
+    <Compile Include="..\..\Runtime\Inventory\InventorySnapshot.cs" Link="Runtime\Inventory\InventorySnapshot.cs" />
+    <Compile Include="..\..\Runtime\Inventory\InventoryBaselineInference.cs" Link="Runtime\Inventory\InventoryBaselineInference.cs" />
+    <Compile Include="..\..\Runtime\Inventory\ArtifactCategoryRuleSnapshot.cs" Link="Runtime\Inventory\ArtifactCategoryRuleSnapshot.cs" />
+    <Compile Include="..\..\Runtime\Inventory\InventoryEvaluationOrderSnapshot.cs" Link="Runtime\Inventory\InventoryEvaluationOrderSnapshot.cs" />
+    <Compile Include="..\..\Runtime\Inventory\BuildIntentSnapshot.cs" Link="Runtime\Inventory\BuildIntentSnapshot.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationPolicy.cs" Link="Inventory\InventoryOptimizationPolicy.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryPreferenceEditor.cs" Link="Inventory\InventoryPreferenceEditor.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryArtifactIntentEditor.cs" Link="Inventory\InventoryArtifactIntentEditor.cs" />
+    <Compile Include="..\..\Features\KeyboardUiNavigation\Core\KeyboardSelectionRecoveryPolicy.cs" Link="KeyboardUiNavigation\KeyboardSelectionRecoveryPolicy.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationPreferencesCodec.cs" Link="Inventory\InventoryOptimizationPreferencesCodec.cs" />
+    <Compile Include="..\..\Features\Inventory\Presentation\InventoryOptimizationLocalization.cs" Link="Inventory\InventoryOptimizationLocalization.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryArrangementLifecyclePolicy.cs" Link="Inventory\InventoryArrangementLifecyclePolicy.cs" />
+    <Compile Include="..\..\Runtime\Inventory\TabletProjectionSnapshot.cs" Link="Runtime\Inventory\TabletProjectionSnapshot.cs" />
+    <Compile Include="..\..\Runtime\Inventory\InventorySettlementValidation.cs" Link="Runtime\Inventory\InventorySettlementValidation.cs" />
+    <Compile Include="..\..\Runtime\Inventory\InventorySettlementProjector.cs" Link="Runtime\Inventory\InventorySettlementProjector.cs" />
+    <Compile Include="..\..\Runtime\Inventory\InventorySettlementProjection.cs" Link="Runtime\Inventory\InventorySettlementProjection.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizer.cs" Link="Inventory\InventoryOptimizer.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationSearchModels.cs" Link="Inventory\InventoryOptimizationSearchModels.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationScorer.cs" Link="Inventory\InventoryOptimizationScorer.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationOutcome.cs" Link="Inventory\InventoryOptimizationOutcome.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizerSelector.cs" Link="Inventory\InventoryOptimizerSelector.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryExhaustiveSearchOracle.cs" Link="Inventory\InventoryExhaustiveSearchOracle.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryLayoutPlanner.cs" Link="Inventory\InventoryLayoutPlanner.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryApplicationConfirmation.cs" Link="Inventory\InventoryApplicationConfirmation.cs" />
+    <Compile Include="..\..\Runtime\Inventory\InventorySettlementDifferentialVerifier.cs" Link="Runtime\Inventory\InventorySettlementDifferentialVerifier.cs" />
+    <Compile Include="..\..\Runtime\Contracts\RuntimeStateSnapshot.cs" Link="Runtime\RuntimeStateSnapshot.cs" />
+    <Compile Include="..\..\Runtime\Contracts\MultiplayerSessionSnapshot.cs" Link="Runtime\MultiplayerSessionSnapshot.cs" />
+    <Compile Include="..\..\Runtime\GameBridge\Multiplayer\MultiplayerExtensionDiscovery.cs" Link="Runtime\MultiplayerExtensionDiscovery.cs" />
+    <Compile Include="..\..\Runtime\Execution\AmbientExecutionContext.cs" Link="Runtime\AmbientExecutionContext.cs" />
+    <Compile Include="..\..\Runtime\Contracts\EncounterLifecycleEvent.cs" Link="Runtime\EncounterLifecycleEvent.cs" />
+    <Compile Include="..\..\Runtime\Inventory\InventoryCatalogSnapshot.cs" Link="Runtime\InventoryCatalogSnapshot.cs" />
+    <Compile Include="..\..\Runtime\State\RuntimeStateHub.cs" Link="Runtime\RuntimeStateHub.cs" />
+    <Compile Include="..\..\Runtime\State\EncounterLifecycleHub.cs" Link="Runtime\EncounterLifecycleHub.cs" />
+    <Compile Include="..\..\Runtime\State\InventoryStateStore.cs" Link="Runtime\InventoryStateStore.cs" />
+    <Compile Include="..\..\Runtime\Diagnostics\RuntimeMetrics.cs" Link="Runtime\RuntimeMetrics.cs" />
+  </ItemGroup>
+</Project>

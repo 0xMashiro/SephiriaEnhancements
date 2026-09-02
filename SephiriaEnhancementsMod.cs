@@ -105,6 +105,8 @@ namespace SephiriaEnhancements
             HorayModAPI.OnFloorAllocatedClientside += OnFloorAllocatedClientside;
             HorayModAPI.OnStartSessionServerside += OnStartSessionServerside;
             HorayModAPI.OnFloorAllocatedServerside += OnFloorAllocatedServerside;
+            MultiplayerRulesExplorationStartPatch.StartingExploration +=
+                OnStartingExploration;
             float localizationMilliseconds = ElapsedMilliseconds(phaseStartedAt);
 
             phaseStartedAt = Stopwatch.GetTimestamp();
@@ -125,6 +127,7 @@ namespace SephiriaEnhancements
             UnityEngine.Object.DontDestroyOnLoad(controllerObject);
             runtimeKernel = controllerObject.AddComponent<RuntimeKernel>();
             runtimeKernel.Initialize();
+            runtimeKernel.GameplayContextChanged += OnLocalGameplayContextChanged;
             inventoryOptimization =
                 controllerObject.AddComponent<InventoryOptimizationController>();
             inventoryOptimization.Initialize(runtimeKernel);
@@ -230,7 +233,8 @@ namespace SephiriaEnhancements
                     ArtifactRefreshOrderPatch),
                 typeof(SephiriaEnhancements.Runtime.GameBridge.Inventory.
                     UniqueEffectRegistrationTracePatch),
-                typeof(MultiplayerRulesNetworkSessionEndPatch)
+                typeof(MultiplayerRulesNetworkSessionEndPatch),
+                typeof(MultiplayerRulesExplorationStartPatch)
             })
             {
                 if (TryPatch(patchType, out float patchMilliseconds))
@@ -305,13 +309,19 @@ namespace SephiriaEnhancements
             inventoryOptimization?.Shutdown();
             combatInsights?.Shutdown();
             DeveloperLogger.Shutdown();
-            runtimeKernel?.Dispose();
+            if (runtimeKernel != null)
+            {
+                runtimeKernel.GameplayContextChanged -= OnLocalGameplayContextChanged;
+                runtimeKernel.Dispose();
+            }
             HorayModAPI.OnLocalizationReady -=
                 SephiriaEnhancements.Configuration.ModLocalization.Register;
             HorayModAPI.OnStartSessionClientside -= OnStartSessionClientside;
             HorayModAPI.OnFloorAllocatedClientside -= OnFloorAllocatedClientside;
             HorayModAPI.OnStartSessionServerside -= OnStartSessionServerside;
             HorayModAPI.OnFloorAllocatedServerside -= OnFloorAllocatedServerside;
+            MultiplayerRulesExplorationStartPatch.StartingExploration -=
+                OnStartingExploration;
             DamageFeedbackCapture.SetController(null);
             DamageDetailCapture.SetController(null);
             UnitDeathCapture.SetController(null);
@@ -342,10 +352,10 @@ namespace SephiriaEnhancements
 
         private void OnStartSessionClientside(bool isSavedSession)
         {
-            GameLoadProfiler.ObserveClientExplorationStarted(isSavedSession);
+            GameLoadProfiler.ObserveClientSessionStarted(isSavedSession);
             MultiplayerRulesLobbySnapshotCoordinator.ReadHostSnapshot();
             inventoryOptimization?.ResetExploration();
-            ResetClientGameplayContext();
+            runtimeKernel?.BeginWorldSession();
         }
 
         private void OnFloorAllocatedClientside(string guid, string floorName,
@@ -353,39 +363,44 @@ namespace SephiriaEnhancements
         {
             GameLoadProfiler.ObserveFloorAllocated(guid, floorName);
             MultiplayerRulesLobbySnapshotCoordinator.ReadHostSnapshot();
-            ResetClientGameplayContext();
         }
 
-        private void ResetClientGameplayContext()
+        private void OnLocalGameplayContextChanged(LocalGameplayContextChange change)
         {
-            // Both callbacks start a new floor-bound gameplay context. This is
-            // intentionally not named ResetSession because floor allocation also
-            // invalidates these controllers and runtime snapshots.
-            runtimeKernel?.BeginGameplayContext();
             inventoryOptimization?.ResetGameplayContext();
             combatRelationOutlines?.ResetGameplayContext();
             rangedControls?.ResetGameplayContext();
             keyboardUiNavigation?.ResetGameplayContext();
             mapEnhancements?.ResetGameplayContext();
+            nativeCompanion?.ResetGameplayContext();
             GameLoadProfiler.ObserveGameplayContextReset();
         }
 
         private void OnStartSessionServerside(bool isSavedSession)
         {
-            GameLoadProfiler.ObserveServerExplorationStarted(isSavedSession);
+            GameLoadProfiler.ObserveServerSessionStarted(isSavedSession);
+            if (MultiplayerRulesExplorationStartPatch.ExplorationStarted)
+                BeginServerExploration(isSavedSession);
+            else
+                MultiplayerRulesController.EndExploration();
+            nativeCompanion?.ResetSession();
+        }
+
+        private void OnStartingExploration() => BeginServerExploration(false);
+
+        private void BeginServerExploration(bool isSavedSession)
+        {
             if (RequiresMultiplayerRuleBehaviorPatches(isSavedSession))
             {
                 EnsureMultiplayerRuleBehaviorPatches();
             }
             multiplayerRules?.BeginServerExploration(isSavedSession);
-            nativeCompanion?.ResetSession();
         }
 
         private void OnFloorAllocatedServerside(string guid, string floorName,
             FloorGenerator generator)
         {
             multiplayerRules?.PublishActiveRulesForLobbyDisplay();
-            nativeCompanion?.ResetFloor();
         }
 
         private static float ElapsedMilliseconds(long startedAt)

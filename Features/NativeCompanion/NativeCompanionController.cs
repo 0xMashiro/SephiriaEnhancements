@@ -39,7 +39,7 @@ namespace SephiriaEnhancements.NativeCompanion
             nextSpawnAt = Time.unscaledTime + 1f;
         }
 
-        internal void ResetFloor()
+        internal void ResetGameplayContext()
         {
             awaitingOutOfCombatReturn = false;
             ResetObservedContext();

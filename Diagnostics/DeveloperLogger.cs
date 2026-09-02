@@ -1,4 +1,5 @@
 using SephiriaEnhancements.Runtime.Inventory;
+using SephiriaEnhancements.Runtime;
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
 using System;
 using System.Collections.Concurrent;
@@ -10,7 +11,6 @@ using System.Text;
 using System.Threading;
 using SephiriaEnhancements.Core;
 using SephiriaEnhancements.MultiplayerRules;
-using SephiriaEnhancements.Runtime;
 using UnityEngine;
 
 namespace SephiriaEnhancements.Diagnostics
@@ -145,8 +145,21 @@ namespace SephiriaEnhancements.Diagnostics
             }
         }
 
+        internal static void RecordLocalGameplayContext(
+            LocalGameplayContextChange change, long epoch, uint playerNetId,
+            string floorGuid, bool traveling)
+        {
+            if (IsEnabled)
+                WriteLine("{\"event\":\"local_gameplay_context\",\"time\":" +
+                    TimeValue() + ",\"change\":" + Json(change.ToString()) +
+                    ",\"gameplayContextEpoch\":" + epoch +
+                    ",\"playerNetId\":" + playerNetId +
+                    ",\"floorGuid\":" + Json(floorGuid) +
+                    ",\"traveling\":" + Bool(traveling) + "}");
+        }
+
         internal static void RecordLoadingMilestone(int loadAttemptId,
-            string milestone, string trigger, string explorationStartMode,
+            string milestone, string trigger, string sessionLoadMode,
             bool serverObserved, bool clientObserved,
             float elapsedMilliseconds, string floorGuid, string floorName,
             string detail)
@@ -157,8 +170,8 @@ namespace SephiriaEnhancements.Diagnostics
                     TimeValue() + ",\"loadAttemptId\":" + loadAttemptId +
                     ",\"milestone\":" + Json(milestone) +
                     ",\"trigger\":" + Json(trigger) +
-                    ",\"explorationStartMode\":" +
-                    Json(explorationStartMode) +
+                    ",\"sessionLoadMode\":" +
+                    Json(sessionLoadMode) +
                     ",\"serverObserved\":" + Bool(serverObserved) +
                     ",\"clientObserved\":" + Bool(clientObserved) +
                     ",\"elapsedMilliseconds\":" +
@@ -647,7 +660,7 @@ namespace SephiriaEnhancements.Diagnostics
                 writer.Start();
                 WriteLine("{\"event\":\"log_start\",\"time\":" + TimeValue() +
                     ",\"utc\":" + Json(DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)) +
-                    ",\"schemaVersion\":6,\"modVersion\":" +
+                    ",\"schemaVersion\":7,\"modVersion\":" +
                     Json(typeof(DeveloperLogger).Assembly.GetName().Version.ToString(3)) +
                     ",\"gameVersion\":" + Json(Application.version) +
                     ",\"resolution\":{\"width\":" + Screen.width + ",\"height\":" + Screen.height + "}}");
@@ -1001,8 +1014,13 @@ namespace SephiriaEnhancements.Diagnostics
             float elapsedMilliseconds, bool completed)
         { }
 
+        internal static void RecordLocalGameplayContext(
+            LocalGameplayContextChange change, long epoch, uint playerNetId,
+            string floorGuid, bool traveling)
+        { }
+
         internal static void RecordLoadingMilestone(int loadAttemptId,
-            string milestone, string trigger, string explorationStartMode,
+            string milestone, string trigger, string sessionLoadMode,
             bool serverObserved, bool clientObserved,
             float elapsedMilliseconds, string floorGuid, string floorName,
             string detail)

@@ -12,6 +12,10 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         internal static bool Validate()
         {
             var missing = new List<string>();
+            NativeContractProbe.RequireMethod(typeof(DungeonManager),
+                nameof(DungeonManager.LoadStageAndMove), missing, typeof(string));
+            NativeContractProbe.RequireField(typeof(DungeonManager),
+                nameof(DungeonManager.isRunStarted), missing);
             NativeContractProbe.RequireMethod(typeof(Money), "AddToInventory", missing,
                 typeof(PlayerAvatar));
             NativeContractProbe.RequireMethod(typeof(SeedBossSpawner),

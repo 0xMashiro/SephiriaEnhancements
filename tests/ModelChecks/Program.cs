@@ -355,6 +355,8 @@ if (multiplayerRulesSession.TryGetActive(out _))
     throw new InvalidOperationException(
         "multiplayer rules must release exploration-owned state when exploration ends");
 Console.WriteLine("MultiplayerRulesSession: freeze, sparse resolution and release passed");
+Console.WriteLine("MultiplayerRulesLifecycle: " + MultiplayerRulesLifecycleChecks.Run());
+Console.WriteLine("LocalGameplayContext: " + LocalGameplayContextChecks.Run());
 
 var multiplayerRulesTexts = new Dictionary<(string Language, string Key), string>();
 int multiplayerLocalizationRegistrations = 0;

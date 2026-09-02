@@ -51,8 +51,8 @@ namespace SephiriaEnhancements.Runtime
 
         internal int ContractVersion => CurrentContractVersion;
         internal string GameBuildFingerprint { get; }
-        // Invalidates floor-bound state on both session start and floor allocation.
-        // Keep this distinct from a true run/session identifier.
+        // Invalidates local state on world load, player replacement, departure
+        // and floor entry. This is neither a run ID nor a count of generated floors.
         internal long GameplayContextEpoch { get; }
         internal long RuntimeRevision { get; }
         internal long InventoryRevision { get; }

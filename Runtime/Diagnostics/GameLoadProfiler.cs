@@ -8,12 +8,12 @@ namespace SephiriaEnhancements.Diagnostics
     internal static class GameLoadProfiler
     {
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
-        private const string UnknownExplorationStartMode = "unknown";
+        private const string UnknownSessionLoadMode = "unknown";
 
         private static long loadAttemptStartedAt;
         private static int loadAttemptId;
         private static string trigger;
-        private static string explorationStartMode;
+        private static string sessionLoadMode;
         private static string floorGuid;
         private static string floorName;
         private static bool observingLoadAttempt;
@@ -28,7 +28,7 @@ namespace SephiriaEnhancements.Diagnostics
             loadAttemptStartedAt = 0;
             loadAttemptId = 0;
             trigger = null;
-            explorationStartMode = UnknownExplorationStartMode;
+            sessionLoadMode = UnknownSessionLoadMode;
             floorGuid = null;
             floorName = null;
             observingLoadAttempt = false;
@@ -53,22 +53,22 @@ namespace SephiriaEnhancements.Diagnostics
             return observingLoadAttempt ? loadAttemptId : 0;
         }
 
-        internal static void ObserveClientExplorationStarted(
+        internal static void ObserveClientSessionStarted(
             bool isSavedSession)
         {
-            EnsureAttempt("client_exploration_start");
+            EnsureAttempt("client_session_start");
             clientObserved = true;
-            explorationStartMode = ToExplorationStartMode(isSavedSession);
-            RecordMilestone("client_exploration_started", null);
+            sessionLoadMode = ToSessionLoadMode(isSavedSession);
+            RecordMilestone("client_session_started", null);
         }
 
-        internal static void ObserveServerExplorationStarted(
+        internal static void ObserveServerSessionStarted(
             bool isSavedSession)
         {
-            EnsureAttempt("server_exploration_start");
+            EnsureAttempt("server_session_start");
             serverObserved = true;
-            explorationStartMode = ToExplorationStartMode(isSavedSession);
-            RecordMilestone("server_exploration_started", null);
+            sessionLoadMode = ToSessionLoadMode(isSavedSession);
+            RecordMilestone("server_session_started", null);
         }
 
         internal static void ObserveFloorAllocated(string guid, string name)
@@ -176,7 +176,7 @@ namespace SephiriaEnhancements.Diagnostics
             loadAttemptId++;
             loadAttemptStartedAt = Stopwatch.GetTimestamp();
             trigger = attemptTrigger;
-            explorationStartMode = UnknownExplorationStartMode;
+            sessionLoadMode = UnknownSessionLoadMode;
             floorGuid = null;
             floorName = null;
             observingLoadAttempt = true;
@@ -191,12 +191,12 @@ namespace SephiriaEnhancements.Diagnostics
         private static void RecordMilestone(string milestone, string detail)
         {
             DeveloperLogger.RecordLoadingMilestone(loadAttemptId, milestone,
-                trigger, explorationStartMode, serverObserved, clientObserved,
+                trigger, sessionLoadMode, serverObserved, clientObserved,
                 ElapsedMilliseconds(loadAttemptStartedAt), floorGuid, floorName,
                 detail);
         }
 
-        private static string ToExplorationStartMode(bool isSavedSession)
+        private static string ToSessionLoadMode(bool isSavedSession)
         {
             return isSavedSession ? "resume" : "new";
         }
@@ -214,11 +214,11 @@ namespace SephiriaEnhancements.Diagnostics
             return 0;
         }
 
-        internal static void ObserveClientExplorationStarted(
+        internal static void ObserveClientSessionStarted(
             bool isSavedSession)
         { }
 
-        internal static void ObserveServerExplorationStarted(
+        internal static void ObserveServerSessionStarted(
             bool isSavedSession)
         { }
 

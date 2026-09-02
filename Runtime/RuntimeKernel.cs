@@ -1,5 +1,6 @@
 #nullable disable
 using SephiriaEnhancements.Runtime.GameBridge.Inventory;
+using SephiriaEnhancements.Runtime.GameBridge;
 using SephiriaEnhancements.Runtime.Inventory;
 
 using System;
@@ -23,6 +24,8 @@ namespace SephiriaEnhancements.Runtime
             new EncounterLifecycleHub();
         private readonly InventoryStateStore inventoryStateStore =
             new InventoryStateStore();
+        private readonly NativeLocalGameplayContext localGameplayContext =
+            new NativeLocalGameplayContext();
         private TabletProjectionReader tabletProjectionReader;
         private RuntimeStateHub stateHub;
         private PlayerAvatar attachedPlayer;
@@ -48,6 +51,7 @@ namespace SephiriaEnhancements.Runtime
 
         internal event Action<RuntimeStateSnapshot> StateChanged;
         internal event Action<EncounterLifecycleEvent> EncounterLifecycleChanged;
+        internal event Action<LocalGameplayContextChange> GameplayContextChanged;
 
         internal void Initialize()
         {
@@ -57,6 +61,7 @@ namespace SephiriaEnhancements.Runtime
             }
 
             initialized = true;
+            localGameplayContext.Changed += BeginGameplayContext;
             Assembly gameAssembly = typeof(HorayModAPI).Assembly;
             string fingerprint = "game=" + Application.version +
                 ";unity=" + Application.unityVersion +
@@ -77,7 +82,10 @@ namespace SephiriaEnhancements.Runtime
             nextMetricsAt = Time.unscaledTime + InitialMetricsInterval;
         }
 
-        internal void BeginGameplayContext()
+        internal void BeginWorldSession() =>
+            BeginGameplayContext(LocalGameplayContextChange.WorldSessionLoaded);
+
+        private void BeginGameplayContext(LocalGameplayContextChange change)
         {
             DetachGridInventory();
             InventoryEvaluationOrderTraceSignal.Clear();
@@ -97,6 +105,13 @@ namespace SephiriaEnhancements.Runtime
             settledInventoryCapturePending = false;
             inventoryCaptureNotBeforeFrame = 0;
             inventoryCaptureDeadlineFrame = 0;
+            PlayerAvatar player = localGameplayContext.Player;
+            DeveloperLogger.RecordLocalGameplayContext(change,
+                runtimeState?.GameplayContextEpoch ?? 0,
+                player != null ? player.netId : 0,
+                localGameplayContext.FloorGuid,
+                localGameplayContext.IsTraveling);
+            GameplayContextChanged?.Invoke(change);
         }
 
         internal bool TryGetProjectableInventorySnapshot(
@@ -132,6 +147,7 @@ namespace SephiriaEnhancements.Runtime
             }
 
             initialized = false;
+            localGameplayContext.Dispose();
             NativeEncounterLifecycleCapture.SetObserver(null);
             HorayModAPI.GridInventoryStartPermission -=
                 OnGridInventoryStartPermission;
@@ -152,6 +168,7 @@ namespace SephiriaEnhancements.Runtime
             encounterLifecycleHub.Changed -= ForwardEncounterLifecycleChanged;
             StateChanged = null;
             EncounterLifecycleChanged = null;
+            GameplayContextChanged = null;
         }
 
         private void ObserveEncounterLifecycle(
@@ -176,6 +193,7 @@ namespace SephiriaEnhancements.Runtime
 
             float now = Time.unscaledTime;
             StartupProfiler.ObserveFirstFrame();
+            localGameplayContext.Poll();
             GameLoadProfiler.Poll();
             RefreshNativePresetIfChanged();
             CapturePendingInventory();
@@ -203,7 +221,8 @@ namespace SephiriaEnhancements.Runtime
         private void ReconcileLocalPlayer()
         {
             metrics.RecordEvent(RuntimeEventKind.Reconciliation);
-            PlayerAvatar player = ResolveLocalPlayer();
+            if (localGameplayContext.IsTraveling) return;
+            PlayerAvatar player = localGameplayContext.Player;
             if (player == null)
             {
                 if (attachedPlayer != null || attachedGridInventory != null)
@@ -220,20 +239,6 @@ namespace SephiriaEnhancements.Runtime
             {
                 AttachGridInventory(player);
             }
-        }
-
-        private static PlayerAvatar ResolveLocalPlayer()
-        {
-            PlayerAvatar player = CombatManager.Instance?.CurrentPlayer;
-            if (player != null && LocalPlayerResolver.IsLocal(player))
-            {
-                return player;
-            }
-
-            player = GameCamera.Instance?.Observer;
-            return player != null && LocalPlayerResolver.IsLocal(player)
-                ? player
-                : null;
         }
 
         private void AttachGridInventory(PlayerAvatar player)

@@ -75,6 +75,7 @@
     <Compile Include="..\..\Runtime\Contracts\EncounterLifecycleEvent.cs" Link="Runtime\EncounterLifecycleEvent.cs" />
     <Compile Include="..\..\Runtime\Inventory\InventoryCatalogSnapshot.cs" Link="Runtime\InventoryCatalogSnapshot.cs" />
     <Compile Include="..\..\Runtime\State\RuntimeStateHub.cs" Link="Runtime\RuntimeStateHub.cs" />
+    <Compile Include="..\..\Runtime\State\LocalGameplayContextTracker.cs" Link="Runtime\LocalGameplayContextTracker.cs" />
     <Compile Include="..\..\Runtime\State\EncounterLifecycleHub.cs" Link="Runtime\EncounterLifecycleHub.cs" />
     <Compile Include="..\..\Runtime\State\InventoryStateStore.cs" Link="Runtime\InventoryStateStore.cs" />
     <Compile Include="..\..\Runtime\Diagnostics\RuntimeMetrics.cs" Link="Runtime\RuntimeMetrics.cs" />

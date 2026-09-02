@@ -2,6 +2,12 @@ namespace SephiriaEnhancements.MultiplayerRules
 {
     internal static class MultiplayerRulesLifecyclePolicy
     {
+        internal static bool ShouldBeginNewExploration(bool serverActive,
+            bool explorationStarted)
+        {
+            return serverActive && !explorationStarted;
+        }
+
         internal static bool RequiresNativeBehaviorHooks(
             MultiplayerRulesPreset preset)
         {

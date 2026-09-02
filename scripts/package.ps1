@@ -60,6 +60,7 @@ if ((Test-Path -LiteralPath $zipPath) -or (Test-Path -LiteralPath $checksumPath)
 New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 
 $files = @(
+    [pscustomobject]@{ Source = Join-Path $repoRoot 'LICENSE'; Entry = 'LICENSE' }
     [pscustomobject]@{ Source = Join-Path $repoRoot 'README.md'; Entry = 'README.md' }
     [pscustomobject]@{ Source = Join-Path $repoRoot 'README.zh-CN.md'; Entry = 'README.zh-CN.md' }
     [pscustomobject]@{ Source = $metadataPath; Entry = 'AddOns/SephiriaEnhancements/metadata.json' }

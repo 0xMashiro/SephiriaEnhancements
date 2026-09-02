@@ -1035,6 +1035,7 @@ if (EncounterReportPresentationPolicy.DisplaySeconds(bossReport) != 8f)
 Console.WriteLine("EncounterReportSnapshot: frozen rows, duration and safe names passed");
 
 var reportWindow = new ReportDisplayWindow();
+CombatInsightsInteractionChecks.Run();
 reportWindow.Start(10f, 6f);
 reportWindow.SetPresentationAvailable(available: false, 12f);
 if (!reportWindow.IsOpen(30f) || reportWindow.IsVisible(30f))

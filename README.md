@@ -60,7 +60,8 @@ gamepad controls.
 | --- | --- |
 | Switch locked target | Middle mouse or `L`; right-stick press on gamepad |
 | Toggle current-floor overlay | `M` |
-| Toggle damage statistics | `C` |
+| Open/close the latest combat report | Tap `F7` outside combat |
+| Hide/restore damage statistics | Hold `F7` for 0.5 seconds |
 | Arrange the open backpack (experimental) | `F8` |
 | Secondary UI action | Sephiria's current `UI/ThrowItem` binding |
 | Rotate or favorite item | Sephiria's current `UI/RotateItem` binding |
@@ -69,6 +70,14 @@ gamepad controls.
 
 Native bindings and player rebinds take priority. The Mod does not freeze Sephiria's
 current physical keys.
+
+Both statistics gestures use the same rebindable shortcut. With damage statistics
+enabled, a report can be reopened after its automatic display expires. Manually
+opened reports stay open until dismissed or another fight starts. The latest
+report is retained on the current floor until a new report replaces it; changing
+floors, defeat, ending the run, or disabling damage statistics clears it. Moving
+and attacking alone do not dismiss an automatic report. Hiding the display keeps
+recording damage. State changes use the game's text notifications.
 
 ## Important behavior
 

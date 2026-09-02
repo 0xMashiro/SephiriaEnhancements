@@ -47,6 +47,16 @@ namespace SephiriaEnhancements.Configuration
         internal const string SuiteOn = "SephiriaEnhancements.Suite.On";
         internal const string InsightsDisabled =
             "SephiriaEnhancements.CombatInsights.Disabled";
+        internal const string DamageStatisticsDisplayHidden =
+            "SephiriaEnhancements.CombatInsights.DisplayHidden";
+        internal const string DamageStatisticsDisplayRestored =
+            "SephiriaEnhancements.CombatInsights.DisplayRestored";
+        internal const string EncounterReportOpened =
+            "SephiriaEnhancements.CombatInsights.ReportOpened";
+        internal const string EncounterReportClosed =
+            "SephiriaEnhancements.CombatInsights.ReportClosed";
+        internal const string EncounterReportUnavailable =
+            "SephiriaEnhancements.CombatInsights.ReportUnavailable";
         internal const string DeveloperConsoleOff =
             "SephiriaEnhancements.DeveloperConsole.Off";
         internal const string DeveloperConsoleOn =
@@ -154,7 +164,10 @@ namespace SephiriaEnhancements.Configuration
                     "DAMAGE MIX", "physical", "fire", "ice", "lightning",
                     "chaos", "normal", "mixed", "other",
                     "Smart uses rolling 5-second DPS in ordinary fights. Boss fights use cumulative damage ranking, contribution share, and a live MVP marker. The centered encounter report shows totals, average DPS, elemental damage mix, and defeated enemy types.",
-                    "Disabled"),
+                    "Disabled", "Damage statistics display hidden",
+                    "Damage statistics display restored",
+                    "Latest combat report opened", "Combat report closed",
+                    "No combat report available on this floor"),
                 ["zh-CN"] = I("伤害统计", "智能", "仅 BOSS", "每场战斗",
                     "DPS", "击败", "我的终结", "普通", "小头目", "BOSS",
                     "战斗统计", "DMG · 占比", "DMG · 平均 DPS",
@@ -162,7 +175,8 @@ namespace SephiriaEnhancements.Configuration
                     "伤害构成", "物理", "火焰", "冰霜", "闪电", "混沌",
                     "普通", "混合", "其他",
                     "智能模式在普通战斗中显示近 5 秒 DPS；BOSS 战按累计伤害实时排名，显示贡献占比并标记当前 MVP。居中的单场战报显示总伤害、整场平均 DPS、元素伤害构成与各类敌人击败数量。",
-                    "关闭"),
+                    "关闭", "伤害统计显示已隐藏", "伤害统计显示已恢复",
+                    "已打开最近一场战报", "战报已收起", "本层暂无可查看的战报"),
                 ["zh-TW"] = I("傷害統計", "智慧", "僅 BOSS", "每場戰鬥",
                     "DPS", "擊敗", "我的終結", "普通", "小頭目", "BOSS",
                     "戰鬥統計", "DMG · 佔比", "DMG · 平均 DPS",
@@ -170,7 +184,8 @@ namespace SephiriaEnhancements.Configuration
                     "傷害構成", "物理", "火焰", "冰霜", "閃電", "混沌",
                     "普通", "混合", "其他",
                     "智慧模式在普通戰鬥中顯示近 5 秒 DPS；BOSS 戰按累計傷害即時排名，顯示貢獻占比並標記目前 MVP。置中的單場戰報顯示總傷害、整場平均 DPS、元素傷害構成與各類敵人擊敗數量。",
-                    "關閉")
+                    "關閉", "傷害統計顯示已隱藏", "傷害統計顯示已恢復",
+                    "已開啟最近一場戰報", "戰報已收起", "本層暫無可查看的戰報")
             };
 
         private static readonly Dictionary<string, Dictionary<string, string>> Texts =
@@ -626,7 +641,9 @@ namespace SephiriaEnhancements.Configuration
             string reportDamageMix, string damagePhysical, string damageFire,
             string damageIce, string damageLightning, string damageChaos,
             string damageNormal, string damageMixed, string damageOther,
-            string policyHelp, string disabled)
+            string policyHelp, string disabled, string displayHidden,
+            string displayRestored, string reportOpened, string reportClosed,
+            string reportUnavailable)
         {
             return new Dictionary<string, string>
             {
@@ -635,6 +652,11 @@ namespace SephiriaEnhancements.Configuration
                 [DisplayPolicyKeys[1]] = bossOnly,
                 [DisplayPolicyKeys[2]] = allCombat,
                 [InsightsDisabled] = disabled,
+                [DamageStatisticsDisplayHidden] = displayHidden,
+                [DamageStatisticsDisplayRestored] = displayRestored,
+                [EncounterReportOpened] = reportOpened,
+                [EncounterReportClosed] = reportClosed,
+                [EncounterReportUnavailable] = reportUnavailable,
                 [HelpDisplayPolicy] = policyHelp,
                 [Dps] = dps,
                 [Defeated] = defeated,

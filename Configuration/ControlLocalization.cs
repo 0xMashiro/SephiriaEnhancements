@@ -181,21 +181,9 @@ namespace SephiriaEnhancements.Configuration
             ToggleDamageStatisticsTexts =
             new Dictionary<string, string>
             {
-                ["en-US"] = "Hide/show damage statistics",
-                ["zh-CN"] = "隐藏/显示伤害统计",
-                ["zh-TW"] = "隱藏/顯示傷害統計",
-                ["ko-KR"] = "피해 통계 숨기기/표시",
-                ["ja-JP"] = "ダメージ統計を表示/非表示",
-                ["de-DE"] = "Schadensanzeige ein-/ausblenden",
-                ["es-ES"] = "Ocultar/mostrar estadísticas de daño",
-                ["fr-FR"] = "Masquer/afficher les statistiques",
-                ["it-IT"] = "Nascondi/mostra statistiche danni",
-                ["pl-PL"] = "Ukryj/pokaż statystyki obrażeń",
-                ["pt-BR"] = "Ocultar/mostrar estatísticas de dano",
-                ["ru-RU"] = "Скрыть/показать статистику урона",
-                ["sv-SE"] = "Dölj/visa skadestatistik",
-                ["th-TH"] = "ซ่อน/แสดงสถิติความเสียหาย",
-                ["tr-TR"] = "Hasar istatistiklerini gizle/göster"
+                ["en-US"] = "Combat report (tap) / statistics display (hold)",
+                ["zh-CN"] = "战报（短按）/统计显示（长按）",
+                ["zh-TW"] = "戰報（短按）/統計顯示（長按）"
             };
 
         private static readonly Dictionary<string, string> OptimizeInventoryTexts =

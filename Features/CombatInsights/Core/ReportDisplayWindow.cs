@@ -18,6 +18,18 @@ namespace SephiriaEnhancements.Combat
             unavailableSince = -1f;
         }
 
+        internal void OpenUntilDismissed()
+        {
+            endsAt = float.PositiveInfinity;
+            unavailableSince = -1f;
+        }
+
+        internal void CloseForEncounter(bool bossActive, bool ordinaryActive,
+            bool hasContribution)
+        {
+            if (bossActive || (ordinaryActive && hasContribution)) Clear();
+        }
+
         internal void SetPresentationAvailable(bool available, float now)
         {
             if (!available)

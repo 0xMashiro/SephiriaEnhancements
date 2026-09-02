@@ -107,6 +107,9 @@ internal static class InventoryItemIdentityChecks
         Require(expected.Tablets.Count == 3 &&
             InventorySettlementDifferentialVerifier.Compare(source, target, expected, actual).Matched,
             "movable tablets and a fixed source sharing an item key must retain separate settlements");
+        Require(InventoryApplicationConfirmation.VerifyStep(actual, source, target).Matched &&
+            !InventoryApplicationConfirmation.VerifyStep(Tablets(1, 1), source, target).Matched,
+            "confirming one rotation must reject a concurrent rotation of another tablet");
     }
 
     private static InventorySnapshot Tablets(int firstRotation, int secondRotation)

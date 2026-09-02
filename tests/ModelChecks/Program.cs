@@ -19,6 +19,13 @@ using SephiriaEnhancements.ModelChecks.Runtime.GameBridge.Multiplayer;
 using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 
+if (args.Contains("--inventory-application-only"))
+{
+    Console.WriteLine("InventoryLocalRuntime: " + InventoryLocalRuntimeChecks.Run());
+    Console.WriteLine("InventoryItemIdentity: " + InventoryItemIdentityChecks.Run());
+    return;
+}
+
 if (args.Contains("--inventory-hard-only"))
 {
     InventoryHardConstraintChecks.Run();

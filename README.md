@@ -22,30 +22,6 @@ for Sephiria. Built on the game's AddOns system—no BepInEx installation requir
 | Solo and co-op | Optional native companion, defeat checkpoints, mid-run joining/reconnect support, and configurable 1–4 player rules |
 | Inventory | Experimental one-key arrangement using the Mod's verified solver or Sephiria's artifact-level arranger |
 
-Inventory optimization works automatically by default. Optionally place artifacts
-in the priority queue or exclusion area. Click or drag marks to move them; right-click
-removes a mark. New priority marks default to automatic goals: ordinary artifacts target
-their effective level cap, in queue order. An unreachable earlier goal still allows
-best-effort progress on later goals. Upgrades that worsen direct negative stats are
-limited automatically. Explicit exclusions and goals precede default effect protection;
-when goal fulfillment ties, the solver prefers preserving modeled effects.
-Use the current target-switch binding over a hovered or focused priority artifact to
-open optional settings. Click the mode button to cycle Auto, Keep active, and a specified
-level; use the plus/minus buttons for the specified level. Mode and level follow the
-artifact when reordered. A specified higher level can opt into its direct stat penalties.
-Keep-inactive marks have equal priority and precede the artifact queue; items remain in
-the inventory. If equally satisfactory layouts both involve modeled tradeoffs, fewer
-moves and rotations break the tie rather than treating higher levels as better damage.
-After a verified result, each slot's
-bottom strip is green for satisfied, yellow for partial, or red for unmet. Gray means no
-current verified result. Hover or focus a slot to see its current/target levels and state
-in the existing hint area. Changed goals, inventory or gameplay context clear old colors.
-Combo targets have
-their own editor: Priority 0 imposes no minimum count, and Avoid N tries to keep the
-count at or below N. Rules default to best effort (Soft); unmet Soft goals do not
-prevent the rest of the inventory from being optimized. Optional mandatory (Hard)
-rules must all hold before a layout can be applied.
-
 Keyboard support is designed for fast, mouse-free menu flow, including speedrun-style
 play, while continuing to follow Sephiria's current semantic actions and player rebinds.
 
@@ -60,7 +36,7 @@ disabled by default.
    [latest release](https://github.com/0xMashiro/SephiriaEnhancements/releases/latest).
 3. Verify the ZIP checksum.
 4. Extract it into the folder containing `Sephiria.exe`, merging `AddOns` if asked.
-5. Start the game and open
+5. Start the game, enter a save, and open
    `Options → Gameplay → SEPHIRIA ENHANCEMENTS · by 0xMashiro`.
 
 Expected layout:
@@ -106,30 +82,52 @@ Level-up reminders and brief flashes also leave reports visible. Menus, loading,
 screen transitions, and cutscenes temporarily hide reports and preserve their
 remaining display time; manually opened reports resume without a timeout.
 
-## Important behavior
+## Inventory optimization (experimental)
 
-Artifact goals, exclusions and combo counts can each be marked mandatory (Hard).
-Use the target-switch shortcut over an artifact mark to edit its goal and strength;
-`!` marks a mandatory rule. Combo rules expose the same toggle in target settings.
-Proven infeasibility and failure to find a feasible layout within the search budget
-are reported separately. Green means met, yellow means partial Soft progress, and
-red means unmet; unmet Hard goals are red.
+Open the backpack and press `F8` to optimize without configuring goals. Optional
+priority marks use automatic level targets, so there is no need to assign a level
+to every slot. Ordinary artifacts target their effective level cap; automatic
+targets are limited when upgrades worsen direct negative stats.
 
-Inventory research, experiment results and remaining mechanism questions are tracked in
-[issue #1](https://github.com/0xMashiro/SephiriaEnhancements/issues/1).
-This repository keeps production code and regression checks; research tools are archived separately.
+- Place artifacts in the six-slot priority queue or the keep-inactive area. Click
+  or drag marks to reorder them; right-click removes a mark. Excluded items remain
+  in the backpack.
+- Hover or focus an artifact mark and use the current target-switch binding to
+  edit it. Choose Auto, Keep active, or a specified level. Mode, level, and rule
+  strength follow the artifact when reordered. A specified higher level can accept
+  its direct stat penalties.
+- Rules default to best effort (Soft). Artifact goals, exclusions, and combo rules
+  can individually be made mandatory (Hard), marked with `!`. Combo rules use their
+  own editor: Priority 0 sets no minimum; Avoid N targets a count at or below N.
+  Combo rules persist between runs; artifact marks apply to the current run.
 
-- Inventory arrangement is experimental. It reads the installing player's synchronized
-  inventory and applies changes through normal game operations; it never edits save
-  files directly.
-  The solver first satisfies all Hard rules, then compares Soft exclusions,
-  artifact goals in queue order, and other manual targets before default effect
-  protection. Position-effect values, offsets and thresholds are read from the
-  running game. When goal fulfillment ties, preserving modeled benefits takes
-  precedence; if both layouts involve tradeoffs, fewer moves and rotations win
-  without treating total levels as combat value.
-  Unreadable or unverifiable mechanics stop optimization. Refresh order for multiple
-  sources of the same-row companion mode is not yet supported.
+The Mod solver requires all Hard rules in the final layout. It then considers Soft
+exclusions, artifact slots 1–6 in order, other manual goals, and default preferences.
+Later gains do not outweigh an earlier goal. If an earlier Soft goal cannot be fully
+met, the solver still optimizes later goals without sacrificing its achieved progress.
+When goals tie, it favors preserving modeled benefits; if both layouts involve
+tradeoffs, it prefers fewer moves and rotations.
+
+Verified results use **green** for satisfied, **yellow** for partial Soft progress,
+and **red** for unmet requirements. Unmet Hard rules are always red. **Gray** means
+there is no current verified result. Hover or focus a mark for current/target values;
+changes to goals, inventory, or gameplay context clear old colors. Colors indicate
+requirement satisfaction, not combat damage.
+
+If no Hard-feasible result is found, no layout is applied. The message distinguishes
+proven infeasibility from a search that ran out of options or budget. Application uses
+normal game operations and checks the whole layout and modeled settlement after
+each move or rotation. Unexpected changes stop further operations; completed moves
+are not automatically undone. Hard rules constrain the final layout, not every
+intermediate swap.
+
+Not all special-item interactions are supported. Unknown or unverifiable mechanics
+can prevent optimization; spell-link effects, multiple same-row companion sources,
+and special arrangement bonuses remain outside full support. Mechanics and evaluation
+work are tracked in [issue #1](https://github.com/0xMashiro/SephiriaEnhancements/issues/1).
+
+## Other important behavior
+
 - Defeat retry restores the selected floor-entry or BOSS checkpoint. Online use requires
   Sephiria's rejoin/midsave support.
 - Mid-run access is host-controlled. New players receive new characters and save slots;

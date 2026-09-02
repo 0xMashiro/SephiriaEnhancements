@@ -210,6 +210,8 @@ namespace SephiriaEnhancements
                 typeof(KeyboardBasicAttackPatch),
                 typeof(KeyboardSpecialAttackPatch),
                 typeof(ViewDistancePatch),
+                typeof(MessageBoxKeyboardInitialSelectionPatch),
+                typeof(MessageBoxKeyboardRestoredSelectionPatch),
                 typeof(OptionsKeyboardEmptyFocusPatch),
                 typeof(KeyboardControlsChangedPatch),
                 typeof(ItemIconKeyboardSubmitPatch),

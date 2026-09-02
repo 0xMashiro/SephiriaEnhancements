@@ -311,13 +311,15 @@ namespace SephiriaEnhancements.Diagnostics
             bool hiddenByUser, bool hudAttached, bool hudActiveInHierarchy,
             int controlCount, string controlType, bool levelUpIndicatorVisible,
             bool flashScreenVisible, bool screenFading, bool cutSceneActive,
-            bool playerLoading)
+            bool playerLoading, string reportState, string presentationBlock)
         {
             if (!IsEnabled) return;
             WriteLine("{\"event\":\"combat_insights_visibility\",\"time\":" +
                 TimeValue() + ",\"reason\":" + Json(reason) +
                 ",\"displayPolicy\":" + Json(displayPolicy) +
                 ",\"viewMode\":" + Json(viewMode) +
+                ",\"reportState\":" + Json(reportState) +
+                ",\"presentationBlock\":" + Json(presentationBlock) +
                 ",\"encounterActive\":" + Bool(encounterActive) +
                 ",\"bossActive\":" + Bool(bossActive) +
                 ",\"encounterReportOpen\":" + Bool(encounterReportOpen) +
@@ -1041,7 +1043,7 @@ namespace SephiriaEnhancements.Diagnostics
             bool hiddenByUser, bool hudAttached, bool hudActiveInHierarchy,
             int controlCount, string controlType, bool levelUpIndicatorVisible,
             bool flashScreenVisible, bool screenFading, bool cutSceneActive,
-            bool playerLoading)
+            bool playerLoading, string reportState, string presentationBlock)
         { }
 
         internal static void RecordRuntimeMetrics(

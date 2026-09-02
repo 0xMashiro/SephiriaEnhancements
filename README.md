@@ -78,6 +78,9 @@ report is retained on the current floor until a new report replaces it; changing
 floors, defeat, ending the run, or disabling damage statistics clears it. Moving
 and attacking alone do not dismiss an automatic report. Hiding the display keeps
 recording damage. State changes use the game's text notifications.
+Level-up reminders and brief flashes also leave reports visible. Menus, loading,
+screen transitions, and cutscenes temporarily hide reports and preserve their
+remaining display time; manually opened reports resume without a timeout.
 
 ## Important behavior
 

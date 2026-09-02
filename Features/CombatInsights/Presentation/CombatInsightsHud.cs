@@ -57,6 +57,7 @@ namespace SephiriaEnhancements.Presentation
         private bool attachWarningLogged;
 
         internal bool IsAttached => pulseObject != null;
+        internal bool IsReportPresented => IsPresented(reportObject, reportGroup);
         internal bool IsActiveInHierarchy =>
             IsPresented(pulseObject, pulseGroup) ||
             IsPresented(ledgerObject, ledgerGroup) ||

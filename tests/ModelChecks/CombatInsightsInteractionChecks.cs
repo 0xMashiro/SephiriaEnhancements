@@ -49,6 +49,8 @@ internal static class CombatInsightsInteractionChecks
             Require(report.IsVisible(now), "ordinary input preserves automatic duration");
         }
         Require(!report.IsOpen(16.1f), "automatic report still expires normally");
+        Require(report.State(16.1f) == ReportDisplayState.Expired,
+            "timeout is distinct from explicit dismissal");
         report.OpenUntilDismissed();
         Require(report.IsVisible(1000f), "expired report can reopen without a timeout");
         report.SetPresentationAvailable(false, 1001f);
@@ -56,18 +58,39 @@ internal static class CombatInsightsInteractionChecks
             "menu pauses a manually opened report");
         report.SetPresentationAvailable(true, 2001f);
         Require(report.IsVisible(3000f), "manual report resumes after menu");
-        report.Clear();
+        report.Clear(ReportDisplayState.Dismissed);
         Require(!report.IsOpen(3000f), "explicit dismissal closes report");
+        Require(report.State(3000f) == ReportDisplayState.Dismissed,
+            "explicit dismissal has its own diagnostic state");
         report.OpenUntilDismissed();
         report.CloseForEncounter(false, false, true);
         Require(report.IsVisible(3001f), "completed encounter totals do not dismiss report");
         report.CloseForEncounter(false, true, true);
         Require(!report.IsOpen(3001f), "new ordinary contribution closes old report");
+        Require(report.State(3001f) == ReportDisplayState.CombatStarted,
+            "next encounter is distinct from dismissal and timeout");
         report.OpenUntilDismissed();
         report.CloseForEncounter(true, false, false);
         Require(!report.IsOpen(3002f), "boss start closes old report immediately");
         report.Start(4000f, 6f);
         Require(!report.IsOpen(4007f), "new automatic report replaces manual lifetime");
+
+        report.Start(5000f, 6f);
+        report.SetPresentationAvailable(false, 5000f);
+        Require(!report.IsVisible(5000f) && report.IsOpen(5000f),
+            "a newly published report can be deferred in the same frame");
+        Require(report.State(5000f) == ReportDisplayState.Paused,
+            "presentation blocking pauses rather than dismisses the report");
+        report.SetPresentationAvailable(true, 5020f);
+        Require(report.IsVisible(5025.9f) && !report.IsOpen(5026.1f),
+            "a report deferred at publication keeps its full reading duration");
+        report.SetPresentationAvailable(false, 5027f);
+        report.SetPresentationAvailable(true, 5030f);
+        Require(report.State(5030f) == ReportDisplayState.Expired,
+            "later blocking does not reopen an already expired report");
+        report.Clear();
+        Require(report.State(10000f) == ReportDisplayState.Closed,
+            "context reset clears the previous display reason");
 
         using JsonDocument document = JsonDocument.Parse(ModShortcuts.ActionMapJson);
         JsonElement binding = document.RootElement.GetProperty("maps")[0]

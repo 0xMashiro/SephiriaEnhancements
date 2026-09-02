@@ -1,9 +1,20 @@
 namespace SephiriaEnhancements.Combat
 {
+    internal enum ReportDisplayState
+    {
+        Closed,
+        Visible,
+        Paused,
+        Expired,
+        Dismissed,
+        CombatStarted
+    }
+
     internal sealed class ReportDisplayWindow
     {
         private float endsAt = -1f;
         private float unavailableSince = -1f;
+        private ReportDisplayState closedState = ReportDisplayState.Closed;
 
         internal bool HasStarted => endsAt >= 0f;
         internal bool IsPaused => unavailableSince >= 0f;
@@ -11,6 +22,10 @@ namespace SephiriaEnhancements.Combat
             now <= endsAt;
         internal bool IsVisible(float now) => unavailableSince < 0f &&
             now <= endsAt;
+
+        internal ReportDisplayState State(float now) => !HasStarted ? closedState
+            : IsPaused ? ReportDisplayState.Paused
+            : IsVisible(now) ? ReportDisplayState.Visible : ReportDisplayState.Expired;
 
         internal void Start(float now, float duration)
         {
@@ -27,7 +42,8 @@ namespace SephiriaEnhancements.Combat
         internal void CloseForEncounter(bool bossActive, bool ordinaryActive,
             bool hasContribution)
         {
-            if (bossActive || (ordinaryActive && hasContribution)) Clear();
+            if (HasStarted && (bossActive || (ordinaryActive && hasContribution)))
+                Clear(ReportDisplayState.CombatStarted);
         }
 
         internal void SetPresentationAvailable(bool available, float now)
@@ -44,10 +60,11 @@ namespace SephiriaEnhancements.Combat
             unavailableSince = -1f;
         }
 
-        internal void Clear()
+        internal void Clear(ReportDisplayState state = ReportDisplayState.Closed)
         {
             endsAt = -1f;
             unavailableSince = -1f;
+            closedState = state;
         }
     }
 }

@@ -57,6 +57,16 @@ namespace SephiriaEnhancements.Configuration
             "SephiriaEnhancements.CombatInsights.ReportClosed";
         internal const string EncounterReportUnavailable =
             "SephiriaEnhancements.CombatInsights.ReportUnavailable";
+        internal const string EncounterReportLoading =
+            "SephiriaEnhancements.CombatInsights.ReportLoading";
+        internal const string EncounterReportScreenTransition =
+            "SephiriaEnhancements.CombatInsights.ReportScreenTransition";
+        internal const string EncounterReportCutscene =
+            "SephiriaEnhancements.CombatInsights.ReportCutscene";
+        internal const string EncounterReportMenu =
+            "SephiriaEnhancements.CombatInsights.ReportMenu";
+        internal const string EncounterReportHudUnavailable =
+            "SephiriaEnhancements.CombatInsights.ReportHudUnavailable";
         internal const string DeveloperConsoleOff =
             "SephiriaEnhancements.DeveloperConsole.Off";
         internal const string DeveloperConsoleOn =
@@ -167,7 +177,12 @@ namespace SephiriaEnhancements.Configuration
                     "Disabled", "Damage statistics display hidden",
                     "Damage statistics display restored",
                     "Latest combat report opened", "Combat report closed",
-                    "No combat report available on this floor"),
+                    "No combat report available on this floor",
+                    "Statistics display unavailable while loading",
+                    "Statistics display unavailable during a screen transition",
+                    "Statistics display unavailable during a cutscene",
+                    "Close the menu to view statistics",
+                    "Combat report display is not ready yet"),
                 ["zh-CN"] = I("伤害统计", "智能", "仅 BOSS", "每场战斗",
                     "DPS", "击败", "我的终结", "普通", "小头目", "BOSS",
                     "战斗统计", "DMG · 占比", "DMG · 平均 DPS",
@@ -176,7 +191,10 @@ namespace SephiriaEnhancements.Configuration
                     "普通", "混合", "其他",
                     "智能模式在普通战斗中显示近 5 秒 DPS；BOSS 战按累计伤害实时排名，显示贡献占比并标记当前 MVP。居中的单场战报显示总伤害、整场平均 DPS、元素伤害构成与各类敌人击败数量。",
                     "关闭", "伤害统计显示已隐藏", "伤害统计显示已恢复",
-                    "已打开最近一场战报", "战报已收起", "本层暂无可查看的战报"),
+                    "已打开最近一场战报", "战报已收起", "本层暂无可查看的战报",
+                    "正在加载，暂时无法显示统计", "画面切换中，暂时无法显示统计",
+                    "剧情播放中，暂时无法显示统计", "请关闭菜单后查看统计",
+                    "战报界面尚未就绪"),
                 ["zh-TW"] = I("傷害統計", "智慧", "僅 BOSS", "每場戰鬥",
                     "DPS", "擊敗", "我的終結", "普通", "小頭目", "BOSS",
                     "戰鬥統計", "DMG · 佔比", "DMG · 平均 DPS",
@@ -185,7 +203,10 @@ namespace SephiriaEnhancements.Configuration
                     "普通", "混合", "其他",
                     "智慧模式在普通戰鬥中顯示近 5 秒 DPS；BOSS 戰按累計傷害即時排名，顯示貢獻占比並標記目前 MVP。置中的單場戰報顯示總傷害、整場平均 DPS、元素傷害構成與各類敵人擊敗數量。",
                     "關閉", "傷害統計顯示已隱藏", "傷害統計顯示已恢復",
-                    "已開啟最近一場戰報", "戰報已收起", "本層暫無可查看的戰報")
+                    "已開啟最近一場戰報", "戰報已收起", "本層暫無可查看的戰報",
+                    "正在載入，暫時無法顯示統計", "畫面切換中，暫時無法顯示統計",
+                    "劇情播放中，暫時無法顯示統計", "請關閉選單後查看統計",
+                    "戰報介面尚未就緒")
             };
 
         private static readonly Dictionary<string, Dictionary<string, string>> Texts =
@@ -643,7 +664,8 @@ namespace SephiriaEnhancements.Configuration
             string damageNormal, string damageMixed, string damageOther,
             string policyHelp, string disabled, string displayHidden,
             string displayRestored, string reportOpened, string reportClosed,
-            string reportUnavailable)
+            string reportUnavailable, string reportLoading, string reportScreenTransition,
+            string reportCutscene, string reportMenu, string reportHudUnavailable)
         {
             return new Dictionary<string, string>
             {
@@ -657,6 +679,11 @@ namespace SephiriaEnhancements.Configuration
                 [EncounterReportOpened] = reportOpened,
                 [EncounterReportClosed] = reportClosed,
                 [EncounterReportUnavailable] = reportUnavailable,
+                [EncounterReportLoading] = reportLoading,
+                [EncounterReportScreenTransition] = reportScreenTransition,
+                [EncounterReportCutscene] = reportCutscene,
+                [EncounterReportMenu] = reportMenu,
+                [EncounterReportHudUnavailable] = reportHudUnavailable,
                 [HelpDisplayPolicy] = policyHelp,
                 [Dps] = dps,
                 [Defeated] = defeated,

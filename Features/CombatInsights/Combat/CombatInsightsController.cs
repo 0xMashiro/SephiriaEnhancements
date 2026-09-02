@@ -19,6 +19,7 @@ namespace SephiriaEnhancements.Combat
         StatisticsDisabled,
         LocalPlayerUnavailable,
         NativeControlOpen,
+        PresentationBlocked,
         HiddenByUser,
         HudUnavailable,
         HudSuppressedByHierarchy,
@@ -70,6 +71,7 @@ namespace SephiriaEnhancements.Combat
         private bool runtimeSuspended;
         private bool statisticsWereEnabled = true;
         private string lastVisibilityDiagnostic;
+        private ReportPresentationBlock presentationBlock;
 
         private static bool StatisticsCaptureEnabled =>
             EnhancementsSettings.Enabled &&
@@ -162,7 +164,9 @@ namespace SephiriaEnhancements.Combat
                     CombatInsightsViewMode.Hidden.ToString(), encounterActive,
                     bossEncounter.Active, false, false, false, false,
                     hudHiddenByUser, hud.IsAttached, hud.IsActiveInHierarchy,
-                    0, null, false, false, false, false, false);
+                    0, null, false, false, false, false, false,
+                    reportWindow.State(Time.unscaledTime).ToString(),
+                    presentationBlock.ToString());
                 Debug.LogError("[SephiriaEnhancements] Runtime compatibility failure; " +
                     "Combat Insights disabled until the Mod is reloaded: " + ex);
             }
@@ -186,13 +190,13 @@ namespace SephiriaEnhancements.Combat
             if (!statisticsEnabled && !hitStreakEnabled)
             {
                 statisticsShortcut.Reset();
-                RecordVisibilityDiagnostic(statisticsEnabled, null, false, now);
                 if (!runtimeSuspended)
                 {
                     runtimeSuspended = true;
                     hud.Hide();
                     hitStreakFeedback.Reset();
                 }
+                RecordVisibilityDiagnostic(statisticsEnabled, null, false, now);
                 return;
             }
             if (runtimeSuspended)
@@ -212,25 +216,30 @@ namespace SephiriaEnhancements.Combat
             TrackLocalIdentity(local, now);
             bool menuOpen = UIManager.Instance != null && UIManager.Instance.CurrentControlStack != null;
             bool contextAllowed = local != null && !menuOpen;
-            HandleStatisticsShortcut(contextAllowed, now);
-            reportWindow.CloseForEncounter(bossEncounter.Active, encounterActive,
-                encounterDamage > 0f || defeats.DefeatedCount > 0);
-            bool reportPresentationAvailable = contextAllowed &&
-                !hudHiddenByUser &&
-                !bossEncounter.Active &&
-                !IsNativePresentationBlocking(UIManager.Instance, local);
-            reportWindow.SetPresentationAvailable(
-                reportPresentationAvailable, now);
             // Native spawner clear events are authoritative. This remains only
             // as recovery for missed hooks and non-structured combat activity.
             if (encounterActive && !bossEncounter.Active && local != null &&
                 !local.IsInBattle &&
                 now - encounterLastActivity >= EncounterFallbackQuietSeconds)
                 EndEncounter(now);
+            reportWindow.CloseForEncounter(bossEncounter.Active, encounterActive,
+                encounterDamage > 0f || defeats.DefeatedCount > 0);
+            presentationBlock = NativeReportPresentation.ReadBlock(
+                UIManager.Instance, local?.Avatar);
+            string notification = HandleStatisticsShortcut(contextAllowed, now);
+            bool reportPresentationAvailable = contextAllowed &&
+                !hudHiddenByUser && !bossEncounter.Active &&
+                presentationBlock == ReportPresentationBlock.None;
+            reportWindow.SetPresentationAvailable(reportPresentationAvailable, now);
             bool inCombat = ViewMode != CombatInsightsViewMode.Hidden ||
                 hitStreakFeedback.IsRecent(now) || (local != null && local.IsInBattle);
             hud.Update(statisticsEnabled && contextAllowed && !hudHiddenByUser, this);
             hitStreakFeedback.Update(hitStreakEnabled && contextAllowed && inCombat);
+            if (notification == ModLocalization.EncounterReportOpened &&
+                (!reportWindow.IsVisible(now) || !hud.IsReportPresented))
+                notification = CombatInsightsNotifications.BlockedMessage(presentationBlock)
+                    ?? ModLocalization.EncounterReportHudUnavailable;
+            CombatInsightsNotifications.Show(notification);
             RecordVisibilityDiagnostic(statisticsEnabled, local, menuOpen, now);
         }
 
@@ -249,6 +258,9 @@ namespace SephiriaEnhancements.Combat
                 reason = CombatInsightsVisibilityReason.NativeControlOpen;
             else if (hudHiddenByUser)
                 reason = CombatInsightsVisibilityReason.HiddenByUser;
+            else if (encounterReport != null && reportWindow.IsPaused &&
+                presentationBlock != ReportPresentationBlock.None)
+                reason = CombatInsightsVisibilityReason.PresentationBlocked;
             else if (viewMode != CombatInsightsViewMode.Hidden && !hud.IsAttached)
                 reason = CombatInsightsVisibilityReason.HudUnavailable;
             else if (viewMode != CombatInsightsViewMode.Hidden &&
@@ -306,7 +318,8 @@ namespace SephiriaEnhancements.Combat
                 cutSceneActive + "|" + playerLoading + "|" +
                 bossReportOpen + "|" + encounterReportOpen + "|" +
                 bossReportPaused + "|" + encounterReportPaused +
-                "|" + hud.IsActiveInHierarchy;
+                "|" + hud.IsActiveInHierarchy + "|" + reportWindow.State(now) +
+                "|" + presentationBlock;
             if (string.Equals(signature, lastVisibilityDiagnostic,
                 StringComparison.Ordinal)) return;
             lastVisibilityDiagnostic = signature;
@@ -317,10 +330,11 @@ namespace SephiriaEnhancements.Combat
                 bossReportOpen, encounterReportPaused, bossReportPaused,
                 hudHiddenByUser, hud.IsAttached, hud.IsActiveInHierarchy,
                 controlCount, controlType, levelUpIndicatorVisible,
-                flashScreenVisible, screenFading, cutSceneActive, playerLoading);
+                flashScreenVisible, screenFading, cutSceneActive, playerLoading,
+                reportWindow.State(now).ToString(), presentationBlock.ToString());
         }
 
-        private void HandleStatisticsShortcut(bool contextAllowed, float now)
+        private string HandleStatisticsShortcut(bool contextAllowed, float now)
         {
             PlayerInputController input = PlayerInputController.Instance;
             NativeControlCoordinator.PreparePlayerInput(input);
@@ -333,32 +347,35 @@ namespace SephiriaEnhancements.Combat
                 action?.WasPressedThisFrame() ?? false,
                 action?.IsPressed() ?? false,
                 action?.WasReleasedThisFrame() ?? false, now);
+            if (triggered == CombatInsightsShortcutAction.None) return null;
+            if (presentationBlock != ReportPresentationBlock.None)
+                return CombatInsightsNotifications.BlockedMessage(presentationBlock);
             if (triggered == CombatInsightsShortcutAction.ToggleDisplay)
             {
                 hudHiddenByUser = !hudHiddenByUser;
                 if (hudHiddenByUser) hud.Hide();
-                CombatInsightsNotifications.ShowDisplayVisibility(hudHiddenByUser);
-                return;
+                return hudHiddenByUser ? ModLocalization.DamageStatisticsDisplayHidden
+                    : ModLocalization.DamageStatisticsDisplayRestored;
             }
             if (triggered != CombatInsightsShortcutAction.ToggleReport ||
                 encounterActive || bossEncounter.Active || FindLocal()?.IsInBattle == true)
-                return;
+                return null;
             if (encounterReport == null)
             {
-                CombatInsightsNotifications.ShowReportUnavailable();
-                return;
+                return ModLocalization.EncounterReportUnavailable;
             }
             bool closeReport = !hudHiddenByUser && reportWindow.IsOpen(now);
             if (closeReport)
             {
-                reportWindow.Clear();
+                reportWindow.Clear(ReportDisplayState.Dismissed);
             }
             else
             {
                 hudHiddenByUser = false;
                 reportWindow.OpenUntilDismissed();
             }
-            CombatInsightsNotifications.ShowReportVisibility(!closeReport);
+            return closeReport ? ModLocalization.EncounterReportClosed
+                : ModLocalization.EncounterReportOpened;
         }
 
         private void SamplePlayers(float now, bool trackOrdinaryEncounters)
@@ -527,22 +544,6 @@ namespace SephiriaEnhancements.Combat
             return left.Key.CompareTo(right.Key);
         }
 
-        private static bool IsNativePresentationBlocking(UIManager manager,
-            PlayerDamageState local)
-        {
-            UI_LevelUpIndicator levelUpIndicator =
-                manager?.GetElement<UI_LevelUpIndicator>();
-            if (levelUpIndicator?.levelUp != null &&
-                levelUpIndicator.levelUp.gameObject.activeInHierarchy)
-                return true;
-            UI_FlashScreen flashScreen = manager?.GetElement<UI_FlashScreen>();
-            return flashScreen?.IsOpened == true ||
-                ScreenFader.Instance?.IsFading == true ||
-                CutScenePlayer.Current != null ||
-                (local?.Avatar != null &&
-                    local.Avatar.loadingScreenType != -1);
-        }
-
         private PlayerDamageState FindLocal()
         {
             for (int i = 0; i < ordered.Count; i++) if (ordered[i].IsLocal) return ordered[i];
@@ -592,7 +593,9 @@ namespace SephiriaEnhancements.Combat
                     encounterReport?.Kind == EncounterReportKind.Boss &&
                         reportWindow.IsPaused,
                     hudHiddenByUser, hud.IsAttached, hud.IsActiveInHierarchy,
-                    0, null, false, false, false, false, false);
+                    0, null, false, false, false, false, false,
+                    reportWindow.State(Time.unscaledTime).ToString(),
+                    presentationBlock.ToString());
             }
             hud.Hide();
             hitStreakFeedback.Hide();
@@ -658,7 +661,7 @@ namespace SephiriaEnhancements.Combat
             {
                 if (bossEncounter.Resume(Time.time))
                 {
-                    reportWindow.Clear();
+                    reportWindow.CloseForEncounter(true, false, false);
                 }
                 return;
             }
@@ -837,7 +840,7 @@ namespace SephiriaEnhancements.Combat
             encounterStartedAt = now;
             encounterEndedAt = -1f;
             encounterLastActivity = now;
-            reportWindow.Clear();
+            reportWindow.CloseForEncounter(true, false, false);
             encounterDamage = 0f;
             majorEncounter = false;
             defeats.Reset();

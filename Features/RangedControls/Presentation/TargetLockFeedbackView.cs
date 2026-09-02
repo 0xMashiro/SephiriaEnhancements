@@ -11,15 +11,20 @@ namespace SephiriaEnhancements.RangedControls
         private const float CornerLength = 17f;
         private const float StrokeWidth = 4f;
         private const float ShadowWidth = 8f;
-        private const float ConfirmDuration = 0.28f;
-        private static readonly Color ConfirmColor =
+        private const float ConfirmDuration = 0.32f;
+        private static readonly Color ManualColor =
             new Color(1f, 0.27f, 0.12f, 1f);
+        private static readonly Color AutomaticColor =
+            new Color(1f, 0.76f, 0.3f, 1f);
         private static readonly Color ShadowColor =
             new Color(0.08f, 0.055f, 0.035f, 0.9f);
 
         private readonly RectTransform[] shadowSegments = new RectTransform[8];
         private readonly RectTransform[] colorSegments = new RectTransform[8];
+        private readonly Image[] coloredImages = new Image[9];
         private RectTransform marker;
+        private RectTransform centerDot;
+        private RectTransform centerShadow;
         private CanvasGroup markerGroup;
         private GameObject canvasObject;
         private Sprite pixelSprite;
@@ -44,38 +49,40 @@ namespace SephiriaEnhancements.RangedControls
                 confirmedAt = Time.unscaledTime;
             }
 
-            // The native targeting cursor remains the only persistent indicator.
-            // This overlay exists solely to confirm an explicit target switch.
-            if (!isManual)
-            {
-                Deactivate();
-                return;
-            }
-
             float elapsed = Time.unscaledTime - confirmedAt;
-            if (elapsed < 0f || elapsed >= ConfirmDuration || !TryCreate() ||
-                !TryProjectTargetBounds(nextTarget, camera, out Vector2 center,
+            if (!TryProjectBodyBounds(nextTarget, camera, out Vector2 center,
                     out Vector2 targetSize))
             {
                 Deactivate();
                 return;
             }
 
+            EnsureCreated();
             if (!canvasObject.activeSelf)
             {
                 canvasObject.SetActive(true);
             }
 
-            float progress = Mathf.Clamp01(elapsed / ConfirmDuration);
+            // Automatic acquisition stays quiet; explicit locks confirm once,
+            // then retain their marker until the controller clears the target.
+            float progress = isManual ? Mathf.Clamp01(elapsed / ConfirmDuration) : 1f;
             float settle = 1f - Mathf.Pow(1f - progress, 3f);
-            float padding = Mathf.Lerp(18f, 8f, settle);
+            float padding = Mathf.Lerp(24f, 12f, settle);
             Vector2 size = new Vector2(
-                Mathf.Max(MinimumSize, Mathf.Round(targetSize.x + padding)),
-                Mathf.Max(MinimumSize, Mathf.Round(targetSize.y + padding)));
+                Mathf.Round(Mathf.Max(MinimumSize, targetSize.x) + padding),
+                Mathf.Round(Mathf.Max(MinimumSize, targetSize.y) + padding));
             marker.anchoredPosition = new Vector2(Mathf.Round(center.x),
                 Mathf.Round(center.y));
             LayoutCorners(size);
-            markerGroup.alpha = 1f - Mathf.InverseLerp(0.45f, 1f, progress);
+            markerGroup.alpha = isManual ? Mathf.Lerp(1f, 0.85f, settle) : 0.5f;
+            Color color = isManual ? ManualColor : AutomaticColor;
+            for (int index = 0; index < coloredImages.Length; index++)
+            {
+                coloredImages[index].color = color;
+            }
+            float dotSize = isManual ? Mathf.Round(Mathf.Lerp(10f, 6f, settle)) : 4f;
+            SetSegment(centerDot, Vector2.zero, Vector2.one * dotSize);
+            SetSegment(centerShadow, Vector2.zero, Vector2.one * (dotSize + 4f));
         }
 
         internal void Hide()
@@ -98,6 +105,8 @@ namespace SephiriaEnhancements.RangedControls
                 pixelSprite = null;
             }
             marker = null;
+            centerDot = null;
+            centerShadow = null;
             markerGroup = null;
             target = null;
         }
@@ -110,17 +119,17 @@ namespace SephiriaEnhancements.RangedControls
             }
         }
 
-        private bool TryCreate()
+        private void EnsureCreated()
         {
             if (canvasObject != null)
             {
-                return true;
+                return;
             }
 
             pixelSprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0f, 0f, 1f, 1f),
                 new Vector2(0.5f, 0.5f), 1f);
-            pixelSprite.name = "Sephiria Enhancements — Target Confirm Pixel";
-            canvasObject = new GameObject("Sephiria Enhancements — Target Confirm Canvas",
+            pixelSprite.name = "Sephiria Enhancements — Target Feedback Pixel";
+            canvasObject = new GameObject("Sephiria Enhancements — Target Feedback Canvas",
                 typeof(RectTransform), typeof(Canvas), typeof(CanvasGroup));
             UnityEngine.Object.DontDestroyOnLoad(canvasObject);
             Canvas canvas = canvasObject.GetComponent<Canvas>();
@@ -131,7 +140,7 @@ namespace SephiriaEnhancements.RangedControls
             canvasGroup.interactable = false;
             canvasGroup.blocksRaycasts = false;
 
-            GameObject markerObject = new GameObject("Manual Target Confirmation",
+            GameObject markerObject = new GameObject("Target Feedback",
                 typeof(RectTransform), typeof(CanvasGroup));
             marker = markerObject.GetComponent<RectTransform>();
             marker.SetParent(canvasObject.transform, false);
@@ -144,15 +153,21 @@ namespace SephiriaEnhancements.RangedControls
 
             for (int index = 0; index < shadowSegments.Length; index++)
             {
-                shadowSegments[index] = CreatePixel("Confirm Shadow " + index,
+                shadowSegments[index] = CreatePixel("Target Shadow " + index,
                     marker, ShadowColor);
-                colorSegments[index] = CreatePixel("Confirm Color " + index,
-                    marker, ConfirmColor);
             }
+            for (int index = 0; index < colorSegments.Length; index++)
+            {
+                colorSegments[index] = CreatePixel("Target Color " + index,
+                    marker, ManualColor);
+                coloredImages[index] = colorSegments[index].GetComponent<Image>();
+            }
+            centerShadow = CreatePixel("Target Center Shadow", marker, ShadowColor);
+            centerDot = CreatePixel("Target Center", marker, ManualColor);
+            coloredImages[8] = centerDot.GetComponent<Image>();
 
             LayoutCorners(new Vector2(MinimumSize, MinimumSize));
             canvasObject.SetActive(false);
-            return true;
         }
 
         private RectTransform CreatePixel(string name, Transform parent, Color color)
@@ -170,14 +185,15 @@ namespace SephiriaEnhancements.RangedControls
             return rect;
         }
 
-        private static bool TryProjectTargetBounds(UnitAvatar nextTarget, Camera camera,
+        private static bool TryProjectBodyBounds(UnitAvatar nextTarget, Camera camera,
             out Vector2 center, out Vector2 size)
         {
-            Vector3 worldCenter = nextTarget.transform.position;
+            Vector3 worldCenter = nextTarget.transform.position + Vector3.up * 0.25f;
             Vector2 worldSize = new Vector2(0.5f, 0.5f);
             if (nextTarget.TopdownActor != null)
             {
-                worldCenter.y += nextTarget.TopdownActor.CenterYPos;
+                // Native rendering metadata describes the visible body, not a hitbox.
+                worldCenter = nextTarget.TopdownActor.Position_Center;
                 worldSize = nextTarget.TopdownActor.size;
             }
 

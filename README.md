@@ -17,7 +17,7 @@ for Sephiria. Built on the game's AddOns system—no BepInEx installation requir
 | --- | --- |
 | Keyboard UI | Keyboard-only navigation and actions for supported menus, maps, routes, rewards, inventories, and message boxes; Tab switches combined UI sections |
 | Combat | Rolling DPS, encounter reports, hit streaks, summon attribution, numerical BOSS HP, and clearer ally/enemy visuals |
-| Targeting | Optional keyboard attacks with automatic aiming and a rebindable target switch for keyboard or gamepad |
+| Targeting | Optional keyboard attacks with automatic aiming and a rebindable target switch for keyboard or gamepad; persistent center markers and corner frames, with amber for automatic targeting and red with a brief settling animation for manual locks |
 | Exploration | Hidden-room markers, localized town NPC names, a current-floor overlay, and 75%–200% camera distance |
 | Solo and co-op | Optional native companion, defeat checkpoints, mid-run joining/reconnect support, and configurable 1–4 player rules |
 | Inventory | Experimental one-key arrangement using the Mod's verified solver or Sephiria's artifact-level arranger |

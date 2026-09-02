@@ -18,23 +18,17 @@ internal static class InventoryOptimizationArchitectureChecks
     {
         var persistent = new InventoryOptimizationPreferences(
             InventorySearchEffort.Fast, allowStoneTabletRotation: false,
-            new[]
-            {
-                new ArtifactOptimizationPreference(-1, 10,
-                    InventoryPreferenceLevel.Prefer, 1),
-                new ArtifactOptimizationPreference(-1, 20,
-                    InventoryPreferenceLevel.Core, 2)
-            },
+            Array.Empty<ArtifactOptimizationPreference>(),
             new[]
             {
                 new ComboOptimizationPreference("FIRE",
-                    InventoryPreferenceLevel.Prefer, 2)
+                    InventoryPreferenceLevel.Priority, 2)
             });
         var exploration = new InventoryOptimizationPreferences(
             InventorySearchEffort.Fast, allowStoneTabletRotation: false,
             new[]
             {
-                new ArtifactOptimizationPreference(-1, 10,
+                new ArtifactOptimizationPreference(502, 10,
                     InventoryPreferenceLevel.Priority, 0),
                 new ArtifactOptimizationPreference(501, 10,
                     InventoryPreferenceLevel.Avoid, 0)
@@ -49,16 +43,15 @@ internal static class InventoryOptimizationArchitectureChecks
             InventoryOptimizationPreferenceComposer.Compose(persistent,
                 exploration, InventorySearchEffort.Thorough,
                 allowStoneTabletRotation: true);
-        ArtifactOptimizationPreference entityRule = composed.
-            ArtifactPreferences.Single(rule => !rule.TargetsInstance &&
-                rule.EntityId == 10);
+        ArtifactOptimizationPreference priorityRule = composed.
+            ArtifactPreferences.Single(rule => rule.ItemKey == new InventoryItemKey(10, 502));
         if (composed.SearchEffort != InventorySearchEffort.Thorough ||
             !composed.AllowStoneTabletRotation ||
-            composed.ArtifactPreferences.Count != 3 ||
-            entityRule.Level != InventoryPreferenceLevel.Priority ||
-            entityRule.MinimumEffectiveLevel != 0 ||
-            composed.ComboPreferences.Single().MinimumCount != 4 ||
-            persistent.ArtifactPreferences.Count != 2)
+            composed.ArtifactPreferences.Count != 2 ||
+            priorityRule.Level != InventoryPreferenceLevel.Priority ||
+            priorityRule.MinimumEffectiveLevel != 0 ||
+            composed.ComboPreferences.Single().TargetCount != 4 ||
+            persistent.ArtifactPreferences.Count != 0)
         {
             throw new InvalidOperationException(
                 "exploration intent must override matching persistent rules without mutating either source");
@@ -71,8 +64,8 @@ internal static class InventoryOptimizationArchitectureChecks
             InventorySearchEffort.Balanced, allowStoneTabletRotation: true,
             new[]
             {
-                new ArtifactOptimizationPreference(-1, 30,
-                    InventoryPreferenceLevel.Prefer, 1)
+                new ArtifactOptimizationPreference(503, 30,
+                    InventoryPreferenceLevel.Priority, 1)
             }, Array.Empty<ComboOptimizationPreference>());
         ExplorationInventoryIntentStore.Replace(intent);
         if (!ReferenceEquals(ExplorationInventoryIntentStore.Capture(), intent))

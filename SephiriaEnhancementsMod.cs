@@ -227,6 +227,10 @@ namespace SephiriaEnhancements
                 typeof(MapPanelClosedPatch),
                 typeof(NativeInventoryItemSelectionModePatch),
                 typeof(InventoryArtifactIntentClickPatch),
+                typeof(InventoryArtifactIntentInputPatch),
+                typeof(InventoryArtifactIntentClosedPatch),
+                typeof(InventoryArtifactIntentModePatch),
+                typeof(InventoryTemporaryItemDropPatch),
                 typeof(SephiriaEnhancements.Runtime.GameBridge.Inventory.
                     InventoryEvaluationOrderTraceStartPatch),
                 typeof(SephiriaEnhancements.Runtime.GameBridge.Inventory.

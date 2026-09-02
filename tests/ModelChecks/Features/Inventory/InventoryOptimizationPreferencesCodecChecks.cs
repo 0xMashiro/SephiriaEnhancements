@@ -1,4 +1,3 @@
-using SephiriaEnhancements.Runtime.Inventory;
 using SephiriaEnhancements.Inventory;
 
 namespace SephiriaEnhancements.ModelChecks.Features.Inventory;
@@ -7,95 +6,34 @@ internal static class InventoryOptimizationPreferencesCodecChecks
 {
     internal static string Run()
     {
-        VerifyStableRuleRoundTrip();
-        VerifyMalformedPayloadRejection();
-        VerifyDuplicateRuleResolution();
-        return "stable rules;malformed fallback;duplicate resolution passed";
-    }
-
-    private static void VerifyStableRuleRoundTrip()
-    {
-        var source = new InventoryOptimizationPreferences(
-            InventorySearchEffort.Thorough,
-            allowStoneTabletRotation: false,
+        var source = new InventoryOptimizationPreferences(InventorySearchEffort.Thorough, false,
+            new[] { new ArtifactOptimizationPreference(81, 101, InventoryPreferenceLevel.Priority, 5, 0) },
             new[]
             {
-                new ArtifactOptimizationPreference(81, 101,
-                    InventoryPreferenceLevel.Priority, 5),
-                new ArtifactOptimizationPreference(-1, 202,
-                    InventoryPreferenceLevel.Avoid, 9),
-                new ArtifactOptimizationPreference(-1, 101,
-                    InventoryPreferenceLevel.Core, 4)
-            },
-            new[]
-            {
-                new ComboOptimizationPreference("EMBER|LINE\nBREAK",
-                    InventoryPreferenceLevel.Prefer, 3),
-                new ComboOptimizationPreference("WARD",
-                    InventoryPreferenceLevel.Neutral, 1)
+                new ComboOptimizationPreference("EMBER|LINE\nBREAK", InventoryPreferenceLevel.Priority, 3),
+                new ComboOptimizationPreference("WARD", InventoryPreferenceLevel.Avoid, 0)
             });
-
         string payload = InventoryOptimizationPreferencesCodec.Encode(source);
-        if (!InventoryOptimizationPreferencesCodec.TryDecode(payload,
-                InventorySearchEffort.Fast,
-                allowStoneTabletRotation: true, out var decoded) ||
-            decoded.SearchEffort != InventorySearchEffort.Fast ||
-            !decoded.AllowStoneTabletRotation ||
-            decoded.ArtifactPreferences.Count != 2 ||
-            decoded.ArtifactPreferences.Any(rule => rule.TargetsInstance) ||
-            decoded.ArtifactPreferences.Single(rule => rule.EntityId == 202).
-                MinimumEffectiveLevel != 0 ||
-            decoded.ComboPreferences.Single(rule => rule.CategoryId ==
-                "EMBER|LINE\nBREAK").MinimumCount != 3)
-        {
-            throw new InvalidOperationException(
-                "persisted preferences must round-trip stable target rules only");
-        }
-    }
+        if (!InventoryOptimizationPreferencesCodec.TryDecode(payload, InventorySearchEffort.Fast, true, out var decoded) ||
+            decoded.SearchEffort != InventorySearchEffort.Fast || !decoded.AllowStoneTabletRotation ||
+            decoded.ArtifactPreferences.Count != 0 || decoded.ComboPreferences.Count != 2 ||
+            decoded.ComboPreferences.Single(rule => rule.CategoryId == "EMBER|LINE\nBREAK").TargetCount != 3 ||
+            decoded.ComboPreferences.Single(rule => rule.CategoryId == "WARD").TargetCount != 0)
+            throw new InvalidOperationException("only stable combo targets may persist; artifact queue entries belong to the current exploration");
 
-    private static void VerifyMalformedPayloadRejection()
-    {
-        string[] invalidPayloads =
-        {
-            string.Empty,
-            "v2\nA|1|2|3",
-            "v1\nA|-1|2|3",
-            "v1\nC||2|3",
-            "v1\nC|EMBER|99|3",
-            "v1\nA|1|2|-1"
-        };
-        if (invalidPayloads.Any(payload =>
-            InventoryOptimizationPreferencesCodec.TryDecode(payload,
-                InventorySearchEffort.Balanced, true, out _)))
-        {
-            throw new InvalidOperationException(
-                "malformed or unsupported preference payloads must be rejected");
-        }
-        if (!InventoryOptimizationPreferencesCodec.TryDecode("v1",
-                InventorySearchEffort.Balanced, true, out var empty) ||
-            empty.ArtifactPreferences.Count != 0 ||
-            empty.ComboPreferences.Count != 0)
-        {
-            throw new InvalidOperationException(
-                "a versioned empty preference payload must remain valid");
-        }
-    }
-
-    private static void VerifyDuplicateRuleResolution()
-    {
-        const string payload = "v1\nA|10|1|2\nA|10|4|4\n" +
-            "C|EMBER|1|2\nC|EMBER|4|6";
-        if (!InventoryOptimizationPreferencesCodec.TryDecode(payload,
-                InventorySearchEffort.Balanced, true, out var decoded) ||
-            decoded.ArtifactPreferences.Single().Level !=
-                InventoryPreferenceLevel.Priority ||
-            decoded.ArtifactPreferences.Single().MinimumEffectiveLevel != 4 ||
-            decoded.ComboPreferences.Single().Level !=
-                InventoryPreferenceLevel.Priority ||
-            decoded.ComboPreferences.Single().MinimumCount != 6)
-        {
-            throw new InvalidOperationException(
-                "the last persisted rule for a stable target must win");
-        }
+        string[] invalid = { "", "v2\nC|WARD|1|0", "v3\nA|101|1|5", "v3\nC||1|0",
+            "v3\nC|WARD|99|0", "v3\nC|WARD|1|-1" };
+        if (invalid.Any(value => InventoryOptimizationPreferencesCodec.TryDecode(value,
+            InventorySearchEffort.Balanced, true, out _)))
+            throw new InvalidOperationException("unsupported artifact-type rules and malformed combo payloads must be rejected");
+        if (!InventoryOptimizationPreferencesCodec.TryDecode("v3", InventorySearchEffort.Balanced, true, out var empty) ||
+            empty.ComboPreferences.Count != 0 || empty.ArtifactPreferences.Count != 0)
+            throw new InvalidOperationException("empty combo preferences must remain valid");
+        if (!InventoryOptimizationPreferencesCodec.TryDecode("v3\nC|EMBER|0|2\nC|EMBER|1|6",
+            InventorySearchEffort.Balanced, true, out var repeated) ||
+            repeated.ComboPreferences.Single().Level != InventoryPreferenceLevel.Priority ||
+            repeated.ComboPreferences.Single().TargetCount != 6)
+            throw new InvalidOperationException("the last persisted combo rule must win");
+        return "combo round-trip;zero targets;artifact rules excluded;invalid payloads rejected";
     }
 }

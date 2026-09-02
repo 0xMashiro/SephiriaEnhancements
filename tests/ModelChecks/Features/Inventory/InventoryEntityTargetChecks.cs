@@ -16,16 +16,8 @@ internal static class InventoryEntityTargetChecks
     private static void VerifyEntityTargetCountsOnce()
     {
         InventorySnapshot snapshot =
-            InventorySnapshotFixture.DuplicateArtifactsAtLevels(
-                new[] { 4, 4 }, new[] { 0, 1 }, maxLevel: 5);
-        var preferences = new InventoryOptimizationPreferences(
-            InventorySearchEffort.Balanced, allowStoneTabletRotation: true,
-            new[]
-            {
-                new ArtifactOptimizationPreference(-1, 1000,
-                    InventoryPreferenceLevel.Priority,
-                    minimumEffectiveLevel: 4)
-            }, Array.Empty<ComboOptimizationPreference>());
+            PresetSnapshot();
+        var preferences = InventoryOptimizationPreferences.Default;
         ResolvedInventoryOptimizationPolicy policy =
             InventoryOptimizationPolicyResolver.Resolve(snapshot, preferences);
         var scorer = new InventoryOptimizationScorer(snapshot, policy);
@@ -39,8 +31,8 @@ internal static class InventoryEntityTargetChecks
 
         if (policy.ArtifactInstanceRules.Count != 0 ||
             policy.ArtifactEntityRules.Count != 1 ||
-            score.PriorityTargetsSatisfied != 1 ||
-            score.PriorityTargetCompletionPoints !=
+            score.PresetTargetsSatisfied != 1 ||
+            score.PresetTargetCompletionPoints !=
                 InventoryOptimizationScorer.TargetCompletionScale ||
             evaluations.Length != 1 ||
             evaluations[0].Target != "Artifact:1000:*" ||
@@ -54,14 +46,11 @@ internal static class InventoryEntityTargetChecks
     private static void VerifyInstanceRuleOverridesEntityMembership()
     {
         InventorySnapshot snapshot =
-            InventorySnapshotFixture.DuplicateArtifactsAtLevels(
-                new[] { 4, 4 }, new[] { 0, 1 }, maxLevel: 5);
+            PresetSnapshot();
         var preferences = new InventoryOptimizationPreferences(
             InventorySearchEffort.Balanced, allowStoneTabletRotation: true,
             new[]
             {
-                new ArtifactOptimizationPreference(-1, 1000,
-                    InventoryPreferenceLevel.Priority, 4),
                 new ArtifactOptimizationPreference(100, 1000,
                     InventoryPreferenceLevel.Avoid, 0)
             }, Array.Empty<ComboOptimizationPreference>());
@@ -85,4 +74,13 @@ internal static class InventoryEntityTargetChecks
                 "an instance rule must be evaluated separately and excluded from its entity group");
         }
     }
+    private static InventorySnapshot PresetSnapshot()
+    {
+        var source = InventorySnapshotFixture.DuplicateArtifactsAtLevels(
+            new[] { 4, 4 }, new[] { 0, 1 }, maxLevel: 5);
+        return new InventorySnapshot(source.Width, source.Storage, source.Cells.ToArray(), source.Items.ToArray(),
+            nativePreset: new NativePresetSnapshot(0, true, "Fire", 0, "Scholar",
+                new[] { 1000 }, Array.Empty<string>()));
+    }
+
 }

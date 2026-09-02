@@ -29,10 +29,8 @@ namespace SephiriaEnhancements.Inventory
             int priorityTargetsSatisfied = 0;
             int priorityTargetCompletionPoints = 0;
             int avoidedTargetsActive = 0;
-            int coreTargetsSatisfied = 0;
-            int coreTargetCompletionPoints = 0;
-            int preferredTargetsSatisfied = 0;
-            int preferredTargetCompletionPoints = 0;
+            int presetTargetsSatisfied = 0;
+            int presetTargetCompletionPoints = 0;
             int sourceEnabledArtifactsDeactivated = 0;
             int enabledArtifactCount = 0;
             int cappedEffectiveArtifactLevelTotal = 0;
@@ -87,17 +85,6 @@ namespace SephiriaEnhancements.Inventory
                         case InventoryPreferenceLevel.Avoid:
                             if (artifact.Enabled) avoidedTargetsActive++;
                             break;
-                        case InventoryPreferenceLevel.Core:
-                            if (reached) coreTargetsSatisfied++;
-                            coreTargetCompletionPoints += completionPoints;
-                            break;
-                        case InventoryPreferenceLevel.Prefer:
-                            if (reached)
-                            {
-                                preferredTargetsSatisfied++;
-                            }
-                            preferredTargetCompletionPoints += completionPoints;
-                            break;
                     }
                 }
             }
@@ -124,21 +111,8 @@ namespace SephiriaEnhancements.Inventory
                     CalculateTargetCompletionPoints(artifact.Enabled,
                         artifact.CappedEffectiveLevel,
                         rule.MinimumEffectiveLevel)).DefaultIfEmpty(0).Max();
-                switch (rule.Level)
-                {
-                    case InventoryPreferenceLevel.Priority:
-                        if (reached) priorityTargetsSatisfied++;
-                        priorityTargetCompletionPoints += completionPoints;
-                        break;
-                    case InventoryPreferenceLevel.Core:
-                        if (reached) coreTargetsSatisfied++;
-                        coreTargetCompletionPoints += completionPoints;
-                        break;
-                    case InventoryPreferenceLevel.Prefer:
-                        if (reached) preferredTargetsSatisfied++;
-                        preferredTargetCompletionPoints += completionPoints;
-                        break;
-                }
+                if (reached) presetTargetsSatisfied++;
+                presetTargetCompletionPoints += completionPoints;
             }
 
             int comboBreakpointValue = 0;
@@ -148,31 +122,24 @@ namespace SephiriaEnhancements.Inventory
                     out int count);
                 int reached = CalculateReachedBreakpointValue(category, count);
                 comboBreakpointValue += reached;
-                if (policy.ComboRules.TryGetValue(category.CategoryId,
-                        out ResolvedComboOptimizationRule rule))
+            }
+            foreach (ResolvedComboOptimizationRule rule in policy.ComboRules.Values)
+            {
+                settlement.ComboCounts.TryGetValue(rule.CategoryId, out int count);
+                var (targetReached, completionPoints) = EvaluateComboTarget(rule, count);
+                switch (rule.Level)
                 {
-                    bool targetReached = count >= rule.MinimumCount;
-                    int completionPoints = CalculateTargetCompletionPoints(
-                        active: count > 0, currentValue: count,
-                        minimumValue: rule.MinimumCount);
-                    switch (rule.Level)
-                    {
-                        case InventoryPreferenceLevel.Priority:
-                            if (targetReached) priorityTargetsSatisfied++;
-                            priorityTargetCompletionPoints += completionPoints;
-                            break;
-                        case InventoryPreferenceLevel.Avoid:
-                            if (targetReached) avoidedTargetsActive++;
-                            break;
-                        case InventoryPreferenceLevel.Core:
-                            if (targetReached) coreTargetsSatisfied++;
-                            coreTargetCompletionPoints += completionPoints;
-                            break;
-                        case InventoryPreferenceLevel.Prefer:
-                            if (targetReached) preferredTargetsSatisfied++;
-                            preferredTargetCompletionPoints += completionPoints;
-                            break;
-                    }
+                    case InventoryPreferenceLevel.Priority when rule.Source != InventoryPreferenceSource.NativePreset:
+                        if (targetReached) priorityTargetsSatisfied++;
+                        priorityTargetCompletionPoints += completionPoints;
+                        break;
+                    case InventoryPreferenceLevel.Avoid:
+                        if (!targetReached) avoidedTargetsActive++;
+                        break;
+                    case InventoryPreferenceLevel.Priority:
+                        if (targetReached) presetTargetsSatisfied++;
+                        presetTargetCompletionPoints += completionPoints;
+                        break;
                 }
             }
 
@@ -194,11 +161,9 @@ namespace SephiriaEnhancements.Inventory
                 priorityTargetCompletionPoints:
                     priorityTargetCompletionPoints,
                 avoidedTargetsActive: avoidedTargetsActive,
-                coreTargetsSatisfied: coreTargetsSatisfied,
-                coreTargetCompletionPoints: coreTargetCompletionPoints,
-                preferredTargetsSatisfied: preferredTargetsSatisfied,
-                preferredTargetCompletionPoints:
-                    preferredTargetCompletionPoints,
+                presetTargetsSatisfied: presetTargetsSatisfied,
+                presetTargetCompletionPoints:
+                    presetTargetCompletionPoints,
                 sourceEnabledArtifactsDeactivated:
                     sourceEnabledArtifactsDeactivated,
                 enabledArtifactCount: enabledArtifactCount,
@@ -252,6 +217,18 @@ namespace SephiriaEnhancements.Inventory
             long nonNegativeValue = Math.Max(0, currentValue);
             return (int)Math.Min(TargetCompletionScale,
                 nonNegativeValue * TargetCompletionScale / minimumValue);
+        }
+
+        private static (bool Reached, int CompletionPoints) EvaluateComboTarget(
+            ResolvedComboOptimizationRule rule, int count)
+        {
+            if (rule.Level == InventoryPreferenceLevel.Avoid)
+            {
+                bool reached = count <= rule.TargetCount;
+                return (reached, reached ? TargetCompletionScale : 0);
+            }
+            return (count >= rule.TargetCount,
+                CalculateTargetCompletionPoints(true, count, rule.TargetCount));
         }
 
         internal InventoryOptimizationTargetEvaluation[] EvaluateTargets(
@@ -332,12 +309,8 @@ namespace SephiriaEnhancements.Inventory
                     out int beforeCount);
                 after.ComboCounts.TryGetValue(rule.CategoryId,
                     out int afterCount);
-                bool beforeReached = beforeCount >= rule.MinimumCount;
-                bool afterReached = afterCount >= rule.MinimumCount;
-                int beforeCompletion = CalculateTargetCompletionPoints(
-                    beforeCount > 0, beforeCount, rule.MinimumCount);
-                int afterCompletion = CalculateTargetCompletionPoints(
-                    afterCount > 0, afterCount, rule.MinimumCount);
+                var (beforeReached, beforeCompletion) = EvaluateComboTarget(rule, beforeCount);
+                var (afterReached, afterCompletion) = EvaluateComboTarget(rule, afterCount);
                 string target = ComboTarget(rule.CategoryId);
                 InventoryTargetSearchEvidence evidence = CombineEvidence(
                     searchEvidence, target, beforeCount, beforeCompletion,
@@ -345,7 +318,7 @@ namespace SephiriaEnhancements.Inventory
                 result.Add(new InventoryOptimizationTargetEvaluation(
                     target,
                     InventoryOptimizationTargetKind.ComboCategory,
-                    rule.Level, rule.Source, rule.MinimumCount,
+                    rule.Level, rule.Source, rule.TargetCount,
                     beforeCount, afterCount, beforeReached, afterReached,
                     beforeCompletion, afterCompletion,
                     evidence.MaximumObservedValue,
@@ -392,10 +365,9 @@ namespace SephiriaEnhancements.Inventory
             {
                 settlement.ComboCounts.TryGetValue(rule.CategoryId,
                     out int count);
-                bool reached = count >= rule.MinimumCount;
+                var (reached, completion) = EvaluateComboTarget(rule, count);
                 Observe(evidence, ComboTarget(rule.CategoryId), count,
-                    CalculateTargetCompletionPoints(count > 0, count,
-                        rule.MinimumCount), reached);
+                    completion, reached);
             }
         }
 

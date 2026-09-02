@@ -22,6 +22,15 @@ for Sephiria. Built on the game's AddOns system—no BepInEx installation requir
 | Solo and co-op | Optional native companion, defeat checkpoints, mid-run joining/reconnect support, and configurable 1–4 player rules |
 | Inventory | Experimental one-key arrangement using the Mod's verified solver or Sephiria's artifact-level arranger |
 
+Inventory optimization works automatically by default. Optionally place artifacts
+in the priority queue or exclusion area. Click or drag marks to move them; right-click
+removes a mark. Use the current target-switch binding over a hovered or focused priority
+artifact to edit its minimum level. That level belongs to the individual artifact and
+stays with it when reordered; zero only asks for an active effect. Combo targets have
+their own editor: Priority 0 imposes no minimum count, and Avoid N tries to keep the
+count at or below N. These are best-effort preferences;
+missing artifacts do not prevent the rest of the inventory from being optimized.
+
 Keyboard support is designed for fast, mouse-free menu flow, including speedrun-style
 play, while continuing to follow Sephiria's current semantic actions and player rebinds.
 

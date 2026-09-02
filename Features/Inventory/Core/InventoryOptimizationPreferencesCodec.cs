@@ -10,23 +10,13 @@ namespace SephiriaEnhancements.Inventory
 {
     internal static class InventoryOptimizationPreferencesCodec
     {
-        private const string Version = "v1";
+        private const string Version = "v3";
 
         internal static string Encode(
             InventoryOptimizationPreferences preferences)
         {
             preferences ??= InventoryOptimizationPreferences.Default;
             var lines = new List<string> { Version };
-            foreach (ArtifactOptimizationPreference rule in preferences.
-                ArtifactPreferences.Where(rule => !rule.TargetsInstance)
-                    .OrderBy(rule => rule.EntityId))
-            {
-                lines.Add(string.Join("|", "A",
-                    rule.EntityId.ToString(CultureInfo.InvariantCulture),
-                    ((int)rule.Level).ToString(CultureInfo.InvariantCulture),
-                    rule.MinimumEffectiveLevel.ToString(
-                        CultureInfo.InvariantCulture)));
-            }
             foreach (ComboOptimizationPreference rule in preferences.
                 ComboPreferences.OrderBy(rule => rule.CategoryId,
                     StringComparer.Ordinal))
@@ -34,7 +24,7 @@ namespace SephiriaEnhancements.Inventory
                 lines.Add(string.Join("|", "C",
                     Uri.EscapeDataString(rule.CategoryId),
                     ((int)rule.Level).ToString(CultureInfo.InvariantCulture),
-                    rule.MinimumCount.ToString(CultureInfo.InvariantCulture)));
+                    rule.TargetCount.ToString(CultureInfo.InvariantCulture)));
             }
             return string.Join("\n", lines);
         }
@@ -60,8 +50,6 @@ namespace SephiriaEnhancements.Inventory
                 return false;
             }
 
-            var artifacts = new Dictionary<int,
-                ArtifactOptimizationPreference>();
             var combos = new Dictionary<string,
                 ComboOptimizationPreference>(StringComparer.Ordinal);
             for (int index = 1; index < lines.Length; index++)
@@ -83,19 +71,7 @@ namespace SephiriaEnhancements.Inventory
                 }
 
                 var level = (InventoryPreferenceLevel)levelValue;
-                if (fields[0] == "A")
-                {
-                    if (!int.TryParse(fields[1], NumberStyles.Integer,
-                            CultureInfo.InvariantCulture, out int entityId) ||
-                        entityId < 0 || requiredValue < 0)
-                    {
-                        return false;
-                    }
-                    artifacts[entityId] = new ArtifactOptimizationPreference(
-                        -1, entityId, level, requiredValue);
-                    continue;
-                }
-                if (fields[0] != "C" || requiredValue < 1)
+                if (fields[0] != "C" || requiredValue < 0)
                 {
                     return false;
                 }
@@ -118,8 +94,7 @@ namespace SephiriaEnhancements.Inventory
             }
 
             preferences = new InventoryOptimizationPreferences(searchEffort,
-                allowStoneTabletRotation, artifacts.Values.OrderBy(rule =>
-                    rule.EntityId).ToArray(), combos.Values.OrderBy(rule =>
+                allowStoneTabletRotation, Array.Empty<ArtifactOptimizationPreference>(), combos.Values.OrderBy(rule =>
                         rule.CategoryId, StringComparer.Ordinal).ToArray());
             return true;
         }

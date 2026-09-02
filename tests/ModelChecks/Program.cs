@@ -82,8 +82,8 @@ Console.WriteLine("InventoryArtifactLevelBoundary: " +
     InventoryArtifactLevelBoundaryChecks.Run());
 Console.WriteLine("InventoryTargetReachability: " +
     InventoryTargetReachabilityChecks.Run());
-Console.WriteLine("InventoryPreferenceEditor: " +
-    InventoryPreferenceEditorChecks.Run());
+Console.WriteLine("InventoryComboTargetEditor: " +
+    InventoryComboTargetEditorChecks.Run());
 InventoryOptimizerChecks.Run();
 Console.WriteLine("InventoryTwoSwapNeighborhood: " +
     InventoryTwoSwapNeighborhoodChecks.Run());

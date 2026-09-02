@@ -101,7 +101,8 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 {
                     canvasStates.Add(itemCanvas, itemCanvas.overrideSorting);
                 }
-                NewItemOwnInstance item = icon.Showing ? icon.Item : null;
+                // Showing belongs to IUITooltipOpener, not inventory visibility.
+                NewItemOwnInstance item = icon.gameObject.activeSelf ? icon.Item : null;
                 itemCanvas.overrideSorting = item != null && isSelectable(item);
             }
             cover.transform.SetAsLastSibling();

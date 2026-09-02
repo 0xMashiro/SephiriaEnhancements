@@ -12,7 +12,33 @@ internal static class InventoryHudInteractionChecks
         VerifySelectionLifecycle();
         VerifyPagesAndReordering();
         VerifySlotSwaps();
+        VerifyLevelEditAndPickupAreExclusive();
         return "HUD bounds, click/drag pickup lifecycle, sparse slots, swaps and target preservation passed";
+    }
+
+    private static void VerifyLevelEditAndPickupAreExclusive()
+    {
+        var priority = new ArtifactOptimizationPreference(501, 10, InventoryPreferenceLevel.Priority, 4, 0);
+        var avoided = new ArtifactOptimizationPreference(502, 10, InventoryPreferenceLevel.Avoid, 0, 0);
+        var state = new InventoryIntentInteractionState();
+        if (state.TryEditLevel(priority)) throw new InvalidOperationException("inactive HUD cannot edit levels");
+        state.SetEditable(true);
+        if (state.TryEditLevel(avoided) || state.TryEditLevel(null) || !state.TryEditLevel(priority) ||
+            state.LevelTarget != priority.ItemKey || state.HasPickup)
+            throw new InvalidOperationException("only a priority mark may open a level editor, without picking up the mark");
+        if (!state.TryEditLevel(priority) || state.LevelTarget != null)
+            throw new InvalidOperationException("repeating the level action on the same mark must close its editor");
+        foreach (bool dragging in new[] { false, true })
+        {
+            state.TryEditLevel(priority);
+            if (!state.TryPickup(priority, dragging) || state.LevelTarget != null || state.TryEditLevel(priority))
+                throw new InvalidOperationException("click pickup and drag must close level editing and block re-entry while holding a mark");
+            state.CancelPickup();
+        }
+        state.TryEditLevel(priority);
+        state.SetEditable(false);
+        if (state.LevelTarget != null || state.HasPickup)
+            throw new InvalidOperationException("suspending inventory interaction must clear transient editing state");
     }
 
     private static void VerifyDisclosureLayout()
@@ -199,7 +225,7 @@ internal static class InventoryHudInteractionChecks
                 new ArtifactOptimizationPreference(501, 10, InventoryPreferenceLevel.Priority, 4, 0),
                 new ArtifactOptimizationPreference(502, 10, InventoryPreferenceLevel.Priority, 0, 3),
                 new ArtifactOptimizationPreference(501, 11, InventoryPreferenceLevel.Avoid, 0, 8),
-                new ArtifactOptimizationPreference(-1, 12, InventoryPreferenceLevel.Core, 3)
+                new ArtifactOptimizationPreference(505, 12, InventoryPreferenceLevel.Priority, 3)
             }, Array.Empty<ComboOptimizationPreference>());
         var swapped = InventoryArtifactIntentEditor.PlacePriority(original, 501, 10, 3);
         AssertSlot(swapped, 501, 10, InventoryPreferenceLevel.Priority, 3, 4);
@@ -212,7 +238,7 @@ internal static class InventoryHudInteractionChecks
         }
         var crossRow = InventoryArtifactIntentEditor.PlaceAvoid(swapped, 501, 10, 8);
         AssertSlot(crossRow, 501, 10, InventoryPreferenceLevel.Avoid, 8, 0);
-        AssertSlot(crossRow, 501, 11, InventoryPreferenceLevel.Priority, 3, 1);
+        AssertSlot(crossRow, 501, 11, InventoryPreferenceLevel.Priority, 3, 0);
         var moved = InventoryArtifactIntentEditor.PlaceAvoid(crossRow, 501, 10, 11);
         AssertSlot(moved, 501, 10, InventoryPreferenceLevel.Avoid, 11, 0);
         moved = InventoryArtifactIntentEditor.PlaceAvoid(moved, 503, 10, 8);

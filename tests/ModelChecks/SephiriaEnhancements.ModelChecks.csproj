@@ -62,7 +62,7 @@
     <Compile Include="..\..\Runtime\Inventory\InventoryEvaluationOrderSnapshot.cs" Link="Runtime\Inventory\InventoryEvaluationOrderSnapshot.cs" />
     <Compile Include="..\..\Runtime\Inventory\BuildIntentSnapshot.cs" Link="Runtime\Inventory\BuildIntentSnapshot.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationPolicy.cs" Link="Inventory\InventoryOptimizationPolicy.cs" />
-    <Compile Include="..\..\Features\Inventory\Core\InventoryPreferenceEditor.cs" Link="Inventory\InventoryPreferenceEditor.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryComboTargetEditor.cs" Link="Inventory\InventoryComboTargetEditor.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryArtifactIntentEditor.cs" Link="Inventory\InventoryArtifactIntentEditor.cs" />
     <Compile Include="..\..\Features\KeyboardUiNavigation\Core\KeyboardSelectionRecoveryPolicy.cs" Link="KeyboardUiNavigation\KeyboardSelectionRecoveryPolicy.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationPreferencesCodec.cs" Link="Inventory\InventoryOptimizationPreferencesCodec.cs" />

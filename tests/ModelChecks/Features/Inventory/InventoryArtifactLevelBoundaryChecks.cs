@@ -16,7 +16,7 @@ internal static class InventoryArtifactLevelBoundaryChecks
         VerifyNegativeLevelsRemainSemanticallyEquivalent();
         VerifyNativeLevelArithmeticBoundaries();
         VerifyFullInventoryUsesOccupiedCellSwap();
-        VerifyComboMinimumStartsAtOne();
+        VerifyComboTargetAllowsZero();
         return "negative/zero/positive activation; unique reactivation; zero target; normalized " +
             "completion; saturated minimum; negative equivalence; native " +
             "arithmetic; combo minimum; full inventory swap passed";
@@ -185,45 +185,37 @@ internal static class InventoryArtifactLevelBoundaryChecks
         var redistributed = new InventoryLayoutProjection(
             new[] { 1, 2 }, new[] { 0, 0 });
 
-        foreach (InventoryPreferenceLevel level in new[]
-        {
-            InventoryPreferenceLevel.Priority,
-            InventoryPreferenceLevel.Core,
-            InventoryPreferenceLevel.Prefer
-        })
-        {
-            var preferences = new InventoryOptimizationPreferences(
-                InventorySearchEffort.Balanced,
-                allowStoneTabletRotation: true,
-                new[]
-                {
-                    new ArtifactOptimizationPreference(100, 1000, level,
-                        minimumEffectiveLevel: 4)
-                }, Array.Empty<ComboOptimizationPreference>());
-            ResolvedInventoryOptimizationPolicy policy =
-                InventoryOptimizationPolicyResolver.Resolve(snapshot,
-                    preferences);
-            var scorer = new InventoryOptimizationScorer(snapshot, policy);
-            InventoryOptimizationScore before = scorer.Score(current,
-                InventorySettlementProjector.Evaluate(snapshot,
-                    current));
-            InventoryOptimizationScore after = scorer.Score(redistributed,
-                InventorySettlementProjector.Evaluate(snapshot,
-                    redistributed));
-
-            if (TargetSatisfied(level, before) != 1 ||
-                TargetSatisfied(level, after) != 1 ||
-                TargetProgress(level, before) !=
-                    InventoryOptimizationScorer.TargetCompletionScale ||
-                TargetProgress(level, after) !=
-                    InventoryOptimizationScorer.TargetCompletionScale ||
-                before.EnabledArtifactCount != 1 ||
-                after.EnabledArtifactCount != 2 ||
-                after.CompareTo(before) <= 0)
+        var preferences = new InventoryOptimizationPreferences(
+            InventorySearchEffort.Balanced,
+            allowStoneTabletRotation: true,
+            new[]
             {
-                throw new InvalidOperationException(
-                    "artifact minimum four must saturate at four for " + level);
-            }
+                new ArtifactOptimizationPreference(100, 1000, InventoryPreferenceLevel.Priority,
+                    minimumEffectiveLevel: 4)
+            }, Array.Empty<ComboOptimizationPreference>());
+        ResolvedInventoryOptimizationPolicy policy =
+            InventoryOptimizationPolicyResolver.Resolve(snapshot,
+                preferences);
+        var scorer = new InventoryOptimizationScorer(snapshot, policy);
+        InventoryOptimizationScore before = scorer.Score(current,
+            InventorySettlementProjector.Evaluate(snapshot,
+                current));
+        InventoryOptimizationScore after = scorer.Score(redistributed,
+            InventorySettlementProjector.Evaluate(snapshot,
+                redistributed));
+
+        if (before.PriorityTargetsSatisfied != 1 ||
+            after.PriorityTargetsSatisfied != 1 ||
+            before.PriorityTargetCompletionPoints !=
+                InventoryOptimizationScorer.TargetCompletionScale ||
+            after.PriorityTargetCompletionPoints !=
+                InventoryOptimizationScorer.TargetCompletionScale ||
+            before.EnabledArtifactCount != 1 ||
+            after.EnabledArtifactCount != 2 ||
+            after.CompareTo(before) <= 0)
+        {
+            throw new InvalidOperationException(
+                "artifact minimum four must saturate at four");
         }
     }
 
@@ -256,15 +248,14 @@ internal static class InventoryArtifactLevelBoundaryChecks
         }
     }
 
-    private static void VerifyComboMinimumStartsAtOne()
+    private static void VerifyComboTargetAllowsZero()
     {
         var preference = new ComboOptimizationPreference("EMBER",
-            InventoryPreferenceLevel.Priority, minimumCount: 0);
-        if (preference.MinimumCount != 1)
+            InventoryPreferenceLevel.Priority, targetCount: 0);
+        if (preference.TargetCount != 0)
         {
             throw new InvalidOperationException(
-                "combo minimum zero must normalize to the first meaningful " +
-                "count");
+                "combo target zero must not impose a minimum count of one");
         }
     }
 
@@ -378,27 +369,5 @@ internal static class InventoryArtifactLevelBoundaryChecks
         }
         return snapshot;
     }
-
-    private static int TargetSatisfied(InventoryPreferenceLevel level,
-        InventoryOptimizationScore score) => level switch
-        {
-            InventoryPreferenceLevel.Priority => score.PriorityTargetsSatisfied,
-            InventoryPreferenceLevel.Core => score.CoreTargetsSatisfied,
-            InventoryPreferenceLevel.Prefer =>
-                score.PreferredTargetsSatisfied,
-            _ => throw new ArgumentOutOfRangeException(nameof(level))
-        };
-
-    private static int TargetProgress(InventoryPreferenceLevel level,
-        InventoryOptimizationScore score) => level switch
-        {
-            InventoryPreferenceLevel.Priority =>
-                score.PriorityTargetCompletionPoints,
-            InventoryPreferenceLevel.Core =>
-                score.CoreTargetCompletionPoints,
-            InventoryPreferenceLevel.Prefer =>
-                score.PreferredTargetCompletionPoints,
-            _ => throw new ArgumentOutOfRangeException(nameof(level))
-        };
 
 }

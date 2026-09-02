@@ -191,7 +191,7 @@ namespace SephiriaEnhancements.Inventory
             }
 
             NewItemOwnInstance item = icon?.Item;
-            if (item?.Charm != null)
+            if (item?.Entity?.type == EItemType.Charm)
             {
                 InventoryOptimizationPreferences updated =
                     InventoryArtifactIntentEditor.Toggle(
@@ -232,7 +232,7 @@ namespace SephiriaEnhancements.Inventory
                     out GridInventory _,
                     out UI_CharacterStatusPanel panel) ||
                 !prioritySelectionView.TryShow(panel,
-                    item => item?.Charm != null))
+                    item => item?.Entity?.type == EItemType.Charm))
             {
                 ShowMessage(InventoryOptimizationLocalization.Unavailable);
                 return;

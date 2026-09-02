@@ -23,7 +23,7 @@ internal static class InventoryItemIdentityChecks
 
     private static void VerifyOptimizationPipeline()
     {
-        int[] levels = { 0, -1, 3 };
+        int[] levels = { -1, -1, 3 };
         InventorySnapshot source = Snapshot(CompanionKeys, levels, new[] { 0, 1, 2 });
         Require(source.SettlementValidation.LayoutProjectionReady,
             "different entities sharing native ID zero must remain projectable");

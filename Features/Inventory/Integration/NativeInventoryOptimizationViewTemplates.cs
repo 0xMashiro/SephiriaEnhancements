@@ -100,7 +100,7 @@ namespace SephiriaEnhancements.Inventory
                 .GetElement<UI_NewItemPicker>()?.parentCanvas;
             if (window?.sprite == null ||
                 contentButton?.GetComponent<Button>() == null ||
-                slot?.defaultBGSprite == null || dragCanvas == null)
+                slot?.defaultBGSprite == null || dragCanvas == null || panel.itemDropZone == null)
             {
                 return false;
             }

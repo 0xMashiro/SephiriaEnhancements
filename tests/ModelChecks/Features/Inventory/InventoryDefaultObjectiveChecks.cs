@@ -31,15 +31,11 @@ internal static class InventoryDefaultObjectiveChecks
         AssertHigher("priority targets", Score(priorityTargets: 1),
             Score(priorityCompletion: 100));
         AssertHigher("priority completion", Score(priorityCompletion: 1),
-            Score(priorityCompletion: 0, coreTargets: 100));
-        AssertHigher("core targets", Score(coreTargets: 1),
-            Score(coreCompletion: 100));
-        AssertHigher("core completion", Score(coreCompletion: 1),
-            Score(preferredTargets: 100));
-        AssertHigher("preferred targets", Score(preferredTargets: 1),
-            Score(preferredCompletion: 100));
-        AssertHigher("preferred completion",
-            Score(preferredCompletion: 1, deactivatedArtifacts: 100),
+            Score(presetTargets: 100));
+        AssertHigher("preset targets", Score(presetTargets: 1),
+            Score(presetCompletion: 100));
+        AssertHigher("preset completion",
+            Score(presetCompletion: 1, deactivatedArtifacts: 100),
             Score(deactivatedArtifacts: 0));
         AssertHigher("preserved active artifacts",
             Score(deactivatedArtifacts: 0),
@@ -74,9 +70,8 @@ internal static class InventoryDefaultObjectiveChecks
 
     private static InventoryOptimizationScore Score(
         int priorityTargets = 0, int priorityCompletion = 0,
-        int avoidedTargets = 0, int coreTargets = 0,
-        int coreCompletion = 0, int preferredTargets = 0,
-        int preferredCompletion = 0, int deactivatedArtifacts = 0,
+        int avoidedTargets = 0, int presetTargets = 0,
+        int presetCompletion = 0, int deactivatedArtifacts = 0,
         int enabledArtifacts = 0, int breakpoints = 0,
         int effectiveLevels = 0,
         int wastedLevels = 0, int movedItems = 0, int rotatedTablets = 0,
@@ -86,10 +81,8 @@ internal static class InventoryDefaultObjectiveChecks
             priorityTargetsSatisfied: priorityTargets,
             priorityTargetCompletionPoints: priorityCompletion,
             avoidedTargetsActive: avoidedTargets,
-            coreTargetsSatisfied: coreTargets,
-            coreTargetCompletionPoints: coreCompletion,
-            preferredTargetsSatisfied: preferredTargets,
-            preferredTargetCompletionPoints: preferredCompletion,
+            presetTargetsSatisfied: presetTargets,
+            presetTargetCompletionPoints: presetCompletion,
             sourceEnabledArtifactsDeactivated: deactivatedArtifacts,
             enabledArtifactCount: enabledArtifacts,
             comboBreakpointValue: breakpoints,

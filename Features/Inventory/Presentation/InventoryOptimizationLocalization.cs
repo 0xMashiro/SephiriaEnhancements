@@ -60,10 +60,8 @@ namespace SephiriaEnhancements.Inventory
         };
         internal const string HudTitle =
             "SephiriaEnhancements.InventoryHud.Title";
-        internal const string HudArtifactsTab =
-            "SephiriaEnhancements.InventoryHud.ArtifactsTab";
-        internal const string HudCombosTab =
-            "SephiriaEnhancements.InventoryHud.CombosTab";
+        internal const string HudComboTargets =
+            "SephiriaEnhancements.InventoryHud.ComboTargets";
         internal const string HudOptimize =
             "SephiriaEnhancements.InventoryHud.Optimize";
         internal const string HudMarkArtifacts =
@@ -82,6 +80,8 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.InventoryHud.AvoidZone";
         internal const string HudIntentBoardHint =
             "SephiriaEnhancements.InventoryHud.IntentBoardHint";
+        internal const string HudLevelEditUnbound =
+            "SephiriaEnhancements.InventoryHud.LevelEditUnbound";
         internal const string HudChooseIntentSlot =
             "SephiriaEnhancements.InventoryHud.ChooseIntentSlot";
         internal const string HudOpen =
@@ -98,6 +98,16 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.InventoryHud.AdjustmentCount";
         internal const string HudEnabled =
             "SephiriaEnhancements.InventoryHud.Enabled";
+        internal const string HudAutomaticTarget =
+            "SephiriaEnhancements.InventoryHud.AutomaticTarget";
+        internal const string HudMinimumLevel =
+            "SephiriaEnhancements.InventoryHud.MinimumLevel";
+        internal const string HudMinimumCount =
+            "SephiriaEnhancements.InventoryHud.MinimumCount";
+        internal const string HudMaximumCount =
+            "SephiriaEnhancements.InventoryHud.MaximumCount";
+        internal const string HudNoMinimumCount =
+            "SephiriaEnhancements.InventoryHud.NoMinimumCount";
         internal const string HudNoTargets =
             "SephiriaEnhancements.InventoryHud.NoTargets";
         internal const string HudPage =
@@ -109,12 +119,25 @@ namespace SephiriaEnhancements.Inventory
         internal static readonly string[] PreferenceChoiceKeys =
         {
             "SephiriaEnhancements.InventoryPreference.Automatic",
-            "SephiriaEnhancements.InventoryPreference.Prefer",
-            "SephiriaEnhancements.InventoryPreference.Core",
             "SephiriaEnhancements.InventoryPreference.Priority",
-            "SephiriaEnhancements.InventoryPreference.Avoid",
-            "SephiriaEnhancements.InventoryPreference.Ignored"
+            "SephiriaEnhancements.InventoryPreference.Avoid"
         };
+
+        internal static string FormatTargetCondition(
+            InventoryComboTarget target, Func<string, string> localize)
+        {
+            if (target.Choice == InventoryPreferenceChoice.Automatic)
+            {
+                return localize(HudAutomaticTarget);
+            }
+            return target.Choice == InventoryPreferenceChoice.Priority && target.RequiredValue == 0
+                ? localize(HudNoMinimumCount)
+                : string.Format(localize(target.Choice == InventoryPreferenceChoice.Avoid
+                    ? HudMaximumCount : HudMinimumCount), target.RequiredValue);
+        }
+
+        internal static string FormatArtifactMinimumLevel(int level, Func<string, string> localize) =>
+            level == 0 ? localize(HudEnabled) : string.Format(localize(HudMinimumLevel), level);
 
         private static readonly string[] Languages =
         {
@@ -252,12 +275,9 @@ namespace SephiriaEnhancements.Inventory
                 addText(language, HudTitle, simplifiedChinese
                     ? "智能整理"
                     : traditionalChinese ? "智慧整理" : "SMART INVENTORY");
-                addText(language, HudArtifactsTab, simplifiedChinese
-                    ? "神器"
-                    : traditionalChinese ? "神器" : "ARTIFACTS");
-                addText(language, HudCombosTab, simplifiedChinese
-                    ? "连击"
-                    : traditionalChinese ? "連擊" : "COMBOS");
+                addText(language, HudComboTargets, simplifiedChinese
+                    ? "连击目标"
+                    : traditionalChinese ? "連擊目標" : "COMBO TARGETS");
                 addText(language, HudOptimize, simplifiedChinese
                     ? "智能优化"
                     : traditionalChinese
@@ -296,10 +316,13 @@ namespace SephiriaEnhancements.Inventory
                         ? "排除區 · 優先保持不生效"
                         : "EXCLUSION · INACTIVE");
                 addText(language, HudIntentBoardHint, simplifiedChinese
-                    ? "拖入神器设置目标\n点击或拖动标记换位；右键移除\n只修改目标，不移动神器"
+                    ? "点击或拖动标记换位；右键移除\n{0}：调整所指神器的等级目标\n只修改目标，不移动神器"
                     : traditionalChinese
-                        ? "拖入神器設定目標\n點擊或拖動標記換位；右鍵移除\n只修改目標，不移動神器"
-                        : "Drag artifacts here to set goals.\nClick or drag to move marks.\nRight-click removes a mark.");
+                        ? "點擊或拖動標記換位；右鍵移除\n{0}：調整所指神器的等級目標\n只修改目標，不移動神器"
+                        : "Click/drag marks; right-click removes.\n{0}: edit the pointed/focused level goal.\nChanges goals, not inventory items.");
+                addText(language, HudLevelEditUnbound, simplifiedChinese
+                    ? "请绑定切换索敌键"
+                    : traditionalChinese ? "請綁定切換索敵鍵" : "Bind the target-switch action");
                 addText(language, HudChooseIntentSlot, simplifiedChinese
                     ? "选择格子放下或交换。\n右键取消；滚轮翻页。"
                     : traditionalChinese
@@ -309,15 +332,15 @@ namespace SephiriaEnhancements.Inventory
                     ? "智能整理"
                     : traditionalChinese ? "智慧整理" : "SMART ARRANGE");
                 addText(language, HudAdjustTargets, simplifiedChinese
-                    ? "调整本次探索目标"
+                    ? "调整连击目标"
                     : traditionalChinese
-                        ? "調整本次探索目標"
-                        : "ADJUST THIS RUN'S GOALS");
+                        ? "調整連擊目標"
+                        : "ADJUST COMBO TARGETS");
                 addText(language, HudHideTargets, simplifiedChinese
-                    ? "收起目标调整"
+                    ? "返回神器队列"
                     : traditionalChinese
-                        ? "收起目標調整"
-                        : "HIDE GOAL ADJUSTMENTS");
+                        ? "返回神器佇列"
+                        : "BACK TO ARTIFACT QUEUE");
                 addText(language, HudAutomaticPreset, simplifiedChinese
                     ? "自动参考当前游戏预设"
                     : traditionalChinese
@@ -334,7 +357,17 @@ namespace SephiriaEnhancements.Inventory
                         ? "本次探索有 {0} 項目標調整"
                         : "{0} goal adjustments for this run");
                 addText(language, HudEnabled, simplifiedChinese
-                    ? "启用" : traditionalChinese ? "啟用" : "ON");
+                    ? "只需生效" : traditionalChinese ? "只需生效" : "Keep active");
+                addText(language, HudAutomaticTarget, simplifiedChinese
+                    ? "跟随自动整理" : traditionalChinese ? "跟隨自動整理" : "Follow automatic sorting");
+                addText(language, HudMinimumLevel, simplifiedChinese
+                    ? "至少 {0} 级" : traditionalChinese ? "至少 {0} 級" : "Level {0} or higher");
+                addText(language, HudMinimumCount, simplifiedChinese
+                    ? "计数至少 {0}" : traditionalChinese ? "計數至少 {0}" : "Count: {0} or more");
+                addText(language, HudMaximumCount, simplifiedChinese
+                    ? "计数最多 {0}" : traditionalChinese ? "計數最多 {0}" : "Count: {0} or fewer");
+                addText(language, HudNoMinimumCount, simplifiedChinese
+                    ? "计数不限（0）" : traditionalChinese ? "計數不限（0）" : "No minimum count (0)");
                 addText(language, HudNoTargets, simplifiedChinese
                     ? "当前背包没有此类目标"
                     : traditionalChinese
@@ -358,15 +391,9 @@ namespace SephiriaEnhancements.Inventory
                 addText(language, PreferenceChoiceKeys[0], simplifiedChinese
                     ? "自动" : traditionalChinese ? "自動" : "AUTO");
                 addText(language, PreferenceChoiceKeys[1], simplifiedChinese
-                    ? "偏好" : traditionalChinese ? "偏好" : "PREFER");
-                addText(language, PreferenceChoiceKeys[2], simplifiedChinese
-                    ? "核心" : traditionalChinese ? "核心" : "CORE");
-                addText(language, PreferenceChoiceKeys[3], simplifiedChinese
                     ? "优先" : traditionalChinese ? "優先" : "PRIORITY");
-                addText(language, PreferenceChoiceKeys[4], simplifiedChinese
+                addText(language, PreferenceChoiceKeys[2], simplifiedChinese
                     ? "避免" : traditionalChinese ? "避免" : "AVOID");
-                addText(language, PreferenceChoiceKeys[5], simplifiedChinese
-                    ? "忽略" : traditionalChinese ? "忽略" : "IGNORE");
             }
         }
     }

@@ -7,6 +7,7 @@ internal static class InventoryArtifactIntentEditorChecks
 {
     internal static string Run()
     {
+        VerifyQueueLevelOwnership();
         InventoryOptimizationPreferences original =
             InventoryOptimizationPreferences.Default;
         InventoryOptimizationPreferences marked =
@@ -16,7 +17,7 @@ internal static class InventoryArtifactIntentEditorChecks
         if (!rule.TargetsInstance || rule.InstanceId != 501 ||
             rule.EntityId != 10 ||
             rule.Level != InventoryPreferenceLevel.Priority ||
-            rule.MinimumEffectiveLevel != 1 ||
+            rule.MinimumEffectiveLevel != 0 ||
             rule.PriorityOrder != 0 ||
             !InventoryArtifactIntentEditor.IsMarked(marked, new InventoryItemKey(10, 501)) ||
             InventoryArtifactIntentEditor.Count(marked) != 1)
@@ -69,5 +70,42 @@ internal static class InventoryArtifactIntentEditorChecks
         }
 
         return "ordered priority, exclusion and stale intent pruning passed";
+    }
+
+    private static void VerifyQueueLevelOwnership()
+    {
+        var snapshot = SephiriaEnhancements.ModelChecks.Runtime.Inventory.InventorySnapshotFixture.
+            DuplicateArtifactsAtLevels(new[] { 4, 0 }, new[] { 0, 1 }, maxLevel: 5);
+        var first = snapshot.Items[0].ItemKey;
+        var second = snapshot.Items[1].ItemKey;
+        var preferences = InventoryArtifactIntentEditor.PlacePriority(InventoryOptimizationPreferences.Default,
+            first.NativeInstanceId, first.EntityId, 0);
+        preferences = InventoryArtifactIntentEditor.PlacePriority(preferences, second.NativeInstanceId, second.EntityId, 1);
+        var changed = InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(preferences, snapshot, first, 4);
+        if (preferences.ArtifactPreferences.Any(rule => rule.MinimumEffectiveLevel != 0) ||
+            changed.ArtifactPreferences.Single(rule => rule.ItemKey == first).MinimumEffectiveLevel != 4 ||
+            changed.ArtifactPreferences.Single(rule => rule.ItemKey == second).MinimumEffectiveLevel != 0)
+            throw new InvalidOperationException("a queue level belongs to exactly one artifact instance, including duplicate names");
+        var reordered = InventoryArtifactIntentEditor.PlacePriority(changed, first.NativeInstanceId, first.EntityId, 1);
+        if (reordered.ArtifactPreferences.Single(rule => rule.ItemKey == first).MinimumEffectiveLevel != 4 ||
+            reordered.ArtifactPreferences.Single(rule => rule.ItemKey == first).PriorityOrder != 1)
+            throw new InvalidOperationException("reordering must preserve the level target on the artifact");
+        foreach (var (requested, expected) in new[] { (-1, 0), (0, 0), (99, 5) })
+        {
+            var bounded = InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(changed, snapshot, first, requested);
+            if (bounded.ArtifactPreferences.Single(rule => rule.ItemKey == first).MinimumEffectiveLevel != expected)
+                throw new InvalidOperationException("queue levels must include zero and respect the artifact's maximum");
+        }
+        var avoided = InventoryArtifactIntentEditor.PlaceAvoid(changed, first.NativeInstanceId, first.EntityId, 0);
+        if (!ReferenceEquals(avoided, InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(avoided, snapshot, first, 3)) ||
+            !ReferenceEquals(changed, InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(changed, null, first, 3)))
+            throw new InvalidOperationException("excluded or missing artifacts must not acquire a level target");
+        var policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, changed);
+        var layout = InventoryLayoutProjection.Current(snapshot);
+        var settlement = InventorySettlementProjector.Evaluate(snapshot, layout);
+        var evaluation = new InventoryOptimizationScorer(snapshot, policy).EvaluateTargets(settlement, settlement)
+            .Single(target => target.Target == "Artifact:" + first.EntityId + ":" + first.NativeInstanceId);
+        if (evaluation.RequiredValue != 4 || !evaluation.AfterConditionReached)
+            throw new InvalidOperationException("the queue editor must update the exact target used by the solver");
     }
 }

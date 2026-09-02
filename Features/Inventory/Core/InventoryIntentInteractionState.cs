@@ -11,6 +11,7 @@ namespace SephiriaEnhancements.Inventory
         internal bool HasPickup => Pickup != null;
         internal bool IsDragging { get; private set; }
         internal InventoryItemKey? ItemKey => Pickup?.ItemKey;
+        internal InventoryItemKey? LevelTarget { get; private set; }
 
         internal void SetEditable(bool editable)
         {
@@ -18,6 +19,7 @@ namespace SephiriaEnhancements.Inventory
             if (!editable)
             {
                 CancelPickup();
+                CancelLevelEdit();
             }
         }
 
@@ -29,6 +31,7 @@ namespace SephiriaEnhancements.Inventory
                 return false;
             }
             Pickup = source;
+            CancelLevelEdit();
             IsDragging = dragging;
             return true;
         }
@@ -77,5 +80,18 @@ namespace SephiriaEnhancements.Inventory
             Pickup = null;
             IsDragging = false;
         }
+
+        internal bool TryEditLevel(ArtifactOptimizationPreference source)
+        {
+            if (!Editable || HasPickup || source?.TargetsInstance != true ||
+                source.Level != InventoryPreferenceLevel.Priority || source.IntentSlotIndex < 0)
+            {
+                return false;
+            }
+            LevelTarget = LevelTarget == source.ItemKey ? null : source.ItemKey;
+            return true;
+        }
+
+        internal void CancelLevelEdit() => LevelTarget = null;
     }
 }

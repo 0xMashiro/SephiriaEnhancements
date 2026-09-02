@@ -869,13 +869,10 @@ namespace SephiriaEnhancements.Diagnostics
                 score.PriorityTargetCompletionPoints +
                 ",\"avoidedActive\":" + score.AvoidedTargetsActive +
                 ",\"positionEffectRegressions\":" + score.PositionEffectRegressions +
-                ",\"coreSatisfied\":" + score.CoreTargetsSatisfied +
-                ",\"coreTargetCompletionPoints\":" +
-                score.CoreTargetCompletionPoints +
-                ",\"preferredTargetsSatisfied\":" +
-                score.PreferredTargetsSatisfied +
-                ",\"preferredTargetCompletionPoints\":" +
-                score.PreferredTargetCompletionPoints +
+                ",\"presetTargetsSatisfied\":" +
+                score.PresetTargetsSatisfied +
+                ",\"presetTargetCompletionPoints\":" +
+                score.PresetTargetCompletionPoints +
                 ",\"sourceEnabledArtifactsDeactivated\":" +
                 score.SourceEnabledArtifactsDeactivated +
                 ",\"enabledArtifactCount\":" + score.EnabledArtifactCount +

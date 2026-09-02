@@ -59,9 +59,8 @@ namespace SephiriaEnhancements.Inventory
     {
         internal InventoryOptimizationScore(int priorityTargetsSatisfied,
             int priorityTargetCompletionPoints, int avoidedTargetsActive,
-            int coreTargetsSatisfied, int coreTargetCompletionPoints,
-            int preferredTargetsSatisfied,
-            int preferredTargetCompletionPoints,
+            int presetTargetsSatisfied,
+            int presetTargetCompletionPoints,
             int sourceEnabledArtifactsDeactivated, int enabledArtifactCount,
             int comboBreakpointValue,
             int cappedEffectiveArtifactLevelTotal,
@@ -73,11 +72,9 @@ namespace SephiriaEnhancements.Inventory
             PriorityTargetsSatisfied = priorityTargetsSatisfied;
             PriorityTargetCompletionPoints = priorityTargetCompletionPoints;
             AvoidedTargetsActive = avoidedTargetsActive;
-            CoreTargetsSatisfied = coreTargetsSatisfied;
-            CoreTargetCompletionPoints = coreTargetCompletionPoints;
-            PreferredTargetsSatisfied = preferredTargetsSatisfied;
-            PreferredTargetCompletionPoints =
-                preferredTargetCompletionPoints;
+            PresetTargetsSatisfied = presetTargetsSatisfied;
+            PresetTargetCompletionPoints =
+                presetTargetCompletionPoints;
             SourceEnabledArtifactsDeactivated =
                 sourceEnabledArtifactsDeactivated;
             EnabledArtifactCount = enabledArtifactCount;
@@ -97,10 +94,8 @@ namespace SephiriaEnhancements.Inventory
         internal int PriorityTargetsSatisfied { get; }
         internal int PriorityTargetCompletionPoints { get; }
         internal int AvoidedTargetsActive { get; }
-        internal int CoreTargetsSatisfied { get; }
-        internal int CoreTargetCompletionPoints { get; }
-        internal int PreferredTargetsSatisfied { get; }
-        internal int PreferredTargetCompletionPoints { get; }
+        internal int PresetTargetsSatisfied { get; }
+        internal int PresetTargetCompletionPoints { get; }
         internal int SourceEnabledArtifactsDeactivated { get; }
         internal int EnabledArtifactCount { get; }
         internal int ComboBreakpointValue { get; }
@@ -142,17 +137,11 @@ namespace SephiriaEnhancements.Inventory
             comparison = PriorityTargetCompletionPoints.CompareTo(
                 other.PriorityTargetCompletionPoints);
             if (comparison != 0) return comparison;
-            comparison = CoreTargetsSatisfied.CompareTo(
-                other.CoreTargetsSatisfied);
+            comparison = PresetTargetsSatisfied.CompareTo(
+                other.PresetTargetsSatisfied);
             if (comparison != 0) return comparison;
-            comparison = CoreTargetCompletionPoints.CompareTo(
-                other.CoreTargetCompletionPoints);
-            if (comparison != 0) return comparison;
-            comparison = PreferredTargetsSatisfied.CompareTo(
-                other.PreferredTargetsSatisfied);
-            if (comparison != 0) return comparison;
-            comparison = PreferredTargetCompletionPoints.CompareTo(
-                other.PreferredTargetCompletionPoints);
+            comparison = PresetTargetCompletionPoints.CompareTo(
+                other.PresetTargetCompletionPoints);
             if (comparison != 0) return comparison;
             comparison = other.SourceEnabledArtifactsDeactivated.CompareTo(
                 SourceEnabledArtifactsDeactivated);

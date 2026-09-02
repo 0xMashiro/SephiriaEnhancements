@@ -30,6 +30,7 @@ namespace SephiriaEnhancements.Configuration
                 policy = InventoryOptimizationPreferences.Default;
             }
             PersistentInventoryOptimizationPolicyStore.Replace(policy);
+            ExplorationInventoryIntentStore.RestorePersistentCombos();
             loaded = true;
             return true;
         }

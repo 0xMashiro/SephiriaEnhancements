@@ -126,6 +126,27 @@ namespace SephiriaEnhancements.Runtime.Inventory
         internal bool Bolt { get; }
     }
 
+    internal static class ArtifactAutomaticLevelPolicy
+    {
+        internal static int SafeLevel(int maximum, int current, IEnumerable<int[]> statCurves)
+        {
+            int baseline = Math.Max(0, Math.Min(maximum, current));
+            int limit = Math.Max(0, maximum);
+            foreach (int[] curve in statCurves ?? Array.Empty<int[]>())
+            {
+                if (curve == null || curve.Length == 0) continue;
+                int penalty = Math.Min(0, curve[Math.Min(baseline, curve.Length - 1)]);
+                for (int level = baseline + 1; level <= limit; level++)
+                {
+                    if (curve[Math.Min(level, curve.Length - 1)] >= penalty) continue;
+                    limit = level - 1;
+                    break;
+                }
+            }
+            return limit;
+        }
+    }
+
     internal sealed class ArtifactSnapshot
     {
         internal ArtifactSnapshot(int displayedLevel, int maxLevel,
@@ -136,7 +157,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
             CriteriaSnapshot criteria, string[] effectiveCategories,
             string[] possibleCategories, bool attackable,
             MagicSnapshot magic,
-            ArtifactCategoryRuleSnapshot categoryRule = null)
+            ArtifactCategoryRuleSnapshot categoryRule = null,
+            int? safeAutomaticLevel = null)
         {
             DisplayedLevel = displayedLevel;
             MaxLevel = maxLevel;
@@ -161,6 +183,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             Attackable = attackable;
             Magic = magic;
             CategoryRule = categoryRule ?? ArtifactCategoryRuleSnapshot.Static;
+            SafeAutomaticLevel = Math.Max(0, Math.Min(maxLevel, safeAutomaticLevel ?? maxLevel));
         }
 
         internal int DisplayedLevel { get; }
@@ -182,6 +205,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
         internal bool Attackable { get; }
         internal MagicSnapshot Magic { get; }
         internal ArtifactCategoryRuleSnapshot CategoryRule { get; }
+        // A conservative ceiling for upgrades that would worsen a direct stat penalty.
+        internal int SafeAutomaticLevel { get; }
     }
 
     internal sealed class StoneTabletSnapshot

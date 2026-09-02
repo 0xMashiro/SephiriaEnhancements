@@ -19,6 +19,24 @@ using SephiriaEnhancements.ModelChecks.Runtime.GameBridge.Multiplayer;
 using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 
+if (args.Contains("--inventory-hard-only"))
+{
+    InventoryHardConstraintChecks.Run();
+    return;
+}
+
+if (args.Contains("--inventory-preferences-only"))
+{
+    InventoryPreferenceComparisonChecks.Run();
+    return;
+}
+
+if (args.Contains("--row-category-stats-only"))
+{
+    InventoryRowCategoryStatChecks.Run();
+    return;
+}
+
 LoggingChecks.Run();
 if (args.Contains("--logging-only")) return;
 
@@ -28,6 +46,10 @@ Console.WriteLine("InventoryOptimizationArchitecture: " +
     InventoryOptimizationArchitectureChecks.Run());
 Console.WriteLine("InventoryArtifactIntent: " +
     InventoryArtifactIntentEditorChecks.Run());
+InventoryPriorityQueueChecks.Run();
+InventoryAutomaticGoalChecks.Run();
+InventoryPreferenceComparisonChecks.Run();
+InventoryHardConstraintChecks.Run();
 Console.WriteLine("InventoryHudInteraction: " +
     InventoryHudInteractionChecks.Run());
 Console.WriteLine("KeyboardSelectionRecovery: " +
@@ -74,6 +96,7 @@ DeveloperConsoleContractChecks.Run();
 InventorySnapshotChecks.Run();
 InventorySettlementValidationChecks.Run();
 InventorySettlementProjectorChecks.Run();
+InventoryRowCategoryStatChecks.Run();
 Console.WriteLine("InventoryPositionEffects: " + InventoryPositionEffectChecks.Run());
 Console.WriteLine("NativeInventoryEffectAccess: " + NativeInventoryEffectAccessChecks.Run());
 Console.WriteLine("InventoryDefaultObjective: " +

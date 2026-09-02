@@ -34,6 +34,32 @@ internal static class InventorySearchBudgetChecks
                 InventorySearchTerminationReason.ElapsedTimeLimit)
             throw new InvalidOperationException(
                 "elapsed time budget must stop search after the initial layout");
-        Console.WriteLine("InventorySearchBudget: evaluation and elapsed-time limits passed");
+        VerifyBestCandidatesSurviveNeighborhoodLimits();
+        Console.WriteLine("InventorySearchBudget: evaluation and elapsed-time limits; retained neighborhood improvements passed");
+    }
+
+    private static void VerifyBestCandidatesSurviveNeighborhoodLimits()
+    {
+        foreach (var snapshot in new[]
+        {
+            InventoryNeighborhoodFixture.BothSidesArtifacts(),
+            InventoryNeighborhoodFixture.StoneTabletMoveAndRotation()
+        })
+        {
+            var policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, InventoryOptimizationPreferences.Default);
+            InventoryOptimizationScore? previous = null;
+            bool improved = false;
+            for (int limit = 1; limit <= 120; limit++)
+            {
+                var proposal = InventoryOptimizer.Solve(snapshot, policy, new InventorySearchBudget(8, limit, 10000));
+                if (!proposal.Succeeded || proposal.CandidateEvaluations > limit ||
+                    previous != null && proposal.BestScore.CompareTo(previous) < 0)
+                    throw new InvalidOperationException("a larger candidate budget must not discard the best layout already found");
+                previous = proposal.BestScore;
+                improved |= proposal.Improved;
+            }
+            if (!improved)
+                throw new InvalidOperationException("budget checks must reach an improvement in the joint neighborhood");
+        }
     }
 }

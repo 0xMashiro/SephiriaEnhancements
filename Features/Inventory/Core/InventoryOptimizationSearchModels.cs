@@ -26,7 +26,7 @@ namespace SephiriaEnhancements.Inventory
     {
         internal InventorySearchBudget(int maximumImprovementRounds = 8,
             int maximumCandidateEvaluations = 5000,
-            int maximumElapsedMilliseconds = 200)
+            int maximumElapsedMilliseconds = 200, bool useElapsedTimeLimit = true)
         {
             MaximumImprovementRounds = Math.Max(1,
                 maximumImprovementRounds);
@@ -34,11 +34,13 @@ namespace SephiriaEnhancements.Inventory
                 maximumCandidateEvaluations);
             MaximumElapsedMilliseconds = Math.Max(0,
                 maximumElapsedMilliseconds);
+            UseElapsedTimeLimit = useElapsedTimeLimit;
         }
 
         internal int MaximumImprovementRounds { get; }
         internal int MaximumCandidateEvaluations { get; }
         internal int MaximumElapsedMilliseconds { get; }
+        internal bool UseElapsedTimeLimit { get; }
 
         internal static InventorySearchBudget ForEffort(
             InventorySearchEffort effort)
@@ -57,6 +59,8 @@ namespace SephiriaEnhancements.Inventory
     internal sealed class InventoryOptimizationScore :
         IComparable<InventoryOptimizationScore>
     {
+        // Identifies the preference comparator, independently of game mechanisms.
+        internal const string ObjectiveId = "hard-feasible-intent-first-v2";
         internal InventoryOptimizationScore(int priorityTargetsSatisfied,
             int priorityTargetCompletionPoints, int avoidedTargetsActive,
             int presetTargetsSatisfied,
@@ -67,8 +71,11 @@ namespace SephiriaEnhancements.Inventory
             int excessArtifactLevelTotal, int movedItemCount,
             int rotatedTabletCount,
             int[] orderedPriorityCompletionPoints = null,
-            int positionEffectRegressions = 0)
+            int positionEffectRegressions = 0, int automaticLevelRegressions = 0,
+            int hardConstraintViolations = 0, int hardConstraintCompletionPoints = 0)
         {
+            HardConstraintViolations = hardConstraintViolations;
+            HardConstraintCompletionPoints = hardConstraintCompletionPoints;
             PriorityTargetsSatisfied = priorityTargetsSatisfied;
             PriorityTargetCompletionPoints = priorityTargetCompletionPoints;
             AvoidedTargetsActive = avoidedTargetsActive;
@@ -85,6 +92,7 @@ namespace SephiriaEnhancements.Inventory
             MovedItemCount = movedItemCount;
             RotatedTabletCount = rotatedTabletCount;
             PositionEffectRegressions = positionEffectRegressions;
+            AutomaticLevelRegressions = automaticLevelRegressions;
             OrderedPriorityCompletionPoints = Array.AsReadOnly(
                 orderedPriorityCompletionPoints == null
                     ? Array.Empty<int>()
@@ -92,6 +100,9 @@ namespace SephiriaEnhancements.Inventory
         }
 
         internal int PriorityTargetsSatisfied { get; }
+        internal int HardConstraintViolations { get; }
+        internal int HardConstraintCompletionPoints { get; }
+        internal bool HardConstraintsSatisfied => HardConstraintViolations == 0;
         internal int PriorityTargetCompletionPoints { get; }
         internal int AvoidedTargetsActive { get; }
         internal int PresetTargetsSatisfied { get; }
@@ -104,7 +115,9 @@ namespace SephiriaEnhancements.Inventory
         internal int MovedItemCount { get; }
         internal int RotatedTabletCount { get; }
         internal int PositionEffectRegressions { get; }
+        internal int AutomaticLevelRegressions { get; }
         internal IReadOnlyList<int> OrderedPriorityCompletionPoints { get; }
+        internal bool HasDefaultProtectionTradeoff => PositionEffectRegressions > 0 || AutomaticLevelRegressions > 0;
 
         public int CompareTo(InventoryOptimizationScore other)
         {
@@ -113,7 +126,48 @@ namespace SephiriaEnhancements.Inventory
                 return 1;
             }
 
-            int comparison = other.PositionEffectRegressions.CompareTo(PositionEffectRegressions);
+            int comparison = CompareUserRequirementsTo(other);
+            if (comparison != 0) return comparison;
+            // Defaults break ties in user requirements; they are not feasibility constraints.
+            comparison = other.HasDefaultProtectionTradeoff.CompareTo(HasDefaultProtectionTradeoff);
+            if (comparison != 0) return comparison;
+            if (HasDefaultProtectionTradeoff)
+            {
+                // Neither loss counts nor unrelated aggregate gains price an attribute exchange.
+                // Use a deterministic minimal-change fallback, not pairwise Pareto ties: the
+                // comparator must remain transitive for exact and bounded search alike.
+                return CompareChangesTo(other);
+            }
+            comparison = PresetTargetsSatisfied.CompareTo(
+                other.PresetTargetsSatisfied);
+            if (comparison != 0) return comparison;
+            comparison = PresetTargetCompletionPoints.CompareTo(
+                other.PresetTargetCompletionPoints);
+            if (comparison != 0) return comparison;
+            comparison = other.SourceEnabledArtifactsDeactivated.CompareTo(
+                SourceEnabledArtifactsDeactivated);
+            if (comparison != 0) return comparison;
+            comparison = EnabledArtifactCount.CompareTo(
+                other.EnabledArtifactCount);
+            if (comparison != 0) return comparison;
+            comparison = ComboBreakpointValue.CompareTo(
+                other.ComboBreakpointValue);
+            if (comparison != 0) return comparison;
+            comparison = CappedEffectiveArtifactLevelTotal.CompareTo(
+                other.CappedEffectiveArtifactLevelTotal);
+            if (comparison != 0) return comparison;
+            comparison = other.ExcessArtifactLevelTotal.CompareTo(
+                ExcessArtifactLevelTotal);
+            return comparison != 0 ? comparison : CompareChangesTo(other);
+        }
+
+        internal int CompareUserRequirementsTo(InventoryOptimizationScore other)
+        {
+            // Infeasible candidates are useful only as search intermediates. No
+            // amount of soft benefit may outrank a feasible candidate.
+            int comparison = other.HardConstraintViolations.CompareTo(HardConstraintViolations);
+            if (comparison != 0) return comparison;
+            comparison = HardConstraintCompletionPoints.CompareTo(other.HardConstraintCompletionPoints);
             if (comparison != 0) return comparison;
             comparison = other.AvoidedTargetsActive.CompareTo(AvoidedTargetsActive);
             if (comparison != 0) return comparison;
@@ -136,29 +190,12 @@ namespace SephiriaEnhancements.Inventory
             if (comparison != 0) return comparison;
             comparison = PriorityTargetCompletionPoints.CompareTo(
                 other.PriorityTargetCompletionPoints);
-            if (comparison != 0) return comparison;
-            comparison = PresetTargetsSatisfied.CompareTo(
-                other.PresetTargetsSatisfied);
-            if (comparison != 0) return comparison;
-            comparison = PresetTargetCompletionPoints.CompareTo(
-                other.PresetTargetCompletionPoints);
-            if (comparison != 0) return comparison;
-            comparison = other.SourceEnabledArtifactsDeactivated.CompareTo(
-                SourceEnabledArtifactsDeactivated);
-            if (comparison != 0) return comparison;
-            comparison = EnabledArtifactCount.CompareTo(
-                other.EnabledArtifactCount);
-            if (comparison != 0) return comparison;
-            comparison = ComboBreakpointValue.CompareTo(
-                other.ComboBreakpointValue);
-            if (comparison != 0) return comparison;
-            comparison = CappedEffectiveArtifactLevelTotal.CompareTo(
-                other.CappedEffectiveArtifactLevelTotal);
-            if (comparison != 0) return comparison;
-            comparison = other.ExcessArtifactLevelTotal.CompareTo(
-                ExcessArtifactLevelTotal);
-            if (comparison != 0) return comparison;
-            comparison = other.MovedItemCount.CompareTo(MovedItemCount);
+            return comparison;
+        }
+
+        private int CompareChangesTo(InventoryOptimizationScore other)
+        {
+            int comparison = other.MovedItemCount.CompareTo(MovedItemCount);
             return comparison != 0
                 ? comparison
                 : other.RotatedTabletCount.CompareTo(RotatedTabletCount);
@@ -249,6 +286,14 @@ namespace SephiriaEnhancements.Inventory
         internal InventoryTargetReachability Reachability { get; }
     }
 
+    internal enum InventoryHardConstraintStatus
+    {
+        NotEvaluated,
+        Feasible,
+        ProvenInfeasible,
+        NotFound
+    }
+
     internal sealed class InventoryOptimizationProposal
     {
         internal InventoryOptimizationProposal(bool succeeded,
@@ -266,6 +311,18 @@ namespace SephiriaEnhancements.Inventory
             int duplicateLayoutsSkipped = 0,
             InventoryOptimizationOutcome outcome = null)
         {
+            bool rejectedByHard = succeeded && best != null && !best.HardConstraintsSatisfied;
+            HardConstraintStatus = rejectedByHard
+                ? optimalityProven ? InventoryHardConstraintStatus.ProvenInfeasible : InventoryHardConstraintStatus.NotFound
+                : succeeded && best != null ? InventoryHardConstraintStatus.Feasible : InventoryHardConstraintStatus.NotEvaluated;
+            if (rejectedByHard)
+            {
+                succeeded = false;
+                layout = null;
+                issues = new[] { HardConstraintStatus.ToString() };
+                optimalityProven = false;
+                outcome = null;
+            }
             Succeeded = succeeded;
             Layout = layout;
             CurrentScore = current;
@@ -284,6 +341,7 @@ namespace SephiriaEnhancements.Inventory
         }
 
         internal bool Succeeded { get; }
+        internal InventoryHardConstraintStatus HardConstraintStatus { get; }
         internal InventoryLayoutProjection Layout { get; }
         internal InventoryOptimizationScore CurrentScore { get; }
         internal InventoryOptimizationScore BestScore { get; }

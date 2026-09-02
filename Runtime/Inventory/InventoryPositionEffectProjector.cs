@@ -31,6 +31,11 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 bool enabled = source.Enabled;
                 switch (rule.Kind)
                 {
+                    case InventoryPositionEffectKind.RowCategoryStats:
+                        // Channels follow the captured category cycle, including repeated entries.
+                        // Category membership is projected separately and survives deactivation.
+                        Add(enabled ? value : 0, channel: rule.Channels[sourceY % rule.Channels.Count]);
+                        break;
                     case InventoryPositionEffectKind.NeighborArtifactLevelDamage:
                         float damage = 0;
                         if (enabled)

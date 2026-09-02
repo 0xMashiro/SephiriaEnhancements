@@ -41,6 +41,7 @@ namespace SephiriaEnhancements.Inventory
         private bool awaitingSwapConfirmation;
         private bool compatible = true;
         private float nextPriorityVisualRefreshAt;
+        private InventoryIntentResultFeedback intentFeedback;
 
         internal InventoryOptimizationOutcome LastAppliedOutcome
         {
@@ -57,6 +58,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal void ResetExploration()
         {
+            intentFeedback = null;
             EndPriorityMarking();
             hud.CancelArtifactPickup();
             ExplorationInventoryIntentStore.Clear();
@@ -67,6 +69,7 @@ namespace SephiriaEnhancements.Inventory
             EndPriorityMarking();
             ResetOperationState();
             LastAppliedOutcome = null;
+            intentFeedback = null;
             hud.Reset();
             compatible = true;
             nextRequestAt = 0f;
@@ -104,11 +107,13 @@ namespace SephiriaEnhancements.Inventory
             RefreshPriorityMarkVisuals();
             InventoryOptimizationPreferences explorationIntent =
                 ExplorationInventoryIntentStore.Capture();
+            if (intentFeedback?.IsCurrent(runtimeKernel?.State, explorationIntent) != true)
+                intentFeedback = null;
             hud.Update(EnhancementsSettings.Enabled && compatible,
                 HudPhase, hudSnapshot, RequestOptimization,
                 ReplacePreferences, prioritySelectionView.IsVisible,
                 InventoryArtifactIntentEditor.Count(explorationIntent),
-                TogglePriorityMarking, EndPriorityMarking);
+                TogglePriorityMarking, EndPriorityMarking, intentFeedback);
             if (!EnhancementsSettings.Enabled)
             {
                 EndPriorityMarking();
@@ -173,6 +178,25 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
             ExplorationInventoryIntentStore.Replace(preferences);
+            // The HUD edits the complete visible category policy. Persist even
+            // removal (Automatic), so a hidden old rule cannot reappear in Solve.
+            if (InventoryOptimizationPreferencesCodec.Encode(preferences) !=
+                InventoryOptimizationPreferencesCodec.Encode(PersistentInventoryOptimizationPolicyStore.Capture()))
+            {
+                var persistent = new InventoryOptimizationPreferences(preferences.SearchEffort,
+                    preferences.AllowStoneTabletRotation, Array.Empty<ArtifactOptimizationPreference>(),
+                    preferences.ComboPreferences.ToArray());
+                PersistentInventoryOptimizationPolicyStore.Replace(persistent);
+                try
+                {
+                    if (!PersistentInventoryOptimizationPolicyPersistence.Save(persistent))
+                        SupportLogger.Record("inventory_preferences_not_saved", "Device options unavailable", "WARN");
+                }
+                catch (Exception ex)
+                {
+                    SupportLogger.Failure("inventory_preferences_save_failed", ex);
+                }
+            }
             RefreshPriorityMarkVisuals(force: true);
         }
 
@@ -350,6 +374,7 @@ namespace SephiriaEnhancements.Inventory
             }
 
             hud.SuspendEditing();
+            intentFeedback = null;
             solveCancellation = new CancellationTokenSource();
             CancellationToken token = solveCancellation.Token;
             InventorySearchEffort searchEffort =
@@ -403,12 +428,26 @@ namespace SephiriaEnhancements.Inventory
             {
                 DeveloperLogger.RecordInventoryOptimization(result, null,
                     runtimeKernel?.State);
-                ShowMessage(InventoryOptimizationLocalization.Unsupported);
+                bool hardFailure = result.HardConstraintStatus == InventoryHardConstraintStatus.ProvenInfeasible ||
+                    result.HardConstraintStatus == InventoryHardConstraintStatus.NotFound;
+                if (hardFailure && RuntimeStillMatches() && TryGetOpenInventory(out var unchangedInventory) &&
+                    MatchesInventory(sourceSnapshot, unchangedInventory))
+                    intentFeedback = new InventoryIntentResultFeedback(sourceSnapshot, result.Policy,
+                        ExplorationInventoryIntentStore.Capture(), sourceRuntime);
+                ShowMessage(result.HardConstraintStatus == InventoryHardConstraintStatus.ProvenInfeasible
+                    ? InventoryOptimizationLocalization.HardInfeasible
+                    : hardFailure ? InventoryOptimizationLocalization.HardNotFound : InventoryOptimizationLocalization.Unsupported);
                 ResetOperationState();
                 return;
             }
             if (!result.Improved)
             {
+                if (RuntimeStillMatches() && TryGetOpenInventory(out var unchangedInventory) &&
+                    MatchesInventory(sourceSnapshot, unchangedInventory))
+                {
+                    intentFeedback = new InventoryIntentResultFeedback(sourceSnapshot, result.Policy,
+                        ExplorationInventoryIntentStore.Capture(), sourceRuntime);
+                }
                 ShowMessage(InventoryOptimizationLocalization.NoImprovementFound);
                 ResetOperationState();
                 return;
@@ -433,6 +472,15 @@ namespace SephiriaEnhancements.Inventory
             if (!expectedSettlement.Succeeded)
             {
                 ShowMessage(InventoryOptimizationLocalization.Unsupported);
+                ResetOperationState();
+                return;
+            }
+            // Recheck at the application boundary, including proposals supplied
+            // by registered optimizers. Only the final settled layout is constrained.
+            if (!new InventoryOptimizationScorer(sourceSnapshot, result.Policy)
+                    .Score(result.Layout, expectedSettlement).HardConstraintsSatisfied)
+            {
+                ShowMessage(InventoryOptimizationLocalization.HardNotFound);
                 ResetOperationState();
                 return;
             }
@@ -579,6 +627,8 @@ namespace SephiriaEnhancements.Inventory
                 else
                 {
                     LastAppliedOutcome = result.Outcome;
+                    intentFeedback = new InventoryIntentResultFeedback(actualSnapshot, result.Policy,
+                        ExplorationInventoryIntentStore.Capture(), actualRuntime);
                     ShowMessage(InventoryOptimizationLocalization.Completed);
                 }
                 ResetOperationState();

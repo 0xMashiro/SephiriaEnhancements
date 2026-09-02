@@ -75,6 +75,7 @@
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizer.cs" Link="Inventory\InventoryOptimizer.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationSearchModels.cs" Link="Inventory\InventoryOptimizationSearchModels.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationScorer.cs" Link="Inventory\InventoryOptimizationScorer.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryIntentResultFeedback.cs" Link="Inventory\InventoryIntentResultFeedback.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationOutcome.cs" Link="Inventory\InventoryOptimizationOutcome.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizerSelector.cs" Link="Inventory\InventoryOptimizerSelector.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryExhaustiveSearchOracle.cs" Link="Inventory\InventoryExhaustiveSearchOracle.cs" />

@@ -24,12 +24,27 @@ for Sephiria. Built on the game's AddOns system—no BepInEx installation requir
 
 Inventory optimization works automatically by default. Optionally place artifacts
 in the priority queue or exclusion area. Click or drag marks to move them; right-click
-removes a mark. Use the current target-switch binding over a hovered or focused priority
-artifact to edit its minimum level. That level belongs to the individual artifact and
-stays with it when reordered; zero only asks for an active effect. Combo targets have
+removes a mark. New priority marks default to automatic goals: ordinary artifacts target
+their effective level cap, in queue order. An unreachable earlier goal still allows
+best-effort progress on later goals. Upgrades that worsen direct negative stats are
+limited automatically. Explicit exclusions and goals precede default effect protection;
+when goal fulfillment ties, the solver prefers preserving modeled effects.
+Use the current target-switch binding over a hovered or focused priority artifact to
+open optional settings. Click the mode button to cycle Auto, Keep active, and a specified
+level; use the plus/minus buttons for the specified level. Mode and level follow the
+artifact when reordered. A specified higher level can opt into its direct stat penalties.
+Keep-inactive marks have equal priority and precede the artifact queue; items remain in
+the inventory. If equally satisfactory layouts both involve modeled tradeoffs, fewer
+moves and rotations break the tie rather than treating higher levels as better damage.
+After a verified result, each slot's
+bottom strip is green for satisfied, yellow for partial, or red for unmet. Gray means no
+current verified result. Hover or focus a slot to see its current/target levels and state
+in the existing hint area. Changed goals, inventory or gameplay context clear old colors.
+Combo targets have
 their own editor: Priority 0 imposes no minimum count, and Avoid N tries to keep the
-count at or below N. These are best-effort preferences;
-missing artifacts do not prevent the rest of the inventory from being optimized.
+count at or below N. Rules default to best effort (Soft); unmet Soft goals do not
+prevent the rest of the inventory from being optimized. Optional mandatory (Hard)
+rules must all hold before a layout can be applied.
 
 Keyboard support is designed for fast, mouse-free menu flow, including speedrun-style
 play, while continuing to follow Sephiria's current semantic actions and player rebinds.
@@ -93,14 +108,26 @@ remaining display time; manually opened reports resume without a timeout.
 
 ## Important behavior
 
+Artifact goals, exclusions and combo counts can each be marked mandatory (Hard).
+Use the target-switch shortcut over an artifact mark to edit its goal and strength;
+`!` marks a mandatory rule. Combo rules expose the same toggle in target settings.
+Proven infeasibility and failure to find a feasible layout within the search budget
+are reported separately. Green means met, yellow means partial Soft progress, and
+red means unmet; unmet Hard goals are red.
+
+Inventory research, experiment results and remaining mechanism questions are tracked in
+[issue #1](https://github.com/0xMashiro/SephiriaEnhancements/issues/1).
+This repository keeps production code and regression checks; research tools are archived separately.
+
 - Inventory arrangement is experimental. It reads the installing player's synchronized
   inventory and applies changes through normal game operations; it never edits save
   files directly.
-  The Mod solver preserves verified position effects and left/right modes before
-  improving levels and combo targets, except for an artifact's own effects when it
-  is explicitly excluded. Position-effect values, offsets and thresholds are read
-  from the running game. Conservative comparison also preserves the lower bound
-  of negative stats, so some upgrades with additional costs may be rejected.
+  The solver first satisfies all Hard rules, then compares Soft exclusions,
+  artifact goals in queue order, and other manual targets before default effect
+  protection. Position-effect values, offsets and thresholds are read from the
+  running game. When goal fulfillment ties, preserving modeled benefits takes
+  precedence; if both layouts involve tradeoffs, fewer moves and rotations win
+  without treating total levels as combat value.
   Unreadable or unverifiable mechanics stop optimization. Refresh order for multiple
   sources of the same-row companion mode is not yet supported.
 - Defeat retry restores the selected floor-entry or BOSS checkpoint. Online use requires

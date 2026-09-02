@@ -334,7 +334,10 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 TryCategories(() => charm.GetPossibleCategory(entity)),
                 attackable,
                 magic,
-                CaptureCategoryRule(charm));
+                CaptureCategoryRule(charm),
+                ArtifactAutomaticLevelPolicy.SafeLevel(charm.maxLevel,
+                    charm.IsEffectEnabled ? charm.limitedEffectEnabledLevel : 0,
+                    (charm as Charm_StatusInstance)?.stats?.Select(stat => stat?.valuesByLevel)));
         }
 
         private static ArtifactCategoryRuleSnapshot CaptureCategoryRule(

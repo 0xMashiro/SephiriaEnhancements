@@ -56,13 +56,15 @@ namespace SephiriaEnhancements.Inventory
             InventorySearchTerminationReason terminationReason =
                 InventorySearchTerminationReason.ImprovementRoundLimit;
             bool searchStopped = false;
+            InventoryLayoutProjection bestLayout = current;
+            InventoryOptimizationScore bestScore = currentScore;
 
             for (int round = 0; round < budget.MaximumImprovementRounds;
                 round++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                InventoryLayoutProjection bestLayout = current;
-                InventoryOptimizationScore bestScore = currentScore;
+                bestLayout = current;
+                bestScore = currentScore;
 
                 for (int first = 0; first < snapshot.Storage &&
                     !searchStopped; first++)
@@ -201,6 +203,14 @@ namespace SephiriaEnhancements.Inventory
                     // strictly monotonic, while the shared evaluation and time
                     // budgets keep it bounded.
                 }
+                current = bestLayout;
+                currentScore = bestScore;
+            }
+
+            // A budget can expire partway through any neighborhood. Keep the
+            // best verified candidate even when that round could not finish.
+            if (bestScore.CompareTo(currentScore) > 0)
+            {
                 current = bestLayout;
                 currentScore = bestScore;
             }
@@ -652,7 +662,7 @@ namespace SephiriaEnhancements.Inventory
                     CandidateEvaluationLimit;
                 return false;
             }
-            if (elapsed.ElapsedMilliseconds >= budget.MaximumElapsedMilliseconds)
+            if (budget.UseElapsedTimeLimit && elapsed.ElapsedMilliseconds >= budget.MaximumElapsedMilliseconds)
             {
                 terminationReason = InventorySearchTerminationReason.
                     ElapsedTimeLimit;

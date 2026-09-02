@@ -169,7 +169,7 @@ namespace SephiriaEnhancements.Inventory
                 InventoryExhaustiveSearchOracle.Solve(request.Snapshot,
                     request.Policy, new InventoryExhaustiveSearchLimits(
                         request.Budget.MaximumCandidateEvaluations,
-                        request.Budget.MaximumElapsedMilliseconds),
+                        request.Budget.MaximumElapsedMilliseconds, request.Budget.UseElapsedTimeLimit),
                     cancellationToken);
             if (!exact.SearchStarted)
             {
@@ -196,12 +196,12 @@ namespace SephiriaEnhancements.Inventory
                 exact.CandidateLayoutsEvaluated, exact.Issues.ToArray(),
                 request.Policy, scorer.EvaluateTargets(currentSettlement,
                     bestSettlement, exact.TargetSearchEvidence,
-                    exact.ProvenOptimal), exact.ProvenOptimal
+                    exact.SearchSpaceExhausted), exact.SearchSpaceExhausted
                     ? InventorySearchTerminationReason.SearchSpaceExhausted
                     : InventorySearchTerminationReason.ElapsedTimeLimit,
                 exact.ElapsedMilliseconds,
                 InventoryOptimizationSearchMethod.Exhaustive,
-                optimalityProven: exact.ProvenOptimal, outcome: outcome);
+                optimalityProven: exact.SearchSpaceExhausted, outcome: outcome);
             return true;
         }
     }

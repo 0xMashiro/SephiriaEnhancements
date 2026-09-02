@@ -8,6 +8,10 @@ namespace SephiriaEnhancements.Inventory
 {
     internal static class InventoryOptimizationLocalization
     {
+        internal const string HudHard = "SephiriaEnhancements.InventoryHud.Hard";
+        internal const string HudSoft = "SephiriaEnhancements.InventoryHud.Soft";
+        internal const string HardInfeasible = "SephiriaEnhancements.Inventory.HardInfeasible";
+        internal const string HardNotFound = "SephiriaEnhancements.Inventory.HardNotFound";
         internal const string Analyzing =
             "SephiriaEnhancements.Inventory.Analyzing";
         internal const string Applying =
@@ -102,6 +106,16 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.InventoryHud.AutomaticTarget";
         internal const string HudMinimumLevel =
             "SephiriaEnhancements.InventoryHud.MinimumLevel";
+        internal const string HudArtifactAuto = "SephiriaEnhancements.InventoryHud.ArtifactAuto";
+        internal const string HudArtifactSafeAuto = "SephiriaEnhancements.InventoryHud.ArtifactSafeAuto";
+        internal const string HudResultPending = "SephiriaEnhancements.InventoryHud.ResultPending";
+        internal const string HudResultSatisfied = "SephiriaEnhancements.InventoryHud.ResultSatisfied";
+        internal const string HudResultPartial = "SephiriaEnhancements.InventoryHud.ResultPartial";
+        internal const string HudResultUnmet = "SephiriaEnhancements.InventoryHud.ResultUnmet";
+        internal const string HudCurrentLevel = "SephiriaEnhancements.InventoryHud.CurrentLevel";
+        internal const string HudCurrentActive = "SephiriaEnhancements.InventoryHud.CurrentActive";
+        internal const string HudCurrentInactive = "SephiriaEnhancements.InventoryHud.CurrentInactive";
+        internal const string HudAvoidGoal = "SephiriaEnhancements.InventoryHud.AvoidGoal";
         internal const string HudMinimumCount =
             "SephiriaEnhancements.InventoryHud.MinimumCount";
         internal const string HudMaximumCount =
@@ -138,6 +152,36 @@ namespace SephiriaEnhancements.Inventory
 
         internal static string FormatArtifactMinimumLevel(int level, Func<string, string> localize) =>
             level == 0 ? localize(HudEnabled) : string.Format(localize(HudMinimumLevel), level);
+
+        internal static string FormatArtifactTarget(ArtifactOptimizationPreference rule,
+            ArtifactSnapshot artifact, Func<string, string> localize, int? targetLevel = null)
+        {
+            if (rule.Level == InventoryPreferenceLevel.Avoid) return localize(HudAvoidGoal);
+            int target = targetLevel ?? rule.ResolveTargetLevel(artifact);
+            string condition = FormatArtifactMinimumLevel(target, localize);
+            return rule.TargetMode != ArtifactLevelTargetMode.Automatic ? condition
+                : string.Format(localize(artifact.SafeAutomaticLevel < artifact.MaxLevel
+                    ? HudArtifactSafeAuto : HudArtifactAuto), condition);
+        }
+
+        internal static string FormatArtifactFeedback(ArtifactOptimizationPreference rule,
+            ArtifactSnapshot artifact, InventoryArtifactGoalFeedback feedback, Func<string, string> localize)
+        {
+            int target = feedback?.TargetLevel ?? rule.ResolveTargetLevel(artifact);
+            bool active = feedback?.Active ?? artifact.EffectEnabled;
+            string current = !active ? localize(HudCurrentInactive)
+                : target == 0 || rule.Level == InventoryPreferenceLevel.Avoid ? localize(HudCurrentActive)
+                : string.Format(localize(HudCurrentLevel), feedback?.CurrentLevel ?? artifact.LimitedEffectEnabledLevel, target);
+            string state = localize((feedback?.State ?? InventoryIntentSatisfaction.NotEvaluated) switch
+            {
+                InventoryIntentSatisfaction.Satisfied => HudResultSatisfied,
+                InventoryIntentSatisfaction.Partial => HudResultPartial,
+                InventoryIntentSatisfaction.Unmet => HudResultUnmet,
+                _ => HudResultPending
+            });
+            return localize(rule.Strength == InventoryConstraintStrength.Hard ? HudHard : HudSoft) + " · " +
+                FormatArtifactTarget(rule, artifact, localize, target) + "\n" + current + "\n" + state;
+        }
 
         private static readonly string[] Languages =
         {
@@ -197,6 +241,16 @@ namespace SephiriaEnhancements.Inventory
                     : traditionalChinese
                         ? "目前背包含有尚未驗證的機制，已安全略過最佳化。"
                         : "This inventory contains mechanics that are not yet safely supported.");
+                addText(language, HudHard, simplifiedChinese ? "必须满足" : traditionalChinese ? "必須滿足" : "Must meet");
+                addText(language, HudSoft, simplifiedChinese ? "尽力满足" : traditionalChinese ? "盡力滿足" : "Best effort");
+                addText(language, HardInfeasible, simplifiedChinese
+                    ? "必须满足的条件无法同时达成，已保留原布局。请调整条件。"
+                    : traditionalChinese ? "必須滿足的條件無法同時達成，已保留原配置。請調整條件。"
+                    : "Mandatory conditions cannot all be met. Layout unchanged; adjust the conditions.");
+                addText(language, HardNotFound, simplifiedChinese
+                    ? "本次搜索未找到满足全部硬条件的布局，已保留原布局；尚不能确定无解。"
+                    : traditionalChinese ? "本次搜尋未找到滿足全部硬條件的配置，已保留原配置；尚不能確定無解。"
+                    : "No layout meeting all mandatory conditions was found in this search. Layout unchanged; infeasibility is not proven.");
                 addText(language, PositionEffectsUnavailable, simplifiedChinese
                     ? "无法验证物品的位置效果，已停止优化。"
                     : traditionalChinese
@@ -311,15 +365,15 @@ namespace SephiriaEnhancements.Inventory
                         ? "優先佇列 · 越靠前越優先"
                         : "PRIORITY · LEFT FIRST");
                 addText(language, HudAvoidZone, simplifiedChinese
-                    ? "排除区 · 优先保持不生效"
+                    ? "排除 · 同等优先级"
                     : traditionalChinese
-                        ? "排除區 · 優先保持不生效"
-                        : "EXCLUSION · INACTIVE");
+                        ? "排除 · 同等優先級"
+                        : "KEEP INACTIVE · EQUAL PRIORITY");
                 addText(language, HudIntentBoardHint, simplifiedChinese
-                    ? "点击或拖动标记换位；右键移除\n{0}：调整所指神器的等级目标\n只修改目标，不移动神器"
+                    ? "点击或拖动标记换位；右键移除\n{0}：目标与软硬条件（! 为必须）\n绿：满足　黄：部分　红：未满足"
                     : traditionalChinese
-                        ? "點擊或拖動標記換位；右鍵移除\n{0}：調整所指神器的等級目標\n只修改目標，不移動神器"
-                        : "Click/drag marks; right-click removes.\n{0}: edit the pointed/focused level goal.\nChanges goals, not inventory items.");
+                        ? "點擊或拖動標記換位；右鍵移除\n{0}：目標與軟硬條件（! 為必須）\n綠：滿足　黃：部分　紅：未滿足"
+                        : "Click/drag; right-click removes.\n{0}: goals / ! mandatory\nGreen met · Yellow partial · Red unmet");
                 addText(language, HudLevelEditUnbound, simplifiedChinese
                     ? "请绑定切换索敌键"
                     : traditionalChinese ? "請綁定切換索敵鍵" : "Bind the target-switch action");
@@ -362,6 +416,26 @@ namespace SephiriaEnhancements.Inventory
                     ? "跟随自动整理" : traditionalChinese ? "跟隨自動整理" : "Follow automatic sorting");
                 addText(language, HudMinimumLevel, simplifiedChinese
                     ? "至少 {0} 级" : traditionalChinese ? "至少 {0} 級" : "Level {0} or higher");
+                addText(language, HudArtifactAuto, simplifiedChinese
+                    ? "自动 · {0}" : traditionalChinese ? "自動 · {0}" : "Auto · {0}");
+                addText(language, HudArtifactSafeAuto, simplifiedChinese
+                    ? "自动（限制代价）· {0}" : traditionalChinese ? "自動（限制代價）· {0}" : "Auto (limit penalties) · {0}");
+                addText(language, HudResultPending, simplifiedChinese
+                    ? "尚无有效整理结果" : traditionalChinese ? "尚無有效整理結果" : "No current verified result");
+                addText(language, HudResultSatisfied, simplifiedChinese
+                    ? "绿色 · 已满足" : traditionalChinese ? "綠色 · 已滿足" : "Green · satisfied");
+                addText(language, HudResultPartial, simplifiedChinese
+                    ? "黄色 · 部分满足" : traditionalChinese ? "黃色 · 部分滿足" : "Yellow · partially satisfied");
+                addText(language, HudResultUnmet, simplifiedChinese
+                    ? "红色 · 本次未满足" : traditionalChinese ? "紅色 · 本次未滿足" : "Red · not satisfied this time");
+                addText(language, HudCurrentLevel, simplifiedChinese
+                    ? "当前：{0} / {1} 级" : traditionalChinese ? "目前：{0} / {1} 級" : "Current: level {0} / {1}");
+                addText(language, HudCurrentActive, simplifiedChinese
+                    ? "当前：已生效" : traditionalChinese ? "目前：已生效" : "Currently active");
+                addText(language, HudCurrentInactive, simplifiedChinese
+                    ? "当前：未生效" : traditionalChinese ? "目前：未生效" : "Currently inactive");
+                addText(language, HudAvoidGoal, simplifiedChinese
+                    ? "保持不生效" : traditionalChinese ? "保持不生效" : "Keep inactive");
                 addText(language, HudMinimumCount, simplifiedChinese
                     ? "计数至少 {0}" : traditionalChinese ? "計數至少 {0}" : "Count: {0} or more");
                 addText(language, HudMaximumCount, simplifiedChinese

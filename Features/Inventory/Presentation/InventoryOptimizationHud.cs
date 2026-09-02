@@ -73,9 +73,13 @@ namespace SephiriaEnhancements.Inventory
         private GameObject levelEditor;
         private TextMeshProUGUI levelTargetName;
         private TextMeshProUGUI levelCondition;
+        private Button levelMode;
+        private Button constraintStrength;
+        private TextMeshProUGUI constraintStrengthText;
         private Button decreaseLevel;
         private Button increaseLevel;
         private InventorySnapshot currentSnapshot;
+        private InventoryIntentResultFeedback resultFeedback;
         private int page;
         private int intentPage;
         private bool panelOpen;
@@ -101,8 +105,11 @@ namespace SephiriaEnhancements.Inventory
             InventorySnapshot snapshot, Action optimizeAction,
             Action<InventoryOptimizationPreferences> replaceAction,
             bool markingPriorities, int markedPriorityCount,
-            Action toggleMarkingAction, Action endMarkingAction)
+            Action toggleMarkingAction, Action endMarkingAction,
+            InventoryIntentResultFeedback feedback = null)
         {
+            if (!ReferenceEquals(resultFeedback, feedback)) nextProjectionAt = 0f;
+            resultFeedback = feedback;
             currentPhase = phase;
             currentSnapshot = snapshot;
             UI_CharacterStatusPanel openPanel = null;
@@ -400,6 +407,14 @@ namespace SephiriaEnhancements.Inventory
             }
             // Native inventory labels render above the selection frame.
             marker.transform.SetAsLastSibling();
+            GameObject resultObject = new("ResultStatus", typeof(RectTransform), typeof(Image));
+            var resultRect = resultObject.GetComponent<RectTransform>();
+            resultRect.SetParent(rect, false);
+            resultRect.anchorMin = new Vector2(0.08f, 0.02f);
+            resultRect.anchorMax = new Vector2(0.92f, 0.09f);
+            resultRect.offsetMin = resultRect.offsetMax = Vector2.zero;
+            slot.ResultStatus = resultObject.GetComponent<Image>();
+            slot.ResultStatus.raycastTarget = false;
             slot.Button.onClick.AddListener(() => ActivateIntentSlot(slot));
             slot.Tooltip.Configure(() => interaction.HasPickup);
             slotObject.GetComponent<InventoryIntentDropTarget>().Configure(
@@ -417,14 +432,16 @@ namespace SephiriaEnhancements.Inventory
             SetTopRect(rect, new Vector2(24f, -InventoryOptimizationHudLayout.HintTop),
                 new Vector2(312f, InventoryOptimizationHudLayout.HintHeight));
             levelTargetName = CreateText("ArtifactName", rect, template,
-                Vector2.zero, new Vector2(274f, 28f), TextAlignmentOptions.MidlineLeft);
+                Vector2.zero, new Vector2(164f, 28f), TextAlignmentOptions.MidlineLeft);
             levelTargetName.color = PrimaryText;
+            constraintStrength = CreateButton("ConstraintStrength", rect, template,
+                new Vector2(170f, 0f), new Vector2(106f, 28f), ToggleArtifactStrength, out constraintStrengthText);
             CreateButton("CloseLevelEditor", rect, template, new Vector2(284f, 0f),
                 new Vector2(28f, 28f), ClearArtifactPickup, out var closeLevelText);
             closeLevelText.text = "×";
-            levelCondition = CreateText("MinimumLevel", rect, template,
-                new Vector2(0f, -36f), new Vector2(228f, 28f), TextAlignmentOptions.MidlineLeft);
-            levelCondition.color = SecondaryText;
+            levelMode = CreateButton("TargetMode", rect, template,
+                new Vector2(0f, -36f), new Vector2(228f, 28f),
+                CycleArtifactTargetMode, out levelCondition);
             decreaseLevel = CreateButton("DecreaseLevel", rect, template,
                 new Vector2(236f, -36f), new Vector2(30f, 28f),
                 () => AdjustArtifactLevel(-1), out var decreaseText);
@@ -448,14 +465,14 @@ namespace SephiriaEnhancements.Inventory
             if (action.activeControl?.device is not Mouse)
             {
                 var selected = EventSystem.current?.currentSelectedGameObject;
-                slot = prioritySlots.FirstOrDefault(candidate => candidate.Root == selected);
+                slot = prioritySlots.Concat(avoidSlots).FirstOrDefault(candidate => candidate.Root == selected);
             }
             if (slot == null && action.activeControl?.device is not Gamepad &&
                 InputDeviceState.TryGetPointerPosition(out var position))
             {
                 var canvas = root.GetComponentInParent<Canvas>();
                 var camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
-                slot = prioritySlots.FirstOrDefault(candidate => candidate.Root.activeInHierarchy &&
+                slot = prioritySlots.Concat(avoidSlots).FirstOrDefault(candidate => candidate.Root.activeInHierarchy &&
                     RectTransformUtility.RectangleContainsScreenPoint(
                         candidate.Root.transform as RectTransform, position, camera));
             }
@@ -468,8 +485,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 ProjectLevelEditor(ExplorationInventoryIntentStore.Capture());
                 if (levelEditor.activeSelf)
-                    EventSystem.current?.SetSelectedGameObject(increaseLevel.interactable
-                        ? increaseLevel.gameObject : decreaseLevel.gameObject);
+                    EventSystem.current?.SetSelectedGameObject(levelMode.gameObject);
             }
             nextProjectionAt = 0f;
         }
@@ -477,7 +493,7 @@ namespace SephiriaEnhancements.Inventory
         private void ProjectLevelEditor(InventoryOptimizationPreferences preferences)
         {
             var rule = preferences.ArtifactPreferences.FirstOrDefault(candidate =>
-                candidate.ItemKey == interaction.LevelTarget && candidate.Level == InventoryPreferenceLevel.Priority);
+                candidate.ItemKey == interaction.LevelTarget);
             var item = currentSnapshot?.Items.FirstOrDefault(candidate => candidate.ItemKey == interaction.LevelTarget);
             bool show = interaction.Editable && !interaction.HasPickup && !NativeInventoryIntentDrop.HasHeldItem &&
                 rule != null && item?.Artifact != null && HasInventoryArtifact(rule.InstanceId, rule.EntityId);
@@ -486,10 +502,51 @@ namespace SephiriaEnhancements.Inventory
             boardHint.gameObject.SetActive(!show);
             if (!show) return;
             levelTargetName.text = item.Name;
-            levelCondition.text = InventoryOptimizationLocalization.FormatArtifactMinimumLevel(
-                rule.MinimumEffectiveLevel, key => Loc._(key));
-            decreaseLevel.interactable = rule.MinimumEffectiveLevel > 0;
-            increaseLevel.interactable = rule.MinimumEffectiveLevel < item.Artifact.MaxLevel;
+            constraintStrengthText.text = Loc._(rule.Strength == InventoryConstraintStrength.Hard
+                ? InventoryOptimizationLocalization.HudHard : InventoryOptimizationLocalization.HudSoft);
+            constraintStrength.interactable = interaction.Editable;
+            levelCondition.text = rule.Level == InventoryPreferenceLevel.Avoid
+                ? Loc._(InventoryOptimizationLocalization.HudAvoidGoal)
+                : rule.TargetMode == ArtifactLevelTargetMode.Automatic
+                ? Loc._(InventoryOptimizationLocalization.PreferenceChoiceKeys[0])
+                : InventoryOptimizationLocalization.FormatArtifactMinimumLevel(rule.ResolveTargetLevel(item.Artifact), key => Loc._(key));
+            levelMode.interactable = interaction.Editable && rule.Level == InventoryPreferenceLevel.Priority;
+            bool specified = rule.Level == InventoryPreferenceLevel.Priority && rule.TargetMode == ArtifactLevelTargetMode.SpecifiedLevel;
+            decreaseLevel.interactable = specified && rule.MinimumEffectiveLevel > 1;
+            increaseLevel.interactable = specified && rule.MinimumEffectiveLevel < item.Artifact.MaxLevel;
+        }
+
+        private void ToggleArtifactStrength()
+        {
+            if (!interaction.Editable || interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem ||
+                !interaction.LevelTarget.HasValue) return;
+            var preferences = ExplorationInventoryIntentStore.Capture();
+            var key = interaction.LevelTarget.Value;
+            if (!HasInventoryArtifact(key.NativeInstanceId, key.EntityId)) return;
+            var rule = preferences.ArtifactPreferences.FirstOrDefault(candidate => candidate.ItemKey == key);
+            if (rule == null) return;
+            ReplacePreferences(InventoryArtifactIntentEditor.SetStrength(preferences, key,
+                rule.Strength == InventoryConstraintStrength.Hard ? InventoryConstraintStrength.Soft : InventoryConstraintStrength.Hard));
+            nextProjectionAt = 0f;
+        }
+
+        private void CycleArtifactTargetMode()
+        {
+            if (!interaction.Editable || interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem ||
+                !interaction.LevelTarget.HasValue) return;
+            var key = interaction.LevelTarget.Value;
+            if (!HasInventoryArtifact(key.NativeInstanceId, key.EntityId)) return;
+            var preferences = ExplorationInventoryIntentStore.Capture();
+            var rule = preferences.ArtifactPreferences.FirstOrDefault(candidate => candidate.ItemKey == key);
+            var item = currentSnapshot?.Items.FirstOrDefault(candidate => candidate.ItemKey == key);
+            if (rule == null || item?.Artifact == null) return;
+            ReplacePreferences(rule.TargetMode == ArtifactLevelTargetMode.Automatic
+                ? InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(preferences, currentSnapshot, key, 0)
+                : rule.TargetMode == ArtifactLevelTargetMode.ActiveOnly && item.Artifact.MaxLevel > 0
+                    ? InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(preferences, currentSnapshot, key,
+                        Math.Max(1, item.Artifact.LimitedEffectEnabledLevel))
+                    : InventoryArtifactIntentEditor.SetAutomatic(preferences, key));
+            nextProjectionAt = 0f;
         }
 
         private void AdjustArtifactLevel(int delta)
@@ -531,8 +588,10 @@ namespace SephiriaEnhancements.Inventory
                 new Vector2(260f, -28f), new Vector2(30f, 24f),
                 () => AdjustRequiredValue(row, -1), out row.DecreaseText);
             row.Value = CreateText("Value", rect, template,
-                new Vector2(16f, -28f), new Vector2(236f, 24f),
+                new Vector2(128f, -28f), new Vector2(124f, 24f),
                 TextAlignmentOptions.MidlineLeft);
+            row.Strength = CreateButton("ConstraintStrength", rect, template,
+                new Vector2(16f, -28f), new Vector2(106f, 24f), () => ToggleComboStrength(row), out row.StrengthText);
             row.Value.color = SecondaryText;
             row.Value.fontSize *= 0.8f;
             row.Increase = CreateButton("Increase", rect, template,
@@ -634,6 +693,11 @@ namespace SephiriaEnhancements.Inventory
                         (int)target.Choice]);
                 row.Value.text = InventoryOptimizationLocalization.FormatTargetCondition(
                     target, key => Loc._(key));
+                row.Value.color = SatisfactionColor(resultFeedback?.FindCombo(target.CategoryId) ?? InventoryIntentSatisfaction.NotEvaluated);
+                row.Strength.gameObject.SetActive(target.CanAdjustRequiredValue);
+                row.Strength.interactable = editable;
+                row.StrengthText.text = Loc._(target.Strength == InventoryConstraintStrength.Hard
+                    ? InventoryOptimizationLocalization.HudHard : InventoryOptimizationLocalization.HudSoft);
                 row.Decrease.gameObject.SetActive(target.CanAdjustRequiredValue);
                 row.Increase.gameObject.SetActive(target.CanAdjustRequiredValue);
                 row.Choice.interactable = editable;
@@ -713,6 +777,28 @@ namespace SephiriaEnhancements.Inventory
                     avoided.FirstOrDefault(rule => rule.IntentSlotIndex == targetIndex),
                     sourceIcons);
             }
+            ProjectHoveredGoal();
+        }
+
+        private void ProjectHoveredGoal()
+        {
+            if (interaction.HasPickup || levelEditor.activeSelf) return;
+            var slots = prioritySlots.Concat(avoidSlots);
+            IntentSlot hovered = null;
+            if (InputDeviceState.TryGetPointerPosition(out var pointer))
+            {
+                var canvas = root.GetComponentInParent<Canvas>();
+                var camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+                hovered = slots.FirstOrDefault(slot => slot.Root.activeInHierarchy &&
+                    RectTransformUtility.RectangleContainsScreenPoint(slot.Root.transform as RectTransform, pointer, camera));
+            }
+            hovered ??= slots.FirstOrDefault(slot =>
+                EventSystem.current?.currentSelectedGameObject == slot.Root);
+            var rule = hovered?.Preference;
+            var item = currentSnapshot?.Items.FirstOrDefault(candidate => candidate.ItemKey == rule?.ItemKey);
+            if (rule == null || item?.Artifact == null) return;
+            boardHint.text = InventoryOptimizationLocalization.FormatArtifactFeedback(rule, item.Artifact,
+                resultFeedback?.Find(rule.ItemKey), key => Loc._(key));
         }
 
         private void ActivateIntentSlot(IntentSlot slot)
@@ -902,6 +988,7 @@ namespace SephiriaEnhancements.Inventory
             slot.Marker.text = slot.PriorityQueue
                 ? (slot.Index + 1).ToString()
                 : "×";
+            if (preference?.Strength == InventoryConstraintStrength.Hard) slot.Marker.text += "!";
             if (interaction.HasPickup && interaction.ItemKey == preference?.ItemKey)
             {
                 slot.Marker.text = "›" + slot.Marker.text;
@@ -922,7 +1009,19 @@ namespace SephiriaEnhancements.Inventory
                 nativeTemplates.Slot.defaultBGSprite;
             slot.Background.material = null;
             slot.Background.color = Color.white;
+            slot.ResultStatus.enabled = preference != null;
+            slot.ResultStatus.color = SatisfactionColor(preference == null
+                ? InventoryIntentSatisfaction.NotEvaluated
+                : resultFeedback?.Find(preference.ItemKey)?.State ?? InventoryIntentSatisfaction.NotEvaluated);
         }
+
+        private static Color SatisfactionColor(InventoryIntentSatisfaction state) => state switch
+        {
+            InventoryIntentSatisfaction.Satisfied => new Color(0.24f, 0.88f, 0.42f, 1f),
+            InventoryIntentSatisfaction.Partial => new Color(1f, 0.76f, 0.15f, 1f),
+            InventoryIntentSatisfaction.Unmet => new Color(0.98f, 0.25f, 0.22f, 1f),
+            _ => new Color(0.47f, 0.49f, 0.54f, 1f)
+        };
 
         private void DropIntoIntentSlot(IntentSlot slot,
             UI_NewInventoryIcon icon)
@@ -1037,6 +1136,14 @@ namespace SephiriaEnhancements.Inventory
                     ExplorationInventoryIntentStore.Capture(), row.Target,
                     row.Target.RequiredValue + delta);
             ReplacePreferences(updated);
+            nextProjectionAt = 0f;
+        }
+
+        private void ToggleComboStrength(TargetRow row)
+        {
+            if (!interaction.Editable || row?.Target?.CanAdjustRequiredValue != true) return;
+            ReplacePreferences(InventoryComboTargetEditor.SetStrength(ExplorationInventoryIntentStore.Capture(), row.Target,
+                row.Target.Strength == InventoryConstraintStrength.Hard ? InventoryConstraintStrength.Soft : InventoryConstraintStrength.Hard));
             nextProjectionAt = 0f;
         }
 
@@ -1438,6 +1545,9 @@ namespace SephiriaEnhancements.Inventory
             levelEditor = null;
             levelTargetName = null;
             levelCondition = null;
+            levelMode = null;
+            constraintStrength = null;
+            constraintStrengthText = null;
             decreaseLevel = null;
             increaseLevel = null;
             currentSnapshot = null;
@@ -1462,6 +1572,8 @@ namespace SephiriaEnhancements.Inventory
             internal GameObject Root;
             internal TextMeshProUGUI Name;
             internal Button Choice;
+            internal Button Strength;
+            internal TextMeshProUGUI StrengthText;
             internal TextMeshProUGUI ChoiceText;
             internal Button Decrease;
             internal TextMeshProUGUI DecreaseText;
@@ -1475,6 +1587,7 @@ namespace SephiriaEnhancements.Inventory
         {
             internal GameObject Root;
             internal Image Background;
+            internal Image ResultStatus;
             internal NativeInventoryArtifactTooltip Tooltip;
             internal Image Icon;
             internal TextMeshProUGUI Marker;

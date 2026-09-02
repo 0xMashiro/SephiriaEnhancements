@@ -16,8 +16,10 @@ namespace SephiriaEnhancements.Inventory
     internal sealed class InventoryComboTarget
     {
         internal InventoryComboTarget(string categoryId, InventoryPreferenceChoice choice,
-            int requiredValue, int maximumValue)
+            int requiredValue, int maximumValue,
+            InventoryConstraintStrength strength = InventoryConstraintStrength.Soft)
         {
+            Strength = strength;
             CategoryId = categoryId;
             Choice = choice;
             RequiredValue = Math.Max(0, requiredValue);
@@ -25,6 +27,7 @@ namespace SephiriaEnhancements.Inventory
         }
 
         internal string CategoryId { get; }
+        internal InventoryConstraintStrength Strength { get; }
         internal InventoryPreferenceChoice Choice { get; }
         internal int RequiredValue { get; }
         internal int MaximumValue { get; }
@@ -47,17 +50,21 @@ namespace SephiriaEnhancements.Inventory
             preferences ??= InventoryOptimizationPreferences.Default;
             var rules = preferences.ComboPreferences.GroupBy(rule => rule.CategoryId, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.Last(), StringComparer.Ordinal);
-            return snapshot.ComboCategories.Select(category =>
+            var categories = snapshot.ComboCategories.ToDictionary(category => category.CategoryId, StringComparer.Ordinal);
+            // A saved Hard rule must remain editable even when no item currently
+            // supplies its category; otherwise the player cannot clear a conflict.
+            return categories.Keys.Concat(rules.Keys).Distinct(StringComparer.Ordinal).Select(categoryId =>
             {
-                rules.TryGetValue(category.CategoryId, out var rule);
-                int maximum = Math.Max(1, Math.Max(category.CurrentCount, category.HighestComboCount));
-                maximum = Math.Max(maximum, category.SetThresholds.DefaultIfEmpty(0).Max());
-                maximum = Math.Max(maximum, category.ComboThresholds.DefaultIfEmpty(0).Max());
-                return new InventoryComboTarget(category.CategoryId,
+                rules.TryGetValue(categoryId, out var rule);
+                categories.TryGetValue(categoryId, out var category);
+                int maximum = Math.Max(1, Math.Max(category?.CurrentCount ?? 0, category?.HighestComboCount ?? 0));
+                maximum = Math.Max(maximum, category?.SetThresholds.DefaultIfEmpty(0).Max() ?? 0);
+                maximum = Math.Max(maximum, category?.ComboThresholds.DefaultIfEmpty(0).Max() ?? 0);
+                return new InventoryComboTarget(categoryId,
                     rule == null ? InventoryPreferenceChoice.Automatic
                         : rule.Level == InventoryPreferenceLevel.Priority
                             ? InventoryPreferenceChoice.Priority : InventoryPreferenceChoice.Avoid,
-                    rule?.TargetCount ?? 0, maximum);
+                    rule?.TargetCount ?? 0, maximum, rule?.Strength ?? InventoryConstraintStrength.Soft);
             }).ToArray();
         }
 
@@ -85,10 +92,19 @@ namespace SephiriaEnhancements.Inventory
             {
                 rules = rules.Append(new ComboOptimizationPreference(target.CategoryId,
                     choice == InventoryPreferenceChoice.Priority ? InventoryPreferenceLevel.Priority : InventoryPreferenceLevel.Avoid,
-                    value));
+                    value, target.Strength));
             }
             return new InventoryOptimizationPreferences(preferences.SearchEffort, preferences.AllowStoneTabletRotation,
                 preferences.ArtifactPreferences.ToArray(), rules.ToArray());
+        }
+
+        internal static InventoryOptimizationPreferences SetStrength(InventoryOptimizationPreferences preferences,
+            InventoryComboTarget target, InventoryConstraintStrength strength)
+        {
+            preferences ??= InventoryOptimizationPreferences.Default;
+            return target?.CanAdjustRequiredValue != true ? preferences : Replace(preferences,
+                new InventoryComboTarget(target.CategoryId, target.Choice, target.RequiredValue, target.MaximumValue, strength),
+                target.Choice, target.RequiredValue);
         }
     }
 }

@@ -22,15 +22,17 @@ namespace SephiriaEnhancements.Inventory
     {
         internal InventoryExhaustiveSearchLimits(
             int maximumCandidateLayouts = 100000,
-            int maximumElapsedMilliseconds = 1000)
+            int maximumElapsedMilliseconds = 1000, bool useElapsedTimeLimit = true)
         {
             MaximumCandidateLayouts = Math.Max(1, maximumCandidateLayouts);
             MaximumElapsedMilliseconds = Math.Max(0,
                 maximumElapsedMilliseconds);
+            UseElapsedTimeLimit = useElapsedTimeLimit;
         }
 
         internal int MaximumCandidateLayouts { get; }
         internal int MaximumElapsedMilliseconds { get; }
+        internal bool UseElapsedTimeLimit { get; }
     }
 
     internal sealed class InventoryExhaustiveSearchResult
@@ -66,7 +68,8 @@ namespace SephiriaEnhancements.Inventory
         }
 
         internal bool SearchStarted { get; }
-        internal bool ProvenOptimal => SearchStarted &&
+        internal bool ProvenOptimal => SearchSpaceExhausted && BestScore?.HardConstraintsSatisfied == true;
+        internal bool SearchSpaceExhausted => SearchStarted &&
             TerminationReason ==
                 InventoryExhaustiveSearchTerminationReason.SearchSpaceExhausted;
         internal InventoryLayoutProjection BestLayout { get; }
@@ -242,7 +245,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (ElapsedTimeLimitReached ||
-                    elapsed.ElapsedMilliseconds >=
+                    limits.UseElapsedTimeLimit && elapsed.ElapsedMilliseconds >=
                         limits.MaximumElapsedMilliseconds)
                 {
                     ElapsedTimeLimitReached = true;

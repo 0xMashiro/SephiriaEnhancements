@@ -18,6 +18,7 @@ internal static class InventoryArtifactIntentEditorChecks
             rule.EntityId != 10 ||
             rule.Level != InventoryPreferenceLevel.Priority ||
             rule.MinimumEffectiveLevel != 0 ||
+            rule.TargetMode != ArtifactLevelTargetMode.Automatic ||
             rule.PriorityOrder != 0 ||
             !InventoryArtifactIntentEditor.IsMarked(marked, new InventoryItemKey(10, 501)) ||
             InventoryArtifactIntentEditor.Count(marked) != 1)

@@ -35,6 +35,8 @@ namespace SephiriaEnhancements.Inventory
             int enabledArtifactCount = 0;
             int cappedEffectiveArtifactLevelTotal = 0;
             int excessArtifactLevelTotal = 0;
+            int hardViolations = 0;
+            int hardCompletion = 0;
             int orderedPriorityCount = policy.ArtifactInstanceRules.Values.
                 Where(rule => rule.Level == InventoryPreferenceLevel.Priority &&
                     rule.PriorityOrder >= 0).Select(rule =>
@@ -66,9 +68,17 @@ namespace SephiriaEnhancements.Inventory
                         : 0;
                     bool reached = artifact.Enabled &&
                         effectiveLevel >= rule.MinimumEffectiveLevel;
-                    int completionPoints = CalculateTargetCompletionPoints(
+                    int completionPoints = CalculateArtifactCompletionPoints(
                         artifact.Enabled, effectiveLevel,
                         rule.MinimumEffectiveLevel);
+                    if (rule.Strength == InventoryConstraintStrength.Hard)
+                    {
+                        bool satisfied = rule.Level == InventoryPreferenceLevel.Avoid ? !artifact.Enabled : reached;
+                        if (!satisfied) hardViolations++;
+                        hardCompletion += rule.Level == InventoryPreferenceLevel.Avoid
+                            ? satisfied ? TargetCompletionScale : 0 : completionPoints;
+                        continue;
+                    }
                     if (rule.Level == InventoryPreferenceLevel.Priority &&
                         rule.PriorityOrder >= 0 && rule.PriorityOrder <
                             orderedPriorityCompletionPoints.Length)
@@ -99,6 +109,13 @@ namespace SephiriaEnhancements.Inventory
                             rule.EntityId).ToArray();
                 if (rule.Level == InventoryPreferenceLevel.Avoid)
                 {
+                    if (rule.Strength == InventoryConstraintStrength.Hard)
+                    {
+                        bool inactive = candidates.All(artifact => !artifact.Enabled);
+                        if (!inactive) hardViolations++;
+                        else hardCompletion += TargetCompletionScale;
+                        continue;
+                    }
                     avoidedTargetsActive += candidates.Count(artifact =>
                         artifact.Enabled);
                     continue;
@@ -108,9 +125,15 @@ namespace SephiriaEnhancements.Inventory
                     artifact.CappedEffectiveLevel >=
                         rule.MinimumEffectiveLevel);
                 int completionPoints = candidates.Select(artifact =>
-                    CalculateTargetCompletionPoints(artifact.Enabled,
+                    CalculateArtifactCompletionPoints(artifact.Enabled,
                         artifact.CappedEffectiveLevel,
                         rule.MinimumEffectiveLevel)).DefaultIfEmpty(0).Max();
+                if (rule.Strength == InventoryConstraintStrength.Hard)
+                {
+                    if (!reached) hardViolations++;
+                    hardCompletion += completionPoints;
+                    continue;
+                }
                 if (reached) presetTargetsSatisfied++;
                 presetTargetCompletionPoints += completionPoints;
             }
@@ -127,6 +150,12 @@ namespace SephiriaEnhancements.Inventory
             {
                 settlement.ComboCounts.TryGetValue(rule.CategoryId, out int count);
                 var (targetReached, completionPoints) = EvaluateComboTarget(rule, count);
+                if (rule.Strength == InventoryConstraintStrength.Hard)
+                {
+                    if (!targetReached) hardViolations++;
+                    hardCompletion += completionPoints;
+                    continue;
+                }
                 switch (rule.Level)
                 {
                     case InventoryPreferenceLevel.Priority when rule.Source != InventoryPreferenceSource.NativePreset:
@@ -175,7 +204,27 @@ namespace SephiriaEnhancements.Inventory
                 rotatedTabletCount: rotatedTabletCount,
                 orderedPriorityCompletionPoints:
                     orderedPriorityCompletionPoints,
-                positionEffectRegressions: CountPositionEffectRegressions(settlement));
+                positionEffectRegressions: CountPositionEffectRegressions(settlement),
+                automaticLevelRegressions: CountAutomaticLevelRegressions(settlement),
+                hardConstraintViolations: hardViolations, hardConstraintCompletionPoints: hardCompletion);
+        }
+
+        private int CountAutomaticLevelRegressions(ProjectedInventorySettlement settlement)
+        {
+            int regressions = 0;
+            foreach (var artifact in settlement.Artifacts)
+            {
+                var observed = itemsByKey[artifact.ItemKey].Artifact;
+                int limit = observed.SafeAutomaticLevel;
+                if (policy.ArtifactInstanceRules.TryGetValue(artifact.ItemKey, out var rule))
+                {
+                    if (rule.Level == InventoryPreferenceLevel.Avoid) continue;
+                    // Explicit level requests may opt into a stronger penalty.
+                    limit = Math.Max(limit, rule.MinimumEffectiveLevel);
+                }
+                if (artifact.Enabled && artifact.CappedEffectiveLevel > limit) regressions++;
+            }
+            return regressions;
         }
 
         private int CountPositionEffectRegressions(ProjectedInventorySettlement settlement)
@@ -218,6 +267,11 @@ namespace SephiriaEnhancements.Inventory
             return (int)Math.Min(TargetCompletionScale,
                 nonNegativeValue * TargetCompletionScale / minimumValue);
         }
+
+        private static int CalculateArtifactCompletionPoints(bool active, int currentValue, int minimumValue) =>
+            // Level zero is a working artifact, and must outrank an inactive one
+            // within its queue slot even when its upgrade target is out of reach.
+            Math.Max(active ? 1 : 0, CalculateTargetCompletionPoints(active, currentValue, minimumValue));
 
         private static (bool Reached, int CompletionPoints) EvaluateComboTarget(
             ResolvedComboOptimizationRule rule, int count)
@@ -449,7 +503,7 @@ namespace SephiriaEnhancements.Inventory
             bool reached = artifact.Enabled &&
                 value >= rule.MinimumEffectiveLevel;
             return new ArtifactTargetState(value, reached,
-                CalculateTargetCompletionPoints(artifact.Enabled, value,
+                CalculateArtifactCompletionPoints(artifact.Enabled, value,
                     rule.MinimumEffectiveLevel));
         }
 
@@ -480,7 +534,7 @@ namespace SephiriaEnhancements.Inventory
                 artifact.CappedEffectiveLevel >=
                     rule.MinimumEffectiveLevel);
             int completion = candidates.Max(artifact =>
-                CalculateTargetCompletionPoints(artifact.Enabled,
+                CalculateArtifactCompletionPoints(artifact.Enabled,
                     artifact.CappedEffectiveLevel,
                     rule.MinimumEffectiveLevel));
             return new ArtifactTargetState(value, reached, completion);

@@ -23,7 +23,8 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
             ["Charm_WoodenBox"] = InventoryPositionEffectKind.FirstSlotsElementDamage,
             ["Charm_FireIce"] = InventoryPositionEffectKind.HalfBoardStats,
             ["Charm_FireIceWeapon"] = InventoryPositionEffectKind.HalfBoardWeaponMode,
-            ["Charm_UpCharmDamage"] = InventoryPositionEffectKind.DependencyDamage
+            ["Charm_UpCharmDamage"] = InventoryPositionEffectKind.DependencyDamage,
+            ["Charm_3Elemental_ByRow"] = InventoryPositionEffectKind.RowCategoryStats
         };
 
         internal static InventoryPositionEffectsSnapshot Capture(GridInventory inventory)
@@ -86,6 +87,11 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
             Type type = artifact.GetType();
             switch (kind)
             {
+                case InventoryPositionEffectKind.RowCategoryStats:
+                    foreach (string method in new[] { "SearchCategory", "ClearCategory", "OnPreSetEffectRefreshed",
+                                 "OnEnabledEffect", "OnDisabledEffect", "OnUpdatedLevel" }) CheckMethod(type, method);
+                    return new(source, kind, Curve(artifact, "addElementalStatByLevel"),
+                        channels: RowStatChannels(type, Read<string[]>(artifact, "lineCategory")));
                 case InventoryPositionEffectKind.NeighborArtifactLevelDamage:
                     CheckMethod(type, "UpdateDamageBonus");
                     return new(source, kind, Curve(artifact, "allDamageBonusByLevel"), offsets: Directions(type));
@@ -136,6 +142,15 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
         {
             switch (rule.Kind)
             {
+                case InventoryPositionEffectKind.RowCategoryStats:
+                    int amount = Integer(artifact, "addedStatValue");
+                    string stat = Read(artifact, "addedStat").ToString();
+                    if (amount != 0 && !rule.Channels.Contains(stat))
+                        throw new InvalidOperationException("Observed row stat is not in its category cycle");
+                    // Read the native contribution, not a value recomputed from level and position.
+                    foreach (string channel in rule.Channels.Distinct())
+                        Add(channel == stat ? amount : 0, channel: channel);
+                    break;
                 case InventoryPositionEffectKind.NeighborArtifactLevelDamage:
                     Add(Integer(artifact, "currentDamageBonus"));
                     break;

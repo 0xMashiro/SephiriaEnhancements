@@ -23,9 +23,11 @@ internal static class InventoryHudInteractionChecks
         var state = new InventoryIntentInteractionState();
         if (state.TryEditLevel(priority)) throw new InvalidOperationException("inactive HUD cannot edit levels");
         state.SetEditable(true);
-        if (state.TryEditLevel(avoided) || state.TryEditLevel(null) || !state.TryEditLevel(priority) ||
+        if (!state.TryEditLevel(avoided) || state.LevelTarget != avoided.ItemKey)
+            throw new InvalidOperationException("avoid marks must expose their Hard/Soft setting through the same editor");
+        if (state.TryEditLevel(null) || !state.TryEditLevel(priority) ||
             state.LevelTarget != priority.ItemKey || state.HasPickup)
-            throw new InvalidOperationException("only a priority mark may open a level editor, without picking up the mark");
+            throw new InvalidOperationException("a marked artifact may open the target editor without picking up the mark");
         if (!state.TryEditLevel(priority) || state.LevelTarget != null)
             throw new InvalidOperationException("repeating the level action on the same mark must close its editor");
         foreach (bool dragging in new[] { false, true })

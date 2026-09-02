@@ -48,12 +48,27 @@ namespace SephiriaEnhancements.Inventory
         NativePreset
     }
 
+    internal enum ArtifactLevelTargetMode
+    {
+        Automatic,
+        ActiveOnly,
+        SpecifiedLevel
+    }
+
+    internal enum InventoryConstraintStrength
+    {
+        Soft,
+        Hard
+    }
+
     internal sealed class ArtifactOptimizationPreference
     {
         internal ArtifactOptimizationPreference(int instanceId, int entityId,
             InventoryPreferenceLevel level, int minimumEffectiveLevel = 0,
-            int intentSlotIndex = -1)
+            int intentSlotIndex = -1, ArtifactLevelTargetMode? targetMode = null,
+            InventoryConstraintStrength strength = InventoryConstraintStrength.Soft)
         {
+            Strength = strength;
             InstanceId = instanceId;
             EntityId = entityId;
             Level = level;
@@ -62,6 +77,10 @@ namespace SephiriaEnhancements.Inventory
             MinimumEffectiveLevel = level == InventoryPreferenceLevel.Avoid
                 ? 0
                 : Math.Max(0, minimumEffectiveLevel);
+            TargetMode = level == InventoryPreferenceLevel.Avoid
+                ? ArtifactLevelTargetMode.ActiveOnly
+                : targetMode ?? (MinimumEffectiveLevel == 0
+                    ? ArtifactLevelTargetMode.ActiveOnly : ArtifactLevelTargetMode.SpecifiedLevel);
             IntentSlotIndex = TargetsInstance
                 ? Math.Max(-1, intentSlotIndex)
                 : -1;
@@ -72,6 +91,14 @@ namespace SephiriaEnhancements.Inventory
         internal int EntityId { get; }
         internal InventoryPreferenceLevel Level { get; }
         internal int MinimumEffectiveLevel { get; }
+        internal ArtifactLevelTargetMode TargetMode { get; }
+        internal InventoryConstraintStrength Strength { get; }
+        internal int ResolveTargetLevel(ArtifactSnapshot artifact) => TargetMode switch
+        {
+            ArtifactLevelTargetMode.Automatic => artifact?.SafeAutomaticLevel ?? 0,
+            ArtifactLevelTargetMode.ActiveOnly => 0,
+            _ => MinimumEffectiveLevel
+        };
         internal int IntentSlotIndex { get; }
         internal int PriorityOrder => Level == InventoryPreferenceLevel.Priority
             ? IntentSlotIndex : -1;
@@ -81,8 +108,10 @@ namespace SephiriaEnhancements.Inventory
     internal sealed class ComboOptimizationPreference
     {
         internal ComboOptimizationPreference(string categoryId,
-            InventoryPreferenceLevel level, int targetCount = 0)
+            InventoryPreferenceLevel level, int targetCount = 0,
+            InventoryConstraintStrength strength = InventoryConstraintStrength.Soft)
         {
+            Strength = strength;
             CategoryId = categoryId ?? string.Empty;
             Level = level;
             // Zero means no minimum for Priority, or no count allowed for Avoid.
@@ -92,6 +121,7 @@ namespace SephiriaEnhancements.Inventory
         internal string CategoryId { get; }
         internal InventoryPreferenceLevel Level { get; }
         internal int TargetCount { get; }
+        internal InventoryConstraintStrength Strength { get; }
     }
 
     internal sealed class InventoryOptimizationPreferences
@@ -164,7 +194,17 @@ namespace SephiriaEnhancements.Inventory
 
         internal static void Clear()
         {
-            current = InventoryOptimizationPreferences.Default;
+            current = InventoryOptimizationPreferenceComposer.Compose(
+                PersistentInventoryOptimizationPolicyStore.Capture(), InventoryOptimizationPreferences.Default,
+                InventoryOptimizationPreferences.Default.SearchEffort,
+                InventoryOptimizationPreferences.Default.AllowStoneTabletRotation);
+        }
+
+        internal static void RestorePersistentCombos()
+        {
+            current = InventoryOptimizationPreferenceComposer.Compose(
+                PersistentInventoryOptimizationPolicyStore.Capture(), current,
+                current.SearchEffort, current.AllowStoneTabletRotation);
         }
     }
 
@@ -193,8 +233,10 @@ namespace SephiriaEnhancements.Inventory
     {
         internal ResolvedArtifactOptimizationRule(int instanceId, int entityId,
             InventoryPreferenceLevel level, int minimumEffectiveLevel,
-            InventoryPreferenceSource source, int priorityOrder = -1)
+            InventoryPreferenceSource source, int priorityOrder = -1,
+            InventoryConstraintStrength strength = InventoryConstraintStrength.Soft)
         {
+            Strength = strength;
             InstanceId = instanceId;
             EntityId = entityId;
             Level = level;
@@ -210,14 +252,17 @@ namespace SephiriaEnhancements.Inventory
         internal int MinimumEffectiveLevel { get; }
         internal InventoryPreferenceSource Source { get; }
         internal int PriorityOrder { get; }
+        internal InventoryConstraintStrength Strength { get; }
     }
 
     internal sealed class ResolvedComboOptimizationRule
     {
         internal ResolvedComboOptimizationRule(string categoryId,
             InventoryPreferenceLevel level, int targetCount,
-            InventoryPreferenceSource source)
+            InventoryPreferenceSource source,
+            InventoryConstraintStrength strength = InventoryConstraintStrength.Soft)
         {
+            Strength = strength;
             CategoryId = categoryId;
             Level = level;
             TargetCount = targetCount;
@@ -228,6 +273,7 @@ namespace SephiriaEnhancements.Inventory
         internal InventoryPreferenceLevel Level { get; }
         internal int TargetCount { get; }
         internal InventoryPreferenceSource Source { get; }
+        internal InventoryConstraintStrength Strength { get; }
     }
 
     internal sealed class ResolvedInventoryOptimizationPolicy
@@ -304,9 +350,9 @@ namespace SephiriaEnhancements.Inventory
                 artifactInstanceRules[item.ItemKey] =
                     new ResolvedArtifactOptimizationRule(item.InstanceId,
                         item.EntityId, preference.Level,
-                        preference.MinimumEffectiveLevel,
+                        preference.ResolveTargetLevel(item.Artifact),
                         InventoryPreferenceSource.ManualInstance,
-                        preference.PriorityOrder);
+                        preference.PriorityOrder, preference.Strength);
             }
 
             var artifactEntityRules = new Dictionary<int,
@@ -342,7 +388,7 @@ namespace SephiriaEnhancements.Inventory
                 comboRules[preference.CategoryId] =
                     new ResolvedComboOptimizationRule(preference.CategoryId,
                         preference.Level, preference.TargetCount,
-                        InventoryPreferenceSource.UserCategoryRule);
+                        InventoryPreferenceSource.UserCategoryRule, preference.Strength);
             }
 
             return new ResolvedInventoryOptimizationPolicy(

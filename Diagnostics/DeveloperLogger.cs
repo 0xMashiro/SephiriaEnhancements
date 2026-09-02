@@ -406,6 +406,36 @@ namespace SephiriaEnhancements.Diagnostics
                 ",\"issues\":[" + string.Join(",", issues) + "]}");
         }
 
+        internal static void RecordInventoryPositionEffects(
+            InventoryPositionEffectsSnapshot effects, RuntimeStateSnapshot state)
+        {
+            if (!IsEnabled || effects == null || state == null) return;
+            string rules = string.Join(",", effects.Rules.Select(rule =>
+                "{\"source\":" + ItemKeyJson(rule.Source) +
+                ",\"kind\":" + Json(rule.Kind.ToString()) +
+                ",\"valuesByLevel\":[" + string.Join(",", rule.ValuesByLevel.Select(Number)) +
+                "],\"secondaryValuesByLevel\":[" + string.Join(",", rule.SecondaryValuesByLevel.Select(Number)) +
+                "],\"offsets\":[" + string.Join(",", rule.Offsets.Select(offset =>
+                    "{\"x\":" + offset.X + ",\"y\":" + offset.Y + "}")) +
+                "],\"boundary\":" + rule.Boundary +
+                ",\"channels\":[" + string.Join(",", rule.Channels.Select(Json)) +
+                "],\"targetCategory\":" + Json(rule.TargetCategory) +
+                ",\"conditionalDamage\":" + Bool(rule.ConditionalDamage) +
+                ",\"maximumRarity\":" + rule.MaximumRarity + "}"));
+            string traits = string.Join(",", effects.Traits.Select(trait =>
+                "{\"item\":" + ItemKeyJson(trait.Item) +
+                ",\"planet\":" + Bool(trait.Planet) +
+                ",\"companion\":" + Bool(trait.Companion) +
+                ",\"networkReady\":" + Bool(trait.NetworkReady) +
+                ",\"rarity\":" + trait.Rarity +
+                ",\"magicArtifact\":" + Bool(trait.MagicArtifact) + "}"));
+            WriteLine("{\"event\":\"inventory_position_effects\",\"time\":" + TimeValue() +
+                ",\"inventoryRevision\":" + state.InventoryRevision +
+                ",\"rules\":[" + rules + "],\"traits\":[" + traits +
+                "],\"observed\":" + PositionEffects(effects.Observed) +
+                ",\"issues\":[" + string.Join(",", effects.Issues.Select(Json)) + "]}");
+        }
+
         internal static void RecordInventoryStorageChanged(int width,
             int oldStorage, int newStorage)
         {
@@ -440,18 +470,16 @@ namespace SephiriaEnhancements.Diagnostics
                 return;
             }
 
-            var categoryOrder = new string[order.CategoryRefreshInstanceIds.Count];
+            var categoryOrder = new string[order.CategoryRefreshItemKeys.Count];
             for (int index = 0; index < categoryOrder.Length; index++)
             {
-                categoryOrder[index] = order.CategoryRefreshInstanceIds[index].
-                    ToString(CultureInfo.InvariantCulture);
+                categoryOrder[index] = ItemKeyJson(order.CategoryRefreshItemKeys[index]);
             }
 
-            var artifactOrder = new string[order.ArtifactRefreshInstanceIds.Count];
+            var artifactOrder = new string[order.ArtifactRefreshItemKeys.Count];
             for (int index = 0; index < artifactOrder.Length; index++)
             {
-                artifactOrder[index] = order.ArtifactRefreshInstanceIds[index].
-                    ToString(CultureInfo.InvariantCulture);
+                artifactOrder[index] = ItemKeyJson(order.ArtifactRefreshItemKeys[index]);
             }
 
             var uniqueRegistrations = new string[order.UniqueRegistrations.Count];
@@ -460,8 +488,7 @@ namespace SephiriaEnhancements.Diagnostics
                 SephiriaEnhancements.Runtime.Inventory.UniqueEffectRegistrationSnapshot
                     registration = order.UniqueRegistrations[index];
                 uniqueRegistrations[index] =
-                    "{\"instanceId\":" + registration.InstanceId +
-                    ",\"entityId\":" + registration.EntityId +
+                    "{\"itemKey\":" + ItemKeyJson(registration.ItemKey) +
                     ",\"accepted\":" + Bool(registration.Accepted) + "}";
             }
 
@@ -469,9 +496,9 @@ namespace SephiriaEnhancements.Diagnostics
                 TimeValue() +
                 ",\"inventoryRevision\":" + state.InventoryRevision +
                 ",\"traceRevision\":" + order.TraceRevision +
-                ",\"categoryRefreshInstanceIds\":[" +
+                ",\"categoryRefreshItemKeys\":[" +
                 string.Join(",", categoryOrder) +
-                "],\"artifactRefreshInstanceIds\":[" +
+                "],\"artifactRefreshItemKeys\":[" +
                 string.Join(",", artifactOrder) +
                 "],\"uniqueRegistrations\":[" +
                 string.Join(",", uniqueRegistrations) + "]}");
@@ -571,6 +598,9 @@ namespace SephiriaEnhancements.Diagnostics
                     (coverage?.WeaponRestrictedArtifactCount ?? 0) +
                 ",\"dynamicCategoryArtifacts\":" +
                     (coverage?.DynamicCategoryArtifactCount ?? 0) +
+                ",\"positionEffectSources\":" + (coverage?.PositionEffectSourceCount ?? 0) +
+                ",\"positionEffectKinds\":[" + string.Join(",",
+                    (coverage?.PositionEffectKinds ?? Array.Empty<string>()).Select(Json)) + "]" +
                 ",\"tablets\":" + (coverage?.TabletCount ?? 0) +
                 ",\"rotatableTablets\":" +
                     (coverage?.RotatableTabletCount ?? 0) +
@@ -662,7 +692,7 @@ namespace SephiriaEnhancements.Diagnostics
                 writer.Start();
                 WriteLine("{\"event\":\"log_start\",\"time\":" + TimeValue() +
                     ",\"utc\":" + Json(DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)) +
-                    ",\"schemaVersion\":7,\"modVersion\":" +
+                    ",\"schemaVersion\":8,\"modVersion\":" +
                     Json(typeof(DeveloperLogger).Assembly.GetName().Version.ToString(3)) +
                     ",\"gameVersion\":" + Json(Application.version) +
                     ",\"resolution\":{\"width\":" + Screen.width + ",\"height\":" + Screen.height + "}}");
@@ -818,6 +848,16 @@ namespace SephiriaEnhancements.Diagnostics
         private static string TimeValue() => Float(Time.realtimeSinceStartup);
 
         private static string Float(float value) => value.ToString("R", CultureInfo.InvariantCulture);
+        private static string Number(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+
+        private static string PositionEffects(IEnumerable<InventoryPositionEffectValue> values) =>
+            "[" + string.Join(",", values.Select(value =>
+                "{\"source\":" + ItemKeyJson(value.Key.Source) +
+                ",\"kind\":" + Json(value.Key.Kind.ToString()) +
+                ",\"target\":" + (value.Key.Target.HasValue ? ItemKeyJson(value.Key.Target.Value) : "null") +
+                ",\"channel\":" + Json(value.Key.Channel) +
+                ",\"value\":" + Number(value.Value) +
+                ",\"mode\":" + Bool(value.Mode) + "}")) + "]";
 
         private static string Bool(bool value) => value ? "true" : "false";
 
@@ -832,6 +872,7 @@ namespace SephiriaEnhancements.Diagnostics
                 ",\"priorityTargetCompletionPoints\":" +
                 score.PriorityTargetCompletionPoints +
                 ",\"avoidedActive\":" + score.AvoidedTargetsActive +
+                ",\"positionEffectRegressions\":" + score.PositionEffectRegressions +
                 ",\"coreSatisfied\":" + score.CoreTargetsSatisfied +
                 ",\"coreTargetCompletionPoints\":" +
                 score.CoreTargetCompletionPoints +
@@ -893,8 +934,7 @@ namespace SephiriaEnhancements.Diagnostics
             }
 
             string artifacts = string.Join(",", outcome.ArtifactChanges.Select(
-                change => "{\"instanceId\":" + change.InstanceId +
-                    ",\"entityId\":" + change.EntityId +
+                change => "{\"itemKey\":" + ItemKeyJson(change.ItemKey) +
                     ",\"nameKey\":" + Json(change.NameKey) +
                     ",\"beforeEnabled\":" + Bool(change.BeforeEnabled) +
                     ",\"afterEnabled\":" + Bool(change.AfterEnabled) +
@@ -925,8 +965,14 @@ namespace SephiriaEnhancements.Diagnostics
                 ",\"afterBreakpointValue\":" +
                     outcome.AfterBreakpointValue +
                 ",\"artifactChanges\":[" + artifacts +
-                "],\"categoryChanges\":[" + categories + "]}";
+                "],\"categoryChanges\":[" + categories +
+                "],\"beforePositionEffects\":" + PositionEffects(outcome.BeforePositionEffects) +
+                ",\"afterPositionEffects\":" + PositionEffects(outcome.AfterPositionEffects) + "}";
         }
+
+        private static string ItemKeyJson(InventoryItemKey key) =>
+            "{\"entityId\":" + key.EntityId +
+            ",\"nativeInstanceId\":" + key.NativeInstanceId + "}";
 
         private static string Json(string value)
         {
@@ -1067,6 +1113,11 @@ namespace SephiriaEnhancements.Diagnostics
 
         internal static void RecordInventoryEvaluationOrder(
             SephiriaEnhancements.Runtime.Inventory.InventoryEvaluationOrderSnapshot order,
+            SephiriaEnhancements.Runtime.RuntimeStateSnapshot state)
+        { }
+
+        internal static void RecordInventoryPositionEffects(
+            SephiriaEnhancements.Runtime.Inventory.InventoryPositionEffectsSnapshot effects,
             SephiriaEnhancements.Runtime.RuntimeStateSnapshot state)
         { }
 

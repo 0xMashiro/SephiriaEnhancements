@@ -146,7 +146,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 int capped = enabled
                     ? Math.Min(artifact.MaxLevel, level)
                     : 0;
-                artifacts.Add(new ProjectedInventoryArtifactSettlement(item.InstanceId,
+                artifacts.Add(new ProjectedInventoryArtifactSettlement(item.ItemKey,
                     enabled, !enabled, level, capped));
             }
 
@@ -155,7 +155,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 workspace?.SeenComboEntities);
             return new ProjectedInventorySettlement(true, cells,
                 artifacts.ToArray(), combos, Array.Empty<string>(),
-                tablets?.ToArray());
+                tablets?.ToArray(), InventoryPositionEffectProjector.Evaluate(snapshot, layout, artifacts));
         }
 
         private static bool TryBuildOccupancy(InventorySnapshot snapshot,
@@ -194,7 +194,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                          rotation != stoneTablet.Rotation))
                     {
                         issues.Add("LayoutTabletRotationInvalid:" +
-                            snapshot.Items[itemIndex].InstanceId);
+                            snapshot.Items[itemIndex].ItemKey);
                         return false;
                     }
                 }
@@ -223,13 +223,13 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 if (projection == null || !projection.ParseSucceeded)
                 {
                     issues.Add("LayoutProjectionTabletEffectsUnavailable:" +
-                        snapshot.Items[itemIndex].InstanceId);
+                        snapshot.Items[itemIndex].ItemKey);
                     continue;
                 }
                 bool applied = EvaluateTabletCondition(snapshot, projection,
                     origin, itemAtCell);
                 settlements?.Add(new ProjectedInventoryTabletSettlement(
-                    snapshot.Items[itemIndex].InstanceId, fixedSource: false,
+                    snapshot.Items[itemIndex].ItemKey, fixedSource: false,
                     applied, origin, layout.GetRotation(itemIndex)));
                 if (!applied)
                 {
@@ -237,7 +237,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 }
 
                 ApplyTabletEffects(snapshot,
-                    snapshot.Items[itemIndex].InstanceId, projection, levels,
+                    snapshot.Items[itemIndex].ItemKey, projection, levels,
                     multipliers, disables, bypasses, issues);
             }
         }
@@ -255,25 +255,25 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     source.CellIndex < 0 || source.CellIndex >= snapshot.Storage)
                 {
                     issues.Add("FixedTabletLayoutProjectionUnavailable:" +
-                        source.InstanceId);
+                        source.ItemKey);
                     continue;
                 }
                 bool applied = EvaluateTabletCondition(snapshot, projection,
                     source.CellIndex, itemAtCell);
                 settlements?.Add(new ProjectedInventoryTabletSettlement(
-                    source.InstanceId, fixedSource: true, applied,
+                    source.ItemKey, fixedSource: true, applied,
                     source.CellIndex, source.Rotation));
                 if (!applied)
                 {
                     continue;
                 }
-                ApplyTabletEffects(snapshot, source.InstanceId, projection,
+                ApplyTabletEffects(snapshot, source.ItemKey, projection,
                     levels, multipliers, disables, bypasses, issues);
             }
         }
 
         private static void ApplyTabletEffects(InventorySnapshot snapshot,
-            int sourceInstanceId,
+            InventoryItemKey sourceItemKey,
             TabletRotationProjectionSnapshot projection, int[] levels,
             int[] multipliers, int[] disables, int[] bypasses,
             List<string> issues)
@@ -301,7 +301,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                         break;
                     default:
                         issues.Add("LayoutProjectionTabletEffectUnknown:" +
-                            sourceInstanceId);
+                            sourceItemKey);
                         break;
                 }
             }

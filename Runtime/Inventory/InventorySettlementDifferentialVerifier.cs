@@ -15,14 +15,18 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 NativeItemTypes = Array.Empty<string>();
                 ActivationConditions = Array.Empty<string>();
                 DynamicCategoryKinds = Array.Empty<string>();
+                PositionEffectKinds = Array.Empty<string>();
                 return;
             }
 
             ArtifactCount = snapshot.Items.Count(item => item.Artifact != null);
+            PositionEffectSourceCount = snapshot.PositionEffects.Rules.Count;
+            PositionEffectKinds = snapshot.PositionEffects.Rules.Select(rule => rule.Kind.ToString())
+                .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal).ToArray();
             RestrictedArtifactCount = snapshot.Items.Count(item =>
                 item.Kind == InventoryItemKind.RestrictedArtifact);
             EnchantedArtifactCount = snapshot.Items.Count(item =>
-                item.Artifact?.Enchant != 0);
+                item.Artifact != null && item.Artifact.Enchant != 0);
             UniqueArtifactCount = snapshot.Items.Count(item =>
                 item.Artifact?.UniqueEffect == true);
             WeaponRestrictedArtifactCount = snapshot.Items.Count(item =>
@@ -60,6 +64,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
         }
 
         internal int ArtifactCount { get; }
+        internal int PositionEffectSourceCount { get; }
+        internal IReadOnlyList<string> PositionEffectKinds { get; }
         internal int RestrictedArtifactCount { get; }
         internal int EnchantedArtifactCount { get; }
         internal int UniqueArtifactCount { get; }
@@ -111,29 +117,42 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     new[] { "DifferentialInventoryShapeMismatch" }, coverage);
             }
 
-            Dictionary<int, InventoryItemSnapshot> actualItems = actual.Items
-                .Where(item => item != null)
-                .GroupBy(item => item.InstanceId)
-                .ToDictionary(group => group.Key, group => group.First());
+            if (actual.Items.Count != source.Items.Count)
+            {
+                mismatches.Add("ItemCount");
+            }
+            var actualItems = new Dictionary<InventoryItemKey, InventoryItemSnapshot>();
+            foreach (InventoryItemSnapshot item in actual.Items)
+            {
+                if (item == null || !actualItems.TryAdd(item.ItemKey, item))
+                {
+                    return new InventorySettlementDifferentialReport(
+                        new[] { "DifferentialItemIdentityInvalid" }, coverage);
+                }
+            }
             for (int index = 0; index < source.Items.Count; index++)
             {
                 InventoryItemSnapshot sourceItem = source.Items[index];
-                if (!actualItems.TryGetValue(sourceItem.InstanceId,
+                if (!actualItems.TryGetValue(sourceItem.ItemKey,
                         out InventoryItemSnapshot actualItem))
                 {
-                    mismatches.Add("ItemMissing:" + sourceItem.InstanceId);
+                    mismatches.Add("ItemMissing:" + sourceItem.ItemKey);
                     continue;
+                }
+                if (actualItem.Quantity != sourceItem.Quantity)
+                {
+                    mismatches.Add("ItemQuantity:" + sourceItem.ItemKey);
                 }
                 if (actualItem.CellIndex != targetLayout.GetCell(index))
                 {
-                    mismatches.Add("ItemCell:" + sourceItem.InstanceId);
+                    mismatches.Add("ItemCell:" + sourceItem.ItemKey);
                 }
                 if (sourceItem.StoneTablet != null &&
                     (actualItem.StoneTablet == null ||
                      actualItem.StoneTablet.Rotation !=
                         targetLayout.GetRotation(index)))
                 {
-                    mismatches.Add("TabletRotation:" + sourceItem.InstanceId);
+                    mismatches.Add("TabletRotation:" + sourceItem.ItemKey);
                 }
             }
 
@@ -161,9 +180,9 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     mismatches.Add("CellCriteriaBypass:" + cell);
             }
 
-            Dictionary<int, ProjectedInventoryArtifactSettlement> expectedArtifacts =
-                expected.Artifacts.ToDictionary(item => item.InstanceId);
-            foreach (KeyValuePair<int, ProjectedInventoryArtifactSettlement> pair in
+            Dictionary<InventoryItemKey, ProjectedInventoryArtifactSettlement> expectedArtifacts =
+                expected.Artifacts.ToDictionary(item => item.ItemKey);
+            foreach (KeyValuePair<InventoryItemKey, ProjectedInventoryArtifactSettlement> pair in
                 expectedArtifacts)
             {
                 if (!actualItems.TryGetValue(pair.Key,
@@ -200,9 +219,9 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     mismatches.Add("ComboCount:" + category);
             }
 
-            Dictionary<(int InstanceId, bool Fixed),
+            Dictionary<(InventoryItemKey ItemKey, bool Fixed),
                 ProjectedInventoryTabletSettlement> expectedTablets = expected.Tablets
-                .ToDictionary(item => (item.InstanceId, item.FixedSource));
+                .ToDictionary(item => (item.ItemKey, item.FixedSource));
             foreach (ProjectedInventoryTabletSettlement predicted in
                 expectedTablets.Values)
             {
@@ -211,24 +230,29 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 if (predicted.FixedSource)
                 {
                     FixedTabletSourceSnapshot observed = actual.FixedTabletSources
-                        .FirstOrDefault(item => item.InstanceId ==
-                            predicted.InstanceId);
+                        .FirstOrDefault(item => item.ItemKey ==
+                            predicted.ItemKey);
                     found = observed != null;
                     applied = observed?.Applied == true;
                 }
                 else
                 {
-                    found = actualItems.TryGetValue(predicted.InstanceId,
+                    found = actualItems.TryGetValue(predicted.ItemKey,
                         out InventoryItemSnapshot observed) &&
                         observed.StoneTablet != null;
                     applied = found && observed.StoneTablet.Applied;
                 }
                 if (!found)
-                    mismatches.Add("TabletMissing:" + predicted.InstanceId);
+                    mismatches.Add("TabletMissing:" + predicted.ItemKey);
                 else if (predicted.Applied != applied)
-                    mismatches.Add("TabletApplied:" + predicted.InstanceId);
+                    mismatches.Add("TabletApplied:" + predicted.ItemKey);
             }
 
+            mismatches.AddRange(actual.PositionEffects.Issues);
+            if (!InventoryPositionEffectComparison.ParametersMatch(source.PositionEffects, actual.PositionEffects))
+                mismatches.Add("PositionEffectParametersChanged");
+            mismatches.AddRange(InventoryPositionEffectComparison.Differences(
+                expected.PositionEffects, actual.PositionEffects.Observed));
             return new InventorySettlementDifferentialReport(mismatches
                 .Distinct(StringComparer.Ordinal).ToArray(), coverage);
         }

@@ -218,6 +218,7 @@ namespace SephiriaEnhancements.Inventory
             PriorityOrder = priorityOrder;
         }
 
+        internal InventoryItemKey ItemKey => new(EntityId, InstanceId);
         internal int InstanceId { get; }
         internal int EntityId { get; }
         internal InventoryPreferenceLevel Level { get; }
@@ -248,7 +249,7 @@ namespace SephiriaEnhancements.Inventory
     {
         internal ResolvedInventoryOptimizationPolicy(
             InventorySearchEffort searchEffort, bool allowStoneTabletRotation,
-            IDictionary<int, ResolvedArtifactOptimizationRule>
+            IDictionary<InventoryItemKey, ResolvedArtifactOptimizationRule>
                 artifactInstanceRules,
             IDictionary<int, ResolvedArtifactOptimizationRule>
                 artifactEntityRules,
@@ -256,8 +257,8 @@ namespace SephiriaEnhancements.Inventory
         {
             SearchEffort = searchEffort;
             AllowStoneTabletRotation = allowStoneTabletRotation;
-            ArtifactInstanceRules = new ReadOnlyDictionary<int,
-                ResolvedArtifactOptimizationRule>(new Dictionary<int,
+            ArtifactInstanceRules = new ReadOnlyDictionary<InventoryItemKey,
+                ResolvedArtifactOptimizationRule>(new Dictionary<InventoryItemKey,
                     ResolvedArtifactOptimizationRule>(artifactInstanceRules));
             ArtifactEntityRules = new ReadOnlyDictionary<int,
                 ResolvedArtifactOptimizationRule>(new Dictionary<int,
@@ -270,7 +271,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal InventorySearchEffort SearchEffort { get; }
         internal bool AllowStoneTabletRotation { get; }
-        internal IReadOnlyDictionary<int, ResolvedArtifactOptimizationRule>
+        internal IReadOnlyDictionary<InventoryItemKey, ResolvedArtifactOptimizationRule>
             ArtifactInstanceRules
         { get; }
         internal IReadOnlyDictionary<int, ResolvedArtifactOptimizationRule>
@@ -288,7 +289,7 @@ namespace SephiriaEnhancements.Inventory
             InventoryOptimizationPreferences preferences)
         {
             preferences ??= InventoryOptimizationPreferences.Default;
-            var instancePreferences = new Dictionary<int,
+            var instancePreferences = new Dictionary<InventoryItemKey,
                 ArtifactOptimizationPreference>();
             var entityPreferences = new Dictionary<int,
                 ArtifactOptimizationPreference>();
@@ -297,7 +298,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 if (preference.TargetsInstance)
                 {
-                    instancePreferences[preference.InstanceId] = preference;
+                    instancePreferences[preference.ItemKey] = preference;
                 }
                 else
                 {
@@ -305,7 +306,7 @@ namespace SephiriaEnhancements.Inventory
                 }
             }
 
-            var artifactInstanceRules = new Dictionary<int,
+            var artifactInstanceRules = new Dictionary<InventoryItemKey,
                 ResolvedArtifactOptimizationRule>();
             bool presetEnabled = snapshot?.BuildIntent?.NativePresetEnabled == true;
             var nativeEntities = new HashSet<int>(presetEnabled
@@ -316,12 +317,12 @@ namespace SephiriaEnhancements.Inventory
                 Array.Empty<InventoryItemSnapshot>();
             foreach (InventoryItemSnapshot item in artifacts)
             {
-                if (!instancePreferences.TryGetValue(item.InstanceId,
+                if (!instancePreferences.TryGetValue(item.ItemKey,
                         out ArtifactOptimizationPreference preference))
                 {
                     continue;
                 }
-                artifactInstanceRules[item.InstanceId] =
+                artifactInstanceRules[item.ItemKey] =
                     new ResolvedArtifactOptimizationRule(item.InstanceId,
                         item.EntityId, preference.Level,
                         preference.MinimumEffectiveLevel,
@@ -332,7 +333,7 @@ namespace SephiriaEnhancements.Inventory
             var artifactEntityRules = new Dictionary<int,
                 ResolvedArtifactOptimizationRule>();
             foreach (IGrouping<int, InventoryItemSnapshot> group in artifacts.
-                Where(item => !instancePreferences.ContainsKey(item.InstanceId)).
+                Where(item => !instancePreferences.ContainsKey(item.ItemKey)).
                 GroupBy(item => item.EntityId))
             {
                 if (entityPreferences.TryGetValue(group.Key,

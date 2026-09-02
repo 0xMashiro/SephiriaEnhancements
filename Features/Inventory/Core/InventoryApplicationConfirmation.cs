@@ -10,17 +10,17 @@ namespace SephiriaEnhancements.Inventory
         internal static bool IsSwapObserved(InventorySnapshot snapshot,
             InventorySwapOperation operation)
         {
-            return GetInstanceId(snapshot, operation.FirstCell) ==
-                    operation.ExpectedSecondInstanceId &&
-                GetInstanceId(snapshot, operation.SecondCell) ==
-                    operation.ExpectedFirstInstanceId;
+            return GetItemKey(snapshot, operation.FirstCell) ==
+                    operation.ExpectedSecondItemKey &&
+                GetItemKey(snapshot, operation.SecondCell) ==
+                    operation.ExpectedFirstItemKey;
         }
 
         internal static bool IsRotationStepObserved(InventorySnapshot snapshot,
             InventoryRotationOperation operation, int previousRotation)
         {
             InventoryItemSnapshot item = snapshot?.Items.FirstOrDefault(value =>
-                value.InstanceId == operation.InstanceId);
+                value.ItemKey == operation.ItemKey);
             return item?.CellIndex == operation.Cell &&
                 item.StoneTablet != null &&
                 item.StoneTablet.Rotation != previousRotation;
@@ -32,7 +32,10 @@ namespace SephiriaEnhancements.Inventory
             if (actual == null || source == null || target == null ||
                 actual.Width != source.Width ||
                 actual.Storage != source.Storage ||
-                target.ItemCount != source.Items.Count)
+                target.ItemCount != source.Items.Count ||
+                actual.Items.Count != source.Items.Count ||
+                actual.Items.Select(item => item.ItemKey).Distinct().Count() !=
+                    actual.Items.Count)
             {
                 return false;
             }
@@ -41,8 +44,9 @@ namespace SephiriaEnhancements.Inventory
             {
                 InventoryItemSnapshot expected = source.Items[index];
                 InventoryItemSnapshot observed = actual.Items.FirstOrDefault(
-                    item => item.InstanceId == expected.InstanceId);
+                    item => item.ItemKey == expected.ItemKey);
                 if (observed?.CellIndex != target.GetCell(index) ||
+                    observed.Quantity != expected.Quantity ||
                     expected.StoneTablet != null &&
                     (observed.StoneTablet == null ||
                      observed.StoneTablet.Rotation != target.GetRotation(index)))
@@ -53,10 +57,10 @@ namespace SephiriaEnhancements.Inventory
             return true;
         }
 
-        private static int GetInstanceId(InventorySnapshot snapshot, int cell)
+        private static InventoryItemKey? GetItemKey(InventorySnapshot snapshot, int cell)
         {
             return snapshot?.Items.FirstOrDefault(item =>
-                item.CellIndex == cell)?.InstanceId ?? -1;
+                item.CellIndex == cell)?.ItemKey;
         }
     }
 }

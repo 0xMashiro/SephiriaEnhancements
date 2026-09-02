@@ -55,8 +55,8 @@ internal static class InventoryLocalRuntimeChecks
         InventorySnapshot swapped = InventorySnapshotFixture.ArtifactsAtLevels(
             new[] { 0, 0 }, new[] { 1, 0 });
         var operation = new InventorySwapOperation(firstCell: 0,
-            secondCell: 1, expectedFirstInstanceId: 100,
-            expectedSecondInstanceId: 101);
+            secondCell: 1, expectedFirstItemKey: source.Items[0].ItemKey,
+            expectedSecondItemKey: source.Items[1].ItemKey);
         var target = new InventoryLayoutProjection(new[] { 1, 0 },
             new[] { 0, 0 });
 

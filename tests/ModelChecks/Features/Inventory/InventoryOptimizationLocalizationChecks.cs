@@ -27,6 +27,7 @@ internal static class InventoryOptimizationLocalizationChecks
                 !InventoryOptimizationLocalization.PreferenceChoiceKeys.All(
                     texts.ContainsKey) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudArtifactsTab) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.PositionEffectsUnavailable) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudCombosTab) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudOptimize) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.

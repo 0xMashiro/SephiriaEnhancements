@@ -22,7 +22,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
         LayoutProjectionFixedEngravings = 1 << 9,
         SnapshotShapeVerified = 1 << 10,
         LayoutProjectionArrangementBonuses = 1 << 11,
-        LayoutProjectionArtifactEffectsActive = 1 << 12
+        LayoutProjectionArtifactEffectsActive = 1 << 12,
+        CurrentPositionEffectsVerified = 1 << 13
     }
 
     internal sealed class InventoryCellSettlementSnapshot
@@ -85,13 +86,18 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
         internal InventorySettlementCapabilities Capabilities { get; }
         internal IReadOnlyList<string> Issues { get; }
+        internal bool HasItemIdentityConflict => Issues.Any(issue =>
+            issue.StartsWith("SnapshotItemIdentityDuplicate:", StringComparison.Ordinal));
+        internal bool HasPositionEffectIssue => Issues.Any(issue =>
+            issue.StartsWith("PositionEffect", StringComparison.Ordinal));
         internal bool CurrentLayoutVerified =>
             Has(InventorySettlementCapabilities.SnapshotShapeVerified) &&
             Has(InventorySettlementCapabilities.BaselineState) &&
             Has(InventorySettlementCapabilities.CurrentCellSettlementVerified) &&
             Has(InventorySettlementCapabilities.CurrentArtifactActivationVerified) &&
             Has(InventorySettlementCapabilities.CurrentComboAccountingVerified) &&
-            Has(InventorySettlementCapabilities.CurrentTabletApplicationVerified);
+            Has(InventorySettlementCapabilities.CurrentTabletApplicationVerified) &&
+            Has(InventorySettlementCapabilities.CurrentPositionEffectsVerified);
         internal bool LayoutProjectionReady => CurrentLayoutVerified &&
             Has(InventorySettlementCapabilities.LayoutProjectionArtifactEffectsActive) &&
             Has(InventorySettlementCapabilities.LayoutProjectionTabletEffects) &&
@@ -177,6 +183,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
             }
 
             AddLayoutProjectionReadiness(snapshot, ref capabilities, issues);
+            if (InventoryPositionEffectValidation.Validate(snapshot, issues))
+                capabilities |= InventorySettlementCapabilities.CurrentPositionEffectsVerified;
             if (!snapshot.ArrangementBonusesEnabled)
             {
                 capabilities |= InventorySettlementCapabilities.
@@ -207,7 +215,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             }
 
             var occupiedCells = new HashSet<int>();
-            var instanceIds = new HashSet<int>();
+            var firstCellByItem = new Dictionary<InventoryItemKey, int>();
             for (int index = 0; index < snapshot.Items.Count; index++)
             {
                 InventoryItemSnapshot item = snapshot.Items[index];
@@ -225,13 +233,17 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 {
                     valid = false;
                     issues.Add("SnapshotItemPlacementInvalid:" +
-                        item.InstanceId);
+                        item.ItemKey);
                 }
-                if (!instanceIds.Add(item.InstanceId))
+                if (firstCellByItem.TryGetValue(item.ItemKey, out int firstCell))
                 {
                     valid = false;
                     issues.Add("SnapshotItemIdentityDuplicate:" +
-                        item.InstanceId);
+                        item.ItemKey + ":Cells=" + firstCell + "," + item.CellIndex);
+                }
+                else
+                {
+                    firstCellByItem.Add(item.ItemKey, item.CellIndex);
                 }
 
                 bool payloadValid;
@@ -275,7 +287,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 {
                     valid = false;
                     issues.Add("SnapshotItemPayloadInvalid:" +
-                        item.InstanceId);
+                        item.ItemKey);
                 }
             }
 
@@ -354,7 +366,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 if (artifact.DisplayedLevel != cell.Level)
                 {
                     valid = false;
-                    issues.Add("ArtifactDisplayedLevelMismatch:" + item.InstanceId);
+                    issues.Add("ArtifactDisplayedLevelMismatch:" + item.ItemKey);
                 }
 
                 bool criteriaKnown = artifact.Criteria == null ||
@@ -362,7 +374,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 if (!criteriaKnown)
                 {
                     valid = false;
-                    issues.Add("ArtifactCriteriaUnknown:" + item.InstanceId);
+                    issues.Add("ArtifactCriteriaUnknown:" + item.ItemKey);
                     continue;
                 }
 
@@ -384,7 +396,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     artifact.LimitedEffectEnabledLevel != expectedLimitedLevel)
                 {
                     valid = false;
-                    issues.Add("ArtifactActivationMismatch:" + item.InstanceId);
+                    issues.Add("ArtifactActivationMismatch:" + item.ItemKey);
                 }
             }
             return valid;
@@ -433,7 +445,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 {
                     projectionsComplete = false;
                     valid = false;
-                    issues.Add("TabletProjectionUnavailable:" + item.InstanceId);
+                    issues.Add("TabletProjectionUnavailable:" + item.ItemKey);
                     continue;
                 }
 
@@ -445,7 +457,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 {
                     projectionsComplete = false;
                     issues.Add("TabletLayoutProjectionIncomplete:" +
-                        item.InstanceId);
+                        item.ItemKey);
                 }
 
                 bool conditionSatisfied = EvaluateTabletCondition(projection,
@@ -453,7 +465,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 if (conditionSatisfied != stoneTablet.Applied)
                 {
                     valid = false;
-                    issues.Add("TabletApplicationMismatch:" + item.InstanceId);
+                    issues.Add("TabletApplicationMismatch:" + item.ItemKey);
                 }
             }
             foreach (FixedTabletSourceSnapshot source in
@@ -466,7 +478,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     projectionsComplete = false;
                     valid = false;
                     issues.Add("FixedTabletProjectionUnavailable:" +
-                        source.InstanceId);
+                        source.ItemKey);
                     continue;
                 }
                 bool conditionSatisfied = EvaluateTabletCondition(
@@ -476,7 +488,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 {
                     valid = false;
                     issues.Add("FixedTabletApplicationMismatch:" +
-                        source.InstanceId);
+                        source.ItemKey);
                 }
             }
             return valid;

@@ -67,7 +67,8 @@ namespace SephiriaEnhancements.Inventory
             int cappedEffectiveArtifactLevelTotal,
             int excessArtifactLevelTotal, int movedItemCount,
             int rotatedTabletCount,
-            int[] orderedPriorityCompletionPoints = null)
+            int[] orderedPriorityCompletionPoints = null,
+            int positionEffectRegressions = 0)
         {
             PriorityTargetsSatisfied = priorityTargetsSatisfied;
             PriorityTargetCompletionPoints = priorityTargetCompletionPoints;
@@ -86,6 +87,7 @@ namespace SephiriaEnhancements.Inventory
             ExcessArtifactLevelTotal = excessArtifactLevelTotal;
             MovedItemCount = movedItemCount;
             RotatedTabletCount = rotatedTabletCount;
+            PositionEffectRegressions = positionEffectRegressions;
             OrderedPriorityCompletionPoints = Array.AsReadOnly(
                 orderedPriorityCompletionPoints == null
                     ? Array.Empty<int>()
@@ -106,6 +108,7 @@ namespace SephiriaEnhancements.Inventory
         internal int ExcessArtifactLevelTotal { get; }
         internal int MovedItemCount { get; }
         internal int RotatedTabletCount { get; }
+        internal int PositionEffectRegressions { get; }
         internal IReadOnlyList<int> OrderedPriorityCompletionPoints { get; }
 
         public int CompareTo(InventoryOptimizationScore other)
@@ -115,8 +118,9 @@ namespace SephiriaEnhancements.Inventory
                 return 1;
             }
 
-            int comparison = other.AvoidedTargetsActive.CompareTo(
-                AvoidedTargetsActive);
+            int comparison = other.PositionEffectRegressions.CompareTo(PositionEffectRegressions);
+            if (comparison != 0) return comparison;
+            comparison = other.AvoidedTargetsActive.CompareTo(AvoidedTargetsActive);
             if (comparison != 0) return comparison;
             int orderedCount = Math.Max(OrderedPriorityCompletionPoints.Count,
                 other.OrderedPriorityCompletionPoints.Count);

@@ -310,6 +310,17 @@ namespace SephiriaEnhancements.Inventory
             if (!runtimeKernel.TryGetProjectableInventorySnapshot(
                     out sourceSnapshot, out sourceRuntime))
             {
+                if (runtimeKernel.TryGetLatestInventorySnapshot(out InventorySnapshot latest, out _) &&
+                    latest.SettlementValidation.HasItemIdentityConflict)
+                {
+                    ShowMessage(InventoryOptimizationLocalization.ItemIdentityConflict);
+                    return;
+                }
+                if (latest?.SettlementValidation.HasPositionEffectIssue == true)
+                {
+                    ShowMessage(InventoryOptimizationLocalization.PositionEffectsUnavailable);
+                    return;
+                }
                 RuntimeConsistencyState consistency = runtimeKernel.State?.Consistency ??
                     RuntimeConsistencyState.Unavailable;
                 bool settledButUnsupported = runtimeKernel.State?.
@@ -468,10 +479,10 @@ namespace SephiriaEnhancements.Inventory
                 {
                     InventorySwapOperation operation =
                         applicationPlan.Swaps[nextSwap];
-                    if (GetInstanceId(current, operation.FirstCell) !=
-                            operation.ExpectedFirstInstanceId ||
-                        GetInstanceId(current, operation.SecondCell) !=
-                            operation.ExpectedSecondInstanceId)
+                    if (GetItemKey(current, operation.FirstCell) !=
+                            operation.ExpectedFirstItemKey ||
+                        GetItemKey(current, operation.SecondCell) !=
+                            operation.ExpectedSecondItemKey)
                     {
                         ShowMessage(InventoryOptimizationLocalization.Changed);
                         ResetOperationState();
@@ -494,7 +505,7 @@ namespace SephiriaEnhancements.Inventory
                         applicationPlan.Rotations[nextRotation];
                     ItemPosition position = current.IdxToPos(operation.Cell);
                     NewItemOwnInstance item = current.FindItem(position);
-                    if (item?.InstanceID != operation.InstanceId ||
+                    if (GetItemKey(current, operation.Cell) != operation.ItemKey ||
                         item.StoneTablet == null)
                     {
                         ShowMessage(InventoryOptimizationLocalization.Changed);
@@ -575,6 +586,15 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
 
+            if (snapshot.SettlementValidation.HasPositionEffectIssue ||
+                !InventoryPositionEffectComparison.ParametersMatch(
+                    sourceSnapshot.PositionEffects, snapshot.PositionEffects))
+            {
+                ShowMessage(InventoryOptimizationLocalization.PositionEffectsUnavailable);
+                ResetOperationState();
+                return;
+            }
+
             if (awaitingSwapConfirmation)
             {
                 if (!InventoryApplicationConfirmation.IsSwapObserved(snapshot,
@@ -594,7 +614,7 @@ namespace SephiriaEnhancements.Inventory
                     return;
                 }
                 InventoryItemSnapshot item = snapshot.Items.First(value =>
-                    value.InstanceId == operation.InstanceId);
+                    value.ItemKey == operation.ItemKey);
                 if (item.StoneTablet.Rotation == operation.TargetRotation)
                 {
                     nextRotation++;
@@ -698,14 +718,15 @@ namespace SephiriaEnhancements.Inventory
             for (int index = 0; index < snapshot.Items.Count; index++)
             {
                 InventoryItemSnapshot expected = snapshot.Items[index];
-                if (GetInstanceId(inventory, expected.CellIndex) !=
-                    expected.InstanceId)
+                if (GetItemKey(inventory, expected.CellIndex) !=
+                    expected.ItemKey)
                 {
                     return false;
                 }
                 NewItemOwnInstance item = inventory.FindItem(
                     inventory.IdxToPos(expected.CellIndex));
-                if (expected.StoneTablet != null && item?.StoneTablet?.rotation !=
+                if (item.Quantity != expected.Quantity ||
+                    expected.StoneTablet != null && item?.StoneTablet?.rotation !=
                     expected.StoneTablet.Rotation)
                 {
                     return false;
@@ -723,7 +744,8 @@ namespace SephiriaEnhancements.Inventory
                 int cell = layout.GetCell(index);
                 ItemPosition position = inventory.IdxToPos(cell);
                 NewItemOwnInstance item = inventory.FindItem(position);
-                if (item?.InstanceID != expected.InstanceId ||
+                if (GetItemKey(inventory, cell) != expected.ItemKey ||
+                    item.Quantity != expected.Quantity ||
                     expected.StoneTablet != null && item.StoneTablet?.rotation !=
                     layout.GetRotation(index))
                 {
@@ -737,11 +759,6 @@ namespace SephiriaEnhancements.Inventory
         {
             NewItemOwnInstance item = inventory.FindItem(inventory.IdxToPos(cell));
             return item == null ? null : new InventoryItemKey(item.EntityID, item.InstanceID);
-        }
-
-        private static int GetInstanceId(GridInventory inventory, int cell)
-        {
-            return inventory.FindItem(inventory.IdxToPos(cell))?.InstanceID ?? -1;
         }
 
         private void Fail(Exception exception)

@@ -131,6 +131,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             Projection = projection;
         }
 
+        internal InventoryItemKey ItemKey => new(EntityId, InstanceId);
         internal int InstanceId { get; }
         internal int EntityId { get; }
         internal int CellIndex { get; }

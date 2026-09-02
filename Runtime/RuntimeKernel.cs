@@ -530,6 +530,8 @@ namespace SephiriaEnhancements.Runtime
                 snapshot.SettlementValidation, stateHub.Current);
             DeveloperLogger.RecordInventoryEvaluationOrder(
                 snapshot.EvaluationOrder, stateHub.Current);
+            DeveloperLogger.RecordInventoryPositionEffects(
+                snapshot.PositionEffects, stateHub.Current);
         }
 
         private void OnAllDatabasesReady()

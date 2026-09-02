@@ -290,8 +290,8 @@ internal static class InventoryArtifactLevelBoundaryChecks
             plan.Swaps.Count != 1 || plan.Rotations.Count != 0 ||
             plan.Swaps[0].FirstCell != 0 ||
             plan.Swaps[0].SecondCell != storage - 1 ||
-            plan.Swaps[0].ExpectedFirstInstanceId != 100 ||
-            plan.Swaps[0].ExpectedSecondInstanceId != 100 + storage - 1)
+            plan.Swaps[0].ExpectedFirstItemKey != snapshot.Items[0].ItemKey ||
+            plan.Swaps[0].ExpectedSecondItemKey != snapshot.Items[storage - 1].ItemKey)
         {
             throw new InvalidOperationException(
                 "full inventory must optimize through one occupied-cell swap: " +

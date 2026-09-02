@@ -28,9 +28,9 @@ internal static class InventoryOptimizationPolicyChecks
                 explicitPreferences);
         if (explicitPolicy.SearchEffort != InventorySearchEffort.Fast ||
             explicitPolicy.AllowStoneTabletRotation ||
-            explicitPolicy.ArtifactInstanceRules[31].Source !=
+            explicitPolicy.ArtifactInstanceRules[new InventoryItemKey(301, 31)].Source !=
                 InventoryPreferenceSource.ManualInstance ||
-            explicitPolicy.ArtifactInstanceRules[31].Level !=
+            explicitPolicy.ArtifactInstanceRules[new InventoryItemKey(301, 31)].Level !=
                 InventoryPreferenceLevel.Priority ||
             explicitPolicy.ComboRules["ICE"].Source !=
                 InventoryPreferenceSource.UserCategoryRule)

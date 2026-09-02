@@ -166,17 +166,17 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
     internal sealed class ProjectedInventoryTabletSettlement
     {
-        internal ProjectedInventoryTabletSettlement(int instanceId, bool fixedSource,
+        internal ProjectedInventoryTabletSettlement(InventoryItemKey itemKey, bool fixedSource,
             bool applied, int cellIndex, int rotation)
         {
-            InstanceId = instanceId;
+            ItemKey = itemKey;
             FixedSource = fixedSource;
             Applied = applied;
             CellIndex = cellIndex;
             Rotation = rotation;
         }
 
-        internal int InstanceId { get; }
+        internal InventoryItemKey ItemKey { get; }
         internal bool FixedSource { get; }
         internal bool Applied { get; }
         internal int CellIndex { get; }
@@ -185,18 +185,18 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
     internal sealed class ProjectedInventoryArtifactSettlement
     {
-        internal ProjectedInventoryArtifactSettlement(int instanceId, bool enabled,
+        internal ProjectedInventoryArtifactSettlement(InventoryItemKey itemKey, bool enabled,
             bool penaltyEnabled, int displayedLevel,
             int cappedEffectiveLevel)
         {
-            InstanceId = instanceId;
+            ItemKey = itemKey;
             Enabled = enabled;
             PenaltyEnabled = penaltyEnabled;
             DisplayedLevel = displayedLevel;
             CappedEffectiveLevel = cappedEffectiveLevel;
         }
 
-        internal int InstanceId { get; }
+        internal InventoryItemKey ItemKey { get; }
         internal bool Enabled { get; }
         internal bool PenaltyEnabled { get; }
         internal int DisplayedLevel { get; }
@@ -209,7 +209,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
             ProjectedInventoryCellSettlement[] cells,
             ProjectedInventoryArtifactSettlement[] artifacts,
             IDictionary<string, int> comboCounts, string[] issues,
-            ProjectedInventoryTabletSettlement[] tablets = null)
+            ProjectedInventoryTabletSettlement[] tablets = null,
+            InventoryPositionEffectValue[] positionEffects = null)
         {
             Succeeded = succeeded;
             Cells = Array.AsReadOnly(cells ??
@@ -223,6 +224,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             Tablets = Array.AsReadOnly(tablets ??
                 Array.Empty<ProjectedInventoryTabletSettlement>());
             Issues = Array.AsReadOnly(issues ?? Array.Empty<string>());
+            PositionEffects = Array.AsReadOnly(positionEffects ?? Array.Empty<InventoryPositionEffectValue>());
         }
 
         internal bool Succeeded { get; }
@@ -230,6 +232,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
         internal IReadOnlyList<ProjectedInventoryArtifactSettlement> Artifacts { get; }
         internal IReadOnlyDictionary<string, int> ComboCounts { get; }
         internal IReadOnlyList<ProjectedInventoryTabletSettlement> Tablets { get; }
+        internal IReadOnlyList<InventoryPositionEffectValue> PositionEffects { get; }
         internal IReadOnlyList<string> Issues { get; }
     }
 

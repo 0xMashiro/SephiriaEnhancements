@@ -27,8 +27,8 @@ internal static class InventoryOptimizerChecks
         if (!InventoryLayoutPlanner.TryCreate(rowSnapshot, optimizedRow.Layout,
                 out InventoryApplicationPlan rowPlan, out string rowPlanIssue) ||
             rowPlan.Swaps.Count != 1 || rowPlan.Rotations.Count != 0 ||
-            rowPlan.Swaps[0].ExpectedFirstInstanceId != -1 ||
-            rowPlan.Swaps[0].ExpectedSecondInstanceId != 31 ||
+            rowPlan.Swaps[0].ExpectedFirstItemKey != null ||
+            rowPlan.Swaps[0].ExpectedSecondItemKey != new InventoryItemKey(301, 31) ||
             rowPlanIssue != string.Empty)
             throw new InvalidOperationException(
                 "layout planner must produce one identity-checked move into an empty cell");

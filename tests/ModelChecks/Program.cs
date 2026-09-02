@@ -31,6 +31,8 @@ Console.WriteLine("KeyboardSelectionRecovery: " +
     KeyboardSelectionRecoveryPolicyChecks.Run());
 Console.WriteLine("InventoryLocalRuntime: " +
     InventoryLocalRuntimeChecks.Run());
+Console.WriteLine("InventoryItemIdentity: " +
+    InventoryItemIdentityChecks.Run());
 Console.WriteLine("InventoryEntityTargets: " +
     InventoryEntityTargetChecks.Run());
 Console.WriteLine("NativeUiActionCatalog: " +
@@ -69,6 +71,8 @@ DeveloperConsoleContractChecks.Run();
 InventorySnapshotChecks.Run();
 InventorySettlementValidationChecks.Run();
 InventorySettlementProjectorChecks.Run();
+Console.WriteLine("InventoryPositionEffects: " + InventoryPositionEffectChecks.Run());
+Console.WriteLine("NativeInventoryEffectAccess: " + NativeInventoryEffectAccessChecks.Run());
 Console.WriteLine("InventoryDefaultObjective: " +
     InventoryDefaultObjectiveChecks.Run());
 Console.WriteLine("InventoryArtifactLevelBoundary: " +

@@ -15,6 +15,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             Accepted = accepted;
         }
 
+        internal InventoryItemKey ItemKey => new(EntityId, InstanceId);
         internal int InstanceId { get; }
         internal int EntityId { get; }
         internal bool Accepted { get; }
@@ -23,26 +24,26 @@ namespace SephiriaEnhancements.Runtime.Inventory
     internal sealed class InventoryEvaluationOrderSnapshot
     {
         internal InventoryEvaluationOrderSnapshot(long traceRevision,
-            int[] categoryRefreshInstanceIds, int[] artifactRefreshInstanceIds,
+            InventoryItemKey[] categoryRefreshItemKeys, InventoryItemKey[] artifactRefreshItemKeys,
             UniqueEffectRegistrationSnapshot[] uniqueRegistrations)
         {
             TraceRevision = traceRevision;
-            CategoryRefreshInstanceIds = Array.AsReadOnly(
-                categoryRefreshInstanceIds == null
-                    ? Array.Empty<int>()
-                    : (int[])categoryRefreshInstanceIds.Clone());
-            ArtifactRefreshInstanceIds = Array.AsReadOnly(
-                artifactRefreshInstanceIds == null
-                    ? Array.Empty<int>()
-                    : (int[])artifactRefreshInstanceIds.Clone());
+            CategoryRefreshItemKeys = Array.AsReadOnly(
+                categoryRefreshItemKeys == null
+                    ? Array.Empty<InventoryItemKey>()
+                    : (InventoryItemKey[])categoryRefreshItemKeys.Clone());
+            ArtifactRefreshItemKeys = Array.AsReadOnly(
+                artifactRefreshItemKeys == null
+                    ? Array.Empty<InventoryItemKey>()
+                    : (InventoryItemKey[])artifactRefreshItemKeys.Clone());
             UniqueRegistrations = Array.AsReadOnly(uniqueRegistrations == null
                 ? Array.Empty<UniqueEffectRegistrationSnapshot>()
                 : (UniqueEffectRegistrationSnapshot[])uniqueRegistrations.Clone());
         }
 
         internal long TraceRevision { get; }
-        internal IReadOnlyList<int> CategoryRefreshInstanceIds { get; }
-        internal IReadOnlyList<int> ArtifactRefreshInstanceIds { get; }
+        internal IReadOnlyList<InventoryItemKey> CategoryRefreshItemKeys { get; }
+        internal IReadOnlyList<InventoryItemKey> ArtifactRefreshItemKeys { get; }
         internal IReadOnlyList<UniqueEffectRegistrationSnapshot>
             UniqueRegistrations
         { get; }

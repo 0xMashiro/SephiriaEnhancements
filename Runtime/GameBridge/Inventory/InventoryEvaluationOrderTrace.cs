@@ -10,8 +10,8 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
     internal static class InventoryEvaluationOrderTraceSignal
     {
         private static readonly object Gate = new object();
-        private static readonly List<int> CategoryOrder = new List<int>();
-        private static readonly List<int> ArtifactOrder = new List<int>();
+        private static readonly List<InventoryItemKey> CategoryOrder = new List<InventoryItemKey>();
+        private static readonly List<InventoryItemKey> ArtifactOrder = new List<InventoryItemKey>();
         private static readonly List<UniqueEffectRegistrationSnapshot> Unique =
             new List<UniqueEffectRegistrationSnapshot>();
         private static GridInventory inventory;
@@ -33,9 +33,9 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
         {
             lock (Gate)
             {
-                if (artifact?.Inventory == inventory)
+                if (artifact?.Inventory == inventory && artifact?.Item != null)
                 {
-                    CategoryOrder.Add(artifact.Item?.InstanceID ?? -1);
+                    CategoryOrder.Add(new InventoryItemKey(artifact.Item.EntityID, artifact.Item.InstanceID));
                 }
             }
         }
@@ -44,9 +44,9 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
         {
             lock (Gate)
             {
-                if (artifact?.Inventory == inventory)
+                if (artifact?.Inventory == inventory && artifact?.Item != null)
                 {
-                    ArtifactOrder.Add(artifact.Item?.InstanceID ?? -1);
+                    ArtifactOrder.Add(new InventoryItemKey(artifact.Item.EntityID, artifact.Item.InstanceID));
                 }
             }
         }
@@ -55,11 +55,11 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
         {
             lock (Gate)
             {
-                if (artifact?.Inventory == inventory)
+                if (artifact?.Inventory == inventory && artifact?.Item != null)
                 {
                     Unique.Add(new UniqueEffectRegistrationSnapshot(
-                        artifact.Item?.InstanceID ?? -1,
-                        artifact.Item?.EntityID ?? -1, accepted));
+                        artifact.Item.InstanceID,
+                        artifact.Item.EntityID, accepted));
                 }
             }
         }

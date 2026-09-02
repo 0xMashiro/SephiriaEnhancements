@@ -74,7 +74,7 @@ internal static class InventoryTargetReachabilityChecks
             TargetEvaluations.Single();
 
         if (!proposal.OptimalityProven ||
-            policy.ArtifactInstanceRules[100].MinimumEffectiveLevel != 0 ||
+            policy.ArtifactInstanceRules[snapshot.Items[0].ItemKey].MinimumEffectiveLevel != 0 ||
             evaluation.RequiredValue != 0 ||
             !evaluation.AfterConditionReached ||
             evaluation.BeforeConditionReached ||

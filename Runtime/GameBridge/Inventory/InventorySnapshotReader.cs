@@ -129,7 +129,8 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 evaluationOrder: evaluationOrder,
                 fixedTabletSources: CaptureFixedTabletSources(inventory,
                     tabletProjectionReader),
-                arrangementBonusesEnabled: ReadArrangementBonusEnabled());
+                arrangementBonusesEnabled: ReadArrangementBonusEnabled(),
+                positionEffects: InventoryPositionEffectReader.Capture(inventory));
             return true;
         }
 

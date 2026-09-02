@@ -9,31 +9,31 @@ namespace SephiriaEnhancements.Inventory
     internal sealed class InventorySwapOperation
     {
         internal InventorySwapOperation(int firstCell, int secondCell,
-            int expectedFirstInstanceId, int expectedSecondInstanceId)
+            InventoryItemKey? expectedFirstItemKey, InventoryItemKey? expectedSecondItemKey)
         {
             FirstCell = firstCell;
             SecondCell = secondCell;
-            ExpectedFirstInstanceId = expectedFirstInstanceId;
-            ExpectedSecondInstanceId = expectedSecondInstanceId;
+            ExpectedFirstItemKey = expectedFirstItemKey;
+            ExpectedSecondItemKey = expectedSecondItemKey;
         }
 
         internal int FirstCell { get; }
         internal int SecondCell { get; }
-        internal int ExpectedFirstInstanceId { get; }
-        internal int ExpectedSecondInstanceId { get; }
+        internal InventoryItemKey? ExpectedFirstItemKey { get; }
+        internal InventoryItemKey? ExpectedSecondItemKey { get; }
     }
 
     internal sealed class InventoryRotationOperation
     {
-        internal InventoryRotationOperation(int instanceId, int cell,
+        internal InventoryRotationOperation(InventoryItemKey itemKey, int cell,
             int targetRotation)
         {
-            InstanceId = instanceId;
+            ItemKey = itemKey;
             Cell = cell;
             TargetRotation = targetRotation;
         }
 
-        internal int InstanceId { get; }
+        internal InventoryItemKey ItemKey { get; }
         internal int Cell { get; }
         internal int TargetRotation { get; }
     }
@@ -68,52 +68,50 @@ namespace SephiriaEnhancements.Inventory
                 return false;
             }
 
-            var itemAtCell = new int[snapshot.Storage];
-            Array.Fill(itemAtCell, -1);
-            var cellByInstance = new Dictionary<int, int>();
-            var targetInstanceAtCell = new int[snapshot.Storage];
-            Array.Fill(targetInstanceAtCell, -1);
+            var itemAtCell = new InventoryItemKey?[snapshot.Storage];
+            var cellByItem = new Dictionary<InventoryItemKey, int>();
+            var targetItemAtCell = new InventoryItemKey?[snapshot.Storage];
             for (int index = 0; index < snapshot.Items.Count; index++)
             {
                 InventoryItemSnapshot item = snapshot.Items[index];
                 int targetCell = layout.GetCell(index);
                 if (item.CellIndex < 0 || item.CellIndex >= snapshot.Storage ||
                     targetCell < 0 || targetCell >= snapshot.Storage ||
-                    itemAtCell[item.CellIndex] >= 0 ||
-                    targetInstanceAtCell[targetCell] >= 0 ||
-                    !cellByInstance.TryAdd(item.InstanceId, item.CellIndex))
+                    itemAtCell[item.CellIndex].HasValue ||
+                    targetItemAtCell[targetCell].HasValue ||
+                    !cellByItem.TryAdd(item.ItemKey, item.CellIndex))
                 {
                     issue = "LayoutIdentityMismatch";
                     return false;
                 }
-                itemAtCell[item.CellIndex] = item.InstanceId;
-                targetInstanceAtCell[targetCell] = item.InstanceId;
+                itemAtCell[item.CellIndex] = item.ItemKey;
+                targetItemAtCell[targetCell] = item.ItemKey;
             }
 
             var swaps = new List<InventorySwapOperation>();
             for (int targetCell = 0; targetCell < snapshot.Storage; targetCell++)
             {
-                int targetInstance = targetInstanceAtCell[targetCell];
-                if (itemAtCell[targetCell] == targetInstance)
+                InventoryItemKey? targetItem = targetItemAtCell[targetCell];
+                if (itemAtCell[targetCell] == targetItem)
                 {
                     continue;
                 }
-                if (targetInstance < 0 ||
-                    !cellByInstance.TryGetValue(targetInstance,
+                if (!targetItem.HasValue ||
+                    !cellByItem.TryGetValue(targetItem.Value,
                         out int sourceCell))
                 {
                     continue;
                 }
 
-                int displacedInstance = itemAtCell[targetCell];
+                InventoryItemKey? displacedItem = itemAtCell[targetCell];
                 swaps.Add(new InventorySwapOperation(targetCell, sourceCell,
-                    displacedInstance, targetInstance));
-                itemAtCell[targetCell] = targetInstance;
-                itemAtCell[sourceCell] = displacedInstance;
-                cellByInstance[targetInstance] = targetCell;
-                if (displacedInstance >= 0)
+                    displacedItem, targetItem));
+                itemAtCell[targetCell] = targetItem;
+                itemAtCell[sourceCell] = displacedItem;
+                cellByItem[targetItem.Value] = targetCell;
+                if (displacedItem.HasValue)
                 {
-                    cellByInstance[displacedInstance] = sourceCell;
+                    cellByItem[displacedItem.Value] = sourceCell;
                 }
             }
 
@@ -128,10 +126,10 @@ namespace SephiriaEnhancements.Inventory
                 }
                 if (!item.StoneTablet.Rotatable)
                 {
-                    issue = "LayoutTabletRotationInvalid:" + item.InstanceId;
+                    issue = "LayoutTabletRotationInvalid:" + item.ItemKey;
                     return false;
                 }
-                rotations.Add(new InventoryRotationOperation(item.InstanceId,
+                rotations.Add(new InventoryRotationOperation(item.ItemKey,
                     layout.GetCell(index), layout.GetRotation(index)));
             }
 

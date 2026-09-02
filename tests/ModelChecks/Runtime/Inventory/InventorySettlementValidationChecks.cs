@@ -132,7 +132,7 @@ internal static class InventorySettlementValidationChecks
         if (malformedPayloadSnapshot.SettlementValidation.CurrentLayoutVerified ||
             malformedPayloadSnapshot.SettlementValidation.LayoutProjectionReady ||
             !malformedPayloadSnapshot.SettlementValidation.Issues.Contains(
-                "SnapshotItemPayloadInvalid:23"))
+                "SnapshotItemPayloadInvalid:203:23"))
             throw new InvalidOperationException(
                 "inconsistent item kinds must fail at the snapshot shape boundary");
 
@@ -150,10 +150,36 @@ internal static class InventorySettlementValidationChecks
                 mismatchedSnapshot);
         if (detectedDifferential.Matched ||
             !detectedDifferential.Mismatches.Contains("CellLevel:0") ||
-            !detectedDifferential.Mismatches.Contains("ItemMissing:21"))
+            !detectedDifferential.Mismatches.Contains("ItemMissing:201:21"))
             throw new InvalidOperationException(
                 "native differential must report field and identity mismatches");
         Console.WriteLine("InventorySettlementValidator: positive and mismatch gates passed");
         Console.WriteLine("InventorySettlementDifferentialVerifier: native parity gates passed");
+        VerifyEnchantedArtifactCoverage(verifiedSnapshot);
+    }
+
+    private static void VerifyEnchantedArtifactCoverage(InventorySnapshot enchantedArtifact)
+    {
+        InventorySnapshot plain = InventorySnapshotFixture.FullWithArtifactAndBlockers(3, 3, 0, 0);
+        var potion = new InventoryItemSnapshot(201, 1, 1, 1, 1, 0,
+            "Potion", string.Empty, "Potion", "Common", Array.Empty<string>(),
+            InventoryItemKind.Other, artifact: null, stoneTablet: null);
+        var tablet = new InventoryItemSnapshot(202, 2000, 1, 2, 2, 0,
+            "Tablet", string.Empty, "StoneTablet", "Common", Array.Empty<string>(),
+            InventoryItemKind.StoneTablet, artifact: null,
+            new StoneTabletSnapshot(0, false, false, false, false, string.Empty, string.Empty));
+        foreach (InventorySnapshot source in new[] { plain, enchantedArtifact })
+        {
+            var mixed = new InventorySnapshot(3, 3,
+                new[] { source.Cells[0], plain.Cells[1], plain.Cells[2] },
+                new[] { source.Items[0], potion, tablet });
+            var coverage = new InventoryMechanicCoverageSnapshot(mixed);
+            int expected = ReferenceEquals(source, enchantedArtifact) ? 1 : 0;
+            if (coverage.EnchantedArtifactCount != expected || coverage.ArtifactCount != 1 ||
+                coverage.TabletCount != 1 || coverage.OtherItemCount != 1)
+                throw new InvalidOperationException(
+                    "potions and tablets must not count as enchanted artifacts");
+        }
+        Console.WriteLine("InventoryMechanicCoverage: mixed item types do not inflate enchant coverage");
     }
 }

@@ -13,14 +13,14 @@ namespace SephiriaEnhancements.Inventory
 
         private readonly InventorySnapshot snapshot;
         private readonly ResolvedInventoryOptimizationPolicy policy;
-        private readonly Dictionary<int, InventoryItemSnapshot> itemsByInstance;
+        private readonly Dictionary<InventoryItemKey, InventoryItemSnapshot> itemsByKey;
 
         internal InventoryOptimizationScorer(InventorySnapshot snapshot,
             ResolvedInventoryOptimizationPolicy policy)
         {
             this.snapshot = snapshot;
             this.policy = policy;
-            itemsByInstance = snapshot.Items.ToDictionary(item => item.InstanceId);
+            itemsByKey = snapshot.Items.ToDictionary(item => item.ItemKey);
         }
 
         internal InventoryOptimizationScore Score(InventoryLayoutProjection layout,
@@ -46,7 +46,7 @@ namespace SephiriaEnhancements.Inventory
 
             foreach (ProjectedInventoryArtifactSettlement artifact in settlement.Artifacts)
             {
-                InventoryItemSnapshot item = itemsByInstance[artifact.InstanceId];
+                InventoryItemSnapshot item = itemsByKey[artifact.ItemKey];
                 if (item.Artifact.EffectEnabled && !artifact.Enabled)
                 {
                     sourceEnabledArtifactsDeactivated++;
@@ -60,7 +60,7 @@ namespace SephiriaEnhancements.Inventory
                 excessArtifactLevelTotal += Math.Max(0,
                     artifact.DisplayedLevel - item.Artifact.MaxLevel);
                 if (policy.ArtifactInstanceRules.TryGetValue(
-                        artifact.InstanceId,
+                        artifact.ItemKey,
                         out ResolvedArtifactOptimizationRule rule))
                 {
                     int effectiveLevel = artifact.Enabled
@@ -107,8 +107,8 @@ namespace SephiriaEnhancements.Inventory
             {
                 ProjectedInventoryArtifactSettlement[] candidates = settlement.Artifacts.
                     Where(artifact => !policy.ArtifactInstanceRules.ContainsKey(
-                            artifact.InstanceId) &&
-                        itemsByInstance[artifact.InstanceId].EntityId ==
+                            artifact.ItemKey) &&
+                        itemsByKey[artifact.ItemKey].EntityId ==
                             rule.EntityId).ToArray();
                 if (rule.Level == InventoryPreferenceLevel.Avoid)
                 {
@@ -209,7 +209,32 @@ namespace SephiriaEnhancements.Inventory
                 movedItemCount: movedItemCount,
                 rotatedTabletCount: rotatedTabletCount,
                 orderedPriorityCompletionPoints:
-                    orderedPriorityCompletionPoints);
+                    orderedPriorityCompletionPoints,
+                positionEffectRegressions: CountPositionEffectRegressions(settlement));
+        }
+
+        private int CountPositionEffectRegressions(ProjectedInventorySettlement settlement)
+        {
+            if (snapshot.PositionEffects.Observed.Count == 0 && settlement.PositionEffects.Count == 0) return 0;
+            var baseline = snapshot.PositionEffects.Observed.ToDictionary(value => value.Key);
+            var candidates = settlement.PositionEffects.ToDictionary(value => value.Key);
+            int regressions = 0;
+            foreach (var key in baseline.Keys.Union(candidates.Keys))
+            {
+                if (policy.ArtifactInstanceRules.TryGetValue(key.Source, out var instanceRule) &&
+                    instanceRule.Level == InventoryPreferenceLevel.Avoid) continue;
+                if (!policy.ArtifactInstanceRules.ContainsKey(key.Source) &&
+                    policy.ArtifactEntityRules.TryGetValue(key.Source.EntityId, out var entityRule) &&
+                    entityRule.Level == InventoryPreferenceLevel.Avoid) continue;
+                baseline.TryGetValue(key, out var before);
+                candidates.TryGetValue(key, out var after);
+                double current = after?.Value ?? 0;
+                bool lost = (before?.Mode ?? after?.Mode) == true
+                    ? before != null && before.Value >= 0 && (after == null || current != before.Value)
+                    : current < (before?.Value ?? 0);
+                if (lost) regressions++;
+            }
+            return regressions;
         }
 
         internal static int CalculateTargetCompletionPoints(bool active,
@@ -238,15 +263,15 @@ namespace SephiriaEnhancements.Inventory
         {
             var result = new List<InventoryOptimizationTargetEvaluation>();
             var beforeArtifacts = before.Artifacts.ToDictionary(
-                artifact => artifact.InstanceId);
+                artifact => artifact.ItemKey);
             var afterArtifacts = after.Artifacts.ToDictionary(
-                artifact => artifact.InstanceId);
+                artifact => artifact.ItemKey);
             foreach (ResolvedArtifactOptimizationRule rule in
                 policy.ArtifactInstanceRules.Values)
             {
-                beforeArtifacts.TryGetValue(rule.InstanceId,
+                beforeArtifacts.TryGetValue(rule.ItemKey,
                     out ProjectedInventoryArtifactSettlement beforeArtifact);
-                afterArtifacts.TryGetValue(rule.InstanceId,
+                afterArtifacts.TryGetValue(rule.ItemKey,
                     out ProjectedInventoryArtifactSettlement afterArtifact);
                 ArtifactTargetState beforeState = EvaluateArtifactInstance(
                     rule, beforeArtifact);
@@ -254,7 +279,7 @@ namespace SephiriaEnhancements.Inventory
                     rule, afterArtifact);
                 int requiredValue = ArtifactRequiredValue(rule);
                 string target = ArtifactTarget(rule.EntityId,
-                    rule.InstanceId);
+                    rule.ItemKey.NativeInstanceId);
                 InventoryTargetSearchEvidence evidence = CombineEvidence(
                     searchEvidence, target, beforeState.Value,
                     beforeState.CompletionPoints, beforeState.Reached,
@@ -340,16 +365,16 @@ namespace SephiriaEnhancements.Inventory
             }
 
             var artifacts = settlement.Artifacts.ToDictionary(
-                artifact => artifact.InstanceId);
+                artifact => artifact.ItemKey);
             foreach (ResolvedArtifactOptimizationRule rule in
                 policy.ArtifactInstanceRules.Values)
             {
-                artifacts.TryGetValue(rule.InstanceId,
+                artifacts.TryGetValue(rule.ItemKey,
                     out ProjectedInventoryArtifactSettlement artifact);
                 ArtifactTargetState state = EvaluateArtifactInstance(rule,
                     artifact);
                 Observe(evidence, ArtifactTarget(rule.EntityId,
-                    rule.InstanceId), state.Value, state.CompletionPoints,
+                    rule.ItemKey.NativeInstanceId), state.Value, state.CompletionPoints,
                     state.Reached);
             }
 
@@ -458,12 +483,12 @@ namespace SephiriaEnhancements.Inventory
 
         private ArtifactTargetState EvaluateArtifactEntity(
             ResolvedArtifactOptimizationRule rule,
-            IReadOnlyDictionary<int, ProjectedInventoryArtifactSettlement> artifacts)
+            IReadOnlyDictionary<InventoryItemKey, ProjectedInventoryArtifactSettlement> artifacts)
         {
             ProjectedInventoryArtifactSettlement[] candidates = artifacts.Values.Where(
                 artifact => !policy.ArtifactInstanceRules.ContainsKey(
-                        artifact.InstanceId) &&
-                    itemsByInstance[artifact.InstanceId].EntityId ==
+                        artifact.ItemKey) &&
+                    itemsByKey[artifact.ItemKey].EntityId ==
                         rule.EntityId).ToArray();
             if (candidates.Length == 0)
             {

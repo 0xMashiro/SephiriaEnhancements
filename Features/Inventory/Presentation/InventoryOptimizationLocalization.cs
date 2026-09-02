@@ -22,6 +22,10 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.Inventory.RuntimeNotReady";
         internal const string EmptyInventory =
             "SephiriaEnhancements.Inventory.EmptyInventory";
+        internal const string ItemIdentityConflict =
+            "SephiriaEnhancements.Inventory.ItemIdentityConflict";
+        internal const string PositionEffectsUnavailable =
+            "SephiriaEnhancements.Inventory.PositionEffectsUnavailable";
         internal const string Unsupported =
             "SephiriaEnhancements.Inventory.Unsupported";
         internal const string Changed =
@@ -160,11 +164,21 @@ namespace SephiriaEnhancements.Inventory
                     : traditionalChinese
                         ? "背包中沒有可最佳化的物品。"
                         : "There are no items to optimize.");
+                addText(language, ItemIdentityConflict, simplifiedChinese
+                    ? "无法唯一识别背包中的部分物品，已停止优化。"
+                    : traditionalChinese
+                        ? "無法唯一識別背包中的部分物品，已停止最佳化。"
+                        : "Some inventory items cannot be uniquely identified. Optimization stopped.");
                 addText(language, Unsupported, simplifiedChinese
                     ? "当前背包含有尚未验证的机制，已安全跳过优化。"
                     : traditionalChinese
                         ? "目前背包含有尚未驗證的機制，已安全略過最佳化。"
                         : "This inventory contains mechanics that are not yet safely supported.");
+                addText(language, PositionEffectsUnavailable, simplifiedChinese
+                    ? "无法验证物品的位置效果，已停止优化。"
+                    : traditionalChinese
+                        ? "無法驗證物品的位置效果，已停止最佳化。"
+                        : "Item position effects could not be verified. Optimization stopped.");
                 addText(language, Changed, simplifiedChinese
                     ? "背包状态已经变化，本次优化已取消。"
                     : traditionalChinese

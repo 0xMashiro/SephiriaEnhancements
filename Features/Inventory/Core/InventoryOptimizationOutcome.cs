@@ -22,6 +22,7 @@ namespace SephiriaEnhancements.Inventory
             AfterEffectiveLevel = afterEffectiveLevel;
         }
 
+        internal InventoryItemKey ItemKey => new(EntityId, InstanceId);
         internal int InstanceId { get; }
         internal int EntityId { get; }
         internal string NameKey { get; }
@@ -59,7 +60,9 @@ namespace SephiriaEnhancements.Inventory
             int afterEffectiveLevels, int beforeBreakpointValue,
             int afterBreakpointValue,
             InventoryArtifactOutcome[] artifactChanges,
-            InventoryCategoryOutcome[] categoryChanges)
+            InventoryCategoryOutcome[] categoryChanges,
+            InventoryPositionEffectValue[] beforePositionEffects = null,
+            InventoryPositionEffectValue[] afterPositionEffects = null)
         {
             MovedItems = movedItems;
             RotatedTablets = rotatedTablets;
@@ -73,6 +76,8 @@ namespace SephiriaEnhancements.Inventory
                 Array.Empty<InventoryArtifactOutcome>());
             CategoryChanges = Array.AsReadOnly(categoryChanges ??
                 Array.Empty<InventoryCategoryOutcome>());
+            BeforePositionEffects = Array.AsReadOnly(beforePositionEffects ?? Array.Empty<InventoryPositionEffectValue>());
+            AfterPositionEffects = Array.AsReadOnly(afterPositionEffects ?? Array.Empty<InventoryPositionEffectValue>());
         }
 
         internal int MovedItems { get; }
@@ -87,6 +92,8 @@ namespace SephiriaEnhancements.Inventory
         { get; }
         internal IReadOnlyList<InventoryCategoryOutcome> CategoryChanges
         { get; }
+        internal IReadOnlyList<InventoryPositionEffectValue> BeforePositionEffects { get; }
+        internal IReadOnlyList<InventoryPositionEffectValue> AfterPositionEffects { get; }
     }
 
     internal static class InventoryOptimizationOutcomeBuilder
@@ -106,16 +113,16 @@ namespace SephiriaEnhancements.Inventory
             }
 
             var beforeArtifacts = before.Artifacts.ToDictionary(
-                artifact => artifact.InstanceId);
+                artifact => artifact.ItemKey);
             var afterArtifacts = after.Artifacts.ToDictionary(
-                artifact => artifact.InstanceId);
+                artifact => artifact.ItemKey);
             var artifactChanges = new List<InventoryArtifactOutcome>();
             foreach (InventoryItemSnapshot item in snapshot.Items)
             {
                 if (item.Artifact == null ||
-                    !beforeArtifacts.TryGetValue(item.InstanceId,
+                    !beforeArtifacts.TryGetValue(item.ItemKey,
                         out ProjectedInventoryArtifactSettlement beforeArtifact) ||
-                    !afterArtifacts.TryGetValue(item.InstanceId,
+                    !afterArtifacts.TryGetValue(item.ItemKey,
                         out ProjectedInventoryArtifactSettlement afterArtifact))
                 {
                     continue;
@@ -163,7 +170,8 @@ namespace SephiriaEnhancements.Inventory
                 afterScore.CappedEffectiveArtifactLevelTotal,
                 beforeScore.ComboBreakpointValue,
                 afterScore.ComboBreakpointValue,
-                artifactChanges.ToArray(), categoryChanges.ToArray());
+                artifactChanges.ToArray(), categoryChanges.ToArray(),
+                before.PositionEffects.ToArray(), after.PositionEffects.ToArray());
         }
     }
 }

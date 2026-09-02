@@ -274,6 +274,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             StoneTablet = stoneTablet;
         }
 
+        internal InventoryItemKey ItemKey => new(EntityId, InstanceId);
         internal int InstanceId { get; }
         internal int EntityId { get; }
         internal int Quantity { get; }
@@ -428,12 +429,12 @@ namespace SephiriaEnhancements.Runtime.Inventory
             Quantity = quantity;
         }
 
+        internal InventoryItemKey ItemKey => new(EntityId, InstanceId);
         internal int InstanceId { get; }
         internal int EntityId { get; }
         internal int Quantity { get; }
         internal bool ContentEquals(NativePresetPocketItemSnapshot other) =>
-            other != null && InstanceId == other.InstanceId &&
-            EntityId == other.EntityId && Quantity == other.Quantity;
+            other != null && ItemKey == other.ItemKey && Quantity == other.Quantity;
     }
 
     internal sealed class NativePresetFruitSnapshot
@@ -514,7 +515,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
             int unlimitedComboStatValue = 0,
             InventoryEvaluationOrderSnapshot evaluationOrder = null,
             FixedTabletSourceSnapshot[] fixedTabletSources = null,
-            bool arrangementBonusesEnabled = false)
+            bool arrangementBonusesEnabled = false,
+            InventoryPositionEffectsSnapshot positionEffects = null)
         {
             if (width <= 0)
             {
@@ -538,6 +540,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             UniquePairComboMode = uniquePairComboMode;
             UnlimitedComboStatValue = unlimitedComboStatValue;
             ArrangementBonusesEnabled = arrangementBonusesEnabled;
+            PositionEffects = positionEffects ?? InventoryPositionEffectsSnapshot.Empty;
             EvaluationOrder = evaluationOrder;
             this.fixedTabletSources = fixedTabletSources == null
                 ? Array.Empty<FixedTabletSourceSnapshot>()
@@ -567,6 +570,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
         internal int UniquePairComboMode { get; }
         internal int UnlimitedComboStatValue { get; }
         internal bool ArrangementBonusesEnabled { get; }
+        internal InventoryPositionEffectsSnapshot PositionEffects { get; }
         internal InventoryEvaluationOrderSnapshot EvaluationOrder { get; }
         internal IReadOnlyList<FixedTabletSourceSnapshot> FixedTabletSources =>
             readonlyFixedTabletSources;

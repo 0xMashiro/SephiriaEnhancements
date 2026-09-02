@@ -87,6 +87,13 @@ remaining display time; manually opened reports resume without a timeout.
 - Inventory arrangement is experimental. It reads the installing player's synchronized
   inventory and applies changes through normal game operations; it never edits save
   files directly.
+  The Mod solver preserves verified position effects and left/right modes before
+  improving levels and combo targets, except for an artifact's own effects when it
+  is explicitly excluded. Position-effect values, offsets and thresholds are read
+  from the running game. Conservative comparison also preserves the lower bound
+  of negative stats, so some upgrades with additional costs may be rejected.
+  Unreadable or unverifiable mechanics stop optimization. Refresh order for multiple
+  sources of the same-row companion mode is not yet supported.
 - Defeat retry restores the selected floor-entry or BOSS checkpoint. Online use requires
   Sephiria's rejoin/midsave support.
 - Mid-run access is host-controlled. New players receive new characters and save slots;

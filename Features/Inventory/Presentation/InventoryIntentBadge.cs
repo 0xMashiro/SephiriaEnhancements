@@ -1,5 +1,6 @@
 #nullable disable
 using System.Linq;
+using SephiriaEnhancements.Runtime.Inventory;
 using TMPro;
 using UnityEngine;
 
@@ -31,7 +32,7 @@ namespace SephiriaEnhancements.Inventory
                     ? null
                     : preferences?.ArtifactPreferences.FirstOrDefault(rule =>
                         rule.TargetsInstance &&
-                        rule.InstanceId == item.InstanceID);
+                        rule.ItemKey == new InventoryItemKey(item.EntityID, item.InstanceID));
                 bool visible = intent?.Level ==
                         InventoryPreferenceLevel.Priority ||
                     intent?.Level == InventoryPreferenceLevel.Avoid;

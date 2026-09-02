@@ -58,6 +58,7 @@ namespace SephiriaEnhancements.Inventory
         internal void ResetExploration()
         {
             EndPriorityMarking();
+            hud.CancelArtifactPickup();
             ExplorationInventoryIntentStore.Clear();
         }
 
@@ -167,18 +168,24 @@ namespace SephiriaEnhancements.Inventory
         private void ReplacePreferences(
             InventoryOptimizationPreferences preferences)
         {
+            if (Busy)
+            {
+                return;
+            }
             ExplorationInventoryIntentStore.Replace(preferences);
             RefreshPriorityMarkVisuals(force: true);
         }
 
         internal bool TryHandleArtifactIntentClick(UI_NewInventoryIcon icon)
         {
-            if (hud.TryStageKeyboardArtifact(icon))
+            if (hud.HasArtifactPickup)
             {
-                EndPriorityMarking();
+                hud.CancelArtifactPickup();
                 return true;
             }
-            if (!prioritySelectionView.IsVisible)
+            if (Busy || !prioritySelectionView.IsVisible ||
+                !StandardInventoryContext.TryGetOpenInventory(out GridInventory inventory) ||
+                icon?.Inventory != inventory)
             {
                 return false;
             }
@@ -197,6 +204,12 @@ namespace SephiriaEnhancements.Inventory
             return true;
         }
 
+        internal void PrepareArtifactPickupInput(UI_CharacterStatusPanel panel) =>
+            hud.PrepareNativeInventoryInput(panel);
+
+        internal void EndArtifactPickupForPanel(UI_CharacterStatusPanel panel) =>
+            hud.SuspendForInventoryViewChange(panel);
+
         private void TogglePriorityMarking()
         {
             if (prioritySelectionView.IsVisible)
@@ -209,6 +222,12 @@ namespace SephiriaEnhancements.Inventory
                 ShowMessage(InventoryOptimizationLocalization.Busy);
                 return;
             }
+            if (NativeInventoryIntentDrop.HasHeldItem || hud.HasArtifactPickup)
+            {
+                ShowMessage(InventoryOptimizationLocalization.FinishMovingItem);
+                return;
+            }
+            hud.CancelArtifactPickup();
             if (!StandardInventoryContext.TryGetOpenInventory(
                     out GridInventory _,
                     out UI_CharacterStatusPanel panel) ||
@@ -255,13 +274,12 @@ namespace SephiriaEnhancements.Inventory
 
             InventoryOptimizationPreferences current =
                 ExplorationInventoryIntentStore.Capture();
-            int[] validInstanceIds = Enumerable.Range(0,
-                    inventory.CurrentInventoryStorage)
-                .Select(index => inventory.FindItem(
-                    inventory.IdxToPos(index))?.InstanceID ?? -1)
-                .Where(instanceId => instanceId >= 0).ToArray();
+            InventoryItemKey[] validItemKeys = Enumerable.Range(0,
+                inventory.CurrentInventoryStorage).Select(index =>
+                    GetItemKey(inventory, index)).Where(key => key.HasValue)
+                .Select(key => key.Value).ToArray();
             InventoryOptimizationPreferences pruned =
-                InventoryArtifactIntentEditor.Prune(current, validInstanceIds);
+                InventoryArtifactIntentEditor.Prune(current, validItemKeys);
             if (!ReferenceEquals(pruned, current))
             {
                 ExplorationInventoryIntentStore.Replace(pruned);
@@ -272,6 +290,11 @@ namespace SephiriaEnhancements.Inventory
 
         private void TryStartOptimization()
         {
+            if (NativeInventoryIntentDrop.HasHeldItem || hud.HasArtifactPickup)
+            {
+                ShowMessage(InventoryOptimizationLocalization.FinishMovingItem);
+                return;
+            }
             if (!TryGetOpenInventory(out GridInventory inventory))
             {
                 ShowMessage(InventoryOptimizationLocalization.Unavailable);
@@ -310,6 +333,7 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
 
+            hud.SuspendEditing();
             solveCancellation = new CancellationTokenSource();
             CancellationToken token = solveCancellation.Token;
             InventorySearchEffort searchEffort =
@@ -401,6 +425,12 @@ namespace SephiriaEnhancements.Inventory
 
         private void ApplyNextStep()
         {
+            if (NativeInventoryIntentDrop.HasHeldItem || hud.HasArtifactPickup)
+            {
+                ShowMessage(InventoryOptimizationLocalization.MovingItemInterrupted);
+                ResetOperationState();
+                return;
+            }
             if (Time.unscaledTime > applyDeadline)
             {
                 ShowMessage(InventoryOptimizationLocalization.ApplyTimedOut);
@@ -586,6 +616,12 @@ namespace SephiriaEnhancements.Inventory
 
         private bool CancelSearchIfContextInvalid()
         {
+            if (NativeInventoryIntentDrop.HasHeldItem || hud.HasArtifactPickup)
+            {
+                ShowMessage(InventoryOptimizationLocalization.MovingItemInterrupted);
+                ResetOperationState();
+                return true;
+            }
             bool standardInventoryOpen = TryGetOpenInventory(
                 out GridInventory currentInventory);
             RuntimeStateSnapshot currentRuntime = runtimeKernel?.State;
@@ -695,6 +731,12 @@ namespace SephiriaEnhancements.Inventory
                 }
             }
             return true;
+        }
+
+        private static InventoryItemKey? GetItemKey(GridInventory inventory, int cell)
+        {
+            NewItemOwnInstance item = inventory.FindItem(inventory.IdxToPos(cell));
+            return item == null ? null : new InventoryItemKey(item.EntityID, item.InstanceID);
         }
 
         private static int GetInstanceId(GridInventory inventory, int cell)

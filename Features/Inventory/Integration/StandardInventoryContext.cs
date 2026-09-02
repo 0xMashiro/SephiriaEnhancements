@@ -39,7 +39,7 @@ namespace SephiriaEnhancements.Inventory
             out StandardInventoryViewContext context)
         {
             context = null;
-            if (!TryGetOpenPanel(out UI_CharacterStatusPanel panel) ||
+            if (!TryGetOpenInventory(out GridInventory _, out UI_CharacterStatusPanel panel) ||
                 !NativeInventoryOptimizationViewTemplateResolver.TryResolve(
                     panel, out NativeInventoryOptimizationViewTemplates
                         templates))
@@ -47,8 +47,7 @@ namespace SephiriaEnhancements.Inventory
                 return false;
             }
             RectTransform inventoryZone = panel.inventoryZone;
-            TextMeshProUGUI textTemplate = panel.selectItemScreenText ??
-                panel.GetComponentInChildren<TextMeshProUGUI>(true);
+            TextMeshProUGUI textTemplate = panel.selectItemScreenText;
             Canvas canvas = inventoryZone?.GetComponentInParent<Canvas>();
             if (inventoryZone == null || textTemplate?.font == null ||
                 canvas?.rootCanvas?.transform is not RectTransform)
@@ -72,6 +71,7 @@ namespace SephiriaEnhancements.Inventory
             UIManager manager = UIManager.Instance;
             panel = manager?.GetElement<UI_CharacterStatusPanel>();
             if (panel == null || !panel.IsOpened ||
+                panel.CanvasGroup != null && !panel.CanvasGroup.interactable ||
                 panel.InventoryMode !=
                     UI_CharacterStatusPanel.EInventoryMode.None)
             {

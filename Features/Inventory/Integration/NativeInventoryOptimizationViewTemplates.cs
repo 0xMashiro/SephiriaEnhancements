@@ -1,9 +1,9 @@
 #nullable disable
 using SephiriaEnhancements.Runtime.Inventory;
 
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace SephiriaEnhancements.Inventory
 {
@@ -13,7 +13,35 @@ namespace SephiriaEnhancements.Inventory
         internal Image WindowBackground;
         internal Button ContentButton;
         internal Sprite PreferencesIcon;
-        internal UI_NewInventoryIcon InventoryIcon;
+        internal UI_SubBagIcon Slot;
+        internal Canvas DragCanvas;
+    }
+
+    internal static class NativeInventoryOptimizationControls
+    {
+        internal static Button AddButton(GameObject owner, Button template)
+        {
+            // Keep native pointer selection, submit and directional navigation.
+            UI_HorayButton button = owner.AddComponent<UI_HorayButton>();
+            if (template != null)
+            {
+                button.transition = template.transition;
+                button.colors = template.colors;
+                button.spriteState = template.spriteState;
+                button.animationTriggers = template.animationTriggers;
+            }
+            if (template is UI_HorayButton native)
+            {
+                button.disabledColor = native.disabledColor;
+                button.useAABBNav = native.useAABBNav;
+            }
+            return button;
+        }
+
+        internal static void SetLabel(Button button, TextMeshProUGUI label)
+        {
+            ((UI_HorayButton)button).text = label;
+        }
     }
 
     internal static class NativeInventoryOptimizationViewTemplateResolver
@@ -25,7 +53,6 @@ namespace SephiriaEnhancements.Inventory
         private const string StatisticsLauncherName =
             "DealStatisticsButton";
         private const string DamageStatisticsPanelName = "DamageStatUI";
-        private const string DamageStatisticsWindowName = "Deal";
         private const string DamageStatisticsTabButtonName = "CurrentButton";
         private const string PreferencesSpriteName = "SettingButton";
 
@@ -65,21 +92,26 @@ namespace SephiriaEnhancements.Inventory
                 return false;
             }
 
-            Transform window = FindDescendant(damageStatisticsPanel,
-                DamageStatisticsWindowName);
             Transform contentButton = FindDescendant(damageStatisticsPanel,
                 DamageStatisticsTabButtonName);
-            UI_NewInventoryIcon[] inventoryIcons =
-                panel.GetComponentsInChildren<UI_NewInventoryIcon>(true);
+            Image window = panel.subBagZone?.GetComponent<Image>();
+            UI_SubBagIcon slot = panel.subBagIconPrefab;
+            Canvas dragCanvas = UIManager.Instance?
+                .GetElement<UI_NewItemPicker>()?.parentCanvas;
+            if (window?.sprite == null ||
+                contentButton?.GetComponent<Button>() == null ||
+                slot?.defaultBGSprite == null || dragCanvas == null)
+            {
+                return false;
+            }
             templates = new NativeInventoryOptimizationViewTemplates
             {
                 LauncherButton = launcher.gameObject,
-                WindowBackground = window?.GetComponent<Image>(),
+                WindowBackground = window,
                 ContentButton = contentButton?.GetComponent<Button>(),
                 PreferencesIcon = FindLoadedSprite(PreferencesSpriteName),
-                InventoryIcon = inventoryIcons.FirstOrDefault(icon =>
-                    icon?.Item == null && icon.bgImage?.sprite != null) ??
-                    inventoryIcons.FirstOrDefault()
+                Slot = slot,
+                DragCanvas = dragCanvas
             };
             return true;
         }

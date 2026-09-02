@@ -1,5 +1,6 @@
 #nullable disable
 using System;
+using SephiriaEnhancements.Runtime.Inventory;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -8,9 +9,9 @@ namespace SephiriaEnhancements.Inventory
     internal static class InventoryArtifactIntentEditor
     {
         internal static bool IsMarked(
-            InventoryOptimizationPreferences preferences, int instanceId) =>
+            InventoryOptimizationPreferences preferences, InventoryItemKey itemKey) =>
             preferences?.ArtifactPreferences.Any(rule =>
-                rule.TargetsInstance && rule.InstanceId == instanceId &&
+                rule.TargetsInstance && rule.ItemKey == itemKey &&
                 rule.Level == InventoryPreferenceLevel.Priority) == true;
 
         internal static int Count(
@@ -27,14 +28,15 @@ namespace SephiriaEnhancements.Inventory
                 .OrderBy(rule => rule.PriorityOrder < 0
                     ? int.MaxValue
                     : rule.PriorityOrder)
-                .ThenBy(rule => rule.InstanceId).ToArray() ??
+                .ThenBy(rule => rule.EntityId).ThenBy(rule => rule.InstanceId).ToArray() ??
             Array.Empty<ArtifactOptimizationPreference>();
 
         internal static ArtifactOptimizationPreference[] AvoidedInstances(
             InventoryOptimizationPreferences preferences) =>
             preferences?.ArtifactPreferences.Where(rule =>
                 rule.TargetsInstance &&
-                rule.Level == InventoryPreferenceLevel.Avoid).ToArray() ??
+                rule.Level == InventoryPreferenceLevel.Avoid)
+                .OrderBy(rule => rule.IntentSlotIndex).ToArray() ??
             Array.Empty<ArtifactOptimizationPreference>();
 
         internal static InventoryOptimizationPreferences Toggle(
@@ -46,111 +48,105 @@ namespace SephiriaEnhancements.Inventory
             {
                 return preferences;
             }
+            var itemKey = new InventoryItemKey(entityId, instanceId);
 
-            bool remove = IsMarked(preferences, instanceId);
-            ArtifactOptimizationPreference[] rules = preferences.
-                ArtifactPreferences.Where(rule =>
-                    !rule.TargetsInstance || rule.InstanceId != instanceId).
-                ToArray();
-            if (!remove)
-            {
-                int order = OrderedPriorities(preferences).Length;
-                rules = rules.Append(new ArtifactOptimizationPreference(
-                    instanceId, entityId, InventoryPreferenceLevel.Priority,
-                    minimumEffectiveLevel: 1, priorityOrder: order)).ToArray();
-            }
-            return ReplaceArtifacts(preferences, NormalizePriorityOrder(rules));
+            return IsMarked(preferences, itemKey)
+                ? Remove(preferences, itemKey)
+                : PlacePriority(preferences, instanceId, entityId,
+                    FirstEmptySlot(preferences, InventoryPreferenceLevel.Priority));
         }
 
         internal static InventoryOptimizationPreferences PlacePriority(
             InventoryOptimizationPreferences preferences, int instanceId,
-            int entityId, int index)
-        {
-            preferences ??= InventoryOptimizationPreferences.Default;
-            if (instanceId < 0 || entityId < 0)
-            {
-                return preferences;
-            }
-            var ordered = OrderedPriorities(preferences).Where(rule =>
-                rule.InstanceId != instanceId).ToList();
-            ordered.Insert(Math.Clamp(index, 0, ordered.Count),
-                new ArtifactOptimizationPreference(instanceId, entityId,
-                    InventoryPreferenceLevel.Priority, 1));
-            ArtifactOptimizationPreference[] other = preferences.
-                ArtifactPreferences.Where(rule => !rule.TargetsInstance ||
-                    rule.InstanceId != instanceId &&
-                    rule.Level != InventoryPreferenceLevel.Priority).ToArray();
-            ArtifactOptimizationPreference[] normalized = ordered.Select(
-                (rule, priorityOrder) =>
-                    new ArtifactOptimizationPreference(rule.InstanceId,
-                        rule.EntityId, InventoryPreferenceLevel.Priority,
-                        rule.MinimumEffectiveLevel, priorityOrder)).ToArray();
-            return ReplaceArtifacts(preferences,
-                other.Concat(normalized).ToArray());
-        }
+            int entityId, int index) => Place(preferences, instanceId, entityId,
+                InventoryPreferenceLevel.Priority, index);
 
         internal static InventoryOptimizationPreferences PlaceAvoid(
             InventoryOptimizationPreferences preferences, int instanceId,
-            int entityId)
+            int entityId, int index) => Place(preferences, instanceId, entityId,
+                InventoryPreferenceLevel.Avoid, index);
+
+        internal static int SlotCount(IEnumerable<ArtifactOptimizationPreference> rules) =>
+            rules.Select(rule => rule.IntentSlotIndex).DefaultIfEmpty(-1).Max() + 1;
+
+        private static int FirstEmptySlot(InventoryOptimizationPreferences preferences,
+            InventoryPreferenceLevel level)
+        {
+            var occupied = new HashSet<int>(preferences.ArtifactPreferences
+                .Where(rule => rule.TargetsInstance && rule.Level == level)
+                .Select(rule => rule.IntentSlotIndex));
+            int index = 0;
+            while (occupied.Contains(index))
+            {
+                index++;
+            }
+            return index;
+        }
+
+        private static InventoryOptimizationPreferences Place(
+            InventoryOptimizationPreferences preferences, int instanceId,
+            int entityId, InventoryPreferenceLevel level, int index)
         {
             preferences ??= InventoryOptimizationPreferences.Default;
-            if (instanceId < 0 || entityId < 0)
+            if (instanceId < 0 || entityId < 0 || index < 0)
             {
                 return preferences;
             }
-            ArtifactOptimizationPreference[] rules = preferences.
-                ArtifactPreferences.Where(rule => !rule.TargetsInstance ||
-                    rule.InstanceId != instanceId).Append(
-                    new ArtifactOptimizationPreference(instanceId, entityId,
-                        InventoryPreferenceLevel.Avoid)).ToArray();
-            return ReplaceArtifacts(preferences,
-                NormalizePriorityOrder(rules));
+            var itemKey = new InventoryItemKey(entityId, instanceId);
+            ArtifactOptimizationPreference source = preferences.ArtifactPreferences
+                .FirstOrDefault(rule => rule.TargetsInstance && rule.ItemKey == itemKey);
+            ArtifactOptimizationPreference destination = preferences.ArtifactPreferences
+                .FirstOrDefault(rule => rule.TargetsInstance && rule.Level == level &&
+                    rule.IntentSlotIndex == index);
+            if (source != null && ReferenceEquals(source, destination))
+            {
+                return preferences;
+            }
+            var rules = preferences.ArtifactPreferences
+                .Where(rule => !ReferenceEquals(rule, source) &&
+                    !ReferenceEquals(rule, destination)).ToList();
+            // A board move swaps occupied slots. A new inventory reference
+            // replaces the destination mark without changing either artifact.
+            if (source != null && destination != null)
+            {
+                rules.Add(AtSlot(destination, source.Level, source.IntentSlotIndex));
+            }
+            rules.Add(new ArtifactOptimizationPreference(instanceId, entityId, level,
+                source?.Level == InventoryPreferenceLevel.Priority
+                    ? source.MinimumEffectiveLevel : 1, index));
+            return ReplaceArtifacts(preferences, rules.ToArray());
         }
 
+        private static ArtifactOptimizationPreference AtSlot(
+            ArtifactOptimizationPreference rule, InventoryPreferenceLevel level,
+            int index) => new(rule.InstanceId, rule.EntityId, level,
+                rule.Level == InventoryPreferenceLevel.Priority
+                    ? rule.MinimumEffectiveLevel : 1, index);
+
         internal static InventoryOptimizationPreferences Remove(
-            InventoryOptimizationPreferences preferences, int instanceId)
+            InventoryOptimizationPreferences preferences, InventoryItemKey itemKey)
         {
             preferences ??= InventoryOptimizationPreferences.Default;
             ArtifactOptimizationPreference[] rules = preferences.
                 ArtifactPreferences.Where(rule => !rule.TargetsInstance ||
-                    rule.InstanceId != instanceId).ToArray();
+                    rule.ItemKey != itemKey).ToArray();
             return rules.Length == preferences.ArtifactPreferences.Count
                 ? preferences
-                : ReplaceArtifacts(preferences,
-                    NormalizePriorityOrder(rules));
+                : ReplaceArtifacts(preferences, rules);
         }
 
         internal static InventoryOptimizationPreferences Prune(
             InventoryOptimizationPreferences preferences,
-            IEnumerable<int> validInstanceIds)
+            IEnumerable<InventoryItemKey> validItemKeys)
         {
             preferences ??= InventoryOptimizationPreferences.Default;
-            var valid = new HashSet<int>(validInstanceIds ?? Array.Empty<int>());
+            var valid = new HashSet<InventoryItemKey>(validItemKeys ?? Array.Empty<InventoryItemKey>());
             ArtifactOptimizationPreference[] rules = preferences.
                 ArtifactPreferences.Where(rule => !rule.TargetsInstance ||
-                    valid.Contains(rule.InstanceId)).ToArray();
+                    valid.Contains(rule.ItemKey)).ToArray();
             return rules.Length == preferences.ArtifactPreferences.Count
                 ? preferences
-                : ReplaceArtifacts(preferences,
-                    NormalizePriorityOrder(rules));
-        }
-
-        private static ArtifactOptimizationPreference[] NormalizePriorityOrder(
-            IEnumerable<ArtifactOptimizationPreference> rules)
-        {
-            ArtifactOptimizationPreference[] source = rules.ToArray();
-            var ordered = source.Where(rule => rule.TargetsInstance &&
-                    rule.Level == InventoryPreferenceLevel.Priority)
-                .OrderBy(rule => rule.PriorityOrder < 0
-                    ? int.MaxValue
-                    : rule.PriorityOrder)
-                .ThenBy(rule => rule.InstanceId).Select((rule, index) =>
-                    new ArtifactOptimizationPreference(rule.InstanceId,
-                        rule.EntityId, rule.Level,
-                        rule.MinimumEffectiveLevel, index)).ToArray();
-            return source.Where(rule => !rule.TargetsInstance ||
-                    rule.Level != InventoryPreferenceLevel.Priority)
-                .Concat(ordered).ToArray();
+                : ReplaceArtifacts(preferences, rules);
         }
 
         private static InventoryOptimizationPreferences ReplaceArtifacts(

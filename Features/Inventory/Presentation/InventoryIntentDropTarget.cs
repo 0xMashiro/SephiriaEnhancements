@@ -2,66 +2,115 @@
 using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 namespace SephiriaEnhancements.Inventory
 {
     internal sealed class InventoryIntentDropTarget : MonoBehaviour,
-        IDropHandler, IPointerClickHandler, IPointerEnterHandler,
-        IPointerExitHandler
+        IDropHandler, IPointerClickHandler, IBeginDragHandler, IDragHandler,
+        IEndDragHandler
     {
-        private Action<UI_NewInventoryIcon> dropped;
-        private Action clicked;
-        private Image background;
-        private Color normalColor;
+        private InventoryIntentInteractionState interaction;
+        private Action<UI_NewInventoryIcon> inventoryDropped;
+        private Action intentDropped;
+        private Action beginDrag;
+        private Action endDrag;
+        private Action removed;
 
-        internal void Configure(Image image,
-            Action<UI_NewInventoryIcon> onDropped, Action onClicked)
+        internal void Configure(InventoryIntentInteractionState state,
+            Action<UI_NewInventoryIcon> onInventoryDropped, Action onIntentDropped,
+            Action onBeginDrag, Action onEndDrag, Action onRemoved)
         {
-            background = image;
-            dropped = onDropped;
-            clicked = onClicked;
-            normalColor = image != null ? image.color : Color.white;
+            interaction = state;
+            inventoryDropped = onInventoryDropped;
+            intentDropped = onIntentDropped;
+            beginDrag = onBeginDrag;
+            endDrag = onEndDrag;
+            removed = onRemoved;
         }
 
         public void OnDrop(PointerEventData eventData)
         {
-            UI_NewInventoryIcon icon = eventData?.pointerDrag?
-                .GetComponentInParent<UI_NewInventoryIcon>();
-            if (icon?.Item != null)
+            if (eventData?.button != PointerEventData.InputButton.Left)
             {
-                dropped?.Invoke(icon);
+                return;
             }
-            RestoreColor();
+            if (interaction?.Editable == true)
+            {
+                var source = eventData.pointerDrag?.GetComponent<InventoryIntentDropTarget>();
+                if (source != null && ReferenceEquals(source.interaction, interaction) &&
+                    interaction.IsDragging)
+                {
+                    intentDropped?.Invoke();
+                }
+                else
+                {
+                    UI_NewInventoryIcon native = eventData.pointerDrag?
+                        .GetComponentInParent<UI_NewInventoryIcon>();
+                    if (native?.Item != null)
+                    {
+                        inventoryDropped?.Invoke(native);
+                    }
+                }
+            }
+            NativeInventoryIntentDrop.Consume(eventData);
         }
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (eventData?.button == PointerEventData.InputButton.Right)
+            if (interaction?.Editable == true &&
+                eventData?.button == PointerEventData.InputButton.Right)
             {
-                clicked?.Invoke();
+                removed?.Invoke();
             }
         }
 
-        public void OnPointerEnter(PointerEventData eventData)
+        public void OnBeginDrag(PointerEventData eventData)
         {
-            if (background != null && eventData?.pointerDrag != null)
+            if (eventData?.button == PointerEventData.InputButton.Left)
             {
-                normalColor = background.color;
-                background.color = Color.Lerp(normalColor, Color.white, 0.3f);
+                beginDrag?.Invoke();
             }
         }
 
-        public void OnPointerExit(PointerEventData eventData)
+        public void OnDrag(PointerEventData eventData) { }
+
+        public void OnEndDrag(PointerEventData eventData) => endDrag?.Invoke();
+    }
+
+    internal sealed class InventoryIntentPanelDropTarget : MonoBehaviour,
+        IDropHandler, IPointerClickHandler, IScrollHandler
+    {
+        private Action cancelPickup;
+        private Action<int> changePage;
+        private bool cancelOnLeftClick;
+
+        internal void Configure(Action cancel, Action<int> page, bool cancelOnLeft = true)
         {
-            RestoreColor();
+            cancelPickup = cancel;
+            changePage = page;
+            cancelOnLeftClick = cancelOnLeft;
         }
 
-        private void RestoreColor()
+        public void OnDrop(PointerEventData eventData)
         {
-            if (background != null)
+            cancelPickup?.Invoke();
+            NativeInventoryIntentDrop.Consume(eventData);
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (eventData?.button == PointerEventData.InputButton.Right ||
+                cancelOnLeftClick && eventData?.button == PointerEventData.InputButton.Left)
             {
-                background.color = normalColor;
+                cancelPickup?.Invoke();
+            }
+        }
+
+        public void OnScroll(PointerEventData eventData)
+        {
+            if (eventData.scrollDelta.y != 0)
+            {
+                changePage?.Invoke(eventData.scrollDelta.y > 0 ? -1 : 1);
             }
         }
     }

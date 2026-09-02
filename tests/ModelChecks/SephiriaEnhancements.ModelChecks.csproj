@@ -7,6 +7,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\Features\Inventory\Core\InventoryIntentInteractionState.cs" Link="Inventory\InventoryIntentInteractionState.cs" />
+    <Compile Include="..\..\Features\Inventory\Presentation\InventoryOptimizationHudLayout.cs" Link="Inventory\InventoryOptimizationHudLayout.cs" />
     <Compile Include="..\..\Configuration\OptionsCategoryLocalization.cs" Link="Configuration\OptionsCategoryLocalization.cs" />
     <Compile Include="..\..\Features\CombatRelationOutlines\Core\CombatRelationOutlinePolicy.cs" Link="CombatRelationOutlines\CombatRelationOutlinePolicy.cs" />
     <Compile Include="..\..\Features\CombatVisuals\Core\CombatVisualPolicy.cs" Link="CombatVisuals\CombatVisualPolicy.cs" />
@@ -43,6 +45,7 @@
     <Compile Include="..\..\Features\MultiplayerRules\Presentation\MultiplayerRulePresentationGroups.cs" Link="MultiplayerRules\MultiplayerRulePresentationGroups.cs" />
     <Compile Include="..\..\Features\MultiplayerAccess\Core\MidRunAdmissionPolicy.cs" Link="MultiplayerAccess\MidRunAdmissionPolicy.cs" />
     <Compile Include="..\..\Features\MultiplayerAccess\Presentation\MultiplayerAccessLocalization.cs" Link="MultiplayerAccess\MultiplayerAccessLocalization.cs" />
+    <Compile Include="..\..\Runtime\Inventory\InventoryItemKey.cs" Link="Runtime\Inventory\InventoryItemKey.cs" />
     <Compile Include="..\..\Runtime\Inventory\InventorySnapshot.cs" Link="Runtime\Inventory\InventorySnapshot.cs" />
     <Compile Include="..\..\Runtime\Inventory\InventoryBaselineInference.cs" Link="Runtime\Inventory\InventoryBaselineInference.cs" />
     <Compile Include="..\..\Runtime\Inventory\ArtifactCategoryRuleSnapshot.cs" Link="Runtime\Inventory\ArtifactCategoryRuleSnapshot.cs" />

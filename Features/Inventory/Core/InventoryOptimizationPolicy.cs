@@ -56,7 +56,7 @@ namespace SephiriaEnhancements.Inventory
     {
         internal ArtifactOptimizationPreference(int instanceId, int entityId,
             InventoryPreferenceLevel level, int minimumEffectiveLevel = 1,
-            int priorityOrder = -1)
+            int intentSlotIndex = -1)
         {
             InstanceId = instanceId;
             EntityId = entityId;
@@ -66,17 +66,19 @@ namespace SephiriaEnhancements.Inventory
             MinimumEffectiveLevel = level == InventoryPreferenceLevel.Avoid
                 ? 0
                 : Math.Max(0, minimumEffectiveLevel);
-            PriorityOrder = TargetsInstance &&
-                    level == InventoryPreferenceLevel.Priority
-                ? Math.Max(-1, priorityOrder)
+            IntentSlotIndex = TargetsInstance
+                ? Math.Max(-1, intentSlotIndex)
                 : -1;
         }
 
+        internal InventoryItemKey ItemKey => new(EntityId, InstanceId);
         internal int InstanceId { get; }
         internal int EntityId { get; }
         internal InventoryPreferenceLevel Level { get; }
         internal int MinimumEffectiveLevel { get; }
-        internal int PriorityOrder { get; }
+        internal int IntentSlotIndex { get; }
+        internal int PriorityOrder => Level == InventoryPreferenceLevel.Priority
+            ? IntentSlotIndex : -1;
         internal bool TargetsInstance => InstanceId >= 0;
     }
 
@@ -198,7 +200,7 @@ namespace SephiriaEnhancements.Inventory
         private static string ArtifactIdentity(
             ArtifactOptimizationPreference preference) =>
             preference.TargetsInstance
-                ? "Instance:" + preference.InstanceId
+                ? "Item:" + preference.ItemKey
                 : "Entity:" + preference.EntityId;
     }
 

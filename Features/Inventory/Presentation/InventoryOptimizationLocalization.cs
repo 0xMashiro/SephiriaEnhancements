@@ -38,6 +38,10 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.Inventory.VerificationFailed";
         internal const string Busy =
             "SephiriaEnhancements.Inventory.Busy";
+        internal const string FinishMovingItem =
+            "SephiriaEnhancements.Inventory.FinishMovingItem";
+        internal const string MovingItemInterrupted =
+            "SephiriaEnhancements.Inventory.MovingItemInterrupted";
         internal const string DisabledForGameplayContext =
             "SephiriaEnhancements.Inventory.DisabledForGameplayContext";
         internal const string SettingOptimizationTendency =
@@ -196,6 +200,16 @@ namespace SephiriaEnhancements.Inventory
                     : traditionalChinese
                         ? "背包最佳化正在進行中。"
                         : "Inventory optimization is already in progress.");
+                addText(language, FinishMovingItem, simplifiedChinese
+                    ? "请先放下或取消当前拿起的物品。"
+                    : traditionalChinese
+                        ? "請先放下或取消目前拿起的物品。"
+                        : "Place or cancel the item you are holding first.");
+                addText(language, MovingItemInterrupted, simplifiedChinese
+                    ? "你拿起了物品，本次背包优化已停止。"
+                    : traditionalChinese
+                        ? "你拿起了物品，本次背包最佳化已停止。"
+                        : "Inventory optimization stopped because you picked up an item.");
                 addText(language, DisabledForGameplayContext, simplifiedChinese
                     ? "背包优化遇到意外错误，已在当前楼层停用。"
                     : traditionalChinese
@@ -261,22 +275,22 @@ namespace SephiriaEnhancements.Inventory
                     ? "优先队列 · 越靠前越优先"
                     : traditionalChinese
                         ? "優先佇列 · 越靠前越優先"
-                        : "PRIORITY QUEUE · LEFTMOST FIRST");
+                        : "PRIORITY · LEFT FIRST");
                 addText(language, HudAvoidZone, simplifiedChinese
                     ? "排除区 · 优先保持不生效"
                     : traditionalChinese
                         ? "排除區 · 優先保持不生效"
-                        : "EXCLUSION · KEEP INACTIVE FIRST");
+                        : "EXCLUSION · INACTIVE");
                 addText(language, HudIntentBoardHint, simplifiedChinese
-                    ? "从背包拖入神器；右键格子移除"
+                    ? "拖入神器设置目标\n点击或拖动标记换位；右键移除\n只修改目标，不移动神器"
                     : traditionalChinese
-                        ? "從背包拖入神器；右鍵格子移除"
-                        : "Drag artifacts from the inventory · right-click a slot to remove");
+                        ? "拖入神器設定目標\n點擊或拖動標記換位；右鍵移除\n只修改目標，不移動神器"
+                        : "Drag artifacts here to set goals.\nClick or drag to move marks.\nRight-click removes a mark.");
                 addText(language, HudChooseIntentSlot, simplifiedChinese
-                    ? "已选中神器：用方向键选择目标格，再按确认放入"
+                    ? "选择格子放下或交换。\n右键取消；滚轮翻页。"
                     : traditionalChinese
-                        ? "已選中神器：用方向鍵選擇目標格，再按確認放入"
-                        : "Artifact selected · choose a slot and confirm to place");
+                        ? "選擇格子放下或交換。\n右鍵取消；滾輪翻頁。"
+                        : "Choose a slot to place or swap.\nRight-click to cancel.\nScroll to turn pages.");
                 addText(language, HudOpen, simplifiedChinese
                     ? "智能整理"
                     : traditionalChinese ? "智慧整理" : "SMART ARRANGE");

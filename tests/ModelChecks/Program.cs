@@ -25,6 +25,8 @@ Console.WriteLine("InventoryOptimizationArchitecture: " +
     InventoryOptimizationArchitectureChecks.Run());
 Console.WriteLine("InventoryArtifactIntent: " +
     InventoryArtifactIntentEditorChecks.Run());
+Console.WriteLine("InventoryHudInteraction: " +
+    InventoryHudInteractionChecks.Run());
 Console.WriteLine("KeyboardSelectionRecovery: " +
     KeyboardSelectionRecoveryPolicyChecks.Run());
 Console.WriteLine("InventoryLocalRuntime: " +

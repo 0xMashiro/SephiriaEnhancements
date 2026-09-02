@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using HarmonyLib;
 using Mirror;
@@ -92,7 +93,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             if (!string.IsNullOrWhiteSpace(playerGuid))
                 SaveManager.CurrentRun.SetString(
                     $"Player{newSlot}Guid", playerGuid);
-            Debug.Log("[SephiriaEnhancements] Fresh mid-run participant " +
+            SupportLogger.Info("mid_run_save_slot_assigned", "[SephiriaEnhancements] Fresh mid-run participant " +
                 "assigned save slot " + newSlot + ".");
             return false;
         }

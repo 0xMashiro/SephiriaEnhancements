@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -88,7 +89,7 @@ namespace SephiriaEnhancements.MultiplayerAccess
                 HashSet<int> approved && approved.Contains(connection.connectionId))
             {
                 FreshConnectionIds.Add(connection.connectionId);
-                Debug.Log("[SephiriaEnhancements] Fresh mid-run participant " +
+                SupportLogger.Info("mid_run_participant_admitted", "[SephiriaEnhancements] Fresh mid-run participant " +
                     "admitted on connection " + connection.connectionId + ".");
             }
         }

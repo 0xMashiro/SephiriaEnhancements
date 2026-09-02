@@ -115,9 +115,35 @@ Get-Content -LiteralPath .\SHA256SUMS.txt
 Confirm that the hash and filename match before extracting. A checksum proves that the
 download has not changed; it does not guarantee code safety.
 
+## Reporting problems and logs
+
+Both release and development builds automatically write support logs under
+`Mods/SephiriaEnhancements/Logs/Support/` in the game's save directory. Include the
+`support*.log` files and reproduction steps when reporting a problem. These logs remain
+local and are not uploaded automatically. They contain Mod and game versions, build
+identity, feature event codes, combat HUD state, inventory setting summaries and operation
+results, and exception types for selected failures. They do not copy raw exception messages,
+player names, file paths, or inventory contents. Consecutive identical events are counted
+together, with a summary every 30 seconds while they continue. Up to three files of
+1 MiB each are retained, rotating at startup or when full. Logging failures are reported
+in the game log without interrupting gameplay features.
+
+The game's `Player.log` still contains the original loading messages, warnings and
+errors. A maintainer may request it when the support summary is insufficient; it may
+contain information from the game, other mods, and your local environment.
+
+Development builds also accept `-sephiria-enhancements-devlog` to write
+`diagnostics*.jsonl` under `Mods/SephiriaEnhancements/Logs/Developer/`. These diagnostics
+include damage feedback, HUD state, native operation timings, inventory rules and
+settlement details. They are off by default and unavailable in release builds. Up to
+four files of 8 MiB each are retained; recording continues into the next file when full.
+Oversized individual events leave an omission marker. A full background queue can drop
+events and reports this in the game log, so these logs are not guaranteed to be complete.
+They are intended for detailed investigation; review their contents before sharing.
+
 ## Build from source
 
-Requirements: PowerShell, the .NET SDK selected by `global.json`, and a legally installed
+Requirements: PowerShell 7, the .NET SDK selected by `global.json`, and a legally installed
 copy of Sephiria. Game assemblies are read from that local installation and are not
 redistributed by this repository.
 
@@ -132,6 +158,19 @@ Build against the folder containing `Sephiria.exe`:
 ```powershell
 & .\scripts\build.ps1 -GameDir "C:\Games\Sephiria"
 ```
+
+Release builds are written to `artifacts/build/Release/`. To include developer tools:
+
+```powershell
+& .\scripts\build.ps1 -GameDir "C:\Games\Sephiria" -Configuration Debug -DeveloperTools
+```
+
+Development builds are written to `artifacts/build/Development/` and include additional
+diagnostic probes and a test damage multiplier setting, defaulting to 1×. `Debug` selects
+the compiler configuration; `-DeveloperTools` controls whether development features are
+included. The game's built-in developer console remains a separate, optional feature in
+both builds, disabled by default. Each build checks the DLL's build identity and developer
+components. Packaging explicitly builds the release flavor and rejects development DLLs.
 
 Create a local ZIP and `SHA256SUMS.txt` under the ignored `artifacts/` directory:
 

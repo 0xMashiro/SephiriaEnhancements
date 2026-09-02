@@ -499,7 +499,7 @@ namespace SephiriaEnhancements.Runtime
                     "GridInventory snapshot capture failed: " +
                     exception.GetType().Name + ".", invalid: false,
                     Time.realtimeSinceStartup);
-                UnityEngine.Debug.LogWarning(
+                SupportLogger.Warning("inventory_capture_failed",
                     "[SephiriaEnhancements] Inventory snapshot capture " +
                     "failed safely: " + exception.GetType().Name);
                 return;

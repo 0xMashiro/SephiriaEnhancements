@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using System.Collections.Generic;
 using SephiriaEnhancements.Integration;
@@ -61,7 +62,7 @@ namespace SephiriaEnhancements.Configuration
                 ? null : FindPreviousSectionHeader(parent, sourceRow.GetSiblingIndex());
             if (sourceRow == null || parent == null || headerSource == null)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Native " + group +
+                SupportLogger.Warning("rebind_templates_unavailable", "[SephiriaEnhancements] Native " + group +
                     " rebind section templates could not be found.");
                 return;
             }
@@ -99,7 +100,7 @@ namespace SephiriaEnhancements.Configuration
                     staged[index].SetActive(true);
                 }
 
-                Debug.Log("[SephiriaEnhancements] Native " + group +
+                SupportLogger.Info("rebind_section_attached", "[SephiriaEnhancements] Native " + group +
                     " rebind section attached.");
             }
             catch (Exception ex)
@@ -110,7 +111,7 @@ namespace SephiriaEnhancements.Configuration
                     UnityEngine.Object.Destroy(staged[index]);
                 }
 
-                Debug.LogWarning("[SephiriaEnhancements] Native " + group +
+                SupportLogger.Warning("rebind_section_failed", "[SephiriaEnhancements] Native " + group +
                     " rebind section was not attached: " + ex.Message);
             }
         }

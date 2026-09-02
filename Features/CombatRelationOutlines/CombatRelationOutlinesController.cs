@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using System.Collections.Generic;
 using SephiriaEnhancements.Configuration;
@@ -33,7 +34,7 @@ namespace SephiriaEnhancements.CombatRelationOutlines
             {
                 RestoreAll();
                 runtimeCompatible = false;
-                Debug.LogWarning("[SephiriaEnhancements] Combat-relation outlines disabled " +
+                SupportLogger.Warning("combat_relation_outlines_failed", "[SephiriaEnhancements] Combat-relation outlines disabled " +
                     "for the current gameplay context: " + ex);
             }
         }

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System.Collections.Generic;
 using Mirror;
 using SephiriaEnhancements.Runtime.GameBridge;
@@ -23,7 +24,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                 "versionApprovedConnIds", missing);
 
             if (missing.Count == 0) return true;
-            Debug.LogWarning("[SephiriaEnhancements] Mid-run admission native " +
+            SupportLogger.Warning("mid_run_contracts_changed", "[SephiriaEnhancements] Mid-run admission native " +
                 "contracts changed: " + string.Join(", ", missing));
             return false;
         }

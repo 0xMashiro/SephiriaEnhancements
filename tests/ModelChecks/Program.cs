@@ -19,6 +19,9 @@ using SephiriaEnhancements.ModelChecks.Runtime.GameBridge.Multiplayer;
 using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 
+LoggingChecks.Run();
+if (args.Contains("--logging-only")) return;
+
 Console.WriteLine("InventoryOptimizationPreferencesCodec: " +
     InventoryOptimizationPreferencesCodecChecks.Run());
 Console.WriteLine("InventoryOptimizationArchitecture: " +

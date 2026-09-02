@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using SephiriaEnhancements.Integration;
 using UnityEngine;
@@ -77,7 +78,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
             if (!throwItemReady || !rotateItemReady || !engraveReady)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Some native UI keyboard " +
+                SupportLogger.Warning("keyboard_actions_unavailable", "[SephiriaEnhancements] Some native UI keyboard " +
                     "actions could not be exposed, or the engraving fallback key " +
                     "conflicts with another gameplay action.");
             }

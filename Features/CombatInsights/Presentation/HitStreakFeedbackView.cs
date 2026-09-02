@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using SephiriaEnhancements.Core;
 using TMPro;
@@ -157,7 +158,7 @@ namespace SephiriaEnhancements.Presentation
             Exception exception)
         {
             available = false;
-            Debug.LogWarning("[SephiriaEnhancements] Hit-streak milestone " + layer +
+            SupportLogger.Warning("hit_streak_layer_failed", "[SephiriaEnhancements] Hit-streak milestone " + layer +
                 " disabled until the Mod is reloaded: " +
                 exception.Message);
         }

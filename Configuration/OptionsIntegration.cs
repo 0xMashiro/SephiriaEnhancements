@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using HarmonyLib;
 using SephiriaEnhancements.CombatRelationOutlines;
 using SephiriaEnhancements.Configuration;
@@ -36,7 +37,7 @@ namespace SephiriaEnhancements.Configuration
             }
             catch (System.Exception ex)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Native settings integration disabled: " +
+                SupportLogger.Warning("settings_integration_failed", "[SephiriaEnhancements] Native settings integration disabled: " +
                     ex.Message);
             }
         }
@@ -49,7 +50,7 @@ namespace SephiriaEnhancements.Configuration
             }
             catch (System.Exception ex)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Native control rows " +
+                SupportLogger.Warning("control_rows_failed", "[SephiriaEnhancements] Native control rows " +
                     "could not be attached: " + ex.Message);
             }
 
@@ -57,7 +58,7 @@ namespace SephiriaEnhancements.Configuration
                 __instance.GetComponentInChildren<UI_OptionBox_PartyMemberDamage>(true);
             if (template == null)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Native options template not found; " +
+                SupportLogger.Warning("settings_template_unavailable", "[SephiriaEnhancements] Native options template not found; " +
                     "default settings remain active.");
                 return;
             }
@@ -70,7 +71,7 @@ namespace SephiriaEnhancements.Configuration
             }
             if (section == null)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Native section-header template not found; " +
+                SupportLogger.Warning("settings_header_unavailable", "[SephiriaEnhancements] Native section-header template not found; " +
                     "settings rows were not injected; default settings remain active.");
                 return;
             }
@@ -332,7 +333,7 @@ namespace SephiriaEnhancements.Configuration
             OptionsSectionMarker marker = header.AddComponent<OptionsSectionMarker>();
             header.transform.SetSiblingIndex(template.transform.GetSiblingIndex() + 1);
             header.SetActive(true);
-            Debug.Log("[SephiriaEnhancements] Native Combat Insights settings section attached.");
+            SupportLogger.Info("combat_settings_attached", "[SephiriaEnhancements] Native Combat Insights settings section attached.");
             return marker;
         }
 
@@ -839,7 +840,7 @@ namespace SephiriaEnhancements.Configuration
             }
             catch (System.Exception ex)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Updated native controls " +
+                SupportLogger.Warning("controls_restart_required", "[SephiriaEnhancements] Updated native controls " +
                     "will take effect after restart: " + ex.Message);
             }
         }

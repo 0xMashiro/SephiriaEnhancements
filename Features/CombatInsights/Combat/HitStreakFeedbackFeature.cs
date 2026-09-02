@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using SephiriaEnhancements.Core;
 using SephiriaEnhancements.Presentation;
@@ -141,7 +142,7 @@ namespace SephiriaEnhancements.Combat
         {
             compatible = false;
             view.Hide();
-            Debug.LogWarning("[SephiriaEnhancements] Hit-streak feedback disabled " +
+            SupportLogger.Warning("hit_streak_feedback_failed", "[SephiriaEnhancements] Hit-streak feedback disabled " +
                 "until the Mod is reloaded: " +
                 exception.Message);
         }

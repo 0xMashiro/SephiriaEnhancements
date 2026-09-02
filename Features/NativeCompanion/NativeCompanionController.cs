@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using Mirror;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
@@ -63,7 +64,7 @@ namespace SephiriaEnhancements.NativeCompanion
                 try { Despawn(); }
                 catch { }
                 runtimeCompatible = false;
-                Debug.LogWarning("[SephiriaEnhancements] Combat companion disabled for this " +
+                SupportLogger.Warning("companion_failed", "[SephiriaEnhancements] Combat companion disabled for this " +
                     "session: " + ex);
             }
         }
@@ -145,7 +146,7 @@ namespace SephiriaEnhancements.NativeCompanion
             {
                 if (!discoveryWarningLogged)
                 {
-                    Debug.LogWarning("[SephiriaEnhancements] Combat companion unavailable: " +
+                    SupportLogger.Warning("companion_prefab_unavailable", "[SephiriaEnhancements] Combat companion unavailable: " +
                         "no registered native companion prefab was found.");
                     discoveryWarningLogged = true;
                 }
@@ -178,7 +179,7 @@ namespace SephiriaEnhancements.NativeCompanion
             companion = avatar;
             companionWasSpawned = true;
             discoveryWarningLogged = false;
-            Debug.Log("[SephiriaEnhancements] Native combat companion spawned from prefab '" +
+            SupportLogger.Info("companion_spawned", "[SephiriaEnhancements] Native combat companion spawned from prefab '" +
                 candidate.Prefab.name + "'.");
         }
 

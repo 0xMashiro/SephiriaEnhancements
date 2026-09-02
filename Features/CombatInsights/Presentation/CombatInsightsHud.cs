@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -136,7 +137,7 @@ namespace SephiriaEnhancements.Presentation
                 if (failedAttachAttempts >= 10 && !attachWarningLogged)
                 {
                     attachWarningLogged = true;
-                    Debug.LogWarning("[SephiriaEnhancements] Combat Insights " +
+                    SupportLogger.Warning("combat_hud_anchors_pending", "[SephiriaEnhancements] Combat Insights " +
                         "HUD anchors are unavailable; retrying once per second.");
                 }
                 return;
@@ -151,7 +152,7 @@ namespace SephiriaEnhancements.Presentation
             pulseRect.SetAsLastSibling();
             ledgerRect.SetAsLastSibling();
             ApplyScale();
-            Debug.Log("[SephiriaEnhancements] Responsive Combat Insights HUD " +
+            SupportLogger.Info("combat_hud_attached", "[SephiriaEnhancements] Responsive Combat Insights HUD " +
                 "attached with right-side live statistics and a centered " +
                 "encounter report; raycasts disabled.");
         }

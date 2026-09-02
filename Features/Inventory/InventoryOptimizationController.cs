@@ -310,7 +310,12 @@ namespace SephiriaEnhancements.Inventory
             if (!runtimeKernel.TryGetProjectableInventorySnapshot(
                     out sourceSnapshot, out sourceRuntime))
             {
-                if (runtimeKernel.TryGetLatestInventorySnapshot(out InventorySnapshot latest, out _) &&
+                runtimeKernel.TryGetLatestInventorySnapshot(out InventorySnapshot latest, out _);
+                SupportLogger.Record("inventory_projection_unavailable",
+                    "consistency=" + runtimeKernel.State?.Consistency + " issues=" +
+                    string.Join(",", (latest?.SettlementValidation.Issues ?? Array.Empty<string>())
+                        .Select(issue => issue.Split(':')[0]).Distinct()), "WARN");
+                if (latest != null &&
                     latest.SettlementValidation.HasItemIdentityConflict)
                 {
                     ShowMessage(InventoryOptimizationLocalization.ItemIdentityConflict);
@@ -359,6 +364,10 @@ namespace SephiriaEnhancements.Inventory
             ResolvedInventoryOptimizationPolicy policy =
                 InventoryOptimizationPolicyResolver.Resolve(sourceSnapshot,
                     preferences);
+            SupportLogger.Record("inventory_search_started", "effort=" + searchEffort +
+                " items=" + sourceSnapshot.Items.Count + " artifactGoals=" + preferences.ArtifactPreferences.Count +
+                " comboGoals=" + preferences.ComboPreferences.Count +
+                " allowTabletRotation=" + preferences.AllowStoneTabletRotation);
             solveTask = Task.Run(() => InventoryOptimizerSelector.Solve(
                 sourceSnapshot, policy, cancellationToken: token), token);
             ShowMessage(InventoryOptimizationLocalization.Analyzing);
@@ -387,6 +396,9 @@ namespace SephiriaEnhancements.Inventory
             }
 
             result = completed.Result;
+            SupportLogger.Record("inventory_search_completed", "succeeded=" + result.Succeeded +
+                " improved=" + result.Improved + " reason=" + result.TerminationReason +
+                " candidates=" + result.CandidateEvaluations + " elapsedMs=" + result.ElapsedMilliseconds);
             if (!result.Succeeded)
             {
                 DeveloperLogger.RecordInventoryOptimization(result, null,
@@ -550,6 +562,10 @@ namespace SephiriaEnhancements.Inventory
                     actualRuntime);
                 DeveloperLogger.RecordInventorySettlementDifferential(
                     differential, actualRuntime);
+                SupportLogger.Record("inventory_application_completed", "layoutMatched=" + layoutMatched +
+                    " settlementMatched=" + differential.Matched + " mismatches=" + differential.Mismatches.Count +
+                    " swaps=" + nextSwap + " rotations=" + nextRotation,
+                    layoutMatched && differential.Matched ? "INFO" : "WARN");
                 if (!layoutMatched)
                 {
                     ShowMessage(InventoryOptimizationLocalization.Changed);
@@ -764,7 +780,8 @@ namespace SephiriaEnhancements.Inventory
         private void Fail(Exception exception)
         {
             compatible = false;
-            Debug.LogWarning("[SephiriaEnhancements] Inventory optimization " +
+            SupportLogger.Failure("inventory_operation_failed", exception);
+            SupportLogger.Warning("inventory_context_disabled", "[SephiriaEnhancements] Inventory optimization " +
                 "disabled for the current gameplay context: " +
                 (exception?.Message ?? "unknown failure"));
             ShowMessage(InventoryOptimizationLocalization.
@@ -799,6 +816,7 @@ namespace SephiriaEnhancements.Inventory
 
         private static void ShowMessage(string key)
         {
+            SupportLogger.Record("inventory_message", "code=" + key);
             UI_SystemMessage message =
                 UIManager.Instance?.GetElement<UI_SystemMessage>();
             message?.Open(Loc._(key), 2f);

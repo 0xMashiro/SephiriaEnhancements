@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using SephiriaEnhancements.Integration;
 using UnityEngine;
@@ -125,13 +126,13 @@ namespace SephiriaEnhancements.RangedControls
 
             if (!fireReady || !subFireReady)
             {
-                Debug.LogWarning("[SephiriaEnhancements] J/K defaults were not applied " +
+                SupportLogger.Warning("alternate_bindings_conflict", "[SephiriaEnhancements] J/K defaults were not applied " +
                     "because an official secondary binding is already occupied or the " +
                     "requested key is used by another gameplay action.");
             }
             else
             {
-                Debug.Log("[SephiriaEnhancements] Official alternate combat bindings " +
+                SupportLogger.Info("alternate_bindings_initialized", "[SephiriaEnhancements] Official alternate combat bindings " +
                     "initialized with J/K.");
             }
         }

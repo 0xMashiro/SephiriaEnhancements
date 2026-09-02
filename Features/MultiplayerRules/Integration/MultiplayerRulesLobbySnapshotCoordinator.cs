@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using Mirror;
 using SephiriaEnhancements.Runtime.GameBridge;
 using UnityEngine;
@@ -42,7 +43,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             else
             {
                 MultiplayerRulesController.ClearHostRulesForClientDisplay();
-                Debug.LogWarning("[SephiriaEnhancements] Ignored invalid host " +
+                SupportLogger.Warning("multiplayer_rules_snapshot_invalid", "[SephiriaEnhancements] Ignored invalid host " +
                     "multiplayer-rules lobby snapshot.");
             }
         }

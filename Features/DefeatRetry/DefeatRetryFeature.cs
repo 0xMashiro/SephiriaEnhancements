@@ -136,7 +136,7 @@ namespace SephiriaEnhancements.DefeatRetry
             }
             catch (Exception ex)
             {
-                Debug.LogError("[SephiriaEnhancements] Rendered combat floor " +
+                SupportLogger.Error("retry_floor_checkpoint_failed", "[SephiriaEnhancements] Rendered combat floor " +
                     "checkpoint capture failed; keeping the previous checkpoint: " + ex);
             }
         }
@@ -187,7 +187,7 @@ namespace SephiriaEnhancements.DefeatRetry
             }
             catch (Exception ex)
             {
-                Debug.LogError("[SephiriaEnhancements] Boss encounter checkpoint " +
+                SupportLogger.Error("retry_boss_checkpoint_failed", "[SephiriaEnhancements] Boss encounter checkpoint " +
                     "capture failed; keeping the previous floor checkpoint: " + ex);
             }
         }
@@ -261,7 +261,7 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             if (placements.Count == 0)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Retry checkpoint has no " +
+                SupportLogger.Warning("retry_placement_missing", "[SephiriaEnhancements] Retry checkpoint has no " +
                     "player placement and was ignored.");
                 return;
             }
@@ -281,7 +281,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 kind.ToString(), source, floorGuid, floor?.name, floor?.stageName,
                 floor?.threatType.ToString(), generator?.GetType().Name,
                 bossName, placements.Count);
-            Debug.Log("[SephiriaEnhancements] Captured " +
+            SupportLogger.Info("retry_checkpoint_captured", "[SephiriaEnhancements] Captured " +
                 (kind == RetryCheckpointKind.BossEncounter
                     ? "boss encounter" : "floor-entry") +
                 " retry checkpoint: " +
@@ -401,7 +401,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 panel.Close();
                 SaveManager.Save(saveCurrent: true, saveCurrentRun: true);
                 (NetworkManager.singleton as HorayNetworkManager)?.RestartGame();
-                Debug.Log("[SephiriaEnhancements] Host restarted from the " +
+                SupportLogger.Info("retry_restarted", "[SephiriaEnhancements] Host restarted from the " +
                     (selected.Kind == RetryCheckpointKind.BossEncounter
                         ? "boss encounter" : "floor-entry") + " checkpoint.");
             }
@@ -409,7 +409,7 @@ namespace SephiriaEnhancements.DefeatRetry
             {
                 IsRetrying = false;
                 pendingPlacements = null;
-                Debug.LogError("[SephiriaEnhancements] Checkpoint retry failed: " + ex);
+                SupportLogger.Error("retry_failed", "[SephiriaEnhancements] Checkpoint retry failed: " + ex);
             }
         }
 
@@ -459,12 +459,12 @@ namespace SephiriaEnhancements.DefeatRetry
                     spawnPoint = placement.SpawnPoint;
                 }
                 overridePosition = placement.Position;
-                Debug.Log("[SephiriaEnhancements] Applied retry placement on floor " +
+                SupportLogger.Info("retry_placement_applied", "[SephiriaEnhancements] Applied retry placement on floor " +
                     placement.FloorGuid + ".");
             }
             else
             {
-                Debug.LogWarning("[SephiriaEnhancements] Retry placement floor " +
+                SupportLogger.Warning("retry_floor_mismatch", "[SephiriaEnhancements] Retry placement floor " +
                     placement.FloorGuid + " did not match requested floor " +
                     requestedFloorGuid + ".");
             }

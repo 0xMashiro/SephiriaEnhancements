@@ -104,9 +104,29 @@ Get-Content -LiteralPath .\SHA256SUMS.txt
 
 解压前确认摘要和文件名一致。校验值只能证明下载内容没有变化，不代表代码绝对安全。
 
+## 问题反馈与日志
+
+普通版和开发版都会自动在游戏存档目录下的
+`Mods/SephiriaEnhancements/Logs/Support/` 写入用户反馈日志。提交问题时，请附上此目录
+内的 `support*.log`，并说明复现步骤。这些日志只保存在本机，不会自动上传。日志包含
+Mod 与游戏版本、构建类型、功能事件码、战斗 HUD 状态、背包整理设置摘要与结果，
+以及部分故障的异常类型；不复制原始异常消息、玩家名、文件路径或背包明细。
+连续相同事件会合并计数，持续发生时每 30 秒输出一次。最多保留 3 个文件，每个 1 MiB，
+启动或文件写满时轮换。写入失败会在游戏日志中提示，不中断游戏功能。
+
+游戏的 `Player.log` 仍保留原始加载、警告和错误消息。如果上述摘要不足以定位问题，
+维护者可能另行请求此文件；其中可能包含游戏、其他 Mod 和本机环境信息。
+
+开发版还支持启动参数 `-sephiria-enhancements-devlog`，在
+`Mods/SephiriaEnhancements/Logs/Developer/` 写入 `diagnostics*.jsonl`。
+这些日志包含伤害反馈、HUD 状态、原生调用耗时、背包规则与结算明细，默认关闭，
+普通版不提供。最多保留 4 个文件，每个 8 MiB；写满会轮换并继续记录。单条事件过大时
+写入省略标记，后台队列拥堵时可能丢弃事件并在游戏日志中提示，因此不保证完整记录。
+这些文件用于开发者具体定位问题，提供前请检查内容。
+
 ## 从源码构建
 
-需要 PowerShell、`global.json` 指定的 .NET SDK，以及合法安装的 Sephiria。构建只从
+需要 PowerShell 7、`global.json` 指定的 .NET SDK，以及合法安装的 Sephiria。构建只从
 本机游戏目录读取程序集，本仓库不分发这些文件。
 
 在仓库根目录运行可移植检查：
@@ -120,6 +140,17 @@ Get-Content -LiteralPath .\SHA256SUMS.txt
 ```powershell
 & .\scripts\build.ps1 -GameDir "C:\Games\Sephiria"
 ```
+
+普通版输出到 `artifacts/build/Release/`。需要开发工具时运行：
+
+```powershell
+& .\scripts\build.ps1 -GameDir "C:\Games\Sephiria" -Configuration Debug -DeveloperTools
+```
+
+开发版输出到 `artifacts/build/Development/`，包含额外诊断探针和默认 ×1 的测试伤害倍率
+设置。`Debug` 只控制编译配置，`-DeveloperTools` 才决定是否包含开发功能；游戏内置
+开发者控制台仍是两种版本共有、默认关闭的独立功能。每次构建都会检查 DLL 的构建标识
+和开发组件，打包脚本强制构建普通版并拒绝开发版 DLL。
 
 在已忽略的 `artifacts/` 目录生成本地 ZIP 和 `SHA256SUMS.txt`：
 

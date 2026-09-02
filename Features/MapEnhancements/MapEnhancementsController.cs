@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using HarmonyLib;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
@@ -116,7 +117,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 currentFloorMapOverlayVisible = false;
                 RestoreCurrentFloorMapOverlay();
                 currentFloorMapOverlayCompatible = false;
-                Debug.LogWarning("[SephiriaEnhancements] Current-floor map overlay " +
+                SupportLogger.Warning("map_shortcut_failed", "[SephiriaEnhancements] Current-floor map overlay " +
                     "shortcut disabled until the Mod is reloaded: " + ex.Message);
             }
         }
@@ -171,7 +172,7 @@ namespace SephiriaEnhancements.MapEnhancements
             catch (Exception ex)
             {
                 current.hiddenRoomMapCompatible = false;
-                Debug.LogWarning("[SephiriaEnhancements] Hidden-room map display disabled " +
+                SupportLogger.Warning("hidden_room_map_failed", "[SephiriaEnhancements] Hidden-room map display disabled " +
                     "until the Mod is reloaded: " + ex.Message);
             }
         }
@@ -209,7 +210,7 @@ namespace SephiriaEnhancements.MapEnhancements
             {
                 current.townNpcMapMarkers.Clear();
                 current.townNpcMapMarkersCompatible = false;
-                Debug.LogWarning("[SephiriaEnhancements] Town NPC map markers " +
+                SupportLogger.Warning("town_markers_failed", "[SephiriaEnhancements] Town NPC map markers " +
                     "disabled until the Mod is reloaded: " + ex.Message);
             }
         }
@@ -377,7 +378,7 @@ namespace SephiriaEnhancements.MapEnhancements
             {
                 currentFloorMapOverlayVisible = false;
                 RestoreCurrentFloorMapOverlay();
-                Debug.LogWarning("[SephiriaEnhancements] Current-floor map overlay " +
+                SupportLogger.Warning("map_overlay_failed", "[SephiriaEnhancements] Current-floor map overlay " +
                     "could not be displayed: " + ex.Message);
             }
         }

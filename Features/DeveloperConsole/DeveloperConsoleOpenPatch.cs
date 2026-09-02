@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using HarmonyLib;
 using SephiriaEnhancements.Configuration;
@@ -44,7 +45,7 @@ namespace SephiriaEnhancements.DeveloperConsole
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Native developer console " +
+                SupportLogger.Warning("developer_console_open_failed", "[SephiriaEnhancements] Native developer console " +
                     "could not be opened: " + ex.Message);
             }
 

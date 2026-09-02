@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -160,7 +161,7 @@ namespace SephiriaEnhancements.BossHealthDisplay
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[SephiriaEnhancements] BOSS HP value display disabled: " +
+                SupportLogger.Warning("boss_health_display_failed", "[SephiriaEnhancements] BOSS HP value display disabled: " +
                     ex.Message);
             }
         }

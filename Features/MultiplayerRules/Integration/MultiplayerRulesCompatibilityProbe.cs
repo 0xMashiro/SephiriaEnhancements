@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -58,7 +59,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             }
 
             if (missing.Count == 0) return true;
-            Debug.LogWarning("[SephiriaEnhancements] Multiplayer Rules native " +
+            SupportLogger.Warning("multiplayer_rules_contracts_changed", "[SephiriaEnhancements] Multiplayer Rules native " +
                 "contracts changed: " + string.Join(", ", missing));
             return false;
         }

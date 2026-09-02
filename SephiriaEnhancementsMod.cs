@@ -90,6 +90,8 @@ namespace SephiriaEnhancements
 
         protected override void OnModLoaded()
         {
+            SupportLogger.Initialize();
+            Application.quitting += SupportLogger.Shutdown;
             StartupProfiler.Begin();
             GameLoadProfiler.Reset();
             long loadStartedAt = Stopwatch.GetTimestamp();
@@ -117,7 +119,7 @@ namespace SephiriaEnhancements
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Native control bindings " +
+                SupportLogger.Warning("controls_initialization_failed", "[SephiriaEnhancements] Native control bindings " +
                     "could not be initialized: " + ex.Message);
             }
             float controlsMilliseconds = ElapsedMilliseconds(phaseStartedAt);
@@ -277,26 +279,29 @@ namespace SephiriaEnhancements
             MidRunAdmissionRuntime.SetIntegrationAvailable(
                 midRunAdmissionCompatibilityAvailable);
             if (multiplayerExtensionPresent)
-                Debug.Log("[SephiriaEnhancements] Mid-run admission is delegated " +
+                SupportLogger.Info("mid_run_admission_delegated", "[SephiriaEnhancements] Mid-run admission is delegated " +
                     "to the detected multiplayer extension.");
             else if (!midRunAdmissionCompatibilityAvailable)
-                Debug.LogWarning("[SephiriaEnhancements] Mid-run admission is " +
+                SupportLogger.Warning("mid_run_admission_unavailable", "[SephiriaEnhancements] Mid-run admission is " +
                     "disabled because a required native hook failed.");
             MultiplayerRulesController.SetIntegrationAvailable(
                 multiplayerRulesCompatibilityAvailable);
             if (!multiplayerRulesCompatibilityAvailable)
-                Debug.LogWarning("[SephiriaEnhancements] Multiplayer Rules " +
+                SupportLogger.Warning("multiplayer_rules_unavailable", "[SephiriaEnhancements] Multiplayer Rules " +
                     "are pass-through because at least one required native hook failed.");
             float patchesMilliseconds = ElapsedMilliseconds(phaseStartedAt);
 
             float loadMilliseconds = ElapsedMilliseconds(loadStartedAt);
+            SupportLogger.Record("mod_load_completed", "successfulHooks=" + successfulPatchCount +
+                " failedHooks=" + failedPatchCount + " elapsedMs=" +
+                loadMilliseconds.ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
             DeveloperLogger.RecordModLoadMetrics(loadMilliseconds,
                 compatibilityMilliseconds, localizationMilliseconds,
                 controlsMilliseconds, controllersMilliseconds,
                 patchesMilliseconds, successfulPatchCount, failedPatchCount,
                 slowestPatchName, slowestPatchMilliseconds);
             StartupProfiler.RecordMilestone("mod_initialized");
-            Debug.Log("[SephiriaEnhancements] Loaded in " + loadMilliseconds.ToString("F1") +
+            SupportLogger.Info("mod_loaded", "[SephiriaEnhancements] Loaded in " + loadMilliseconds.ToString("F1") +
                 " ms with " + successfulPatchCount + " compatibility hooks. " +
                 "Configure features under Gameplay options.");
         }
@@ -348,6 +353,8 @@ namespace SephiriaEnhancements
             inventoryOptimization = null;
             multiplayerRules = null;
             runtimeKernel = null;
+            Application.quitting -= SupportLogger.Shutdown;
+            SupportLogger.Shutdown();
         }
 
         private void OnStartSessionClientside(bool isSavedSession)
@@ -451,10 +458,10 @@ namespace SephiriaEnhancements
             {
                 multiplayerRulesCompatibilityAvailable = false;
                 MultiplayerRulesController.SetIntegrationAvailable(false);
-                Debug.LogWarning("[SephiriaEnhancements] Multiplayer Rules " +
+                SupportLogger.Warning("multiplayer_rules_deferred_hooks_failed", "[SephiriaEnhancements] Multiplayer Rules " +
                     "are pass-through because at least one deferred native hook failed.");
             }
-            Debug.Log("[SephiriaEnhancements] Multiplayer Rules behavior hooks " +
+            SupportLogger.Info("multiplayer_rules_hooks_completed", "[SephiriaEnhancements] Multiplayer Rules behavior hooks " +
                 (succeeded ? "installed" : "failed") + " in " +
                 ElapsedMilliseconds(startedAt).ToString("F1") + " ms.");
         }
@@ -480,7 +487,8 @@ namespace SephiriaEnhancements
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[SephiriaEnhancements] Feature disabled because hook failed: " +
+                SupportLogger.Failure("hook_failed." + patchType.Name, ex);
+                SupportLogger.Warning("feature_hook_failed", "[SephiriaEnhancements] Feature disabled because hook failed: " +
                     patchType.Name + " — " + ex.Message);
                 return false;
             }

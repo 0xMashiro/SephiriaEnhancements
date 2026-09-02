@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using System.Collections.Generic;
 using SephiriaEnhancements.Configuration;
@@ -58,7 +59,7 @@ namespace SephiriaEnhancements.RangedControls
             {
                 ClearOwnedAim(force: true);
                 runtimeCompatible = false;
-                Debug.LogWarning("[SephiriaEnhancements] Ranged controls disabled " +
+                SupportLogger.Warning("ranged_controls_failed", "[SephiriaEnhancements] Ranged controls disabled " +
                     "for the current gameplay context: " + ex);
             }
         }

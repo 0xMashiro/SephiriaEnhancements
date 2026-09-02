@@ -11,6 +11,8 @@
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\Diagnostics\RollingLogFile.cs" Link="Diagnostics\RollingLogFile.cs" />
+    <Compile Include="..\..\Diagnostics\SupportLog.cs" Link="Diagnostics\SupportLog.cs" />
     <Compile Include="..\..\Runtime\GameBridge\Inventory\NativeInventoryEffectAccess.cs" Link="GameBridge\Inventory\NativeInventoryEffectAccess.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryIntentInteractionState.cs" Link="Inventory\InventoryIntentInteractionState.cs" />
     <Compile Include="..\..\Features\Inventory\Presentation\InventoryOptimizationHudLayout.cs" Link="Inventory\InventoryOptimizationHudLayout.cs" />

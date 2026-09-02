@@ -26,13 +26,14 @@ if ([string]$metadata.modVersion -ne $version) {
     throw "Project version $version does not match metadata $($metadata.modVersion)."
 }
 
-& (Join-Path $PSScriptRoot 'build.ps1') -GameDir $GameDir -Configuration Release
+& (Join-Path $PSScriptRoot 'build.ps1') -GameDir $GameDir -Configuration Release -DeveloperTools:$false
 
-$releaseRoot = Join-Path $repoRoot 'bin\Release\netstandard2.1'
+$releaseRoot = Join-Path $repoRoot 'artifacts/build/Release'
 $modAssembly = Join-Path $releaseRoot 'SephiriaEnhancements.dll'
 if (-not (Test-Path -LiteralPath $modAssembly)) {
     throw 'Release assembly was not produced.'
 }
+& (Join-Path $PSScriptRoot 'verify-build.ps1') -AssemblyPath $modAssembly
 
 $nugetRoot = if (-not [string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) {
     $env:NUGET_PACKAGES

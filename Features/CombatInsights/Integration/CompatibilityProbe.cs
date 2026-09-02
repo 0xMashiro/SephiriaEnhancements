@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -89,11 +90,11 @@ namespace SephiriaEnhancements.Integration
                 ", assembly=" + gameAssembly.GetName().Version;
             if (missing.Count == 0)
             {
-                Debug.Log("[SephiriaEnhancements] Compatibility probe passed (" + basis + ").");
+                SupportLogger.Info("compatibility_passed", "[SephiriaEnhancements] Compatibility probe passed (" + basis + ").");
             }
             else
             {
-                Debug.LogWarning("[SephiriaEnhancements] Compatibility probe found " +
+                SupportLogger.Warning("compatibility_members_missing", "[SephiriaEnhancements] Compatibility probe found " +
                     missing.Count + " missing member(s): " + string.Join(", ", missing) +
                     " (" + basis + "). Features will fail closed where possible.");
             }

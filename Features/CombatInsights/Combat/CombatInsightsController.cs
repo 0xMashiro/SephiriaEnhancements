@@ -71,6 +71,9 @@ namespace SephiriaEnhancements.Combat
         private bool runtimeSuspended;
         private bool statisticsWereEnabled = true;
         private string lastVisibilityDiagnostic;
+        private (bool Enabled, bool LocalPlayerReady, bool MenuOpen, bool HiddenByUser,
+            bool HudAttached, CombatInsightsViewMode View, ReportDisplayState Report,
+            ReportPresentationBlock Block, CombatInsightsDisplayPolicy Policy)? lastSupportVisibility;
         private ReportPresentationBlock presentationBlock;
 
         private static bool StatisticsCaptureEnabled =>
@@ -167,7 +170,7 @@ namespace SephiriaEnhancements.Combat
                     0, null, false, false, false, false, false,
                     reportWindow.State(Time.unscaledTime).ToString(),
                     presentationBlock.ToString());
-                Debug.LogError("[SephiriaEnhancements] Runtime compatibility failure; " +
+                SupportLogger.Error("combat_insights_failed", "[SephiriaEnhancements] Runtime compatibility failure; " +
                     "Combat Insights disabled until the Mod is reloaded: " + ex);
             }
         }
@@ -246,6 +249,17 @@ namespace SephiriaEnhancements.Combat
         private void RecordVisibilityDiagnostic(bool statisticsEnabled,
             PlayerDamageState local, bool menuOpen, float now)
         {
+            var summary = (statisticsEnabled, local != null, menuOpen, hudHiddenByUser,
+                hud.IsAttached, ViewMode, reportWindow.State(now), presentationBlock, ModSettings.DisplayPolicy);
+            if (lastSupportVisibility != summary)
+            {
+                lastSupportVisibility = summary;
+                SupportLogger.Record("combat_insights_state", "enabled=" + statisticsEnabled +
+                    " localPlayerReady=" + (local != null) + " menuOpen=" + menuOpen +
+                    " hiddenByUser=" + hudHiddenByUser + " hudAttached=" + hud.IsAttached +
+                    " view=" + ViewMode + " reportState=" + reportWindow.State(now) +
+                    " presentationBlock=" + presentationBlock + " policy=" + ModSettings.DisplayPolicy);
+            }
             if (!DeveloperLogger.IsEnabled) return;
 
             CombatInsightsViewMode viewMode = ViewMode;
@@ -570,7 +584,7 @@ namespace SephiriaEnhancements.Combat
             }
             uint observerNetId = GameCamera.Instance?.Observer?.netId ?? 0;
             uint mirrorLocalNetId = NetworkClient.localPlayer?.netId ?? 0;
-            Debug.LogWarning("[SephiriaEnhancements] HUD is waiting for an authoritative local player identity (players=" +
+            SupportLogger.Warning("local_player_identity_pending", "[SephiriaEnhancements] HUD is waiting for an authoritative local player identity (players=" +
                 ordered.Count + ", owned=" + owned + ", localPlayers=" + localPlayers +
                 ", observerNetId=" + observerNetId + ", mirrorLocalNetId=" + mirrorLocalNetId + ").");
             localIdentityWarningLogged = true;
@@ -742,7 +756,7 @@ namespace SephiriaEnhancements.Combat
                 BeginFreshEncounter(Time.unscaledTime);
                 encounterScope = null;
                 majorEncounter = true;
-                Debug.Log("[SephiriaEnhancements] BOSS report started from damage fallback because the native battle-start callback was not observed.");
+                SupportLogger.Info("boss_report_damage_fallback", "[SephiriaEnhancements] BOSS report started from damage fallback because the native battle-start callback was not observed.");
             }
             return bossEncounter.Active;
         }

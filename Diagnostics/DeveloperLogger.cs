@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using SephiriaEnhancements.Core;
@@ -17,7 +18,6 @@ namespace SephiriaEnhancements.Diagnostics
 {
     internal static class DeveloperLogger
     {
-        private const int MaxEventsPerLog = 50000;
         private const int MaxPendingLines = 4096;
         private static BlockingCollection<string> pendingLines;
         private static bool initialized;
@@ -26,6 +26,7 @@ namespace SephiriaEnhancements.Diagnostics
         private static int eventCount;
         private static int droppedSincePump;
         private static string workerError;
+        private static Thread writerThread;
         private static bool modLoadMetricsAvailable;
         private static bool modLoadMetricsWritten;
         private static float modLoadTotalMilliseconds;
@@ -245,12 +246,14 @@ namespace SephiriaEnhancements.Diagnostics
             string error = Interlocked.Exchange(ref workerError, null);
             if (!string.IsNullOrEmpty(error))
             {
+                SupportLogger.Record("developer_log_writer_failed", level: "WARN");
                 Debug.LogWarning("[SephiriaEnhancements] " + error);
             }
 
             int dropped = Interlocked.Exchange(ref droppedSincePump, 0);
             if (dropped > 0)
             {
+                SupportLogger.Record("developer_log_events_dropped", "count=" + dropped, "WARN");
                 Debug.LogWarning("[SephiriaEnhancements] Developer log queue was full; " +
                     dropped + " diagnostic event(s) were dropped without blocking gameplay.");
             }
@@ -672,10 +675,10 @@ namespace SephiriaEnhancements.Diagnostics
         {
             try
             {
-                string directory = Path.Combine(SaveData.CommonPath, "Mods", "SephiriaEnhancements", "Logs");
+                string directory = Path.Combine(SaveData.CommonPath, "Mods", "SephiriaEnhancements", "Logs", "Developer");
                 Directory.CreateDirectory(directory);
                 CurrentPath = Path.Combine(directory,
-                    "diagnostics-" + DateTime.Now.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture) + ".jsonl");
+                    "diagnostics.jsonl");
                 BlockingCollection<string> queue = new BlockingCollection<string>(
                     new ConcurrentQueue<string>(), MaxPendingLines);
                 pendingLines = queue;
@@ -684,18 +687,21 @@ namespace SephiriaEnhancements.Diagnostics
                 workerError = null;
                 Interlocked.Exchange(ref droppedSincePump, 0);
                 string path = CurrentPath;
-                Thread writer = new Thread(() => WriterLoop(queue, path))
+                string header = "{\"event\":\"log_start\",\"time\":" + TimeValue() + ",\"utc\":" +
+                    Json(DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)) +
+                    ",\"schemaVersion\":9,\"modVersion\":" +
+                    Json(typeof(DeveloperLogger).Assembly
+                        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion) +
+                    ",\"build\":" + Json(BuildIdentity.Flavor) +
+                    ",\"gameVersion\":" + Json(Application.version) +
+                    ",\"resolution\":{\"width\":" + Screen.width + ",\"height\":" + Screen.height + "}}";
+                writerThread = new Thread(() => WriterLoop(queue, path, header))
                 {
                     IsBackground = true,
                     Name = "Sephiria Enhancements diagnostic writer"
                 };
-                writer.Start();
-                WriteLine("{\"event\":\"log_start\",\"time\":" + TimeValue() +
-                    ",\"utc\":" + Json(DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)) +
-                    ",\"schemaVersion\":8,\"modVersion\":" +
-                    Json(typeof(DeveloperLogger).Assembly.GetName().Version.ToString(3)) +
-                    ",\"gameVersion\":" + Json(Application.version) +
-                    ",\"resolution\":{\"width\":" + Screen.width + ",\"height\":" + Screen.height + "}}");
+                writerThread.Start();
+                SupportLogger.Record("developer_diagnostics_requested");
                 Debug.Log("[SephiriaEnhancements] Developer log enabled: " + CurrentPath);
             }
             catch (Exception ex)
@@ -748,6 +754,9 @@ namespace SephiriaEnhancements.Diagnostics
                 accepting = false;
                 pendingLines = null;
                 queue.CompleteAdding();
+                if (writerThread != null && !writerThread.Join(2000))
+                    Debug.LogWarning("[SephiriaEnhancements] Developer log writer did not finish before shutdown.");
+                writerThread = null;
             }
             catch (Exception ex)
             {
@@ -761,18 +770,6 @@ namespace SephiriaEnhancements.Diagnostics
             BlockingCollection<string> queue = pendingLines;
             if (!accepting || queue == null)
             {
-                return;
-            }
-
-            if (eventCount >= MaxEventsPerLog)
-            {
-                queue.TryAdd("{\"event\":\"log_limit_reached\",\"limit\":" +
-                    MaxEventsPerLog + "}");
-                accepting = false;
-                pendingLines = null;
-                queue.CompleteAdding();
-                Debug.LogWarning("[SephiriaEnhancements] Developer log event limit " +
-                    "reached; this log file is closed until logging is restarted.");
                 return;
             }
 
@@ -795,12 +792,11 @@ namespace SephiriaEnhancements.Diagnostics
             }
         }
 
-        private static void WriterLoop(BlockingCollection<string> queue, string path)
+        private static void WriterLoop(BlockingCollection<string> queue, string path, string header)
         {
             try
             {
-                using StreamWriter output = new StreamWriter(path, false,
-                    new UTF8Encoding(false), 65536);
+                using RollingLogFile output = new RollingLogFile(path, 8 * 1024 * 1024, 4, header);
                 System.Diagnostics.Stopwatch flushTimer =
                     System.Diagnostics.Stopwatch.StartNew();
                 while (!queue.IsCompleted)

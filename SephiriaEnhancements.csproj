@@ -27,6 +27,11 @@
     <Compile Remove="tests/**/*.cs" />
   </ItemGroup>
 
+  <Target Name="ValidateDeveloperTools" BeforeTargets="CoreCompile">
+    <Error Condition="'$(DeveloperTools)' != 'true' and '$(DeveloperTools)' != 'false'"
+           Text="DeveloperTools must be true or false." />
+  </Target>
+
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>$(SephiriaGameDir)\Sephiria_Data\Managed\Assembly-CSharp.dll</HintPath>

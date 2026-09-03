@@ -15,6 +15,18 @@ namespace SephiriaEnhancements.Core
         private float duration, lastTime;
         private bool timing;
 
+        internal string FloorGuid => floorGuid;
+
+        internal void CopyFrom(FloorCombatStatistics source)
+        {
+            Clear();
+            floorGuid = source.floorGuid;
+            duration = source.duration;
+            foreach (var pair in source.players) players.Add(pair.Key, pair.Value);
+            foreach (var pair in source.damageTypes) damageTypes.Add(pair.Key, pair.Value);
+            defeats.CopyFrom(source.defeats);
+        }
+
         internal void ObserveFloor(string guid)
         {
             if (string.IsNullOrEmpty(guid) || guid == floorGuid) return;

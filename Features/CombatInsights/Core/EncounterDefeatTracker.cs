@@ -31,6 +31,17 @@ namespace SephiriaEnhancements.Core
 
         internal void RecordLocalFinalBlow() => LocalFinalBlows++;
 
+        internal void CopyFrom(EncounterDefeatTracker source)
+        {
+            Reset();
+            observed.UnionWith(source.observed);
+            DefeatedCount = source.DefeatedCount;
+            LocalFinalBlows = source.LocalFinalBlows;
+            NormalDefeated = source.NormalDefeated;
+            MinibossDefeated = source.MinibossDefeated;
+            BossDefeated = source.BossDefeated;
+        }
+
         internal void Reset()
         {
             observed.Clear();

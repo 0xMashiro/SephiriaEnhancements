@@ -33,8 +33,9 @@ namespace SephiriaEnhancements.Combat
         ControllerDisabled
     }
 
-    internal sealed class CombatInsightsController : MonoBehaviour
+    internal sealed partial class CombatInsightsController : MonoBehaviour
     {
+        private int bossSourceInstanceId;
         private const float SampleInterval = 0.2f;
         private const float EncounterFallbackQuietSeconds = 2.5f;
         private const float SmartPulseDelaySeconds = 1.5f;
@@ -111,6 +112,7 @@ namespace SephiriaEnhancements.Combat
 
         internal void Shutdown()
         {
+            retryStatistics.Clear();
             Initialize(null);
             ResetCombatState();
             floorStatistics.Clear();
@@ -188,6 +190,7 @@ namespace SephiriaEnhancements.Combat
 
         private void Tick()
         {
+            TickStatisticsRetry();
             float now = Time.unscaledTime;
             bool suiteEnabled = EnhancementsSettings.Enabled;
             CombatInsightsDisplayPolicy displayPolicy = ModSettings.DisplayPolicy;
@@ -196,6 +199,7 @@ namespace SephiriaEnhancements.Combat
             bool hitStreakEnabled = suiteEnabled && ModSettings.HitStreakFeedback;
             if (!statisticsEnabled && statisticsWereEnabled)
             {
+                retryStatistics.Clear();
                 ResetCombatState();
                 floorStatistics.Clear();
                 encounterAreaLocator.Reset();
@@ -220,13 +224,13 @@ namespace SephiriaEnhancements.Combat
                 nextSample = 0f;
             }
 
-            bool trackOrdinaryEncounters = statisticsEnabled;
+            bool trackOrdinaryEncounters = statisticsEnabled && !retryStatistics.Pending && !encounterDefeated;
             if (now >= nextSample)
             {
                 nextSample = now + SampleInterval;
                 SamplePlayers(now, trackOrdinaryEncounters);
             }
-            floorStatistics.UpdateClock(Time.time, StatisticsCaptureEnabled &&
+            floorStatistics.UpdateClock(Time.time, StatisticsCaptureEnabled && !retryStatistics.Pending && !encounterDefeated &&
                 (bossEncounter.Active ? bossEncounter.IsTiming : encounterActive));
             PlayerDamageState local = FindLocal();
             TrackLocalIdentity(local, now);
@@ -235,7 +239,7 @@ namespace SephiriaEnhancements.Combat
             // Native spawner clear events are authoritative. This remains only
             // as recovery for missed hooks and non-structured combat activity.
             if (encounterActive && !bossEncounter.Active && local != null &&
-                !local.IsInBattle &&
+                local.Avatar != null && !local.Avatar.IsDead && !AnyParticipantInBattle() &&
                 now - encounterLastActivity >= EncounterFallbackQuietSeconds)
                 EndEncounter(now);
             reportWindow.CloseForEncounter(bossEncounter.Active, encounterActive,
@@ -432,6 +436,19 @@ namespace SephiriaEnhancements.Combat
 
         private void OnStatisticsContextChanged(LocalGameplayContextChange change)
         {
+            if (change == LocalGameplayContextChange.TravelStarted)
+                retryStatistics.ObserveTravelStarted();
+            if (change == LocalGameplayContextChange.WorldSessionLoaded)
+            {
+                retryStatistics.ObserveWorldLoaded();
+                encounterDefeated = false;
+            }
+            else if (!retryStatistics.Pending &&
+                (change == LocalGameplayContextChange.PlayerChanged || change == LocalGameplayContextChange.FloorChanged))
+            {
+                retryStatistics.Clear();
+                encounterDefeated = false;
+            }
             if (change == LocalGameplayContextChange.WorldSessionLoaded ||
                 change == LocalGameplayContextChange.PlayerChanged ||
                 change == LocalGameplayContextChange.FloorChanged)
@@ -526,7 +543,7 @@ namespace SephiriaEnhancements.Combat
 
         private bool EnsureAreaEncounter(EncounterScope scope, float now)
         {
-            if (scope == null || scope.Kind != EncounterScopeKind.Ordinary ||
+            if (retryStatistics.Pending || encounterDefeated || scope == null || scope.Kind != EncounterScopeKind.Ordinary ||
                 bossEncounter.Active) return false;
             if (runtimeKernel?.IsOrdinaryEncounterCleared(
                     scope.SourceInstanceId) == true)
@@ -695,12 +712,20 @@ namespace SephiriaEnhancements.Combat
         }
         private void OnApplicationQuit() => DeveloperLogger.Shutdown();
 
-        internal void RecordBossDamage(PlayerAvatar owner, float damage,
+        internal void RecordBossDamage(UnitAvatar target, PlayerAvatar owner, float damage,
             EncounterDamageType damageType)
         {
             PlayerAvatar localAvatar = LocalPlayerResolver.Resolve();
-            if (StatisticsCaptureEnabled && owner != null && localAvatar != null && bossEncounter.Active &&
-                owner.NetworkcurrentFloorGuid == localAvatar.NetworkcurrentFloorGuid)
+            if (!bossEncounter.Active) encounterAreaLocator.Reset();
+            if (retryStatistics.Pending || encounterDefeated || target == null || owner == null || localAvatar == null ||
+                localAvatar.loadingScreenType != -1 || !encounterAreaLocator.TryLocate(localAvatar, out EncounterScope scope) ||
+                scope.Kind != EncounterScopeKind.Boss) return;
+            Vector3 ownerPosition = owner.transform.position;
+            Vector3 targetPosition = target.transform.position;
+            if ((bossEncounter.Active && scope.SourceInstanceId != bossSourceInstanceId) ||
+                !scope.AllowsDamage(owner.NetworkcurrentFloorGuid, ownerPosition.x, ownerPosition.y,
+                    targetPosition.x, targetPosition.y)) return;
+            if (StatisticsCaptureEnabled && EnsureBossEncounterFromDamage())
             {
                 PlayerDamageState state = GetOrCreateDamageState(owner,
                     Time.unscaledTime);
@@ -714,11 +739,11 @@ namespace SephiriaEnhancements.Combat
         internal void RecordCombatDamage(UnitAvatar target, PlayerAvatar owner,
             float damage, EncounterDamageType damageType)
         {
-            if (!StatisticsCaptureEnabled || target == null || owner == null ||
+            if (retryStatistics.Pending || encounterDefeated || !StatisticsCaptureEnabled || target == null || owner == null ||
                 damage <= 0f || bossEncounter.Active ||
                 !IsHostileEnemy(target)) return;
             PlayerAvatar localAvatar = LocalPlayerResolver.Resolve();
-            if (localAvatar == null || !encounterAreaLocator.TryLocate(localAvatar,
+            if (localAvatar == null || localAvatar.loadingScreenType != -1 || !encounterAreaLocator.TryLocate(localAvatar,
                 out EncounterScope scope)) return;
             Vector3 ownerPosition = owner.transform.position;
             Vector3 targetPosition = target.transform.position;
@@ -741,8 +766,12 @@ namespace SephiriaEnhancements.Combat
                 majorEncounter = true;
         }
 
-        private void BeginBossEncounter()
+        private void BeginBossEncounter(int sourceInstanceId = 0)
         {
+            PlayerAvatar local = LocalPlayerResolver.Resolve();
+            if (retryStatistics.Pending || encounterDefeated || local == null || local.loadingScreenType != -1 ||
+                !encounterAreaLocator.TryLocate(local, out EncounterScope scope) || scope.Kind != EncounterScopeKind.Boss) return;
+            if (sourceInstanceId != 0 && scope.SourceInstanceId != sourceInstanceId) return;
             if (!StatisticsCaptureEnabled)
             {
                 ResetCombatState();
@@ -750,6 +779,8 @@ namespace SephiriaEnhancements.Combat
             }
             if (bossEncounter.Active)
             {
+                if (scope.SourceInstanceId != bossSourceInstanceId) return;
+                encounterScope = scope;
                 if (bossEncounter.Resume(Time.time))
                 {
                     floorStatistics.UpdateClock(Time.time, true);
@@ -760,7 +791,8 @@ namespace SephiriaEnhancements.Combat
             if (!bossEncounter.Begin(Time.time))
                 return;
             BeginFreshEncounter(Time.unscaledTime);
-            encounterScope = null;
+            bossSourceInstanceId = scope.SourceInstanceId;
+            encounterScope = scope;
             majorEncounter = true;
         }
 
@@ -804,15 +836,25 @@ namespace SephiriaEnhancements.Combat
                 return;
             }
 
+            bool starts = lifecycleEvent.Transition == EncounterTransition.Started ||
+                lifecycleEvent.Transition == EncounterTransition.Resumed;
+            if (starts) encounterAreaLocator.Reset();
+            else if (!bossEncounter.Active || bossSourceInstanceId !=
+                (lifecycleEvent.Transition == EncounterTransition.ContinuationPrepared
+                    ? lifecycleEvent.PreviousSourceInstanceId : lifecycleEvent.SourceInstanceId)) return;
+
             switch (lifecycleEvent.Transition)
             {
                 case EncounterTransition.Started:
                 case EncounterTransition.Resumed:
-                    BeginBossEncounter();
+                    BeginBossEncounter(lifecycleEvent.SourceInstanceId);
                     break;
                 case EncounterTransition.Paused:
                 case EncounterTransition.CompletionStarted:
+                    PauseBossEncounter();
+                    break;
                 case EncounterTransition.ContinuationPrepared:
+                    bossSourceInstanceId = lifecycleEvent.SourceInstanceId;
                     PauseBossEncounter();
                     break;
                 case EncounterTransition.Cleared:
@@ -828,13 +870,11 @@ namespace SephiriaEnhancements.Combat
 
         internal bool EnsureBossEncounterFromDamage()
         {
-            if (!StatisticsCaptureEnabled) return false;
+            if (retryStatistics.Pending || encounterDefeated || !StatisticsCaptureEnabled) return false;
             if (bossEncounter.Active) return true;
-            if (bossEncounter.Begin(Time.time))
+            BeginBossEncounter();
+            if (bossEncounter.Active)
             {
-                BeginFreshEncounter(Time.unscaledTime);
-                encounterScope = null;
-                majorEncounter = true;
                 SupportLogger.Info("boss_report_damage_fallback", "[SephiriaEnhancements] BOSS report started from damage fallback because the native battle-start callback was not observed.");
             }
             return bossEncounter.Active;
@@ -866,12 +906,12 @@ namespace SephiriaEnhancements.Combat
                 return;
             }
 
-            ResetCombatState();
+            FinishDefeatedEncounter();
         }
 
         internal void RecordEnemyDeath(UnitAvatar target)
         {
-            if (!StatisticsCaptureEnabled || !IsHostileEnemy(target)) return;
+            if (retryStatistics.Pending || encounterDefeated || !StatisticsCaptureEnabled || !IsHostileEnemy(target)) return;
             // The published report is immutable. Once the encounter ends,
             // delayed death callbacks must not mutate the frozen result.
             if (!bossEncounter.Active && !encounterActive) return;
@@ -897,7 +937,7 @@ namespace SephiriaEnhancements.Combat
 
         internal void RecordLocalFinalBlow(UnitKillData data)
         {
-            if (!StatisticsCaptureEnabled ||
+            if (retryStatistics.Pending || encounterDefeated || !StatisticsCaptureEnabled ||
                 (!bossEncounter.Active && !encounterActive) ||
                 string.IsNullOrEmpty(data.factionName))
                 return;
@@ -1019,6 +1059,7 @@ namespace SephiriaEnhancements.Combat
             floorStatistics.UpdateClock(Time.time, false);
             statisticsShortcut.Reset();
             bossEncounter.Reset();
+            bossSourceInstanceId = 0;
             encounterActive = false;
             majorEncounter = false;
             encounterStartedAt = encounterEndedAt = -1f;

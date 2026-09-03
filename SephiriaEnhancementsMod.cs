@@ -140,6 +140,7 @@ namespace SephiriaEnhancements
                 controllerObject.AddComponent<CombatRelationOutlinesController>();
             combatInsights = controllerObject.AddComponent<CombatInsightsController>();
             combatInsights.Initialize(runtimeKernel);
+            StatisticsRetryBridge.Initialize(combatInsights);
             NativeReportDismissal.SetController(combatInsights);
             NativeStatisticsPauseEntry.SetController(combatInsights);
             combatTargeting = controllerObject.AddComponent<CombatTargetingController>();
@@ -335,6 +336,7 @@ namespace SephiriaEnhancements
             MidRunAdmissionRuntime.SetIntegrationAvailable(false);
             EnemySpawnRoutineContext.SetRuleScopeFactory(null);
             inventoryOptimization?.Shutdown();
+            StatisticsRetryBridge.Shutdown();
             combatInsights?.Shutdown();
             NativeReportDismissal.SetController(null);
             NativeStatisticsPauseEntry.SetController(null);

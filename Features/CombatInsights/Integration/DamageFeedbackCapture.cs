@@ -52,9 +52,6 @@ namespace SephiriaEnhancements.Integration
             bool captureStatistics = suiteEnabled &&
                 ModSettings.DisplayPolicy !=
                 CombatInsightsDisplayPolicy.Disabled;
-            bool captureOrdinary = captureStatistics &&
-                ModSettings.DisplayPolicy !=
-                CombatInsightsDisplayPolicy.BossOnly;
             bool logDamage = DeveloperLogger.IsEnabled;
             bool captureHitStreakFeedback = suiteEnabled && ModSettings.HitStreakFeedback;
             if (!captureStatistics && !logDamage && !captureHitStreakFeedback)
@@ -92,28 +89,15 @@ namespace SephiriaEnhancements.Integration
                     owner != null
                         ? controller.ResolveDamageType(target, feedback)
                         : EncounterDamageType.Unknown;
-                if (captureOrdinary && owner != null && feedback.msgType <=
+                if (captureStatistics && owner != null && feedback.msgType <=
                     (byte)DamageFeedback.EMsgType.Execution)
                 {
-                    controller.RecordCombatDamage(target, owner,
-                        feedback.damageValue, damageType);
-                }
-
-                if (!IsBossTarget(target))
-                {
-                    continue;
-                }
-
-                if (attacker == null)
-                {
-                    continue;
-                }
-
-                if (captureStatistics && owner != null &&
-                    controller.EnsureBossEncounterFromDamage())
-                {
-                    controller.RecordBossDamage(owner, feedback.damageValue,
-                        damageType);
+                    // A feedback entry has exactly one statistics owner, even
+                    // when its arrival is what starts the boss encounter.
+                    if (IsBossTarget(target))
+                        controller.RecordBossDamage(target, owner, feedback.damageValue, damageType);
+                    else
+                        controller.RecordCombatDamage(target, owner, feedback.damageValue, damageType);
                 }
             }
         }

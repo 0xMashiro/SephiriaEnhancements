@@ -42,6 +42,7 @@
     <Compile Include="..\..\Features\CombatInsights\Core\ReportDisplayWindow.cs" Link="Core\ReportDisplayWindow.cs" />
     <Compile Include="..\..\Features\CombatInsights\Core\CombatStatisticsSnapshot.cs" Link="Core\CombatStatisticsSnapshot.cs" />
     <Compile Include="..\..\Features\CombatInsights\Core\FloorCombatStatistics.cs" Link="Core\FloorCombatStatistics.cs" />
+    <Compile Include="..\..\Features\CombatInsights\Core\StatisticsRetryCheckpoint.cs" Link="Core\StatisticsRetryCheckpoint.cs" />
     <Compile Include="..\..\Features\CombatInsights\Core\EncounterReportLayout.cs" Link="Core\EncounterReportLayout.cs" />
     <Compile Include="..\..\Features\CombatInsights\Core\CombatInsightsShortcut.cs" Link="Core\CombatInsightsShortcut.cs" />
     <Compile Include="..\..\Features\CombatTargeting\Core\TargetSelection.cs" Link="CombatTargeting\TargetSelection.cs" />

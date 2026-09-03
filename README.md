@@ -148,9 +148,18 @@ combat. **Battle average DPS = recorded damage ÷ accumulated battle time**. All
 share that time; idle exploration, actual pauses and paused boss phases add no time.
 Boss-only display still records ordinary combat for the floor tab. Opening, closing,
 hiding or switching pages does not reset totals. Travel within the same floor preserves
-them; entering a different floor, replacing/disconnecting the local player, reloading
-the world, disabling statistics or unloading the Mod clears them. Totals are held in
-memory and do not reconstruct combat before joining or enabling statistics.
+them; entering a different floor, replacing/disconnecting the local player, normally
+reloading the world, disabling statistics or unloading the Mod clears them. Totals are
+held in memory and do not reconstruct combat before joining or enabling statistics;
+players who observe different parts of a battle can therefore see different totals.
+
+A personal death does not end the team's ongoing battle statistics. Defeat freezes
+the result. With this Mod's retry feature, retrying the floor clears its totals;
+retrying a BOSS restores the locally recorded floor totals from before that BOSS
+attempt. Remote clients need the host's retry notification and their own matching
+checkpoint; both peers must have this Mod's retry-statistics support. A missing
+checkpoint clears totals instead of retaining the failed attempt. Retry statistics
+remain local observations, not a synchronized team damage history.
 
 Level-up reminders and brief flashes also leave reports visible. Menus, loading,
 screen transitions, and cutscenes temporarily hide reports and preserve their

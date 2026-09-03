@@ -1,5 +1,6 @@
 using System.Reflection;
 using HarmonyLib;
+using SephiriaEnhancements.Integration;
 using UnityEngine;
 
 namespace SephiriaEnhancements.DefeatRetry
@@ -9,6 +10,7 @@ namespace SephiriaEnhancements.DefeatRetry
     {
         private static void Postfix(UI_GameOverLabel __instance)
         {
+            if (__instance.openType == 0) StatisticsRetryBridge.ObserveTeamDefeat();
             DefeatRetryFeature.AddButton(__instance);
         }
     }

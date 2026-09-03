@@ -5,6 +5,8 @@ using HarmonyLib;
 using Mirror;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Diagnostics;
+using SephiriaEnhancements.Core;
+using SephiriaEnhancements.Integration;
 using UnityEngine;
 using UnityEngine.UI;
 using Stopwatch = System.Diagnostics.Stopwatch;
@@ -51,6 +53,7 @@ namespace SephiriaEnhancements.DefeatRetry
             internal string FloorGuid { get; }
             internal Dictionary<uint, RetryPlacement> Placements { get; }
             internal BossRetryWorld World { get; }
+            internal long StatisticsCheckpointId { get; set; }
         }
 
         private static readonly FieldInfo CurrentField =
@@ -303,6 +306,7 @@ namespace SephiriaEnhancements.DefeatRetry
             if (kind == RetryCheckpointKind.BossEncounter)
             {
                 checkpoints.CompleteBossCapture(captured);
+                captured.StatisticsCheckpointId = StatisticsRetryBridge.CaptureBoss(floorGuid);
             }
             runFileName = captured.CurrentRun.BindedFileName ?? string.Empty;
             FloorData floor = null;
@@ -487,6 +491,9 @@ namespace SephiriaEnhancements.DefeatRetry
                 panel.button.interactable = false;
                 panel.Close();
                 SaveManager.Save(saveCurrent: true, saveCurrentRun: true);
+                StatisticsRetryBridge.Publish(kind == RetryCheckpointKind.BossEncounter
+                    ? StatisticsRetryTransition.RetryBoss : StatisticsRetryTransition.RetryFloor,
+                    selected.StatisticsCheckpointId, selected.FloorGuid);
                 (NetworkManager.singleton as HorayNetworkManager)?.RestartGame();
                 SupportLogger.Info("retry_restarted", "[SephiriaEnhancements] Host restarted from the " +
                     (selected.Kind == RetryCheckpointKind.BossEncounter
@@ -495,6 +502,8 @@ namespace SephiriaEnhancements.DefeatRetry
             catch (Exception ex)
             {
                 IsRetrying = false;
+                StatisticsRetryBridge.Publish(StatisticsRetryTransition.Cancel,
+                    selected.StatisticsCheckpointId, selected.FloorGuid);
                 pendingPlacements = null;
                 pendingWorldRestore = null;
                 SupportLogger.Error("retry_failed", "[SephiriaEnhancements] Checkpoint retry failed: " + ex);

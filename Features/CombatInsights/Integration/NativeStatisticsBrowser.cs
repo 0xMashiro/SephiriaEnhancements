@@ -191,9 +191,7 @@ namespace SephiriaEnhancements.Integration
             label.font = template.font;
             label.fontSharedMaterial = template.fontSharedMaterial;
             label.fontSize = 10f;
-            label.fontSizeMin = 8f;
-            label.fontSizeMax = 10f;
-            label.enableAutoSizing = true;
+            NativeLocalizedText.SetShrinkOnlySize(label, label.fontSize, 8f);
             label.alignment = TextAlignmentOptions.Center;
             label.richText = false;
             label.raycastTarget = false;

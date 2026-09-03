@@ -678,7 +678,6 @@ namespace SephiriaEnhancements.DefeatRetry
                 worldPositionStays: false);
             clone.name = "SephiriaEnhancements_RetryCheckpoint";
             retryButton = clone.GetComponent<UI_HorayButton>();
-            retryButton.text.enableAutoSizing = true;
             retryButton.onClick.RemoveAllListeners();
             retryButton.onClick.AddListener(OnRetryClicked);
             if (bossEligible)
@@ -687,7 +686,6 @@ namespace SephiriaEnhancements.DefeatRetry
                     originalButton.gameObject, originalParent, worldPositionStays: false);
                 bossClone.name = "SephiriaEnhancements_RetryBossEncounter";
                 bossRetryButton = bossClone.GetComponent<UI_HorayButton>();
-                bossRetryButton.text.enableAutoSizing = true;
                 bossRetryButton.onClick.RemoveAllListeners();
                 bossRetryButton.onClick.AddListener(OnBossRetryClicked);
             }
@@ -910,12 +908,18 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
 
-            retryButton.text.text = ModLocalization.Get(ModLocalization.RetryFloor);
+            SetRetryButtonText(retryButton, ModLocalization.Get(ModLocalization.RetryFloor));
             if (bossRetryButton?.text != null)
             {
-                bossRetryButton.text.text = ModLocalization.Get(bossReady
-                    ? ModLocalization.RetryBossEncounter : ModLocalization.RetryBossUnavailable);
+                SetRetryButtonText(bossRetryButton, ModLocalization.Get(bossReady
+                    ? ModLocalization.RetryBossEncounter : ModLocalization.RetryBossUnavailable));
             }
+        }
+
+        private void SetRetryButtonText(UI_HorayButton button, string text)
+        {
+            NativeLocalizedText.MatchFontSize(button.text, originalButton.text);
+            button.text.text = text;
         }
 
         private void RemoveButton()

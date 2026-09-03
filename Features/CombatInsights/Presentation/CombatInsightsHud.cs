@@ -652,9 +652,10 @@ namespace SephiriaEnhancements.Presentation
             text.fontStyle = FontStyles.Bold;
             float size = Mathf.Max(8f, template.fontSize * ratio);
             text.fontSize = size;
-            text.enableAutoSizing = autoSize;
-            text.fontSizeMin = Mathf.Max(8f, size * 0.82f);
-            text.fontSizeMax = size;
+            if (autoSize)
+                NativeLocalizedText.SetShrinkOnlySize(text, size, Mathf.Max(8f, size * 0.82f));
+            else
+                text.enableAutoSizing = false;
             text.textWrappingMode = TextWrappingModes.NoWrap;
             text.overflowMode = TextOverflowModes.Ellipsis;
             text.alignment = alignment;

@@ -1,5 +1,6 @@
 #nullable disable
 using System.Linq;
+using SephiriaEnhancements.Integration;
 using SephiriaEnhancements.Runtime.Inventory;
 using TMPro;
 using UnityEngine;
@@ -86,10 +87,8 @@ namespace SephiriaEnhancements.Inventory
             label.fontSharedMaterial = owner.quantityText?.fontSharedMaterial;
             label.fontStyle = FontStyles.Bold;
             label.alignment = TextAlignmentOptions.TopRight;
-            label.enableAutoSizing = true;
-            label.fontSizeMin = 8f;
-            label.fontSizeMax = Mathf.Max(12f,
-                owner.quantityText?.fontSize ?? 12f);
+            NativeLocalizedText.SetShrinkOnlySize(label,
+                Mathf.Max(12f, owner.quantityText?.fontSize ?? 12f), 8f);
             label.raycastTarget = false;
         }
     }

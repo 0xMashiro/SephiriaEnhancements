@@ -259,9 +259,7 @@ namespace SephiriaEnhancements.Inventory
                 TextAlignmentOptions.MidlineLeft);
             summary.color = SecondaryText;
             summary.textWrappingMode = TextWrappingModes.Normal;
-            summary.fontSizeMax = summary.fontSize;
-            summary.fontSizeMin = summary.fontSize * 0.75f;
-            summary.enableAutoSizing = true;
+            NativeLocalizedText.SetShrinkOnlySize(summary, summary.fontSize, summary.fontSize * 0.75f);
 
             priorityQueueTitle = CreateText("PriorityQueueTitle", rect,
                 template, new Vector2(24f, -102f), new Vector2(312f, 22f),
@@ -309,9 +307,8 @@ namespace SephiriaEnhancements.Inventory
 
             comboTargetsTitle = CreateText("ComboTargetsTitle", rect, template,
                 new Vector2(24f, -102f), new Vector2(144f, 32f), TextAlignmentOptions.MidlineLeft);
-            comboTargetsTitle.fontSizeMax = comboTargetsTitle.fontSize;
-            comboTargetsTitle.fontSizeMin = comboTargetsTitle.fontSize * 0.75f;
-            comboTargetsTitle.enableAutoSizing = true;
+            NativeLocalizedText.SetShrinkOnlySize(comboTargetsTitle,
+                comboTargetsTitle.fontSize, comboTargetsTitle.fontSize * 0.75f);
             CreateLevelEditor(rect, template);
 
             for (int index = 0; index < RowsPerPage; index++)
@@ -332,9 +329,7 @@ namespace SephiriaEnhancements.Inventory
                 new Vector2(228f, InventoryOptimizationHudLayout.PagingHeight),
                 TextAlignmentOptions.Center);
             status.color = SecondaryText;
-            status.fontSizeMax = status.fontSize;
-            status.fontSizeMin = status.fontSize * 0.75f;
-            status.enableAutoSizing = true;
+            NativeLocalizedText.SetShrinkOnlySize(status, status.fontSize, status.fontSize * 0.75f);
 
             markPriorities = CreateButton("MarkPriorities", rect, template,
                 new Vector2(24f, -InventoryOptimizationHudLayout.ActionsTop),
@@ -1509,9 +1504,7 @@ namespace SephiriaEnhancements.Inventory
                 TextAlignmentOptions.Center,
                 childCoordinates: true);
             label.color = PrimaryText;
-            label.fontSizeMax = label.fontSize;
-            label.fontSizeMin = label.fontSize * 0.75f;
-            label.enableAutoSizing = true;
+            NativeLocalizedText.SetShrinkOnlySize(label, label.fontSize, label.fontSize * 0.75f);
             NativeInventoryOptimizationControls.SetLabel(button, label);
             return button;
         }

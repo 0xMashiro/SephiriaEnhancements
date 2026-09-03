@@ -184,6 +184,9 @@ Mod 与游戏版本、构建类型、功能事件码、战斗 HUD 状态、背�
 能脱离私有游戏程序集验证的策略应补充可移植模型检查。请勿提交游戏文件、生成的 API
 桩、反编译源码、日志、本机路径或构建产物。
 
+背包求解算法的接入方式见[策略贡献指南](Features/Inventory/CONTRIBUTING.md)，
+其中提供实际运行的多起点策略和可复用的离线契约检查。
+
 ## 许可证
 
 Sephiria Enhancements 使用 [MIT License](./LICENSE) 开源。

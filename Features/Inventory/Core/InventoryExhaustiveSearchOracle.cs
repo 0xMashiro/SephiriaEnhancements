@@ -109,7 +109,7 @@ namespace SephiriaEnhancements.Inventory
 
             limits ??= new InventoryExhaustiveSearchLimits();
             long estimatedCandidateLayouts = EstimateCandidateLayouts(
-                snapshot, limits.MaximumCandidateLayouts);
+                snapshot, limits.MaximumCandidateLayouts, policy.AllowStoneTabletRotation);
             if (estimatedCandidateLayouts > limits.MaximumCandidateLayouts)
             {
                 return new InventoryExhaustiveSearchResult(false, null, null,
@@ -132,7 +132,7 @@ namespace SephiriaEnhancements.Inventory
             var scorer = new InventoryOptimizationScorer(snapshot, policy);
             var search = new SearchState(snapshot, scorer, limits, elapsed,
                 cancellationToken, current,
-                scorer.Score(current, currentSettlement));
+                scorer.Score(current, currentSettlement), policy.AllowStoneTabletRotation);
             search.VisitItem(0);
             return new InventoryExhaustiveSearchResult(true,
                 search.BestLayout, search.CurrentScore, search.BestScore,
@@ -146,7 +146,8 @@ namespace SephiriaEnhancements.Inventory
         }
 
         internal static long EstimateCandidateLayouts(
-            InventorySnapshot snapshot, long maximumExactValue = long.MaxValue)
+            InventorySnapshot snapshot, long maximumExactValue = long.MaxValue,
+            bool allowStoneTabletRotation = true)
         {
             if (snapshot == null || snapshot.Items.Count > snapshot.Storage)
             {
@@ -169,7 +170,7 @@ namespace SephiriaEnhancements.Inventory
             }
             foreach (InventoryItemSnapshot item in snapshot.Items)
             {
-                if (item.StoneTablet?.Rotatable == true)
+                if (allowStoneTabletRotation && item.StoneTablet?.Rotatable == true)
                 {
                     result = MultiplyCapped(result, 4, cap);
                     if (result >= cap)
@@ -206,6 +207,7 @@ namespace SephiriaEnhancements.Inventory
             private readonly InventoryExhaustiveSearchLimits limits;
             private readonly Stopwatch elapsed;
             private readonly CancellationToken cancellationToken;
+            private readonly bool allowStoneTabletRotation;
             private readonly int[] cellsByItem;
             private readonly int[] rotationsByItem;
             private readonly bool[] occupiedCells;
@@ -215,13 +217,14 @@ namespace SephiriaEnhancements.Inventory
                 InventoryExhaustiveSearchLimits limits, Stopwatch elapsed,
                 CancellationToken cancellationToken,
                 InventoryLayoutProjection current,
-                InventoryOptimizationScore currentScore)
+                InventoryOptimizationScore currentScore, bool allowStoneTabletRotation)
             {
                 this.snapshot = snapshot;
                 this.scorer = scorer;
                 this.limits = limits;
                 this.elapsed = elapsed;
                 this.cancellationToken = cancellationToken;
+                this.allowStoneTabletRotation = allowStoneTabletRotation;
                 cellsByItem = new int[snapshot.Items.Count];
                 rotationsByItem = new int[snapshot.Items.Count];
                 occupiedCells = new bool[snapshot.Storage];
@@ -259,7 +262,7 @@ namespace SephiriaEnhancements.Inventory
 
                 InventoryItemSnapshot item = snapshot.Items[itemIndex];
                 int firstRotation = item.StoneTablet?.Rotation ?? 0;
-                int rotationCount = item.StoneTablet?.Rotatable == true ? 4 : 1;
+                int rotationCount = allowStoneTabletRotation && item.StoneTablet?.Rotatable == true ? 4 : 1;
                 for (int cell = 0; cell < snapshot.Storage &&
                     !ElapsedTimeLimitReached; cell++)
                 {

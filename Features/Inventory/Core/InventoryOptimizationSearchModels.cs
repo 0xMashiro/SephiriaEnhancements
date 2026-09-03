@@ -19,7 +19,8 @@ namespace SephiriaEnhancements.Inventory
     internal enum InventoryOptimizationSearchMethod
     {
         Neighborhood,
-        Exhaustive
+        Exhaustive,
+        MultiStart
     }
 
     internal sealed class InventorySearchBudget

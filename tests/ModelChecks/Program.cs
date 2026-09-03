@@ -19,6 +19,12 @@ using SephiriaEnhancements.ModelChecks.Runtime.GameBridge.Multiplayer;
 using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 
+if (args.Contains("--inventory-strategies-only"))
+{
+    Console.WriteLine("InventoryOptimizerContribution: " + InventoryOptimizerContributionChecks.Run());
+    return;
+}
+
 if (args.Contains("--inventory-application-only"))
 {
     Console.WriteLine("InventoryLocalRuntime: " + InventoryLocalRuntimeChecks.Run());
@@ -51,6 +57,7 @@ Console.WriteLine("InventoryOptimizationPreferencesCodec: " +
     InventoryOptimizationPreferencesCodecChecks.Run());
 Console.WriteLine("InventoryOptimizationArchitecture: " +
     InventoryOptimizationArchitectureChecks.Run());
+Console.WriteLine("InventoryOptimizerContribution: " + InventoryOptimizerContributionChecks.Run());
 Console.WriteLine("InventoryArtifactIntent: " +
     InventoryArtifactIntentEditorChecks.Run());
 InventoryPriorityQueueChecks.Run();

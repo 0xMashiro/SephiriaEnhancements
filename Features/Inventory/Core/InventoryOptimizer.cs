@@ -215,19 +215,11 @@ namespace SephiriaEnhancements.Inventory
                 currentScore = bestScore;
             }
 
-            ProjectedInventorySettlement bestSettlement =
-                InventorySettlementProjector.Evaluate(snapshot, current);
-            InventoryOptimizationOutcome outcome =
-                InventoryOptimizationOutcomeBuilder.Build(snapshot,
-                    currentSettlement, bestSettlement, initialScore,
-                    currentScore);
-            return new InventoryOptimizationProposal(true, current, initialScore,
-                currentScore, candidateEvaluations, Array.Empty<string>(), policy,
-                scorer.EvaluateTargets(currentSettlement, bestSettlement),
+            return new InventoryOptimizationRequest(snapshot, policy, budget).
+                CreateProposal(current, candidateEvaluations,
                 terminationReason, elapsed.ElapsedMilliseconds,
                 duplicateLayoutsSkipped:
-                    evaluatedLayouts.DuplicateLayoutsSkipped,
-                outcome: outcome);
+                    evaluatedLayouts.DuplicateLayoutsSkipped);
         }
 
         private static bool TrySearchSwapAndStoneTabletRotationNeighborhood(

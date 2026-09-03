@@ -217,6 +217,9 @@ canonical term across code and player text, and add a portable model check when 
 can be tested without private game assemblies. Never commit game files, generated API
 stubs, decompiled sources, logs, local paths, or build output.
 
+For inventory search algorithms, see the [strategy contribution guide](Features/Inventory/CONTRIBUTING.md),
+including a working multistart strategy and reusable portable contract checks.
+
 ## License
 
 Sephiria Enhancements is released under the [MIT License](./LICENSE).

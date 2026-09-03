@@ -186,9 +186,11 @@ namespace SephiriaEnhancements.Runtime
 
         private static BossSpawner FindContinuation(BossSpawner source)
         {
-            UnitAI_BossBasic bossAI = source.NetworkbossAI;
+            // This native boss hands off to a second spawner. AI.Environment is
+            // assigned on the server; the spawner's Awake binds it on both peers.
+            if (!(source.NetworkbossAI is UnitAI_QQBoss)) return null;
             BossEnvironment_QQBoss environment =
-                bossAI?.Environment as BossEnvironment_QQBoss;
+                source.BossEnvironment as BossEnvironment_QQBoss;
             BossSpawner continuation = environment?.qqqBossSpawner;
             return continuation != null && continuation != source
                 ? continuation

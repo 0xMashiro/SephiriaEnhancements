@@ -146,6 +146,8 @@ Current-floor totals accumulate damage, damage types, defeated enemy types and l
 final blows recorded by this client on the current floor, including during active
 combat. **Battle average DPS = recorded damage ÷ accumulated battle time**. All players
 share that time; idle exploration, actual pauses and paused boss phases add no time.
+Boss phase transitions keep one combined encounter report. The report appears only
+after the final phase ends, once menus and cutscenes allow it to be shown.
 Boss-only display still records ordinary combat for the floor tab. Opening, closing,
 hiding or switching pages does not reset totals. Travel within the same floor preserves
 them; entering a different floor, replacing/disconnecting the local player, normally

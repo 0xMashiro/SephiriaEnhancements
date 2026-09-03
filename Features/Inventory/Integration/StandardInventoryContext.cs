@@ -69,11 +69,7 @@ namespace SephiriaEnhancements.Inventory
             out UI_CharacterStatusPanel panel)
         {
             UIManager manager = UIManager.Instance;
-            panel = manager?.GetElement<UI_CharacterStatusPanel>();
-            if (panel == null || !panel.IsOpened ||
-                panel.CanvasGroup != null && !panel.CanvasGroup.interactable ||
-                panel.InventoryMode !=
-                    UI_CharacterStatusPanel.EInventoryMode.None)
+            if (!NativeInventoryOptimizationContext.TryGetOpenPanel(out panel))
             {
                 return false;
             }
@@ -81,7 +77,7 @@ namespace SephiriaEnhancements.Inventory
             // Native integration boundary: these companion panels open the
             // character inventory in a shifted contextual layout while leaving
             // EInventoryMode at None. That state is not the ordinary inventory
-            // and must never expose or execute inventory optimization.
+            // and must not expose the inventory optimization HUD.
             return manager.GetElement<UI_SephiriteRewardPanel>()?.IsOpened !=
                     true &&
                 manager.GetElement<UI_ShopPanel>()?.IsOpened != true &&

@@ -36,8 +36,8 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.Inventory.Unsupported";
         internal const string Changed =
             "SephiriaEnhancements.Inventory.Changed";
-        internal const string InventoryClosed =
-            "SephiriaEnhancements.Inventory.InventoryClosed";
+        internal const string OptimizationUnavailable =
+            "SephiriaEnhancements.Inventory.OptimizationUnavailable";
         internal const string GameplayContextChanged =
             "SephiriaEnhancements.Inventory.GameplayContextChanged";
         internal const string ApplyTimedOut =
@@ -209,7 +209,7 @@ namespace SephiriaEnhancements.Inventory
             PositionEffectsUnavailable,
             PositionEffectObservationUnavailableOnClient,
             Changed,
-            InventoryClosed,
+            OptimizationUnavailable,
             GameplayContextChanged,
             ApplyTimedOut,
             Failed,

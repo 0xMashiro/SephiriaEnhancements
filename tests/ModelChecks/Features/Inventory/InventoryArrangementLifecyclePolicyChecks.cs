@@ -19,7 +19,7 @@ internal static class InventoryArrangementLifecyclePolicyChecks
             (InventoryArrangementOperationPhase.Searching, false, true, true, true,
                 true, InventoryArrangementInvalidationReason.FeatureDisabled),
             (InventoryArrangementOperationPhase.Searching, true, false, true, true,
-                true, InventoryArrangementInvalidationReason.StandardInventoryClosed),
+                true, InventoryArrangementInvalidationReason.InventoryOptimizationUnavailable),
             (InventoryArrangementOperationPhase.Searching, true, true, false, true,
                 true, InventoryArrangementInvalidationReason.GameplayContextChanged),
             (InventoryArrangementOperationPhase.Searching, true, true, true, false,

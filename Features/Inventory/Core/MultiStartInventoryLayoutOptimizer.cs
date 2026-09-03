@@ -8,8 +8,7 @@ using System.Threading;
 
 namespace SephiriaEnhancements.Inventory
 {
-    // A source-level example of a strategy composed with the existing optimizer.
-    // The warm-up receives the original budget; restarts only spend what remains.
+    // The initial search and restarts share one budget. Proven optima return immediately.
     internal sealed class MultiStartInventoryLayoutOptimizer : IInventoryLayoutOptimizer
     {
         private const int StepsPerStart = 128;
@@ -42,7 +41,7 @@ namespace SephiriaEnhancements.Inventory
             var elapsed = Stopwatch.StartNew();
             proposal = InventoryOptimizer.Solve(request.Snapshot, request.Policy,
                 request.Budget, cancellationToken);
-            if (proposal.CurrentScore == null) return true;
+            if (proposal.CurrentScore == null || proposal.OptimalityProven) return true;
 
             InventorySnapshot snapshot = request.Snapshot;
             InventorySearchBudget budget = request.Budget;

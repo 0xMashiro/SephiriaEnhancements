@@ -26,6 +26,15 @@ internal static class InventoryAdditiveScoreBoundChecks
                         Require(result.OptimalityProven && result.CandidateEvaluations == 1 && !result.Improved &&
                             result.BestScore.CompareTo(exact.BestScore) == 0 && result.SearchStages.Count == 0,
                             "every certificate must match the exhaustive optimum, including movement and overflow");
+                        var deepPolicy = InventoryOptimizationPolicyResolver.Resolve(snapshot,
+                            InventoryOptimizationPreferences.Default.WithExecutionSettings(InventorySearchEffort.Thorough, true));
+                        var deepRequest = new InventoryOptimizationRequest(snapshot, deepPolicy,
+                            new InventorySearchBudget(8, 200, 0, false));
+                        Require(new MultiStartInventoryLayoutOptimizer().TryOptimize(deepRequest, default, out var deepResult) &&
+                            deepResult.OptimalityProven && deepResult.CandidateEvaluations == 1 &&
+                            deepResult.TerminationReason == InventorySearchTerminationReason.ScoreUpperBoundReached &&
+                            deepResult.Layout.ContentEquals(result.Layout) && deepResult.BestScore.CompareTo(exact.BestScore) == 0,
+                            "deep search must retain the proven optimum without spending restart evaluations");
                     }
                     else Require(result.BestScore.CompareTo(exact.BestScore) == 0, "ordinary search remains available below the upper bound");
                 }

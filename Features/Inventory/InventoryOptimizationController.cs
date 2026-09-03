@@ -22,6 +22,8 @@ namespace SephiriaEnhancements.Inventory
             new InventoryOptimizationHud();
         private readonly NativeInventoryItemSelectionView prioritySelectionView =
             new NativeInventoryItemSelectionView();
+        private readonly Integration.NativeRewardComboHighlightView rewardComboHighlights =
+            new Integration.NativeRewardComboHighlightView();
         private RuntimeKernel runtimeKernel;
         private Integration.Gpu.GpuInventoryLayoutOptimizer gpuOptimizer;
         private CancellationTokenSource solveCancellation;
@@ -74,6 +76,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal void ResetGameplayContext()
         {
+            rewardComboHighlights.Clear();
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             ResetOptimizationFrameMetrics();
 #endif
@@ -89,6 +92,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal void Shutdown()
         {
+            rewardComboHighlights.Clear();
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             ResetOptimizationFrameMetrics();
 #endif
@@ -130,6 +134,7 @@ namespace SephiriaEnhancements.Inventory
             InventorySnapshot hudSnapshot = null;
             runtimeKernel?.TryGetLatestInventorySnapshot(out hudSnapshot,
                 out RuntimeStateSnapshot _);
+            rewardComboHighlights.Update(EnhancementsSettings.Enabled, hudSnapshot);
             MaintainPriorityMarking();
             RefreshPriorityMarkVisuals();
             InventoryOptimizationPreferences explorationIntent =
@@ -566,7 +571,7 @@ namespace SephiriaEnhancements.Inventory
             }
             if (!TryGetOpenInventory(out GridInventory current))
             {
-                ShowMessage(InventoryOptimizationLocalization.InventoryClosed);
+                ShowMessage(InventoryOptimizationLocalization.OptimizationUnavailable);
                 ResetOperationState();
                 return;
             }
@@ -813,7 +818,7 @@ namespace SephiriaEnhancements.Inventory
                 ResetOperationState();
                 return true;
             }
-            bool standardInventoryOpen = TryGetOpenInventory(
+            bool inventoryOptimizationAvailable = TryGetOpenInventory(
                 out GridInventory currentInventory);
             RuntimeStateSnapshot currentRuntime = runtimeKernel?.State;
             bool gameplayContextMatches = currentRuntime != null &&
@@ -823,13 +828,13 @@ namespace SephiriaEnhancements.Inventory
                 currentRuntime.PlayerNetId == sourceRuntime.PlayerNetId;
             bool inventoryRevisionMatches = gameplayContextMatches &&
                 currentRuntime.InventoryRevision == sourceRuntime.InventoryRevision;
-            bool sourceLayoutMatches = standardInventoryOpen &&
+            bool sourceLayoutMatches = inventoryOptimizationAvailable &&
                 sourceSnapshot != null &&
                 MatchesInventory(sourceSnapshot, currentInventory);
             InventoryArrangementInvalidationReason reason =
                 InventoryArrangementLifecyclePolicy.Evaluate(
                     InventoryArrangementOperationPhase.Searching,
-                    EnhancementsSettings.Enabled, standardInventoryOpen,
+                    EnhancementsSettings.Enabled, inventoryOptimizationAvailable,
                     gameplayContextMatches, inventoryRevisionMatches,
                     sourceLayoutMatches);
             if (reason == InventoryArrangementInvalidationReason.None)
@@ -865,10 +870,7 @@ namespace SephiriaEnhancements.Inventory
 
         private static bool TryGetOpenInventory(out GridInventory inventory)
         {
-            // Native UI state and contextual companion-panel checks stay in
-            // StandardInventoryContext so this controller only operates on the
-            // game's ordinary inventory layout.
-            return StandardInventoryContext.TryGetOpenInventory(
+            return NativeInventoryOptimizationContext.TryGetOpenInventory(
                 out inventory);
         }
 

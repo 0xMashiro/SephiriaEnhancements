@@ -13,7 +13,7 @@ namespace SephiriaEnhancements.Inventory
     {
         None,
         FeatureDisabled,
-        StandardInventoryClosed,
+        InventoryOptimizationUnavailable,
         GameplayContextChanged,
         InventoryStateChanged,
         InventoryLayoutChanged
@@ -32,7 +32,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal static InventoryArrangementInvalidationReason Evaluate(
             InventoryArrangementOperationPhase phase, bool featureEnabled,
-            bool standardInventoryOpen, bool gameplayContextMatches,
+            bool inventoryOptimizationAvailable, bool gameplayContextMatches,
             bool sourceInventoryRevisionMatches,
             bool sourceLayoutMatches)
         {
@@ -44,10 +44,10 @@ namespace SephiriaEnhancements.Inventory
             {
                 return InventoryArrangementInvalidationReason.FeatureDisabled;
             }
-            if (!standardInventoryOpen)
+            if (!inventoryOptimizationAvailable)
             {
                 return InventoryArrangementInvalidationReason.
-                    StandardInventoryClosed;
+                    InventoryOptimizationUnavailable;
             }
             if (!gameplayContextMatches)
             {

@@ -28,6 +28,9 @@ if (args.Contains("--inventory-gpu-only"))
 KeyboardPointerOwnershipChecks.Run();
 if (args.Contains("--keyboard-pointer-only")) return;
 
+RewardComboHighlightChecks.Run();
+if (args.Contains("--reward-combo-only")) return;
+
 if (args.Contains("--combat-targeting-only"))
 {
     CombatTargetingChecks.Run();

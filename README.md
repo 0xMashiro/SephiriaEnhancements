@@ -85,7 +85,13 @@ the game's pause rules, including in co-op.
 ### Backpack arrangement (experimental)
 
 Open your backpack and press `F8` or click the arrange button. It only runs when you ask it to.
+The shortcut also works while reward or shop panels are open, as long as your backpack allows normal item movement.
+The arrangement HUD only appears when the backpack is open on its own. Finish item selection or place any held item before arranging.
 Start with **Automatic**; you can also choose the game's artifact-level arrangement.
+
+When choosing reward cards beside your backpack, a gold underline marks artifacts whose possible combo categories
+match the favorites in your selected, enabled game preset and have not reached their highest combo tier.
+The marker updates as your inventory or preset changes; it does not guarantee a combo increase after placement.
 
 To guide the Mod's arrangement, put artifacts you want active in the **priority queue**, with the most
 important first. Put artifacts you would rather keep inactive in the **exclusion area**. Click or drag

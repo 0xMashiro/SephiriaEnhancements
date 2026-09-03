@@ -19,9 +19,13 @@ namespace SephiriaEnhancements.Integration
         private static bool Prefix(UIInputModule __instance)
         {
             // CloseControl is the game's menu command, distinct from UI/Cancel.
-            // Consume it before native menu opening, only when it dismisses a report.
+            // Target switching also dismisses statistics using its current bindings.
+            // Consume input before native menu opening, only when statistics close.
             return __instance != UIInputModule.current ||
-                __instance.closeControlAction?.action?.WasPressedThisFrame() != true ||
+                (__instance.closeControlAction?.action?.WasPressedThisFrame() != true &&
+                    !NativeInputActions.WasPressed(
+                        PlayerInputController.Instance?.playerInput?.actions,
+                        ModShortcuts.SwitchLockedTarget)) ||
                 controller == null || (!controller.TryCloseStatisticsBrowser() &&
                     !controller.TryDismissPresentedReport());
         }
@@ -29,7 +33,13 @@ namespace SephiriaEnhancements.Integration
         internal static string BindingLabel()
         {
             if (!IsAvailable) return string.Empty;
-            return BindingLabel(UIInputModule.current?.closeControlAction?.action);
+            string menu = BindingLabel(UIInputModule.current?.closeControlAction?.action);
+            string targetSwitch = BindingLabel(NativeInputActions.FindShortcut(
+                PlayerInputController.Instance?.playerInput?.actions,
+                ModShortcuts.SwitchLockedTarget));
+            if (string.IsNullOrEmpty(menu)) return targetSwitch;
+            if (string.IsNullOrEmpty(targetSwitch) || targetSwitch == menu) return menu;
+            return menu + " / " + targetSwitch;
         }
 
         internal static string BindingLabel(InputAction action)

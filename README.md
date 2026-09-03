@@ -56,7 +56,7 @@ The table shows defaults; on-screen hints follow your current bindings.
 | Show/hide the current-floor map overlay | `M` |
 | View statistics outside combat | Tap `F7`, or choose **View statistics** in the pause menu |
 | Hide/restore the damage display | Hold `F7` for half a second; recording continues |
-| Close a visible battle report | `Esc`, or Start/Menu on gamepad; press again to open the pause menu |
+| Close a visible battle report | `L` or middle mouse button (current target-switch binding), `Esc`, or Start/Menu on gamepad; pressing `Esc` or Start/Menu again opens the pause menu |
 | Arrange your open backpack | `F8`, or click the arrange button |
 | Switch settings tabs | `Tab` / `Shift+Tab` |
 

@@ -90,6 +90,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
             issue.StartsWith("SnapshotItemIdentityDuplicate:", StringComparison.Ordinal));
         internal bool HasPositionEffectIssue => Issues.Any(issue =>
             issue.StartsWith("PositionEffect", StringComparison.Ordinal));
+        internal bool PositionEffectObservationUnavailableOnClient => Issues.Contains(
+            InventoryPositionEffectsSnapshot.ObservationUnavailableOnClient);
         internal bool CurrentLayoutVerified =>
             Has(InventorySettlementCapabilities.SnapshotShapeVerified) &&
             Has(InventorySettlementCapabilities.BaselineState) &&

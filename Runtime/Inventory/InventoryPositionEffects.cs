@@ -114,6 +114,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
     internal sealed class InventoryPositionEffectsSnapshot
     {
+        internal const string ObservationUnavailableOnClient = "PositionEffectObservationUnavailableOnClient";
         internal static readonly InventoryPositionEffectsSnapshot Empty = new(null, null, null, null);
 
         internal InventoryPositionEffectsSnapshot(InventoryPositionEffectRule[] rules,

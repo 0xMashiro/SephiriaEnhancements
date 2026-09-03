@@ -62,6 +62,15 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                             continue;
                         }
                         if (type != ruleType) throw new InvalidOperationException("Unmodeled effect subclass: " + type.Name);
+                        // Native effect caches are updated by server callbacks and are not
+                        // synchronized. A client cannot use their defaults as observations,
+                        // even when the source effect is currently disabled.
+                        if (!inventory.isServer)
+                        {
+                            if (!issues.Contains(InventoryPositionEffectsSnapshot.ObservationUnavailableOnClient))
+                                issues.Add(InventoryPositionEffectsSnapshot.ObservationUnavailableOnClient);
+                            continue;
+                        }
                         var rule = CaptureRule(artifact, source, Kinds[ruleType.Name]);
                         rules.Add(rule);
                         CaptureObserved(item.Charm, rule, nativeItems, keys, observed);

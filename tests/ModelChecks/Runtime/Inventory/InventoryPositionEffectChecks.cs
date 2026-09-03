@@ -14,8 +14,9 @@ internal static class InventoryPositionEffectChecks
         HalfBoardModes();
         DependencyChain();
         InvalidAndChangedParameters();
+        UnavailableClientObservation();
         MixedSearchBudget();
-        return "9 effect kinds; runtime parameters; native-state mismatch; benefit preservation; inactive targets; dependency chains and cycles passed";
+        return "9 effect kinds; runtime parameters; native-state mismatch; unavailable client observations; benefit preservation; inactive targets; dependency chains and cycles passed";
     }
 
     private static void NeighborDamageAndOptimization()
@@ -209,6 +210,39 @@ internal static class InventoryPositionEffectChecks
         var failure = Board(2, new int[2], new[] { 0, 1 }, Array.Empty<InventoryPositionEffectRule>(),
             Array.Empty<InventoryPositionEffectValue>(), issues: new[] { "PositionEffectCaptureUnavailable:MissingFieldException" });
         Check(!failure.SettlementValidation.LayoutProjectionReady, "capture failure cannot become empty supported model");
+    }
+
+    private static void UnavailableClientObservation()
+    {
+        foreach (bool enabled in new[] { false, true })
+        {
+            // No observation is available, rather than an observed zero effect.
+            var snapshot = Board(2, new[] { enabled ? 1 : -1, 0 }, new[] { 0, 1 },
+                Array.Empty<InventoryPositionEffectRule>(), Array.Empty<InventoryPositionEffectValue>(),
+                issues: new[] { InventoryPositionEffectsSnapshot.ObservationUnavailableOnClient });
+            var validation = snapshot.SettlementValidation;
+            Check(validation.PositionEffectObservationUnavailableOnClient && validation.HasPositionEffectIssue &&
+                !validation.CurrentLayoutVerified && !validation.LayoutProjectionReady,
+                "missing client observation must reject both active and inactive effect sources");
+            Check(!validation.Issues.Any(issue => issue.StartsWith("PositionEffectMismatch:", StringComparison.Ordinal)),
+                "missing client observation must not be reported as a native-state mismatch");
+            Check(!InventorySettlementProjector.Evaluate(snapshot, InventoryLayoutProjection.Current(snapshot)).Succeeded,
+                "missing client observations must never enter the solver as an empty verified model");
+            Check(InventoryOptimizationLocalization.PositionEffectFailureMessage(validation) ==
+                InventoryOptimizationLocalization.PositionEffectObservationUnavailableOnClient,
+                "client observation limitation must have its own player message");
+            Check(!InventoryPositionEffectComparison.ParametersMatch(snapshot.PositionEffects, snapshot.PositionEffects),
+                "unavailable observations must invalidate an in-flight application");
+        }
+        var noEffects = Board(2, new int[2], new[] { 0, 1 },
+            Array.Empty<InventoryPositionEffectRule>(), Array.Empty<InventoryPositionEffectValue>());
+        RequireReady(noEffects);
+        var mismatch = new InventorySettlementValidationSnapshot(InventorySettlementCapabilities.None,
+            new[] { "PositionEffectMismatch:source" });
+        Check(!mismatch.PositionEffectObservationUnavailableOnClient &&
+            InventoryOptimizationLocalization.PositionEffectFailureMessage(mismatch) ==
+                InventoryOptimizationLocalization.PositionEffectsUnavailable,
+            "an actual mismatch must remain distinct from unavailable client observations");
     }
 
     private static void MixedSearchBudget()

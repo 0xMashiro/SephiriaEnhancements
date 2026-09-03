@@ -26,6 +26,8 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.Inventory.ItemIdentityConflict";
         internal const string PositionEffectsUnavailable =
             "SephiriaEnhancements.Inventory.PositionEffectsUnavailable";
+        internal const string PositionEffectObservationUnavailableOnClient =
+            "SephiriaEnhancements.Inventory.PositionEffectObservationUnavailableOnClient";
         internal const string Unsupported =
             "SephiriaEnhancements.Inventory.Unsupported";
         internal const string Changed =
@@ -139,6 +141,10 @@ namespace SephiriaEnhancements.Inventory
         internal static string FormatArtifactMinimumLevel(int level, Func<string, string> localize) =>
             level == 0 ? localize(HudEnabled) : string.Format(localize(HudMinimumLevel), level);
 
+        internal static string PositionEffectFailureMessage(InventorySettlementValidationSnapshot validation) =>
+            validation.PositionEffectObservationUnavailableOnClient
+                ? PositionEffectObservationUnavailableOnClient : PositionEffectsUnavailable;
+
         private static readonly string[] Languages =
         {
             "en-US", "zh-CN", "zh-TW", "ko-KR", "ja-JP", "de-DE",
@@ -202,6 +208,11 @@ namespace SephiriaEnhancements.Inventory
                     : traditionalChinese
                         ? "無法驗證物品的位置效果，已停止最佳化。"
                         : "Item position effects could not be verified. Optimization stopped.");
+                addText(language, PositionEffectObservationUnavailableOnClient, simplifiedChinese
+                    ? "当前背包含有需要房主端验证的位置效果，暂不支持非房主玩家优化此背包。"
+                    : traditionalChinese
+                        ? "目前背包含有需要房主端驗證的位置效果，暫不支援非房主玩家最佳化此背包。"
+                        : "This inventory contains position effects that require host-side verification. Optimizing it as a non-host player is not yet supported.");
                 addText(language, Changed, simplifiedChinese
                     ? "背包状态已经变化，本次优化已取消。"
                     : traditionalChinese

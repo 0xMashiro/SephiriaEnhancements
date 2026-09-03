@@ -103,6 +103,9 @@ remaining display time; manually opened reports resume without a timeout.
   of negative stats, so some upgrades with additional costs may be rejected.
   Unreadable or unverifiable mechanics stop optimization. Refresh order for multiple
   sources of the same-row companion mode is not yet supported.
+  Position-effect observations are only available on the host. Non-host players
+  cannot currently optimize inventories containing these effects, including inactive
+  sources; inventories without them remain subject to the other checks above.
 - Defeat retry restores the selected floor-entry or BOSS checkpoint. Online use requires
   Sephiria's rejoin/midsave support.
 - Mid-run access is host-controlled. New players receive new characters and save slots;

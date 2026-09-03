@@ -293,9 +293,9 @@ namespace SephiriaEnhancements.Inventory
                 nonNegativeValue * TargetCompletionScale / minimumValue);
         }
 
+        // Level zero is a working artifact, and must outrank an inactive one
+        // within its queue slot even when its upgrade target is out of reach.
         private static int CalculateArtifactCompletionPoints(bool active, int currentValue, int minimumValue) =>
-            // Level zero is a working artifact, and must outrank an inactive one
-            // within its queue slot even when its upgrade target is out of reach.
             Math.Max(active ? 1 : 0, CalculateTargetCompletionPoints(active, currentValue, minimumValue));
 
         private static (bool Reached, int CompletionPoints) EvaluateComboTarget(

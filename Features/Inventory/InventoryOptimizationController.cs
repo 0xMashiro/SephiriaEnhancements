@@ -23,6 +23,7 @@ namespace SephiriaEnhancements.Inventory
         private readonly NativeInventoryItemSelectionView prioritySelectionView =
             new NativeInventoryItemSelectionView();
         private RuntimeKernel runtimeKernel;
+        private Integration.Gpu.GpuInventoryLayoutOptimizer gpuOptimizer;
         private CancellationTokenSource solveCancellation;
         private Task<InventoryOptimizationProposal> solveTask;
         private InventorySnapshot sourceSnapshot;
@@ -51,6 +52,8 @@ namespace SephiriaEnhancements.Inventory
         internal void Initialize(RuntimeKernel kernel)
         {
             runtimeKernel = kernel;
+            gpuOptimizer = new Integration.Gpu.GpuInventoryLayoutOptimizer();
+            InventoryOptimizerRegistry.Register(gpuOptimizer);
             PersistentInventoryOptimizationPolicyPersistence.EnsureLoaded();
             InventoryArtifactIntentClickPatch.SetController(this);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
@@ -67,6 +70,9 @@ namespace SephiriaEnhancements.Inventory
 
         internal void ResetGameplayContext()
         {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            ResetOptimizationFrameMetrics();
+#endif
             EndPriorityMarking();
             ResetOperationState();
             LastAppliedOutcome = null;
@@ -78,6 +84,12 @@ namespace SephiriaEnhancements.Inventory
 
         internal void Shutdown()
         {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            ResetOptimizationFrameMetrics();
+#endif
+            InventoryOptimizerRegistry.Unregister(gpuOptimizer);
+            gpuOptimizer?.Dispose();
+            gpuOptimizer = null;
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             reproductionLog?.Dispose();
             PumpReproductionLog();
@@ -105,6 +117,7 @@ namespace SephiriaEnhancements.Inventory
         private void Update()
         {
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            SampleOptimizationFrame();
             PumpReproductionLog();
             HandleReproductionCapture();
 #endif

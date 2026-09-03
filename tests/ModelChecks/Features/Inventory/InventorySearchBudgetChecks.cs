@@ -37,6 +37,7 @@ internal static class InventorySearchBudgetChecks
         VerifyBestCandidateSurvivesBudget();
         VerifyAdditionalBudgetPreservesQuality();
         VerifyFinalRoundComparesCompoundCandidates();
+        InventoryBatchEvaluationChecks.Run();
         Console.WriteLine("InventorySearchBudget: limits, best-candidate retention and increasing-budget quality passed");
     }
 

@@ -19,6 +19,12 @@ using SephiriaEnhancements.ModelChecks.Runtime.GameBridge.Multiplayer;
 using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 
+if (args.Contains("--inventory-gpu-only"))
+{
+    InventoryGpuChecks.Run();
+    return;
+}
+
 KeyboardPointerOwnershipChecks.Run();
 if (args.Contains("--keyboard-pointer-only")) return;
 

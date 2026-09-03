@@ -11,6 +11,11 @@
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="../../Features/Inventory/Integration/Gpu/*.cs"
+             Exclude="../../Features/Inventory/Integration/Gpu/GpuInventoryLayoutOptimizer.cs"
+             Link="Inventory/Gpu/%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="..\..\Configuration\LocalizationLanguages.cs" Link="Configuration/LocalizationLanguages.cs" />
     <Compile Include="..\..\Configuration\ModLocalization.cs" Link="Configuration/ModLocalization.cs" />
     <Compile Include="..\..\Configuration\ControlLocalization.cs" Link="Configuration/ControlLocalization.cs" />

@@ -33,7 +33,7 @@ namespace SephiriaEnhancements.Inventory
             this.elapsed = elapsed;
             this.cancellationToken = cancellationToken;
             this.batchEvaluator = batchEvaluator;
-            batchSize = batchEvaluator?.BatchSize ?? 64;
+            batchSize = batchEvaluator?.BatchSize ?? 256;
             pending = new List<(InventoryLayoutProjection Layout, int Index)>(batchSize);
             unique = new List<InventoryLayoutProjection>(batchSize);
             scores = new InventoryOptimizationScore[batchSize];
@@ -69,8 +69,8 @@ namespace SephiriaEnhancements.Inventory
                     indexes.Clear();
                     // A submitted batch is indivisible: every evaluated candidate counts and
                     // participates in selection before a first-improvement branch resumes.
-                    int capacity = firstImprovement && batchEvaluator == null ? 1 : Math.Min(batchSize,
-                            Math.Max(1, budget.MaximumCandidateEvaluations - CandidateEvaluations));
+                    int capacity = Math.Min(batchSize,
+                        Math.Max(1, budget.MaximumCandidateEvaluations - CandidateEvaluations));
                     while (pending.Count < capacity)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -125,7 +125,6 @@ namespace SephiriaEnhancements.Inventory
                             bestLayout = layout;
                             bestScore = score;
                         }
-                        if (firstImprovement && batchEvaluator == null && bestScore.CompareTo(startingScore) > 0) return true;
                     }
                     if (firstImprovement && bestScore.CompareTo(startingScore) > 0) return true;
                 }
@@ -141,7 +140,7 @@ namespace SephiriaEnhancements.Inventory
         private void EvaluateBatch()
         {
             if (unique.Count == 0) return;
-            if (batchEvaluator != null && unique.Count > 1)
+            if (batchEvaluator != null)
             {
                 batchEvaluator.Evaluate(unique, scores, TargetEvidence, cancellationToken);
                 CandidateEvaluations += unique.Count;

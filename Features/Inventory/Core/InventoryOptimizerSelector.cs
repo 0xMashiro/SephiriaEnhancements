@@ -98,6 +98,11 @@ namespace SephiriaEnhancements.Inventory
             }
         }
 
+        internal static void Unregister(IInventoryLayoutOptimizer optimizer)
+        {
+            lock (Gate) Optimizers.Remove(optimizer);
+        }
+
         internal static IInventoryLayoutOptimizer[] Capture()
         {
             lock (Gate)

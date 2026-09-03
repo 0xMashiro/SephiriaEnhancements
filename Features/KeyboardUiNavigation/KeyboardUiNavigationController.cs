@@ -36,7 +36,8 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
 
             InitializePendingSelection();
-            SwitchCombinedPanelWithTab();
+            if (!OptionsKeyboardNavigation.SwitchTab())
+                SwitchCombinedPanelWithTab();
             RestoreMissingKeyboardSelection();
         }
 
@@ -70,10 +71,8 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         internal static void ApplyNativeSelectionPolicy(
             ControlsChangeHandler controls)
         {
-            // Keyboard&Mouse must remain pointer-owned until the player sends
-            // an actual navigation command. Keeping this native switch enabled
-            // makes the game immediately reselect a panel default after the
-            // pointer clears focus.
+            // Keep global automatic reselection disabled. Menu entry focus is
+            // supplied separately; other panels recover on navigation intent.
             SetKeyboardDefaultSelection(controls, false);
         }
 
@@ -93,7 +92,8 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         private void InitializePendingSelection()
         {
             UIBase panel = pendingPanel;
-            if (panel == null || !panel.IsOpened)
+            if (panel == null || !panel.IsOpened ||
+                (panel.hasControl && !panel.IsControlEnabled))
             {
                 ClearPendingSelection();
                 return;

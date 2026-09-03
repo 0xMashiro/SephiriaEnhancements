@@ -6,6 +6,26 @@ using UnityEngine.EventSystems;
 
 namespace SephiriaEnhancements.KeyboardUiNavigation
 {
+    [HarmonyPatch(typeof(UIBase), nameof(UIBase.Enable))]
+    internal static class MenuKeyboardSelectionPatch
+    {
+        private static void Postfix(UIBase __instance)
+        {
+            // Enable also runs when a child menu closes and returns control.
+            if (__instance is UI_PausePanel &&
+                KeyboardUiNavigationController.IsKeyboardModeActive())
+            {
+                KeyboardUiNavigationController.RequestSelection(__instance,
+                    __instance.defaultSelectable);
+            }
+            else if (__instance is UI_OptionsPanel options &&
+                KeyboardUiNavigationController.IsKeyboardModeActive())
+            {
+                OptionsKeyboardNavigation.RequestEntry(options);
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(UIBase), nameof(UIBase.Open))]
     internal static class MessageBoxKeyboardInitialSelectionPatch
     {

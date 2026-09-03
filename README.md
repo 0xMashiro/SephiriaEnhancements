@@ -83,6 +83,10 @@ Sephiria\
 
 ## Controls
 
+With keyboard controls, the pause menu and settings select an available entry when they gain control.
+In settings, up/down navigation stays within the current page's available settings, left/right retains
+native value editing, and `Tab` / `Shift+Tab` switches the top-level tabs.
+
 Bindings appear under `SEPHIRIA ENHANCEMENTS SHORTCUTS` in Sephiria's keyboard and
 gamepad controls.
 

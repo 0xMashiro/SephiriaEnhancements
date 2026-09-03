@@ -10,7 +10,7 @@ using SephiriaEnhancements.CombatTargeting;
 using SephiriaEnhancements.ViewDistance;
 using SephiriaEnhancements.NativeCompanion;
 using SephiriaEnhancements.MapEnhancements;
-using SephiriaEnhancements.BossHealthDisplay;
+using SephiriaEnhancements.ResourceBarValues.Integration;
 using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Inventory;
 using SephiriaEnhancements.DeveloperConsole;
@@ -186,7 +186,11 @@ namespace SephiriaEnhancements
                 typeof(NativeSeedBossEncounterDefeatedPatch),
                 typeof(NativeSeedBossEncounterCompletionStartedPatch),
                 typeof(NativeSeedBossEncounterCompletedPatch),
-                typeof(BossHealthValuePatch),
+                typeof(NativeBossBarValuesPatch),
+                typeof(NativeUnitBarValuesPatch),
+                typeof(NativePropBarValuesPatch),
+                typeof(NativePlayerBarValuesPatch),
+                typeof(NativeManaBarValuesPatch),
                 typeof(SephiriaEnhancements.Configuration.OptionsPanelPatch),
                 typeof(SephiriaEnhancements.Configuration.NativeControlOptionsClosedPatch),
                 typeof(CombatVisualOptionReadPatch),
@@ -362,7 +366,7 @@ namespace SephiriaEnhancements
             DamageDetailCapture.SetController(null);
             UnitDeathCapture.SetController(null);
             LocalFinalBlowCapture.SetController(null);
-            BossHealthValueFeature.DisposeAll();
+            NativeResourceBarValueView.DisposeAll();
             harmony?.UnpatchAll(HarmonyId);
             harmony = null;
             multiplayerRulesCompatibilityAvailable = false;

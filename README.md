@@ -21,7 +21,9 @@ This is a **beta release**. Backpack arrangement is still experimental; feedback
 
 ## What it adds
 
-- **Clearer combat:** damage and DPS displays, battle reports, hit streaks, BOSS health numbers and ally/enemy outlines.
+- **Clearer combat:** damage and DPS displays, battle reports, hit streaks, health numbers on ordinary creature, miniboss and boss bars (including separate boss parts), shield and super armor values on creature bars, party members' HP, shield, MP and reserved MP values, and ally/enemy outlines.
+- Resource values follow each displayed character. `(+N)` means shield, and MP shows current / usable maximum with reserved MP listed separately, including on your own MP bar.
+- Creature numbers follow the game's existing bar visibility, including bars shown after taking damage; they do not force hidden bars to appear. Existing health bars on destructible props, including combat totems, also receive numbers.
 - **More keyboard control:** navigate menus, choose rewards and manage your backpack without reaching for the mouse.
 - **Targeting help:** automatic targeting and manual target lock, with adjustable controls.
 - **Easier exploration:** town NPC names on the map, a current-floor map overlay and adjustable camera distance.

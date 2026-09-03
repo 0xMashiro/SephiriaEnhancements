@@ -18,6 +18,10 @@ using SephiriaEnhancements.ModelChecks.Runtime.Execution;
 using SephiriaEnhancements.ModelChecks.Runtime.GameBridge.Multiplayer;
 using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
+using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
+
+ResourceBarValueChecks.Run();
+if (args.Contains("--resource-bars-only")) return;
 
 if (args.Contains("--inventory-gpu-only"))
 {

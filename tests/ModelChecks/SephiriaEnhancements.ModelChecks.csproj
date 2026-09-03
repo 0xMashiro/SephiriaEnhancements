@@ -17,6 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\Configuration\LocalizationLanguages.cs" Link="Configuration/LocalizationLanguages.cs" />
+    <Compile Include="../../Features/ResourceBarValues/Core/ResourceBarValueFormatter.cs" Link="ResourceBarValues/ResourceBarValueFormatter.cs" />
     <Compile Include="..\..\Configuration\ModLocalization.cs" Link="Configuration/ModLocalization.cs" />
     <Compile Include="..\..\Configuration\ControlLocalization.cs" Link="Configuration/ControlLocalization.cs" />
     <Compile Include="..\..\Features\Inventory\Presentation\InventoryOptimizationLocalization.Texts.cs" Link="Features/Inventory/Presentation/InventoryOptimizationLocalization.Texts.cs" />

@@ -32,7 +32,9 @@ foreach ($patch in @(
     'BossRetryPropRecipePatch', 'BossRetryPreserveFloorPatch',
     'BossEncounterRetryCheckpointPatch', 'SeedBossEncounterRetryCheckpointPatch',
     'NativeBossEncounterCompletedPatch', 'NativeBossEncounterPausedPatch',
-    'NativeBossEncounterResumedPatch'
+    'NativeBossEncounterResumedPatch', 'NativeBossBarValuesPatch',
+    'NativeUnitBarValuesPatch', 'NativePropBarValuesPatch',
+    'NativePlayerBarValuesPatch', 'NativeManaBarValuesPatch'
 )) {
     if ($patchList.Groups['types'].Value -notmatch ('typeof\(' + $patch + '\)')) {
         throw "Required combat/retry hook is missing from startup: $patch"

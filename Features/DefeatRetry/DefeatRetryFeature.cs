@@ -32,7 +32,8 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             internal RetryCheckpoint(RetryCheckpointKind kind,
                 SaveData current, SaveData currentRun, string bossName,
-                string floorGuid, Dictionary<uint, RetryPlacement> placements)
+                string floorGuid, Dictionary<uint, RetryPlacement> placements,
+                BossRetryWorld world)
             {
                 Kind = kind;
                 Current = current;
@@ -40,6 +41,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 BossName = bossName;
                 FloorGuid = floorGuid;
                 Placements = placements;
+                World = world;
             }
 
             internal RetryCheckpointKind Kind { get; }
@@ -48,6 +50,7 @@ namespace SephiriaEnhancements.DefeatRetry
             internal string BossName { get; }
             internal string FloorGuid { get; }
             internal Dictionary<uint, RetryPlacement> Placements { get; }
+            internal BossRetryWorld World { get; }
         }
 
         private static readonly FieldInfo CurrentField =
@@ -64,14 +67,13 @@ namespace SephiriaEnhancements.DefeatRetry
             AccessTools.Method(typeof(DungeonManager), "SaveCurrentSessionData",
                 new[] { typeof(string) });
 
-        private static RetryCheckpoint checkpoint;
+        private static readonly RetryCheckpoints<RetryCheckpoint> checkpoints =
+            new RetryCheckpoints<RetryCheckpoint>();
+        private static BossRetryWorld pendingWorldRestore;
         private static Dictionary<uint, RetryPlacement> pendingPlacements;
         private static string runFileName = string.Empty;
 
         internal static bool IsRetrying { get; private set; }
-
-        internal static RetryCheckpointKind CheckpointKind =>
-            checkpoint?.Kind ?? RetryCheckpointKind.None;
 
         internal static void CaptureFloorEntryCheckpoint()
         {
@@ -87,6 +89,11 @@ namespace SephiriaEnhancements.DefeatRetry
             }
 
             string floorGuid = currentRun.GetString("LastFloorGuid", string.Empty);
+            if ((checkpoints.FloorGuid == floorGuid && checkpoints.FloorEntry != null) ||
+                !AllPlayersOnFloor(floorGuid))
+            {
+                return;
+            }
             CaptureCheckpoint(RetryCheckpointKind.FloorEntry, current, currentRun,
                 string.Empty, floorGuid, CaptureCurrentPlacements(),
                 "native_run_save");
@@ -107,8 +114,8 @@ namespace SephiriaEnhancements.DefeatRetry
             bool explorationActivated = generator != null &&
                 generator.ExplorationActivated;
             bool combatThreat = floor != null && IsCombatThreat(floor.threatType);
-            bool checkpointMatchesFloor = checkpoint != null &&
-                string.Equals(checkpoint.FloorGuid, floorGuid,
+            bool checkpointMatchesFloor = checkpoints.FloorEntry != null &&
+                string.Equals(checkpoints.FloorGuid, floorGuid,
                     StringComparison.Ordinal);
             bool capture = DefeatRetryPolicy.ShouldCaptureRenderedCombatFloorFallback(
                 EnhancementsSettings.Enabled, DefeatRetrySettings.Enabled,
@@ -120,9 +127,9 @@ namespace SephiriaEnhancements.DefeatRetry
             DeveloperLogger.RecordRetryFloorEvaluation(floorGuid, floor?.name,
                 floor?.stageName, floor?.threatType.ToString(),
                 generator?.GetType().Name, explorationActivated,
-                checkpoint?.Kind.ToString() ?? RetryCheckpointKind.None.ToString(),
+                checkpoints.FloorEntry?.Kind.ToString() ?? RetryCheckpointKind.None.ToString(),
                 checkpointMatchesFloor, capture);
-            if (!capture)
+            if (!capture || !AllPlayersOnFloor(floorGuid))
             {
                 return;
             }
@@ -145,7 +152,7 @@ namespace SephiriaEnhancements.DefeatRetry
             PlayerAvatar challenger, Vector3 encounterPosition, string bossName)
         {
             CaptureBossEncounterSnapshot(challenger, encounterPosition, bossName,
-                IsBossEncounterNotStarted(boss));
+                IsBossEncounterNotStarted(boss), boss);
         }
 
         internal static void CaptureSeedBossEncounterSnapshot(SeedBossSpawner boss,
@@ -155,15 +162,22 @@ namespace SephiriaEnhancements.DefeatRetry
                 Convert.ToInt32(SeedBossSpawnStateField.GetValue(boss)) == 0;
             CaptureBossEncounterSnapshot(challenger,
                 challenger != null ? challenger.transform.position : Vector3.zero,
-                boss?.bossSocialID?.name, notStarted);
+                boss?.bossSocialID?.name, notStarted, null);
         }
 
         private static void CaptureBossEncounterSnapshot(PlayerAvatar challenger,
-            Vector3 encounterPosition, string bossName, bool encounterNotStarted)
+            Vector3 encounterPosition, string bossName, bool encounterNotStarted,
+            BossSpawner boss)
         {
             SaveData current = SaveManager.Current;
             SaveData currentRun = SaveManager.CurrentRun;
             string floorGuid = challenger?.currentFloorGuid ?? string.Empty;
+            // The first encounter snapshot owns every phase until the floor changes
+            // or the player explicitly retries the entire floor.
+            if (checkpoints.BossEncounterStarted && checkpoints.FloorGuid == floorGuid)
+            {
+                return;
+            }
             if (!DefeatRetryPolicy.ShouldCaptureBossEncounter(
                     EnhancementsSettings.Enabled, DefeatRetrySettings.Enabled,
                     IsRetrying, NetworkServer.active, current != null,
@@ -176,6 +190,13 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
 
+            // Reserve the encounter even if capture fails: a later phase cannot
+            // become a substitute "before battle" checkpoint.
+            checkpoints.BeginBoss(floorGuid, null);
+            if (checkpoints.FloorEntry == null || !AllPlayersOnFloor(floorGuid))
+            {
+                return;
+            }
             try
             {
                 SerializeCurrentSession(floorGuid);
@@ -183,7 +204,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 CaptureCheckpoint(RetryCheckpointKind.BossEncounter, current,
                     currentRun, bossName, floorGuid,
                     CaptureCurrentPlacements(floorGuid, encounterPosition),
-                    "boss_spawner");
+                    "boss_spawner", BossRetryWorld.Capture(boss));
             }
             catch (Exception ex)
             {
@@ -257,7 +278,7 @@ namespace SephiriaEnhancements.DefeatRetry
         private static void CaptureCheckpoint(RetryCheckpointKind kind,
             SaveData current, SaveData currentRun, string bossName,
             string floorGuid, Dictionary<uint, RetryPlacement> placements,
-            string source)
+            string source, BossRetryWorld world = null)
         {
             if (placements.Count == 0)
             {
@@ -268,11 +289,21 @@ namespace SephiriaEnhancements.DefeatRetry
 
             long started = Stopwatch.GetTimestamp();
             var captured = new RetryCheckpoint(kind, current.Copy(),
-                currentRun.Copy(), bossName, floorGuid, placements);
+                currentRun.Copy(), bossName, floorGuid, placements, world);
             float elapsedMilliseconds = (float)((Stopwatch.GetTimestamp() - started) *
                 1000d / Stopwatch.Frequency);
 
-            checkpoint = captured;
+            bool accepted = kind == RetryCheckpointKind.FloorEntry
+                ? checkpoints.EnterFloor(floorGuid, captured)
+                : checkpoints.BossEncounterStarted;
+            if (!accepted)
+            {
+                return;
+            }
+            if (kind == RetryCheckpointKind.BossEncounter)
+            {
+                checkpoints.CompleteBossCapture(captured);
+            }
             runFileName = captured.CurrentRun.BindedFileName ?? string.Empty;
             FloorData floor = null;
             DungeonManager.Instance?.generatedFloors.TryGetValue(floorGuid, out floor);
@@ -326,12 +357,48 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
 
-            checkpoint = null;
+            checkpoints.Clear();
+            pendingWorldRestore = null;
+            BossRetryWorld.ClearRecipes();
             pendingPlacements = null;
             runFileName = string.Empty;
         }
 
-        internal static bool CanRetry(UI_GameOverLabel panel)
+        private static bool AllPlayersOnFloor(string floorGuid)
+        {
+            if (string.IsNullOrEmpty(floorGuid) || PlayerSpawner.MultiplayerList == null ||
+                PlayerSpawner.MultiplayerList.Count == 0)
+            {
+                return false;
+            }
+            foreach (PlayerSpawner player in PlayerSpawner.MultiplayerList)
+            {
+                if (player?.PlayerAvatar == null || player.PlayerAvatar.currentFloorGuid != floorGuid)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool MatchesPlayers(RetryCheckpoint checkpoint)
+        {
+            if (checkpoint == null || !AllPlayersOnFloor(checkpoint.FloorGuid) ||
+                checkpoint.Placements.Count != PlayerSpawner.MultiplayerList.Count)
+            {
+                return false;
+            }
+            foreach (PlayerSpawner player in PlayerSpawner.MultiplayerList)
+            {
+                if (!checkpoint.Placements.ContainsKey(player.PlayerAvatar.netId))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        internal static bool CanRetry(UI_GameOverLabel panel, RetryCheckpointKind kind)
         {
             DungeonManager dungeon = DungeonManager.Instance;
             HorayNetworkManager manager = NetworkManager.singleton as HorayNetworkManager;
@@ -340,18 +407,18 @@ namespace SephiriaEnhancements.DefeatRetry
 
             return panel != null && dungeon != null && manager != null &&
                 DefeatRetryPolicy.ShouldOffer(EnhancementsSettings.Enabled,
-                    DefeatRetrySettings.Enabled, checkpoint != null,
+                    DefeatRetrySettings.Enabled, MatchesPlayers(checkpoints.Get(kind)),
                     NetworkServer.active, dungeon.isRunStarted, panel.openType,
                     dungeon.isGiveUpRun, SaveManager.IsSaving == SaveManager.ESaveState.None,
                     nativeRestarting);
         }
 
-        private static bool CanPresent(UI_GameOverLabel panel)
+        private static bool CanPresent(UI_GameOverLabel panel, RetryCheckpointKind kind)
         {
             DungeonManager dungeon = DungeonManager.Instance;
             return panel != null && dungeon != null &&
                 DefeatRetryPolicy.ShouldOffer(EnhancementsSettings.Enabled,
-                    DefeatRetrySettings.Enabled, checkpoint != null,
+                    DefeatRetrySettings.Enabled, MatchesPlayers(checkpoints.Get(kind)),
                     NetworkServer.active, dungeon.isRunStarted, panel.openType,
                     dungeon.isGiveUpRun, saveIdle: true, nativeRestarting: false);
         }
@@ -364,23 +431,37 @@ namespace SephiriaEnhancements.DefeatRetry
                 view = panel.gameObject.AddComponent<DefeatRetryButton>();
             }
 
-            bool canPresent = CanPresent(panel);
-            DungeonManager dungeon = DungeonManager.Instance;
-            DeveloperLogger.RecordRetryOfferDecision(panel?.openType ?? -1,
-                DefeatRetryPolicy.ClassifyConclusion(panel?.openType ?? -1).ToString(),
-                checkpoint?.Kind.ToString() ?? RetryCheckpointKind.None.ToString(),
-                checkpoint?.FloorGuid, checkpoint != null,
-                NetworkServer.active, dungeon?.isRunStarted == true,
-                dungeon?.isGiveUpRun == true, canPresent);
-            view?.Configure(panel, canPresent);
+            bool floor = CanPresent(panel, RetryCheckpointKind.FloorEntry);
+            bool boss = CanPresent(panel, RetryCheckpointKind.BossEncounter);
+            bool bossReady = boss && CanRestoreBossWorld();
+            view?.Configure(panel, floor, boss, bossReady);
         }
 
-        internal static void TryRetry(UI_GameOverLabel panel)
+        private static bool CanRestoreBossWorld()
         {
-            RetryCheckpoint selected = checkpoint;
-            if (!CanRetry(panel) || selected == null || CurrentField == null ||
+            try
+            {
+                return checkpoints.BossEncounter?.World?.CanRestore() == true;
+            }
+            catch (Exception ex)
+            {
+                SupportLogger.Error("retry_boss_validation_failed",
+                    "[SephiriaEnhancements] Boss retry validation failed: " + ex);
+                return false;
+            }
+        }
+
+        internal static void TryRetry(UI_GameOverLabel panel, RetryCheckpointKind kind)
+        {
+            RetryCheckpoint selected = checkpoints.Get(kind);
+            if (!CanRetry(panel, kind) || selected == null || CurrentField == null ||
                 CurrentRunField == null)
             {
+                return;
+            }
+            if (kind == RetryCheckpointKind.BossEncounter && !CanRestoreBossWorld())
+            {
+                AddButton(panel);
                 return;
             }
 
@@ -396,6 +477,12 @@ namespace SephiriaEnhancements.DefeatRetry
 
                 pendingPlacements = new Dictionary<uint, RetryPlacement>(
                     selected.Placements);
+                pendingWorldRestore = selected.World;
+                if (kind == RetryCheckpointKind.FloorEntry)
+                {
+                    checkpoints.RestartFloor();
+                    BossRetryWorld.ClearRecipes();
+                }
                 IsRetrying = true;
                 panel.button.interactable = false;
                 panel.Close();
@@ -409,6 +496,7 @@ namespace SephiriaEnhancements.DefeatRetry
             {
                 IsRetrying = false;
                 pendingPlacements = null;
+                pendingWorldRestore = null;
                 SupportLogger.Error("retry_failed", "[SephiriaEnhancements] Checkpoint retry failed: " + ex);
             }
         }
@@ -436,6 +524,13 @@ namespace SephiriaEnhancements.DefeatRetry
                     restoredCurrent.SetBool(key, true);
                 }
             }
+        }
+
+        internal static bool HasPendingPlacement(PlayerAvatar avatar)
+        {
+            return avatar != null && avatar.netIdentity != null &&
+                pendingPlacements != null &&
+                pendingPlacements.ContainsKey(avatar.netIdentity.netId);
         }
 
         internal static void ApplyPendingPlacement(PlayerAvatar avatar,
@@ -490,7 +585,19 @@ namespace SephiriaEnhancements.DefeatRetry
 
         internal static void CompleteRestart()
         {
+            pendingWorldRestore?.RecreateBoss();
+            pendingWorldRestore = null;
             IsRetrying = false;
+        }
+
+        internal static bool PreserveBossRetryWorld()
+        {
+            if (!IsRetrying || pendingWorldRestore == null)
+            {
+                return false;
+            }
+            pendingWorldRestore.RemoveEncounterObjects();
+            return true;
         }
     }
 
@@ -511,6 +618,7 @@ namespace SephiriaEnhancements.DefeatRetry
         private UI_GameOverLabel panel;
         private UI_HorayButton originalButton;
         private UI_HorayButton retryButton;
+        private UI_HorayButton bossRetryButton;
         private Transform originalParent;
         private int originalSiblingIndex;
         private RectTransform originalRect;
@@ -524,11 +632,17 @@ namespace SephiriaEnhancements.DefeatRetry
         private bool manuallyPositioned;
         private bool selectedRetry;
         private bool eligible;
+        private bool bossEligible;
+        private bool bossReady;
 
-        internal void Configure(UI_GameOverLabel owner, bool canRetry)
+        internal void Configure(UI_GameOverLabel owner, bool canRetry,
+            bool canRetryBoss, bool canRestoreBoss)
         {
+            RemoveButton();
             panel = owner;
             eligible = canRetry;
+            bossEligible = canRetryBoss;
+            bossReady = canRestoreBoss;
             if (!eligible)
             {
                 RemoveButton();
@@ -555,8 +669,19 @@ namespace SephiriaEnhancements.DefeatRetry
                 worldPositionStays: false);
             clone.name = "SephiriaEnhancements_RetryCheckpoint";
             retryButton = clone.GetComponent<UI_HorayButton>();
+            retryButton.text.enableAutoSizing = true;
             retryButton.onClick.RemoveAllListeners();
             retryButton.onClick.AddListener(OnRetryClicked);
+            if (bossEligible)
+            {
+                GameObject bossClone = UnityEngine.Object.Instantiate(
+                    originalButton.gameObject, originalParent, worldPositionStays: false);
+                bossClone.name = "SephiriaEnhancements_RetryBossEncounter";
+                bossRetryButton = bossClone.GetComponent<UI_HorayButton>();
+                bossRetryButton.text.enableAutoSizing = true;
+                bossRetryButton.onClick.RemoveAllListeners();
+                bossRetryButton.onClick.AddListener(OnBossRetryClicked);
+            }
             SetLocalizedText();
 
             LayoutGroup parentLayout = originalParent.GetComponent<LayoutGroup>();
@@ -571,6 +696,7 @@ namespace SephiriaEnhancements.DefeatRetry
 
             ConfigureNavigation();
             retryButton.gameObject.SetActive(false);
+            bossRetryButton?.gameObject.SetActive(false);
         }
 
         private void CreateActionGroup()
@@ -615,6 +741,11 @@ namespace SephiriaEnhancements.DefeatRetry
             layout.childForceExpandHeight = true;
 
             retryButton.transform.SetParent(actionGroup.transform, false);
+            if (bossRetryButton != null)
+            {
+                bossRetryButton.transform.SetParent(actionGroup.transform, false);
+                ConfigureChildLayout(bossRetryButton.gameObject, preserveState: false);
+            }
             originalButton.transform.SetParent(actionGroup.transform, false);
             ConfigureChildLayout(retryButton.gameObject, preserveState: false);
             ConfigureChildLayout(originalButton.gameObject, preserveState: true);
@@ -672,12 +803,19 @@ namespace SephiriaEnhancements.DefeatRetry
             }
 
             float width = Mathf.Max(originalRect.rect.width, originalSize.x);
-            float childWidth = Mathf.Max(40f, (width - 12f) * 0.5f);
-            float offset = (childWidth + 12f) * 0.5f;
+            int count = bossRetryButton != null ? 3 : 2;
+            float childWidth = Mathf.Max(40f, (width - 12f * (count - 1)) / count);
+            float offset = (childWidth + 12f) * (count - 1) * 0.5f;
             originalRect.sizeDelta = new Vector2(childWidth, originalSize.y);
             retryRect.sizeDelta = new Vector2(childWidth, originalSize.y);
             retryRect.anchoredPosition = originalPosition + Vector2.left * offset;
             originalRect.anchoredPosition = originalPosition + Vector2.right * offset;
+            if (bossRetryButton != null)
+            {
+                RectTransform bossRect = bossRetryButton.transform as RectTransform;
+                bossRect.sizeDelta = new Vector2(childWidth, originalSize.y);
+                bossRect.anchoredPosition = originalPosition;
+            }
             retryButton.transform.SetSiblingIndex(originalSiblingIndex);
             manuallyPositioned = true;
         }
@@ -686,13 +824,23 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             Navigation retryNavigation = originalNavigation;
             retryNavigation.mode = Navigation.Mode.Explicit;
-            retryNavigation.selectOnRight = originalButton;
+            retryNavigation.selectOnRight = bossRetryButton != null && bossReady
+                ? bossRetryButton : originalButton;
             retryButton.navigation = retryNavigation;
 
             Navigation returnNavigation = originalNavigation;
             returnNavigation.mode = Navigation.Mode.Explicit;
-            returnNavigation.selectOnLeft = retryButton;
+            returnNavigation.selectOnLeft = bossRetryButton != null && bossReady
+                ? bossRetryButton : retryButton;
             originalButton.navigation = returnNavigation;
+            if (bossRetryButton != null)
+            {
+                Navigation bossNavigation = originalNavigation;
+                bossNavigation.mode = Navigation.Mode.Explicit;
+                bossNavigation.selectOnLeft = retryButton;
+                bossNavigation.selectOnRight = originalButton;
+                bossRetryButton.navigation = bossNavigation;
+            }
         }
 
         private void Update()
@@ -709,13 +857,20 @@ namespace SephiriaEnhancements.DefeatRetry
                 actionGroup.SetActive(visible);
             }
             retryButton.gameObject.SetActive(visible);
+            bossRetryButton?.gameObject.SetActive(visible && bossEligible);
             if (!visible)
             {
                 selectedRetry = false;
                 return;
             }
 
-            retryButton.interactable = DefeatRetryFeature.CanRetry(panel);
+            retryButton.interactable = DefeatRetryFeature.CanRetry(panel, RetryCheckpointKind.FloorEntry);
+            if (bossRetryButton != null)
+            {
+                bossRetryButton.interactable = bossReady &&
+                    DefeatRetryFeature.CanRetry(panel, RetryCheckpointKind.BossEncounter);
+            }
+            ConfigureNavigation();
             SetLocalizedText();
             if (!selectedRetry && retryButton.interactable)
             {
@@ -731,7 +886,12 @@ namespace SephiriaEnhancements.DefeatRetry
             {
                 retryButton.interactable = false;
             }
-            DefeatRetryFeature.TryRetry(panel);
+            DefeatRetryFeature.TryRetry(panel, RetryCheckpointKind.FloorEntry);
+        }
+
+        private void OnBossRetryClicked()
+        {
+            DefeatRetryFeature.TryRetry(panel, RetryCheckpointKind.BossEncounter);
         }
 
         private void SetLocalizedText()
@@ -741,17 +901,19 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
 
-            string key = DefeatRetryFeature.CheckpointKind ==
-                RetryCheckpointKind.BossEncounter
-                ? ModLocalization.RetryBossEncounter
-                : ModLocalization.RetryFloor;
-            retryButton.text.text = ModLocalization.Get(key);
+            retryButton.text.text = ModLocalization.Get(ModLocalization.RetryFloor);
+            if (bossRetryButton?.text != null)
+            {
+                bossRetryButton.text.text = ModLocalization.Get(bossReady
+                    ? ModLocalization.RetryBossEncounter : ModLocalization.RetryBossUnavailable);
+            }
         }
 
         private void RemoveButton()
         {
-            if (panel != null && retryButton != null &&
-                panel.defaultSelectable == retryButton.gameObject)
+            if (panel != null &&
+                ((retryButton != null && panel.defaultSelectable == retryButton.gameObject) ||
+                 (bossRetryButton != null && panel.defaultSelectable == bossRetryButton.gameObject)))
             {
                 panel.defaultSelectable = originalButton?.gameObject;
             }
@@ -774,9 +936,15 @@ namespace SephiriaEnhancements.DefeatRetry
                 UnityEngine.Object.Destroy(actionGroup);
                 actionGroup = null;
                 retryButton = null;
+                bossRetryButton = null;
             }
             else
             {
+                if (bossRetryButton != null)
+                {
+                    UnityEngine.Object.Destroy(bossRetryButton.gameObject);
+                    bossRetryButton = null;
+                }
                 if (retryButton != null)
                 {
                     UnityEngine.Object.Destroy(retryButton.gameObject);

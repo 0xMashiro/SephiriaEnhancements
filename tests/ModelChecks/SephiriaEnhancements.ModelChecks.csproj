@@ -48,6 +48,7 @@
     <Compile Include="..\..\Features\DeveloperConsole\DeveloperConsoleContract.cs" Link="DeveloperConsole\DeveloperConsoleContract.cs" />
     <Compile Include="..\..\Features\DeveloperTools\Core\DeveloperPlayerDamagePolicy.cs" Link="DeveloperTools\DeveloperPlayerDamagePolicy.cs" />
     <Compile Include="..\..\Features\DefeatRetry\Core\DefeatRetryPolicy.cs" Link="DefeatRetry\DefeatRetryPolicy.cs" />
+    <Compile Include="..\..\Features\DefeatRetry\Core\RetryCheckpoints.cs" Link="DefeatRetry\RetryCheckpoints.cs" />
     <Compile Include="..\..\Features\MultiplayerRules\Core\MultiplayerRuleValue.cs" Link="MultiplayerRules\MultiplayerRuleValue.cs" />
     <Compile Include="..\..\Features\MultiplayerRules\Core\EnemyHealthRuleModel.cs" Link="MultiplayerRules\EnemyHealthRuleModel.cs" />
     <Compile Include="..\..\Features\MultiplayerRules\Core\MultiplayerRulesLifecyclePolicy.cs" Link="MultiplayerRules\MultiplayerRulesLifecyclePolicy.cs" />

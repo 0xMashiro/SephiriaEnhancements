@@ -75,6 +75,7 @@ if (args.Contains("--multiplayer-rules-only"))
     return;
 
 DefeatRetryPolicyChecks.Run();
+RetryCheckpointsChecks.Run();
 NativeCompanionPolicyChecks.Run();
 DirectionalAimMathChecks.Run();
 CombatRelationOutlinePolicyChecks.Run();

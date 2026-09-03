@@ -159,9 +159,16 @@ remaining display time. The statistics browser closes when the local gameplay co
   Position-effect observations are only available on the host. Non-host players
   cannot currently optimize inventories containing these effects, including inactive
   sources; inventories without them remain subject to the other checks above.
-- Defeat retry is disabled by default. Enabling it records checkpoints; restoring a
-  floor-entry or BOSS checkpoint requires clicking retry on an eligible defeat screen.
-  Online use requires Sephiria's rejoin/midsave support.
+- Defeat retry is disabled by default. After a party defeat, retrying the floor
+  restores its entry items and progress. Retrying the BOSS restores the first
+  recorded battle start on that floor, including the first phase; later phases
+  cannot overwrite it. The two checkpoints are independent, and items roll back
+  to the selected checkpoint. BOSS retry is available only while the original
+  boss can be recreated and the surrounding state can be verified. Changed
+  surroundings or players, leaving the floor, or completing the boss make it
+  unavailable. Special scripted bosses may offer only floor retry. All players
+  must be on the same floor. Checkpoint availability also depends on Sephiria's
+  midsave and loading flow.
 - Hidden-room display is disabled by default on both the regular map and current-floor
   overlay. Enabling it reveals undiscovered secret locations on supported maps. Turning
   it off leaves normally discovered rooms visible.

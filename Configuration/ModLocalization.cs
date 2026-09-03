@@ -139,6 +139,8 @@ namespace SephiriaEnhancements.Configuration
         internal const string RetryFloor = "SephiriaEnhancements.RetryFloor";
         internal const string RetryBossEncounter =
             "SephiriaEnhancements.RetryBossEncounter";
+        internal const string RetryBossUnavailable =
+            "SephiriaEnhancements.RetryBossUnavailable";
 
         internal static readonly string[] ScaleKeys =
         {
@@ -955,59 +957,79 @@ namespace SephiriaEnhancements.Configuration
                 ["tr-TR"] = "Boss savaşını yeniden dene"
             };
 
+        private static readonly Dictionary<string, string> RetryBossUnavailableTexts =
+            new Dictionary<string, string>
+            {
+                ["en-US"] = "Boss retry unavailable",
+                ["zh-CN"] = "Boss 重试不可用",
+                ["zh-TW"] = "Boss 重試不可用",
+                ["ko-KR"] = "보스 재시도 불가",
+                ["ja-JP"] = "ボス再挑戦不可",
+                ["de-DE"] = "Boss-Neustart nicht verfügbar",
+                ["es-ES"] = "Reintento de jefe no disponible",
+                ["fr-FR"] = "Reprise du boss indisponible",
+                ["it-IT"] = "Riprova boss non disponibile",
+                ["pl-PL"] = "Ponowienie bossa niedostępne",
+                ["pt-BR"] = "Repetir chefe indisponível",
+                ["ru-RU"] = "Повтор босса недоступен",
+                ["sv-SE"] = "Bossförsök inte tillgängligt",
+                ["th-TH"] = "ไม่สามารถสู้บอสใหม่ได้",
+                ["tr-TR"] = "Boss tekrarı kullanılamıyor"
+            };
+
         private static readonly Dictionary<string, Dictionary<string, string>>
             DefeatRetryTexts =
                 new Dictionary<string, Dictionary<string, string>>
                 {
                     ["en-US"] = R("Retry after defeat",
-                        "Disabled by default. After a party wipe, choose to retry from the floor-entry checkpoint or from immediately before the current BOSS fight. Available offline; online play also requires the game's rejoin/midsave support.",
+                        "Off by default. After a party wipe, retry the floor from entry or a supported boss from before its first phase. Items revert to the selected checkpoint. Boss retry is unavailable if the boss is already defeated, the encounter cannot be recreated, surrounding objects changed, or players changed or left the floor.",
                         "Off", "On"),
                     ["zh-CN"] = R("失败后重试",
-                        "默认关闭。全队死亡后，可选择从本层入口检查点或当前 BOSS 战开始前重试。单机可用；多人游戏还需游戏开启重连/中途存档支持。",
+                        "默认关闭。全队死亡后，可选择从入层检查点重试整层，或从第一阶段开战前重试受支持的 Boss。道具恢复至所选检查点。Boss 已被击败、无法重建、周边对象发生变化，或玩家变更、离开本层时，Boss 重试不可用。",
                         "关闭", "开启"),
                     ["zh-TW"] = R("失敗後重試",
-                        "預設關閉。全隊死亡後，可選擇從本層入口檢查點或目前 BOSS 戰開始前重試。單機可用；多人遊戲還需遊戲開啟重連/中途存檔支援。",
+                        "預設關閉。全隊死亡後，可選擇從入層檢查點重試整層，或從第一階段開戰前重試受支援的 Boss。道具恢復至所選檢查點。Boss 已被擊敗、無法重建、周邊物件發生變化，或玩家變更、離開本層時，Boss 重試不可用。",
                         "關閉", "開啟"),
-                    ["ko-KR"] = R("패배 후 재시도", "기본적으로 꺼져 있습니다. 파티 전멸 후 층 입장 지점이나 현재 보스전 직전부터 다시 시도할 수 있습니다. 오프라인에서 사용 가능하며, 온라인에서는 게임의 재접속 및 진행 중 저장 기능도 필요합니다.", "끄기", "켜기"),
-                    ["ja-JP"] = R("敗北後に再挑戦", "初期設定はオフです。全滅後、フロア入口のチェックポイントまたは現在のボス戦直前から再挑戦できます。オフラインで利用でき、オンラインではゲームの再接続と途中セーブ機能も必要です。", "オフ", "オン"),
+                    ["ko-KR"] = R("패배 후 재시도", "기본적으로 꺼져 있습니다. 전멸 후 층 입장 시점 또는 지원되는 보스의 첫 단계 시작 전부터 재시도합니다. 아이템은 선택한 체크포인트로 돌아갑니다. 보스를 이미 처치했거나 재생성할 수 없거나 주변 오브젝트가 바뀌거나 플레이어 구성 또는 층이 바뀌면 보스 재시도는 사용할 수 없습니다.", "끄기", "켜기"),
+                    ["ja-JP"] = R("敗北後に再挑戦", "初期設定はオフです。全滅後、フロア入口または対応ボスの第1段階開始前から再挑戦できます。アイテムは選択したチェックポイントに戻ります。ボスを撃破済みの場合、再生成できない場合、周囲のオブジェクトが変化した場合、参加者が変わった場合やフロアを離れた場合はボス再挑戦を利用できません。", "オフ", "オン"),
                     ["de-DE"] = R("Nach Niederlage erneut versuchen",
-                    "Standardmäßig aus. Nach dem Tod der ganzen Gruppe kannst du am Ebeneneingang oder direkt vor dem aktuellen Bosskampf neu beginnen. Offline verfügbar; online sind zusätzlich die Wiederverbindungs- und Zwischenspeicherfunktionen des Spiels nötig.",
+                    "Standardmäßig aus. Nach einem Gruppen-Tod die Ebene ab Eingang oder einen unterstützten Boss vor Phase eins neu starten. Gegenstände werden auf den gewählten Kontrollpunkt zurückgesetzt. Boss-Neustart ist bei bereits besiegtem oder nicht rekonstruierbarem Boss, veränderten Umgebungsobjekten, Spielerwechsel oder Verlassen der Ebene nicht verfügbar.",
                     "Aus",
                     "Ein"),
                     ["es-ES"] = R("Reintentar tras la derrota",
-                    "Desactivado por defecto. Si muere todo el grupo, permite reintentar desde la entrada de la planta o justo antes del combate actual contra el jefe. Disponible sin conexión; en línea también requiere las funciones de reconexión y guardado intermedio del juego.",
+                    "Desactivado por defecto. Tras morir todo el grupo, reinicia la planta desde la entrada o un jefe compatible desde antes de su primera fase. Los objetos vuelven al punto elegido. El jefe no se puede reintentar si ya fue derrotado, no puede recrearse, cambia el entorno, cambian los jugadores o salen de la planta.",
                     "Desactivado",
                     "Activado"),
                     ["fr-FR"] = R("Réessayer après une défaite",
-                    "Désactivé par défaut. Après la mort de toute l’équipe, reprenez à l’entrée de l’étage ou juste avant le combat de boss actuel. Disponible hors ligne ; en ligne, les fonctions de reconnexion et de sauvegarde intermédiaire du jeu sont aussi nécessaires.",
+                    "Désactivé par défaut. Après la mort du groupe, reprenez à l’entrée de l’étage ou avant la première phase d’un boss compatible. Les objets reviennent au point choisi. La reprise du boss est indisponible si le boss est déjà vaincu, si sa recréation échoue, si les objets environnants changent ou si des joueurs changent ou quittent l’étage.",
                     "Désactivé",
                     "Activé"),
                     ["it-IT"] = R("Riprova dopo la sconfitta",
-                    "Disattivato per impostazione predefinita. Se muore tutto il gruppo, riparti dall’ingresso del piano o da subito prima dell’attuale scontro con il boss. Disponibile offline; online richiede anche le funzioni di riconnessione e salvataggio intermedio del gioco.",
+                    "Disattivato per impostazione predefinita. Dopo la sconfitta del gruppo, riparti dall’ingresso del piano o da prima della prima fase di un boss supportato. Gli oggetti tornano al checkpoint scelto. Il boss non è ripetibile se è già stato sconfitto, non può essere ricreato, cambiano gli oggetti circostanti, cambiano i giocatori o lasciano il piano.",
                     "Disattivato",
                     "Attivato"),
                     ["pl-PL"] = R("Ponów po porażce",
-                    "Domyślnie wyłączone. Po śmierci całej drużyny pozwala zacząć od wejścia na piętro lub tuż przed bieżącą walką z bossem. Dostępne offline; online wymaga też obsługi ponownego łączenia i zapisu w trakcie gry.",
+                    "Domyślnie wyłączone. Po śmierci drużyny ponów piętro od wejścia lub obsługiwanego bossa sprzed pierwszej fazy. Przedmioty wracają do wybranego punktu. Powtórka bossa jest niedostępna, gdy boss został już pokonany, nie można go odtworzyć, zmieniły się obiekty otoczenia, skład graczy lub gracze opuścili piętro.",
                     "Wył.",
                     "Wł."),
                     ["pt-BR"] = R("Tentar novamente após derrota",
-                    "Desativado por padrão. Após a morte de toda a equipe, permite recomeçar na entrada do andar ou imediatamente antes do combate atual contra o chefe. Disponível offline; online também exige os recursos de reconexão e salvamento intermediário do jogo.",
+                    "Desativado por padrão. Após a derrota da equipe, reinicie o andar pela entrada ou um chefe compatível antes da primeira fase. Os itens voltam ao ponto escolhido. Repetir o chefe fica indisponível se ele já foi derrotado, não puder ser recriado, se objetos ao redor mudarem, se os jogadores mudarem ou saírem do andar.",
                     "Desativado",
                     "Ativado"),
                     ["ru-RU"] = R("Повтор после поражения",
-                    "По умолчанию отключено. После гибели всей группы можно начать с входа на этаж или с момента перед текущим боем с боссом. Доступно офлайн; по сети также нужны функции переподключения и промежуточного сохранения игры.",
+                    "По умолчанию отключено. После гибели группы повторите этаж со входа или поддерживаемого босса до начала первой фазы. Предметы возвращаются к выбранной точке. Повтор босса недоступен, если босс уже побеждён, его нельзя воссоздать, изменились окружающие объекты, состав игроков или игроки покинули этаж.",
                     "Выкл.",
                     "Вкл."),
                     ["sv-SE"] = R("Försök igen efter nederlag",
-                    "Av som standard. När hela gruppen dött kan du börja om vid våningens ingång eller precis före den aktuella bossstriden. Tillgängligt offline; online kräver också spelets stöd för återanslutning och sparande under rundan.",
+                    "Av som standard. Efter gruppens nederlag kan våningen startas om från ingången eller en boss som stöds från före första fasen. Föremål återställs till vald kontrollpunkt. Bossförsök saknas om bossen redan besegrats, inte kan återskapas, omgivningen ändrats eller spelare bytts ut eller lämnat våningen.",
                     "Av",
                     "På"),
                     ["th-TH"] = R("ลองใหม่หลังพ่ายแพ้",
-                    "ปิดไว้ตามค่าเริ่มต้น เมื่อทั้งทีมตาย สามารถเริ่มใหม่จากจุดเข้าชั้นหรือก่อนการต่อสู้กับบอสปัจจุบันได้ ใช้งานออฟไลน์ได้ ส่วนออนไลน์ต้องเปิดใช้ระบบเชื่อมต่อใหม่และบันทึกระหว่างเล่นของเกมด้วย",
+                    "ปิดไว้ตามค่าเริ่มต้น เมื่อทั้งทีมตาย ให้เริ่มชั้นใหม่จากทางเข้าหรือเริ่มบอสที่รองรับใหม่ก่อนเฟสแรก ไอเทมจะกลับสู่จุดบันทึกที่เลือก ไม่สามารถสู้บอสใหม่ได้หากบอสถูกกำจัดแล้ว สร้างบอสใหม่ไม่ได้ วัตถุรอบข้างเปลี่ยนไป ผู้เล่นเปลี่ยน หรือออกจากชั้น",
                     "ปิด",
                     "เปิด"),
                     ["tr-TR"] = R("Yenilgiden sonra yeniden dene",
-                    "Varsayılan olarak kapalıdır. Tüm grup öldüğünde kat girişinden veya mevcut boss savaşının hemen öncesinden yeniden başlamayı sağlar. Çevrimdışı kullanılabilir; çevrimiçi oyun, oyunun yeniden bağlanma ve ara kayıt desteğini de gerektirir.",
+                    "Varsayılan olarak kapalıdır. Grup yenilince kat girişinden veya desteklenen bossun ilk aşamasından önce yeniden başlatır. Eşyalar seçilen kontrol noktasına döner. Boss zaten yenildiyse, yeniden oluşturulamıyorsa, çevredeki nesneler değişmişse veya oyuncular değişmiş ya da kattan ayrılmışsa boss tekrarı kullanılamaz.",
                     "Kapalı",
                     "Açık")
                 };
@@ -1186,6 +1208,9 @@ namespace SephiriaEnhancements.Configuration
                 addText(language.Key, RetryFloor,
                     RetryFloorTexts.TryGetValue(language.Key, out var retryFloor)
                         ? retryFloor : RetryFloorTexts["en-US"]);
+                addText(language.Key, RetryBossUnavailable,
+                    RetryBossUnavailableTexts.TryGetValue(language.Key, out var unavailableBoss)
+                        ? unavailableBoss : RetryBossUnavailableTexts["en-US"]);
                 addText(language.Key, RetryBossEncounter,
                     RetryBossEncounterTexts.TryGetValue(language.Key,
                         out var retryBossEncounter)

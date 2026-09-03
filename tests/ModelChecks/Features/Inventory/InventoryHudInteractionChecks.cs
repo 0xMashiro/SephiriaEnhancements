@@ -55,26 +55,50 @@ internal static class InventoryHudInteractionChecks
             (Layout.DetailsTop, Layout.DetailsHeight),
             (Layout.ActionsTop, Layout.ActionsHeight)
         };
-        var targets = Enumerable.Range(0, Layout.TargetRowsPerPage)
-            .Select(index => (Top: Layout.TargetRowsTop + index * Layout.TargetRowStride,
-                Height: Layout.TargetRowHeight))
-            .Concat(new (float Top, float Height)[]
-            {
-                (Layout.TargetPagingTop, Layout.PagingHeight),
-                (Layout.DetailsTop, Layout.DetailsHeight),
-                (Layout.ActionsTop, Layout.ActionsHeight)
-            }).ToArray();
-        foreach (var regions in new[] { board, targets })
+        VerifyBounds(board, Layout.Height);
+        if (Layout.TargetRowsPerPage < 8)
+            throw new InvalidOperationException("24 combo targets must fit within three pages");
+        // Every page keeps eight slots even when all targets have conditions.
+        // Only the selected target expands; include each position and no selection.
+        for (int count = 0; count <= Layout.TargetRowsPerPage; count++)
         {
-            float bottom = 0;
-            foreach (var region in regions)
+            for (int mask = 0; mask < 1 << count; mask++)
             {
-                if (region.Top < bottom || region.Top + region.Height > Layout.Height)
+                for (int selected = -1; selected < count; selected++)
                 {
-                    throw new InvalidOperationException("visible HUD regions must not overlap or leave the panel");
+                    var regions = new List<(float Top, float Height)>
+                    {
+                        (Layout.TargetPagingTop, Layout.PagingHeight)
+                    };
+                    float top = Layout.TargetRowsTop;
+                    for (int index = 0; index < count; index++)
+                    {
+                        var choice = (mask & (1 << index)) == 0 ? InventoryPreferenceChoice.Automatic
+                            : index % 2 == 0 ? InventoryPreferenceChoice.Priority : InventoryPreferenceChoice.Avoid;
+                        var target = new InventoryComboTarget("target" + index, choice, 0, 10);
+                        bool expanded = index == selected && target.CanAdjustRequiredValue;
+                        float height = Layout.TargetRowHeight(expanded);
+                        if (height < (expanded ? 52f : 26f))
+                            throw new InvalidOperationException("target rows must fit their visible controls");
+                        regions.Add((top, height));
+                        top += height + Layout.TargetRowGap;
+                    }
+                    regions.Add((Layout.DetailsTop, Layout.DetailsHeight));
+                    regions.Add((Layout.ActionsTop, Layout.ActionsHeight));
+                    VerifyBounds(regions, Layout.Height);
                 }
-                bottom = region.Top + region.Height;
             }
+        }
+    }
+
+    private static void VerifyBounds(IEnumerable<(float Top, float Height)> regions, float panelHeight)
+    {
+        float bottom = 0;
+        foreach (var region in regions)
+        {
+            if (region.Top < bottom || region.Top + region.Height > panelHeight)
+                throw new InvalidOperationException("visible HUD regions must not overlap or leave the panel");
+            bottom = region.Top + region.Height;
         }
     }
 

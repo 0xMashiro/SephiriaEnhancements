@@ -87,6 +87,7 @@ namespace SephiriaEnhancements.Inventory
         private int intentPage;
         private bool panelOpen;
         private bool detailsExpanded;
+        private string expandedComboCategoryId;
         private float nextAttachAt;
         private float nextProjectionAt;
         private Action requestOptimization;
@@ -175,6 +176,7 @@ namespace SephiriaEnhancements.Inventory
         internal void Reset()
         {
             DestroyRoot();
+            expandedComboCategoryId = null;
             page = 0;
             intentPage = 0;
             panelOpen = false;
@@ -306,7 +308,10 @@ namespace SephiriaEnhancements.Inventory
             closeText.text = "×";
 
             comboTargetsTitle = CreateText("ComboTargetsTitle", rect, template,
-                new Vector2(24f, -102f), new Vector2(312f, 32f), TextAlignmentOptions.MidlineLeft);
+                new Vector2(24f, -102f), new Vector2(144f, 32f), TextAlignmentOptions.MidlineLeft);
+            comboTargetsTitle.fontSizeMax = comboTargetsTitle.fontSize;
+            comboTargetsTitle.fontSizeMin = comboTargetsTitle.fontSize * 0.75f;
+            comboTargetsTitle.enableAutoSizing = true;
             CreateLevelEditor(rect, template);
 
             for (int index = 0; index < RowsPerPage; index++)
@@ -327,6 +332,9 @@ namespace SephiriaEnhancements.Inventory
                 new Vector2(228f, InventoryOptimizationHudLayout.PagingHeight),
                 TextAlignmentOptions.Center);
             status.color = SecondaryText;
+            status.fontSizeMax = status.fontSize;
+            status.fontSizeMin = status.fontSize * 0.75f;
+            status.enableAutoSizing = true;
 
             markPriorities = CreateButton("MarkPriorities", rect, template,
                 new Vector2(24f, -InventoryOptimizationHudLayout.ActionsTop),
@@ -600,8 +608,6 @@ namespace SephiriaEnhancements.Inventory
         private TargetRow CreateTargetRow(RectTransform parent,
             TextMeshProUGUI template, int index)
         {
-            float y = -InventoryOptimizationHudLayout.TargetRowsTop -
-                index * InventoryOptimizationHudLayout.TargetRowStride;
             var row = new TargetRow
             {
                 Root = new GameObject("TargetRow" + index,
@@ -609,12 +615,18 @@ namespace SephiriaEnhancements.Inventory
             };
             RectTransform rect = row.Root.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
-            SetTopRect(rect, new Vector2(8f, y), new Vector2(344f,
-                InventoryOptimizationHudLayout.TargetRowHeight));
-            row.Name = CreateText("Name", rect, template,
+            SetTopRect(rect, new Vector2(8f, -InventoryOptimizationHudLayout.TargetRowsTop),
+                new Vector2(344f, InventoryOptimizationHudLayout.TargetRowHeight(false)));
+            row.Select = CreateButton("Name", rect, template,
                 new Vector2(16f, 0f), new Vector2(190f, 26f),
-                TextAlignmentOptions.MidlineLeft);
+                () => ToggleComboEditor(row), out row.Name);
+            row.Name.alignment = TextAlignmentOptions.MidlineLeft;
             row.Name.color = PrimaryText;
+            ColorBlock nameColors = row.Select.colors;
+            nameColors.normalColor = nameColors.disabledColor = Color.clear;
+            nameColors.highlightedColor = nameColors.selectedColor = new Color(1f, 1f, 1f, 0.12f);
+            nameColors.pressedColor = new Color(1f, 1f, 1f, 0.2f);
+            row.Select.colors = nameColors;
             row.Choice = CreateButton("Choice", rect, template,
                 new Vector2(208f, 0f), new Vector2(120f, 26f),
                 () => CycleChoice(row), out row.ChoiceText);
@@ -710,6 +722,7 @@ namespace SephiriaEnhancements.Inventory
             int pageCount = Math.Max(1,
                 (targets.Count + RowsPerPage - 1) / RowsPerPage);
             page = Mathf.Clamp(page, 0, pageCount - 1);
+            float rowTop = InventoryOptimizationHudLayout.TargetRowsTop;
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
                 int targetIndex = page * RowsPerPage + rowIndex;
@@ -724,19 +737,28 @@ namespace SephiriaEnhancements.Inventory
                 InventoryComboTarget target = targets[targetIndex];
                 row.Target = target;
                 row.Root.SetActive(true);
+                bool expanded = target.CanAdjustRequiredValue && target.CategoryId == expandedComboCategoryId;
+                float rowHeight = InventoryOptimizationHudLayout.TargetRowHeight(expanded);
+                SetTopRect((RectTransform)row.Root.transform, new Vector2(8f, -rowTop),
+                    new Vector2(344f, rowHeight));
+                rowTop += rowHeight + InventoryOptimizationHudLayout.TargetRowGap;
                 row.Name.text = DisplayName(target);
-                row.ChoiceText.text = Loc._(
+                row.Name.color = expanded ? TitleColor : PrimaryText;
+                row.Select.interactable = editable && target.CanAdjustRequiredValue;
+                string condition = InventoryOptimizationLocalization.FormatTargetCondition(target, key => Loc._(key));
+                row.ChoiceText.text = !expanded && target.CanAdjustRequiredValue ? condition : Loc._(
                     InventoryOptimizationLocalization.PreferenceChoiceKeys[
                         (int)target.Choice]);
-                row.Value.text = InventoryOptimizationLocalization.FormatTargetCondition(
-                    target, key => Loc._(key));
+                row.Value.text = condition;
+                row.Value.gameObject.SetActive(expanded);
                 row.Value.color = SatisfactionColor(resultFeedback?.FindCombo(target.CategoryId) ?? InventoryIntentSatisfaction.NotEvaluated);
-                row.Strength.gameObject.SetActive(target.CanAdjustRequiredValue);
+                row.ChoiceText.color = target.CanAdjustRequiredValue ? row.Value.color : PrimaryText;
+                row.Strength.gameObject.SetActive(expanded);
                 row.Strength.interactable = editable;
                 row.StrengthText.text = Loc._(target.Strength == InventoryConstraintStrength.Hard
                     ? InventoryOptimizationLocalization.HudHard : InventoryOptimizationLocalization.HudSoft);
-                row.Decrease.gameObject.SetActive(target.CanAdjustRequiredValue);
-                row.Increase.gameObject.SetActive(target.CanAdjustRequiredValue);
+                row.Decrease.gameObject.SetActive(expanded);
+                row.Increase.gameObject.SetActive(expanded);
                 row.Choice.interactable = editable;
                 row.Decrease.interactable = editable &&
                     target.CanAdjustRequiredValue && target.RequiredValue > 0;
@@ -1167,17 +1189,26 @@ namespace SephiriaEnhancements.Inventory
             }
         }
 
+        private void ToggleComboEditor(TargetRow row)
+        {
+            if (!interaction.Editable || row?.Target?.CanAdjustRequiredValue != true) return;
+            expandedComboCategoryId = expandedComboCategoryId == row.Target.CategoryId ? null : row.Target.CategoryId;
+            nextProjectionAt = 0f;
+        }
+
         private void CycleChoice(TargetRow row)
         {
             if (!interaction.Editable || row?.Target == null)
             {
                 return;
             }
+            InventoryPreferenceChoice nextChoice = InventoryComboTargetEditor.NextChoice(row.Target.Choice);
             InventoryOptimizationPreferences updated =
                 InventoryComboTargetEditor.SetChoice(
                     ExplorationInventoryIntentStore.Capture(), row.Target,
-                    InventoryComboTargetEditor.NextChoice(row.Target.Choice));
+                    nextChoice);
             ReplacePreferences(updated);
+            expandedComboCategoryId = nextChoice == InventoryPreferenceChoice.Automatic ? null : row.Target.CategoryId;
             nextProjectionAt = 0f;
         }
 
@@ -1227,6 +1258,7 @@ namespace SephiriaEnhancements.Inventory
             if (detailsExpanded)
             {
                 page = Math.Max(0, page + delta);
+                expandedComboCategoryId = null;
             }
             else
             {
@@ -1238,6 +1270,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void ToggleDetails()
         {
+            expandedComboCategoryId = null;
             previewItemKey = null;
             if (!panelOpen)
             {
@@ -1324,9 +1357,12 @@ namespace SephiriaEnhancements.Inventory
                 : InventoryOptimizationHudLayout.BoardPagingTop);
             if (previousPage != null)
             {
-                (previousPage.transform as RectTransform).anchoredPosition = new Vector2(24f, pagingY);
-                (nextPage.transform as RectTransform).anchoredPosition = new Vector2(288f, pagingY);
-                status.rectTransform.anchoredPosition = new Vector2(66f, pagingY);
+                SetTopRect((RectTransform)previousPage.transform, new Vector2(showTargets ? 172f : 24f, pagingY),
+                    new Vector2(showTargets ? 28f : 48f, InventoryOptimizationHudLayout.PagingHeight));
+                SetTopRect((RectTransform)nextPage.transform, new Vector2(showTargets ? 308f : 288f, pagingY),
+                    new Vector2(showTargets ? 28f : 48f, InventoryOptimizationHudLayout.PagingHeight));
+                SetTopRect(status.rectTransform, new Vector2(showTargets ? 200f : 72f, pagingY),
+                    new Vector2(showTargets ? 108f : 216f, InventoryOptimizationHudLayout.PagingHeight));
             }
             if (!showTargets)
             {
@@ -1643,6 +1679,7 @@ namespace SephiriaEnhancements.Inventory
         private sealed class TargetRow
         {
             internal GameObject Root;
+            internal Button Select;
             internal TextMeshProUGUI Name;
             internal Button Choice;
             internal Button Strength;

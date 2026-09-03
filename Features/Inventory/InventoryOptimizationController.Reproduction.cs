@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Threading;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Diagnostics;
+using SephiriaEnhancements.Integration;
+using SephiriaEnhancements.Runtime.GameBridge.Inventory;
 using SephiriaEnhancements.Runtime.Inventory;
 using UnityEngine;
 
@@ -48,6 +50,34 @@ namespace SephiriaEnhancements.Inventory
             if (error != null) SupportLogger.Record("inventory_reproduction_writer_failed", error, "WARN");
             int dropped = reproductionLog?.TakeDroppedCount() ?? 0;
             if (dropped > 0) SupportLogger.Record("inventory_reproduction_records_dropped", "count=" + dropped, "WARN");
+            if (error != null || dropped > 0) ShowMessage(InventoryReproductionLocalization.WriteFailed);
+        }
+
+        private void HandleReproductionCapture()
+        {
+            PlayerInputController input = PlayerInputController.Instance;
+            NativeControlCoordinator.PreparePlayerInput(input);
+            if (!NativeInputActions.WasPressed(input?.playerInput?.actions,
+                    ModShortcuts.CaptureInventoryReproduction, rejectKeyboardModifiers: true)) return;
+
+            if (Busy || NativeInventoryIntentDrop.HasHeldItem || hud.HasArtifactPickup ||
+                !StandardInventoryContext.TryGetOpenInventory(out GridInventory inventory) ||
+                runtimeKernel == null || !runtimeKernel.TryGetSettledInventorySnapshot(out var snapshot, out _) ||
+                !MatchesInventory(snapshot, inventory))
+            {
+                ShowMessage(InventoryReproductionLocalization.Unavailable);
+                return;
+            }
+
+            InventorySearchEffort effort = InventoryOptimizationTendencyPolicy.GetSearchEffort(ModSettings.InventoryOptimizationTendency);
+            var preferences = InventoryOptimizationPreferenceComposer.Compose(
+                PersistentInventoryOptimizationPolicyStore.Capture(), ExplorationInventoryIntentStore.Capture(),
+                effort, InventoryOptimizationPreferences.Default.AllowStoneTabletRotation);
+            var policy = snapshot.SettlementValidation.LayoutProjectionReady
+                ? InventoryOptimizationPolicyResolver.Resolve(snapshot, preferences) : null;
+            var captured = new InventoryReproductionCase(snapshot, preferences, policy, InventorySearchBudget.ForEffort(effort));
+            bool queued = reproductionLog?.Record(captured.Record(InventoryReproductionReason.ManualCapture)) == true;
+            ShowMessage(queued ? InventoryReproductionLocalization.Queued : InventoryReproductionLocalization.WriteFailed);
         }
 
         private void RecordRejectedReproduction(InventorySnapshot snapshot)
@@ -66,7 +96,7 @@ namespace SephiriaEnhancements.Inventory
             try
             {
                 InventoryOptimizationProposal proposal = InventoryOptimizerSelector.Solve(input.Snapshot, input.Policy, input.Budget, token);
-                InventoryReproductionReason reason = InventoryReproductionCase.Classify(proposal);
+                InventoryReproductionReason reason = input.SearchReason(proposal);
                 if (reason != InventoryReproductionReason.None) log?.Record(input.Record(reason, proposal));
                 return proposal;
             }

@@ -45,6 +45,9 @@ try {
         'SephiriaEnhancements.Diagnostics.InventoryReproductionEvidence'
         'SephiriaEnhancements.Diagnostics.InventoryReproductionJson'
         'SephiriaEnhancements.Diagnostics.InventoryReproductionLog'
+        'SephiriaEnhancements.Diagnostics.InventoryReproductionLocalization'
+        'SephiriaEnhancements.DeveloperTools.InventoryReproductionSettings'
+        'SephiriaEnhancements.DeveloperTools.InventoryReproductionOption'
     )) {
         if (($types -contains $developmentType) -ne [bool]$DeveloperTools) {
             throw "Unexpected developer component for ${expected}: $developmentType"

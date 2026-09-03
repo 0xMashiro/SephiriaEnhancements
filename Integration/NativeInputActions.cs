@@ -20,6 +20,9 @@ namespace SephiriaEnhancements.Integration
                 FindShortcut(asset,
                     ModShortcuts.ToggleDamageStatistics) != null &&
                 FindShortcut(asset, ModShortcuts.OptimizeInventory) != null;
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            complete &= FindShortcut(asset, ModShortcuts.CaptureInventoryReproduction) != null;
+#endif
             if (complete)
             {
                 return targetAction;

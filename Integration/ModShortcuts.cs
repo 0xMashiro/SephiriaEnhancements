@@ -10,6 +10,9 @@ namespace SephiriaEnhancements.Integration
             "ToggleDamageStatistics";
         // This action starts scoring-based optimization, not generic item arranging.
         internal const string OptimizeInventory = "OptimizeInventory";
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+        internal const string CaptureInventoryReproduction = "CaptureInventoryReproduction";
+#endif
         internal const string KeyboardScheme = "Keyboard&Mouse";
         internal const string GamepadScheme = "Gamepad";
 
@@ -18,7 +21,10 @@ namespace SephiriaEnhancements.Integration
             SwitchLockedTarget,
             ToggleCurrentFloorMapOverlay,
             ToggleDamageStatistics,
-            OptimizeInventory
+            OptimizeInventory,
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            CaptureInventoryReproduction
+#endif
         };
 
         internal const string ActionMapJson =
@@ -26,7 +32,16 @@ namespace SephiriaEnhancements.Integration
             "{\"name\":\"SwitchLockedTarget\",\"type\":\"Button\",\"id\":\"2f42ed30-0d71-43a1-b530-c4cf3ab2fc70\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
             "{\"name\":\"ToggleCurrentFloorMapOverlay\",\"type\":\"Button\",\"id\":\"e3c17d5b-7329-48c9-bd82-7679810fba5e\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
             "{\"name\":\"ToggleDamageStatistics\",\"type\":\"Button\",\"id\":\"4463886d-62fd-434b-b63e-51a9ddd09b59\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
-            "{\"name\":\"OptimizeInventory\",\"type\":\"Button\",\"id\":\"bc18d113-80d2-4bd4-bdee-ddf6b50d3fa7\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}],\"bindings\":[" +
+            "{\"name\":\"OptimizeInventory\",\"type\":\"Button\",\"id\":\"bc18d113-80d2-4bd4-bdee-ddf6b50d3fa7\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}" +
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            ",{\"name\":\"CaptureInventoryReproduction\",\"type\":\"Button\",\"id\":\"95f0dd11-e4b5-442d-93ce-3b7d7f3e0b20\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}" +
+#endif
+            "],\"bindings\":[" +
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            "{\"name\":\"\",\"id\":\"12036175-0f1e-4484-856f-4904ea96bc85\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"CaptureInventoryReproduction\",\"isComposite\":false,\"isPartOfComposite\":false}," +
+            "{\"name\":\"\",\"id\":\"34aec789-9638-4fa8-b074-d1656cfd119c\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"CaptureInventoryReproduction\",\"isComposite\":false,\"isPartOfComposite\":false}," +
+            "{\"name\":\"\",\"id\":\"8cc09c5a-a357-48d9-8b99-ecb87e3fdad6\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Gamepad\",\"action\":\"CaptureInventoryReproduction\",\"isComposite\":false,\"isPartOfComposite\":false}," +
+#endif
             "{\"name\":\"\",\"id\":\"48ae6552-5007-43f3-955f-7393f9701dc4\",\"path\":\"<Mouse>/middleButton\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"SwitchLockedTarget\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"9ee0066c-129a-48fd-8c03-c8604cf487cf\",\"path\":\"<Keyboard>/l\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"SwitchLockedTarget\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"44f640e8-3ed3-4994-bb53-69c64b772533\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Gamepad\",\"action\":\"SwitchLockedTarget\",\"isComposite\":false,\"isPartOfComposite\":false}," +

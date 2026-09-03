@@ -28,6 +28,10 @@ namespace SephiriaEnhancements.Configuration
             new NativeRebindDefinition(
                 ModShortcuts.OptimizeInventory,
                 ControlLocalization.OptimizeInventory),
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            new NativeRebindDefinition(ModShortcuts.CaptureInventoryReproduction,
+                Diagnostics.InventoryReproductionLocalization.Capture),
+#endif
             new NativeRebindDefinition(
                 DeveloperConsoleContract.ActionMapName,
                 DeveloperConsoleContract.ActionName,
@@ -47,7 +51,11 @@ namespace SephiriaEnhancements.Configuration
                 ControlLocalization.ToggleDamageStatistics),
             new NativeRebindDefinition(
                 ModShortcuts.OptimizeInventory,
-                ControlLocalization.OptimizeInventory)
+                ControlLocalization.OptimizeInventory),
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            new NativeRebindDefinition(ModShortcuts.CaptureInventoryReproduction,
+                Diagnostics.InventoryReproductionLocalization.Capture)
+#endif
         };
 
         internal static void Inject(UI_OptionsPanel panel)

@@ -1,11 +1,10 @@
 #nullable disable
-using SephiriaEnhancements.Runtime.Inventory;
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using SephiriaEnhancements.Runtime.Inventory;
 
 namespace SephiriaEnhancements.Inventory
 {
@@ -15,7 +14,8 @@ namespace SephiriaEnhancements.Inventory
             InventorySnapshot snapshot,
             ResolvedInventoryOptimizationPolicy policy,
             InventorySearchBudget budget = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            IInventoryCandidateBatchEvaluator batchEvaluator = null)
         {
             var elapsed = Stopwatch.StartNew();
             cancellationToken.ThrowIfCancellationRequested();
@@ -48,11 +48,19 @@ namespace SephiriaEnhancements.Inventory
                     elapsedMilliseconds: elapsed.ElapsedMilliseconds);
             }
 
-            int candidateEvaluations = 1;
             InventoryOptimizationScore initialScore = scorer.Score(current,
                 currentSettlement);
-            var evaluatedLayouts = new EvaluatedLayoutSet(snapshot, current);
-            scorer.ObserveTargets(currentSettlement, evaluatedLayouts.TargetEvidence);
+            if (elapsed.ElapsedMilliseconds < budget.MaximumElapsedMilliseconds &&
+                InventoryAdditiveScoreBound.IsAttained(snapshot, policy, initialScore))
+            {
+                return new InventoryOptimizationProposal(true, current, initialScore, initialScore, 1,
+                    Array.Empty<string>(), policy, scorer.EvaluateTargets(currentSettlement, currentSettlement),
+                    InventorySearchTerminationReason.ScoreUpperBoundReached, elapsed.ElapsedMilliseconds,
+                    optimalityProven: true, outcome: InventoryOptimizationOutcomeBuilder.Build(snapshot,
+                        currentSettlement, currentSettlement, initialScore, initialScore));
+            }
+            var evaluator = new InventoryCandidateEvaluator(snapshot, policy, budget, elapsed, cancellationToken, current, batchEvaluator);
+            scorer.ObserveTargets(currentSettlement, evaluator.TargetEvidence);
             InventoryOptimizationScore currentScore = initialScore;
             InventoryLayoutProjection bestLayout = current;
             InventoryOptimizationScore bestScore = currentScore;
@@ -67,63 +75,9 @@ namespace SephiriaEnhancements.Inventory
                 bestLayout = current;
                 bestScore = currentScore;
 
-                for (int first = 0; first < snapshot.Storage &&
-                    !searchStopped; first++)
-                {
-                    for (int second = first + 1; second < snapshot.Storage;
-                        second++)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        InventoryLayoutProjection candidate =
-                            current.WithCellsSwapped(first, second);
-                        if (candidate.ContentEquals(current))
-                        {
-                            continue;
-                        }
-                        if (!TryPromote(snapshot, scorer, candidate,
-                                evaluatedLayouts, budget,
-                                elapsed,
-                                cancellationToken, ref candidateEvaluations,
-                                ref bestLayout, ref bestScore,
-                                out terminationReason))
-                        {
-                            searchStopped = true;
-                            break;
-                        }
-                    }
-                }
-
-                for (int itemIndex = 0; policy.AllowStoneTabletRotation &&
-                    itemIndex < snapshot.Items.Count && !searchStopped;
-                    itemIndex++)
-                {
-                    StoneTabletSnapshot stoneTablet =
-                        snapshot.Items[itemIndex].StoneTablet;
-                    if (stoneTablet == null || !stoneTablet.Rotatable)
-                    {
-                        continue;
-                    }
-                    for (int rotation = 0; rotation < 4; rotation++)
-                    {
-                        if (rotation == current.GetRotation(itemIndex))
-                        {
-                            continue;
-                        }
-                        cancellationToken.ThrowIfCancellationRequested();
-                        InventoryLayoutProjection candidate =
-                            current.WithRotation(itemIndex, rotation);
-                        if (!TryPromote(snapshot, scorer, candidate,
-                                evaluatedLayouts, budget,
-                                elapsed,
-                                cancellationToken,
-                                ref candidateEvaluations, ref bestLayout,
-                                ref bestScore, out terminationReason))
-                        {
-                            searchStopped = true;
-                            break;
-                        }
-                    }
-                }
+                if (!evaluator.Search(InventorySearchStage.Simple, round + 1, InventoryCandidateNeighborhoods.Simple(snapshot, current, policy.AllowStoneTabletRotation),
+                        false, ref bestLayout, ref bestScore, out terminationReason))
+                    searchStopped = true;
 
                 if (searchStopped)
                 {
@@ -139,18 +93,12 @@ namespace SephiriaEnhancements.Inventory
                     {
                         ProjectedInventorySettlement settlement =
                             InventorySettlementProjector.EvaluateForScoring(snapshot,
-                                current, evaluatedLayouts.EvaluationWorkspace);
+                                current, evaluator.EvaluationWorkspace);
                         resumeLocalSearchAfterImprovement = scorer.EvaluateTargets(
                             settlement, settlement).All(target => target.AfterConditionReached);
                     }
-                    if (!TrySearchSwapAndStoneTabletRotationNeighborhood(
-                            snapshot, scorer,
-                            current, policy.AllowStoneTabletRotation,
-                            resumeLocalSearchAfterImprovement,
-                            evaluatedLayouts, budget,
-                            elapsed, cancellationToken,
-                            ref candidateEvaluations, ref bestLayout,
-                            ref bestScore, out terminationReason))
+                    if (!evaluator.Search(InventorySearchStage.SwapAndRotation, round + 1, InventoryCandidateNeighborhoods.SwapAndRotation(snapshot, current, policy.AllowStoneTabletRotation),
+                            resumeLocalSearchAfterImprovement, ref bestLayout, ref bestScore, out terminationReason))
                     {
                         searchStopped = true;
                         break;
@@ -158,12 +106,8 @@ namespace SephiriaEnhancements.Inventory
                 }
                 if (bestScore.CompareTo(currentScore) <= 0)
                 {
-                    if (!TrySearchTwoSwapNeighborhood(snapshot, scorer,
-                            current, resumeLocalSearchAfterImprovement,
-                            evaluatedLayouts, budget, elapsed,
-                            cancellationToken,
-                            ref candidateEvaluations, ref bestLayout,
-                            ref bestScore, out terminationReason))
+                    if (!evaluator.Search(InventorySearchStage.TwoSwaps, round + 1, InventoryCandidateNeighborhoods.TwoSwaps(snapshot, current),
+                            resumeLocalSearchAfterImprovement, ref bestLayout, ref bestScore, out terminationReason))
                     {
                         searchStopped = true;
                         break;
@@ -174,13 +118,8 @@ namespace SephiriaEnhancements.Inventory
                         neighborhoodComparison == 0 &&
                         bestLayout.ContentEquals(current))
                     {
-                        if (!TrySearchTwoItemRelocationAndTabletRotation(
-                                snapshot, scorer, current,
-                                policy.AllowStoneTabletRotation,
-                                evaluatedLayouts, budget, elapsed,
-                                cancellationToken, ref candidateEvaluations,
-                                ref bestLayout, ref bestScore,
-                                out terminationReason))
+                        if (!evaluator.Search(InventorySearchStage.TwoItemRelocationAndRotation, round + 1, InventoryCandidateNeighborhoods.TwoItemRelocationAndRotation(snapshot, current, policy.AllowStoneTabletRotation),
+                            false, ref bestLayout, ref bestScore, out terminationReason))
                         {
                             searchStopped = true;
                             break;
@@ -192,11 +131,8 @@ namespace SephiriaEnhancements.Inventory
                         neighborhoodComparison == 0 &&
                         bestLayout.ContentEquals(current))
                     {
-                        if (!TrySearchThreeItemRelocationNeighborhood(snapshot,
-                                scorer, current, evaluatedLayouts, budget,
-                                elapsed, cancellationToken,
-                                ref candidateEvaluations, ref bestLayout,
-                                ref bestScore, out terminationReason))
+                        if (!evaluator.Search(InventorySearchStage.ThreeItemRelocation, round + 1, InventoryCandidateNeighborhoods.ThreeItemRelocation(snapshot, current),
+                            false, ref bestLayout, ref bestScore, out terminationReason))
                         {
                             searchStopped = true;
                             break;
@@ -226,6 +162,7 @@ namespace SephiriaEnhancements.Inventory
             // improvement. Retain that evaluated result even for a partial round.
             current = bestLayout;
             currentScore = bestScore;
+            evaluator.CompleteEvidence();
             ProjectedInventorySettlement bestSettlement =
                 InventorySettlementProjector.Evaluate(snapshot, current);
             InventoryOptimizationOutcome outcome =
@@ -233,556 +170,13 @@ namespace SephiriaEnhancements.Inventory
                     currentSettlement, bestSettlement, initialScore,
                     currentScore);
             return new InventoryOptimizationProposal(true, current, initialScore,
-                currentScore, candidateEvaluations, Array.Empty<string>(), policy,
+                currentScore, evaluator.CandidateEvaluations, Array.Empty<string>(), policy,
                 scorer.EvaluateTargets(currentSettlement, bestSettlement,
-                    evaluatedLayouts.TargetEvidence),
+                    evaluator.TargetEvidence),
                 terminationReason, elapsed.ElapsedMilliseconds,
                 duplicateLayoutsSkipped:
-                    evaluatedLayouts.DuplicateLayoutsSkipped,
-                outcome: outcome);
-        }
-
-        private static bool TrySearchSwapAndStoneTabletRotationNeighborhood(
-            InventorySnapshot snapshot, InventoryOptimizationScorer scorer,
-            InventoryLayoutProjection current, bool allowStoneTabletRotation,
-            bool resumeLocalSearchAfterImprovement,
-            EvaluatedLayoutSet evaluatedLayouts,
-            InventorySearchBudget budget, Stopwatch elapsed,
-            CancellationToken cancellationToken,
-            ref int candidateEvaluations,
-            ref InventoryLayoutProjection bestLayout,
-            ref InventoryOptimizationScore bestScore,
-            out InventorySearchTerminationReason terminationReason)
-        {
-            InventoryOptimizationScore startingScore = bestScore;
-            // Score the combined result because a placement projection can make
-            // both its setup move and its rotation neutral when tried alone.
-            // TryPromote keeps this larger neighborhood inside the shared wall-
-            // clock and candidate-evaluation budget.
-            terminationReason = InventorySearchTerminationReason.
-                ImprovementRoundLimit;
-            if (!allowStoneTabletRotation)
-            {
-                return true;
-            }
-
-            for (int firstCell = 0; firstCell < snapshot.Storage; firstCell++)
-            {
-                for (int secondCell = firstCell + 1;
-                    secondCell < snapshot.Storage; secondCell++)
-                {
-                    InventoryLayoutProjection afterSwap =
-                        current.WithCellsSwapped(firstCell, secondCell);
-                    if (afterSwap.ContentEquals(current))
-                    {
-                        continue;
-                    }
-                    for (int itemIndex = 0;
-                        itemIndex < snapshot.Items.Count; itemIndex++)
-                    {
-                        StoneTabletSnapshot stoneTablet =
-                            snapshot.Items[itemIndex].StoneTablet;
-                        if (stoneTablet == null || !stoneTablet.Rotatable)
-                        {
-                            continue;
-                        }
-                        for (int rotation = 0; rotation < 4; rotation++)
-                        {
-                            if (rotation == afterSwap.GetRotation(itemIndex))
-                            {
-                                continue;
-                            }
-                            InventoryLayoutProjection candidate =
-                                afterSwap.WithRotation(itemIndex, rotation);
-                            if (!TryPromote(snapshot, scorer, candidate,
-                                    evaluatedLayouts, budget,
-                                    elapsed, cancellationToken,
-                                    ref candidateEvaluations, ref bestLayout,
-                                    ref bestScore, out terminationReason))
-                            {
-                                return false;
-                            }
-                            if (resumeLocalSearchAfterImprovement &&
-                                bestScore.CompareTo(startingScore) > 0) return true;
-                        }
-                    }
-                }
-            }
-            return true;
-        }
-
-        private static bool TrySearchTwoItemRelocationAndTabletRotation(
-            InventorySnapshot snapshot, InventoryOptimizationScorer scorer,
-            InventoryLayoutProjection current, bool allowStoneTabletRotation,
-            EvaluatedLayoutSet evaluatedLayouts,
-            InventorySearchBudget budget,
-            Stopwatch elapsed, CancellationToken cancellationToken,
-            ref int candidateEvaluations,
-            ref InventoryLayoutProjection bestLayout,
-            ref InventoryOptimizationScore bestScore,
-            out InventorySearchTerminationReason terminationReason)
-        {
-            terminationReason = InventorySearchTerminationReason.
-                ImprovementRoundLimit;
-            if (!allowStoneTabletRotation || current.ItemCount < 2)
-            {
-                return true;
-            }
-
-            var occupiedByUnselectedItem = new bool[snapshot.Storage];
-            for (int firstItem = 0; firstItem < current.ItemCount - 1;
-                firstItem++)
-            {
-                for (int secondItem = firstItem + 1;
-                    secondItem < current.ItemCount; secondItem++)
-                {
-                    Array.Clear(occupiedByUnselectedItem, 0,
-                        occupiedByUnselectedItem.Length);
-                    for (int itemIndex = 0; itemIndex < current.ItemCount;
-                        itemIndex++)
-                    {
-                        if (itemIndex != firstItem && itemIndex != secondItem)
-                        {
-                            occupiedByUnselectedItem[
-                                current.GetCell(itemIndex)] = true;
-                        }
-                    }
-
-                    for (int firstCell = 0; firstCell < snapshot.Storage;
-                        firstCell++)
-                    {
-                        if (occupiedByUnselectedItem[firstCell] ||
-                            firstCell == current.GetCell(firstItem))
-                        {
-                            continue;
-                        }
-                        for (int secondCell = 0;
-                            secondCell < snapshot.Storage; secondCell++)
-                        {
-                            if (secondCell == firstCell ||
-                                occupiedByUnselectedItem[secondCell] ||
-                                secondCell == current.GetCell(secondItem))
-                            {
-                                continue;
-                            }
-                            InventoryLayoutProjection relocated = current.
-                                WithTwoItemCells(firstItem, firstCell,
-                                    secondItem, secondCell);
-                            for (int tabletItem = 0;
-                                tabletItem < current.ItemCount; tabletItem++)
-                            {
-                                StoneTabletSnapshot tablet = snapshot.Items[
-                                    tabletItem].StoneTablet;
-                                if (tablet == null || !tablet.Rotatable)
-                                {
-                                    continue;
-                                }
-                                for (int rotation = 0; rotation < 4;
-                                    rotation++)
-                                {
-                                    if (rotation == current.GetRotation(
-                                            tabletItem))
-                                    {
-                                        continue;
-                                    }
-                                    InventoryLayoutProjection candidate =
-                                        relocated.WithRotation(tabletItem,
-                                            rotation);
-                                    if (!TryPromote(snapshot, scorer, candidate,
-                                            evaluatedLayouts, budget, elapsed,
-                                            cancellationToken,
-                                            ref candidateEvaluations,
-                                            ref bestLayout, ref bestScore,
-                                            out terminationReason))
-                                    {
-                                        return false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return true;
-        }
-
-        private static bool TrySearchThreeItemRelocationNeighborhood(
-            InventorySnapshot snapshot, InventoryOptimizationScorer scorer,
-            InventoryLayoutProjection current,
-            EvaluatedLayoutSet evaluatedLayouts,
-            InventorySearchBudget budget,
-            Stopwatch elapsed, CancellationToken cancellationToken,
-            ref int candidateEvaluations,
-            ref InventoryLayoutProjection bestLayout,
-            ref InventoryOptimizationScore bestScore,
-            out InventorySearchTerminationReason terminationReason)
-        {
-            // Some placement conditions require three artifacts to move as one
-            // unit. Search those relocations only after the smaller
-            // neighborhoods stall; the shared budgets cap the worst case.
-            terminationReason = InventorySearchTerminationReason.
-                ImprovementRoundLimit;
-            if (current.ItemCount < 3)
-            {
-                return true;
-            }
-
-            var occupiedByUnselectedItem = new bool[snapshot.Storage];
-            for (int firstItem = 0; firstItem < current.ItemCount - 2;
-                firstItem++)
-            {
-                for (int secondItem = firstItem + 1;
-                    secondItem < current.ItemCount - 1; secondItem++)
-                {
-                    for (int thirdItem = secondItem + 1;
-                        thirdItem < current.ItemCount; thirdItem++)
-                    {
-                        Array.Clear(occupiedByUnselectedItem, 0,
-                            occupiedByUnselectedItem.Length);
-                        for (int itemIndex = 0;
-                            itemIndex < current.ItemCount; itemIndex++)
-                        {
-                            if (itemIndex != firstItem &&
-                                itemIndex != secondItem &&
-                                itemIndex != thirdItem)
-                            {
-                                occupiedByUnselectedItem[
-                                    current.GetCell(itemIndex)] = true;
-                            }
-                        }
-
-                        for (int firstCell = 0;
-                            firstCell < snapshot.Storage; firstCell++)
-                        {
-                            if (occupiedByUnselectedItem[firstCell] ||
-                                firstCell == current.GetCell(firstItem))
-                            {
-                                continue;
-                            }
-                            for (int secondCell = 0;
-                                secondCell < snapshot.Storage; secondCell++)
-                            {
-                                if (secondCell == firstCell ||
-                                    occupiedByUnselectedItem[secondCell] ||
-                                    secondCell == current.GetCell(secondItem))
-                                {
-                                    continue;
-                                }
-                                for (int thirdCell = 0;
-                                    thirdCell < snapshot.Storage; thirdCell++)
-                                {
-                                    if (thirdCell == firstCell ||
-                                        thirdCell == secondCell ||
-                                        occupiedByUnselectedItem[thirdCell] ||
-                                        thirdCell == current.GetCell(thirdItem))
-                                    {
-                                        continue;
-                                    }
-                                    InventoryLayoutProjection candidate = current.
-                                        WithThreeItemCells(firstItem, firstCell,
-                                            secondItem, secondCell, thirdItem,
-                                            thirdCell);
-                                    if (!TryPromote(snapshot, scorer, candidate,
-                                            evaluatedLayouts, budget, elapsed,
-                                            cancellationToken,
-                                            ref candidateEvaluations,
-                                            ref bestLayout, ref bestScore,
-                                            out terminationReason))
-                                    {
-                                        return false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return true;
-        }
-
-        private static bool TrySearchTwoSwapNeighborhood(
-            InventorySnapshot snapshot, InventoryOptimizationScorer scorer,
-            InventoryLayoutProjection current,
-            bool resumeLocalSearchAfterImprovement,
-            EvaluatedLayoutSet evaluatedLayouts,
-            InventorySearchBudget budget,
-            Stopwatch elapsed, CancellationToken cancellationToken,
-            ref int candidateEvaluations,
-            ref InventoryLayoutProjection bestLayout,
-            ref InventoryOptimizationScore bestScore,
-            out InventorySearchTerminationReason terminationReason)
-        {
-            InventoryOptimizationScore startingScore = bestScore;
-            // Two swaps produce either a three-cell cycle or two disjoint
-            // transpositions. Enumerating those final permutations directly
-            // avoids evaluating the same layout from multiple swap orders.
-            // Three-cell cycles come first because they cover adjacency setup
-            // moves with the smaller neighborhood.
-            terminationReason = InventorySearchTerminationReason.
-                ImprovementRoundLimit;
-            var occupiedCells = new bool[snapshot.Storage];
-            for (int itemIndex = 0; itemIndex < current.ItemCount; itemIndex++)
-            {
-                occupiedCells[current.GetCell(itemIndex)] = true;
-            }
-            for (int first = 0; first < snapshot.Storage; first++)
-            {
-                for (int second = first + 1;
-                    second < snapshot.Storage; second++)
-                {
-                    for (int third = second + 1;
-                        third < snapshot.Storage; third++)
-                    {
-                        int occupiedCount = (occupiedCells[first] ? 1 : 0) +
-                            (occupiedCells[second] ? 1 : 0) +
-                            (occupiedCells[third] ? 1 : 0);
-                        if (occupiedCount < 2)
-                        {
-                            continue;
-                        }
-                        InventoryLayoutProjection forward = current
-                            .WithCellsSwapped(first, second)
-                            .WithCellsSwapped(second, third);
-                        if (!TryPromoteDistinctLayout(snapshot, scorer, current,
-                                forward, evaluatedLayouts, budget, elapsed,
-                                cancellationToken,
-                                ref candidateEvaluations, ref bestLayout,
-                                ref bestScore, out terminationReason))
-                        {
-                            return false;
-                        }
-                        if (resumeLocalSearchAfterImprovement &&
-                            bestScore.CompareTo(startingScore) > 0) return true;
-
-                        InventoryLayoutProjection reverse = current
-                            .WithCellsSwapped(first, third)
-                            .WithCellsSwapped(second, third);
-                        if (!TryPromoteDistinctLayout(snapshot, scorer, current,
-                                reverse, evaluatedLayouts, budget, elapsed,
-                                cancellationToken,
-                                ref candidateEvaluations, ref bestLayout,
-                                ref bestScore, out terminationReason))
-                        {
-                            return false;
-                        }
-                        if (resumeLocalSearchAfterImprovement &&
-                            bestScore.CompareTo(startingScore) > 0) return true;
-                    }
-                }
-            }
-
-            for (int first = 0; first < snapshot.Storage; first++)
-            {
-                for (int second = first + 1;
-                    second < snapshot.Storage; second++)
-                {
-                    for (int third = second + 1;
-                        third < snapshot.Storage; third++)
-                    {
-                        for (int fourth = third + 1;
-                            fourth < snapshot.Storage; fourth++)
-                        {
-                            if ((occupiedCells[first] || occupiedCells[second]) &&
-                                (occupiedCells[third] || occupiedCells[fourth]))
-                            {
-                                InventoryLayoutProjection adjacentPairs = current
-                                    .WithCellsSwapped(first, second)
-                                    .WithCellsSwapped(third, fourth);
-                                if (!TryPromoteDistinctLayout(snapshot, scorer,
-                                        current, adjacentPairs,
-                                        evaluatedLayouts, budget, elapsed,
-                                        cancellationToken,
-                                        ref candidateEvaluations,
-                                        ref bestLayout, ref bestScore,
-                                        out terminationReason))
-                                {
-                                    return false;
-                                }
-                                if (resumeLocalSearchAfterImprovement &&
-                                    bestScore.CompareTo(startingScore) > 0) return true;
-                            }
-
-                            if ((occupiedCells[first] || occupiedCells[third]) &&
-                                (occupiedCells[second] || occupiedCells[fourth]))
-                            {
-                                InventoryLayoutProjection outerPairs = current
-                                    .WithCellsSwapped(first, third)
-                                    .WithCellsSwapped(second, fourth);
-                                if (!TryPromoteDistinctLayout(snapshot, scorer,
-                                        current, outerPairs, evaluatedLayouts,
-                                        budget, elapsed,
-                                        cancellationToken,
-                                        ref candidateEvaluations,
-                                        ref bestLayout, ref bestScore,
-                                        out terminationReason))
-                                {
-                                    return false;
-                                }
-                                if (resumeLocalSearchAfterImprovement &&
-                                    bestScore.CompareTo(startingScore) > 0) return true;
-                            }
-
-                            if ((occupiedCells[first] || occupiedCells[fourth]) &&
-                                (occupiedCells[second] || occupiedCells[third]))
-                            {
-                                InventoryLayoutProjection crossedPairs = current
-                                    .WithCellsSwapped(first, fourth)
-                                    .WithCellsSwapped(second, third);
-                                if (!TryPromoteDistinctLayout(snapshot, scorer,
-                                        current, crossedPairs, evaluatedLayouts,
-                                        budget, elapsed,
-                                        cancellationToken,
-                                        ref candidateEvaluations,
-                                        ref bestLayout, ref bestScore,
-                                        out terminationReason))
-                                {
-                                    return false;
-                                }
-                                if (resumeLocalSearchAfterImprovement &&
-                                    bestScore.CompareTo(startingScore) > 0) return true;
-                            }
-                        }
-                    }
-                }
-            }
-            return true;
-        }
-
-        private static bool TryPromoteDistinctLayout(
-            InventorySnapshot snapshot, InventoryOptimizationScorer scorer,
-            InventoryLayoutProjection current,
-            InventoryLayoutProjection candidate,
-            EvaluatedLayoutSet evaluatedLayouts,
-            InventorySearchBudget budget,
-            Stopwatch elapsed, CancellationToken cancellationToken,
-            ref int candidateEvaluations,
-            ref InventoryLayoutProjection bestLayout,
-            ref InventoryOptimizationScore bestScore,
-            out InventorySearchTerminationReason terminationReason)
-        {
-            if (candidate.ContentEquals(current))
-            {
-                terminationReason = InventorySearchTerminationReason.
-                    ImprovementRoundLimit;
-                return true;
-            }
-            return TryPromote(snapshot, scorer, candidate, evaluatedLayouts,
-                budget, elapsed, cancellationToken, ref candidateEvaluations,
-                ref bestLayout, ref bestScore, out terminationReason);
-        }
-
-        private static bool TryPromote(InventorySnapshot snapshot,
-            InventoryOptimizationScorer scorer,
-            InventoryLayoutProjection candidate,
-            EvaluatedLayoutSet evaluatedLayouts,
-            InventorySearchBudget budget,
-            Stopwatch elapsed,
-            CancellationToken cancellationToken,
-            ref int candidateEvaluations,
-            ref InventoryLayoutProjection bestLayout,
-            ref InventoryOptimizationScore bestScore,
-            out InventorySearchTerminationReason terminationReason)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (candidateEvaluations >= budget.MaximumCandidateEvaluations)
-            {
-                terminationReason = InventorySearchTerminationReason.
-                    CandidateEvaluationLimit;
-                return false;
-            }
-            if (elapsed.ElapsedMilliseconds >= budget.MaximumElapsedMilliseconds)
-            {
-                terminationReason = InventorySearchTerminationReason.
-                    ElapsedTimeLimit;
-                return false;
-            }
-            if (!evaluatedLayouts.TryAdd(candidate))
-            {
-                terminationReason = InventorySearchTerminationReason.
-                    ImprovementRoundLimit;
-                return true;
-            }
-
-            terminationReason = InventorySearchTerminationReason.
-                ImprovementRoundLimit;
-            ProjectedInventorySettlement settlement =
-                InventorySettlementProjector.EvaluateForScoring(
-                    snapshot, candidate, evaluatedLayouts.EvaluationWorkspace);
-            candidateEvaluations++;
-            if (!settlement.Succeeded)
-            {
-                return true;
-            }
-
-            scorer.ObserveTargets(settlement, evaluatedLayouts.TargetEvidence);
-            InventoryOptimizationScore score = scorer.Score(candidate, settlement);
-            int comparison = score.CompareTo(bestScore);
-            if (comparison > 0 || comparison == 0 &&
-                candidate.CompareStableTo(bestLayout) < 0)
-            {
-                bestLayout = candidate;
-                bestScore = score;
-            }
-            return true;
-        }
-
-        private sealed class EvaluatedLayoutSet
-        {
-            private readonly HashSet<InventoryLayoutProjection> layouts = new(
-                CandidateLayoutContentComparer.Instance);
-
-            internal EvaluatedLayoutSet(InventorySnapshot snapshot,
-                InventoryLayoutProjection current)
-            {
-                EvaluationWorkspace = new InventorySettlementProjectionWorkspace(
-                    snapshot);
-                layouts.Add(current);
-            }
-
-            internal int DuplicateLayoutsSkipped { get; private set; }
-            internal Dictionary<string, InventoryTargetSearchEvidence> TargetEvidence { get; } =
-                new(StringComparer.Ordinal);
-            internal InventorySettlementProjectionWorkspace EvaluationWorkspace
-            { get; }
-
-            internal bool TryAdd(InventoryLayoutProjection layout)
-            {
-                if (layouts.Add(layout))
-                {
-                    return true;
-                }
-                DuplicateLayoutsSkipped++;
-                return false;
-            }
-        }
-
-        private sealed class CandidateLayoutContentComparer :
-            IEqualityComparer<InventoryLayoutProjection>
-        {
-            internal static readonly CandidateLayoutContentComparer Instance =
-                new();
-
-            public bool Equals(InventoryLayoutProjection first,
-                InventoryLayoutProjection second)
-            {
-                return ReferenceEquals(first, second) ||
-                    first != null && first.ContentEquals(second);
-            }
-
-            public int GetHashCode(InventoryLayoutProjection layout)
-            {
-                unchecked
-                {
-                    int hash = 17;
-                    hash = hash * 31 + layout.ItemCount;
-                    for (int index = 0; index < layout.ItemCount; index++)
-                    {
-                        hash = hash * 31 + layout.GetCell(index);
-                        hash = hash * 31 + layout.GetRotation(index);
-                    }
-                    return hash;
-                }
-            }
+                    evaluator.DuplicateLayoutsSkipped,
+                outcome: outcome, searchStages: evaluator.SearchStages.ToArray());
         }
 
         private static InventoryOptimizationProposal Failure(string issue,
@@ -792,5 +186,4 @@ namespace SephiriaEnhancements.Inventory
                 new[] { issue }, elapsedMilliseconds: elapsedMilliseconds);
         }
     }
-
 }

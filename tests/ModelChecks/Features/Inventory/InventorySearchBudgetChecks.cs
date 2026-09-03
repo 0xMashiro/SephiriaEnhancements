@@ -81,6 +81,11 @@ internal static class InventorySearchBudgetChecks
                 result.Outcome?.AfterEffectiveLevels != 5)
                 throw new InvalidOperationException(
                     "a budget cutoff must retain the better layout already evaluated, including its outcome");
+            if (result.SearchStages.Sum(stage => stage.CandidateEvaluations) != result.CandidateEvaluations - 1 ||
+                result.SearchStages.Sum(stage => stage.Improvements) != 1 ||
+                result.SearchStages.Max(stage => stage.LastImprovementCandidate) != 2 ||
+                result.SearchStages.Any(stage => stage.Round != 1 || stage.ElapsedMilliseconds < 0))
+                throw new InvalidOperationException("partial-round diagnostics must account for the evaluated improvement before cutoff");
         }
     }
 

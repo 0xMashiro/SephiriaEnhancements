@@ -14,7 +14,7 @@ internal static class ModShortcutsChecks
             JsonElement bindings = map.GetProperty("bindings");
             if (map.GetProperty("name").GetString() != ModShortcuts.MapName ||
                 actions.GetArrayLength() != ModShortcuts.ActionNames.Length ||
-                bindings.GetArrayLength() != 12)
+                bindings.GetArrayLength() != ModShortcuts.ActionNames.Length * 3)
                 throw new InvalidOperationException("shortcut action map shape failed");
 
             var actionNames = actions.EnumerateArray()
@@ -28,6 +28,14 @@ internal static class ModShortcutsChecks
                 .ToArray();
             if (bindingIds.Distinct(StringComparer.OrdinalIgnoreCase).Count() != bindingIds.Length)
                 throw new InvalidOperationException("shortcut binding IDs must be unique");
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            var captures = bindings.EnumerateArray().Where(binding =>
+                binding.GetProperty("action").GetString() == ModShortcuts.CaptureInventoryReproduction).ToArray();
+            if (captures.Length != 3 || captures.Any(binding => binding.GetProperty("path").GetString() != string.Empty) ||
+                captures.Count(binding => binding.GetProperty("groups").GetString() == ModShortcuts.KeyboardScheme) != 2 ||
+                captures.Count(binding => binding.GetProperty("groups").GetString() == ModShortcuts.GamepadScheme) != 1)
+                throw new InvalidOperationException("manual inventory capture must provide unassigned keyboard and gamepad bindings");
+#endif
 
             JsonElement targetGamepadBinding = bindings.EnumerateArray().Single(binding =>
                 binding.GetProperty("action").GetString() == ModShortcuts.SwitchLockedTarget &&

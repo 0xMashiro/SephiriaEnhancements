@@ -35,6 +35,7 @@ if (args.FirstOrDefault() == "--inventory-replay")
     return;
 }
 InventoryReproductionChecks.Run();
+InventoryAdditiveScoreBoundChecks.Run();
 if (args.Contains("--inventory-reproduction-only")) return;
 if (args.FirstOrDefault() == "--inventory-known-solutions-benchmark")
 {

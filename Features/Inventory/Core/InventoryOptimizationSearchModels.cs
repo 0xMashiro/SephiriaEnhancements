@@ -10,6 +10,7 @@ namespace SephiriaEnhancements.Inventory
     {
         NeighborhoodLocalOptimum,
         SearchSpaceExhausted,
+        ScoreUpperBoundReached,
         ImprovementRoundLimit,
         CandidateEvaluationLimit,
         ElapsedTimeLimit,
@@ -20,6 +21,31 @@ namespace SephiriaEnhancements.Inventory
     {
         Neighborhood,
         Exhaustive
+    }
+
+    internal enum InventorySearchStage
+    {
+        Simple,
+        SwapAndRotation,
+        TwoSwaps,
+        TwoItemRelocationAndRotation,
+        ThreeItemRelocation
+    }
+
+    internal sealed class InventorySearchStageStatistics
+    {
+        internal InventorySearchStageStatistics(InventorySearchStage stage, int round)
+        {
+            Stage = stage;
+            Round = round;
+        }
+        internal InventorySearchStage Stage { get; }
+        internal int Round { get; }
+        internal int CandidateEvaluations { get; set; }
+        internal int DuplicateLayoutsSkipped { get; set; }
+        internal long ElapsedMilliseconds { get; set; }
+        internal int Improvements { get; set; }
+        internal int LastImprovementCandidate { get; set; }
     }
 
     internal sealed class InventorySearchBudget
@@ -264,7 +290,8 @@ namespace SephiriaEnhancements.Inventory
                 InventoryOptimizationSearchMethod.Neighborhood,
             bool optimalityProven = false,
             int duplicateLayoutsSkipped = 0,
-            InventoryOptimizationOutcome outcome = null)
+            InventoryOptimizationOutcome outcome = null,
+            InventorySearchStageStatistics[] searchStages = null)
         {
             Succeeded = succeeded;
             Layout = layout;
@@ -281,6 +308,7 @@ namespace SephiriaEnhancements.Inventory
             OptimalityProven = optimalityProven;
             DuplicateLayoutsSkipped = Math.Max(0, duplicateLayoutsSkipped);
             Outcome = outcome;
+            SearchStages = Array.AsReadOnly(searchStages ?? Array.Empty<InventorySearchStageStatistics>());
         }
 
         internal bool Succeeded { get; }
@@ -301,5 +329,6 @@ namespace SephiriaEnhancements.Inventory
         internal bool OptimalityProven { get; }
         internal int DuplicateLayoutsSkipped { get; }
         internal InventoryOptimizationOutcome Outcome { get; }
+        internal IReadOnlyList<InventorySearchStageStatistics> SearchStages { get; }
     }
 }

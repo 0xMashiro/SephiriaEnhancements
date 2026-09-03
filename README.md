@@ -238,6 +238,20 @@ are labeled separately from errors. Recording runs in the background and retains
 four 32 MiB files; oversized records are omitted and queue or I/O failures are reported
 in the support log. Preset labels and exception messages are omitted. Files stay local.
 
+For real-game sampling, set **Inventory case capture (development)** under **General**
+to **All completed results** (off by default). Starting with the next search, this also
+records successful searches and application checks. Unfinished or cancelled searches
+are not recorded as completed results. In controls, assign **Save current inventory case
+(development)** to capture the current inventory and preferences without arranging:
+open the inventory, finish moving or arranging items, and wait for settlement before
+pressing the binding. A queued confirmation does not mean the record is on disk yet.
+Back up `inventory-reproductions*.jsonl` after each run and retain the development build
+you used, before log rotation overwrites the files.
+Search records also include per-stage evaluation counts, elapsed time, improvements,
+and the candidate index of the last improvement. Some purely additive problems without
+extra targets stop early when the current layout attains the full score upper bound;
+this is reported separately from budget exhaustion.
+
 To replay the latest case using the current model sources, without launching the game:
 
 ```powershell

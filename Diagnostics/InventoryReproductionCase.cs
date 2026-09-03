@@ -22,20 +22,24 @@ namespace SephiriaEnhancements.Diagnostics
         PositionEffectsChanged = 256,
         SettlementMismatch = 512,
         LayoutMismatch = 1024,
-        ApplicationException = 2048
+        ApplicationException = 2048,
+        ManualCapture = 4096,
+        SearchCompleted = 8192,
+        ApplicationCompleted = 16384
     }
 
     internal sealed class InventoryReproductionCase
     {
         internal InventoryReproductionCase(InventorySnapshot snapshot,
             InventoryOptimizationPreferences preferences, ResolvedInventoryOptimizationPolicy policy,
-            InventorySearchBudget budget)
+            InventorySearchBudget budget, bool recordAllResults = false)
         {
             Id = Guid.NewGuid().ToString("N");
             Snapshot = snapshot;
             Preferences = preferences;
             Policy = policy;
             Budget = budget;
+            RecordAllResults = recordAllResults;
         }
 
         internal string Id { get; }
@@ -43,6 +47,21 @@ namespace SephiriaEnhancements.Diagnostics
         internal InventoryOptimizationPreferences Preferences { get; }
         internal ResolvedInventoryOptimizationPolicy Policy { get; }
         internal InventorySearchBudget Budget { get; }
+        internal bool RecordAllResults { get; }
+
+        internal InventoryReproductionReason SearchReason(InventoryOptimizationProposal proposal)
+        {
+            var reason = Classify(proposal);
+            return RecordAllResults ? reason | InventoryReproductionReason.SearchCompleted : reason;
+        }
+
+        internal InventoryReproductionReason ApplicationReason(bool layoutMatched, bool settlementMatched)
+        {
+            var reason = RecordAllResults ? InventoryReproductionReason.ApplicationCompleted : InventoryReproductionReason.None;
+            if (!layoutMatched) reason |= InventoryReproductionReason.LayoutMismatch;
+            if (!settlementMatched) reason |= InventoryReproductionReason.SettlementMismatch;
+            return reason;
+        }
 
         internal static InventoryReproductionReason Classify(InventoryOptimizationProposal proposal)
         {
@@ -65,7 +84,7 @@ namespace SephiriaEnhancements.Diagnostics
                 Event = "inventory_reproduction",
                 Utc = DateTime.UtcNow.ToString("O"),
                 Reason = reason,
-                Case = new { Id, Snapshot, Preferences, Budget },
+                Case = new { Id, Snapshot, Preferences, Budget, RecordAllResults },
                 Evidence = new
                 {
                     Policy = InventoryReproductionEvidence.Policy(Policy),

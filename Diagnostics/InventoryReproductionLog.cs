@@ -21,10 +21,12 @@ namespace SephiriaEnhancements.Diagnostics
             writer.Start();
         }
 
-        internal void Record(object record)
+        internal bool Record(object record)
         {
-            try { if (!pending.TryAdd(record)) Interlocked.Increment(ref dropped); }
-            catch (InvalidOperationException) { Interlocked.Increment(ref dropped); }
+            try { if (pending.TryAdd(record)) return true; }
+            catch (InvalidOperationException) { }
+            Interlocked.Increment(ref dropped);
+            return false;
         }
 
         internal string TakeError() => Interlocked.Exchange(ref error, null);

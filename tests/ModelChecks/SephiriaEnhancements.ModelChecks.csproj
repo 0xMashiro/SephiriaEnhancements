@@ -21,6 +21,7 @@
     <Compile Include="..\..\Diagnostics\InventoryReproductionEvidence.cs" Link="Diagnostics\InventoryReproductionEvidence.cs" />
     <Compile Include="..\..\Diagnostics\InventoryReproductionJson.cs" Link="Diagnostics\InventoryReproductionJson.cs" />
     <Compile Include="..\..\Diagnostics\InventoryReproductionLog.cs" Link="Diagnostics\InventoryReproductionLog.cs" />
+    <Compile Include="..\..\Diagnostics\InventoryReproductionLocalization.cs" Link="Diagnostics\InventoryReproductionLocalization.cs" />
     <Compile Include="..\..\Diagnostics\SupportLog.cs" Link="Diagnostics\SupportLog.cs" />
     <Compile Include="..\..\Runtime\GameBridge\Inventory\NativeInventoryEffectAccess.cs" Link="GameBridge\Inventory\NativeInventoryEffectAccess.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryIntentInteractionState.cs" Link="Inventory\InventoryIntentInteractionState.cs" />
@@ -89,6 +90,10 @@
     <Compile Include="..\..\Runtime\Inventory\InventorySettlementProjector.cs" Link="Runtime\Inventory\InventorySettlementProjector.cs" />
     <Compile Include="..\..\Runtime\Inventory\InventorySettlementProjection.cs" Link="Runtime\Inventory\InventorySettlementProjection.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizer.cs" Link="Inventory\InventoryOptimizer.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryAdditiveScoreBound.cs" Link="Inventory\InventoryAdditiveScoreBound.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryCandidateEvaluator.cs" Link="Inventory\InventoryCandidateEvaluator.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\IInventoryCandidateBatchEvaluator.cs" Link="Inventory\IInventoryCandidateBatchEvaluator.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryCandidateNeighborhoods.cs" Link="Inventory\InventoryCandidateNeighborhoods.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationSearchModels.cs" Link="Inventory\InventoryOptimizationSearchModels.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationScorer.cs" Link="Inventory\InventoryOptimizationScorer.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationOutcome.cs" Link="Inventory\InventoryOptimizationOutcome.cs" />

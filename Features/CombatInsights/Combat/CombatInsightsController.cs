@@ -368,7 +368,7 @@ namespace SephiriaEnhancements.Combat
             InputAction action = NativeInputActions.FindShortcut(
                 input?.playerInput?.actions, ModShortcuts.ToggleDamageStatistics);
             CombatInsightsShortcutAction triggered = statisticsShortcut.Update(
-                StatisticsCaptureEnabled && (contextAllowed || statisticsBrowser?.IsControlEnabled == true) &&
+                StatisticsCaptureEnabled && (contextAllowed || statisticsBrowser != null && statisticsBrowser.IsControlEnabled) &&
                     !InputDeviceState.HasKeyboardModifierPressed &&
                     action != null && action.enabled,
                 action?.WasPressedThisFrame() ?? false,
@@ -376,21 +376,21 @@ namespace SephiriaEnhancements.Combat
                 action?.WasReleasedThisFrame() ?? false, now);
             if (triggered == CombatInsightsShortcutAction.None) return null;
             if (presentationBlock != ReportPresentationBlock.None &&
-                statisticsBrowser?.IsControlEnabled != true)
+                (statisticsBrowser == null || !statisticsBrowser.IsControlEnabled))
                 return CombatInsightsNotifications.BlockedMessage(presentationBlock);
             if (triggered == CombatInsightsShortcutAction.ToggleDisplay)
             {
                 hudHiddenByUser = !hudHiddenByUser;
                 if (hudHiddenByUser)
                 {
-                    statisticsBrowser?.Close();
+                    if (statisticsBrowser != null) statisticsBrowser.Close();
                     hud.Hide();
                 }
                 return hudHiddenByUser ? ModLocalization.DamageStatisticsDisplayHidden
                     : ModLocalization.DamageStatisticsDisplayRestored;
             }
             if (triggered != CombatInsightsShortcutAction.ToggleStatistics) return null;
-            if (statisticsBrowser?.IsControlEnabled == true)
+            if (statisticsBrowser != null && statisticsBrowser.IsControlEnabled)
             {
                 statisticsBrowser.Close();
                 return ModLocalization.StatisticsClosed;
@@ -425,7 +425,7 @@ namespace SephiriaEnhancements.Combat
 
         internal bool TryCloseStatisticsBrowser()
         {
-            if (statisticsBrowser?.IsControlEnabled != true) return false;
+            if (statisticsBrowser == null || !statisticsBrowser.IsControlEnabled) return false;
             statisticsBrowser.Close();
             return true;
         }
@@ -683,7 +683,7 @@ namespace SephiriaEnhancements.Combat
                     reportWindow.State(Time.unscaledTime).ToString(),
                     presentationBlock.ToString());
             }
-            statisticsBrowser?.Close();
+            if (statisticsBrowser != null) statisticsBrowser.Close();
             hud.Hide();
             hitStreakFeedback.Hide();
         }
@@ -1015,7 +1015,7 @@ namespace SephiriaEnhancements.Combat
 
         private void ResetCombatState()
         {
-            statisticsBrowser?.Close();
+            if (statisticsBrowser != null) statisticsBrowser.Close();
             floorStatistics.UpdateClock(Time.time, false);
             statisticsShortcut.Reset();
             bossEncounter.Reset();

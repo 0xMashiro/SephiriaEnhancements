@@ -55,7 +55,6 @@ namespace SephiriaEnhancements.Integration
                 var localization = button.GetComponentInChildren<UI_LocalizationStringText>(true);
                 localization?.UpdateKey(ModLocalization.ViewStatistics);
             }
-            button.text.text = ModLocalization.Get(ModLocalization.ViewStatistics);
             button.gameObject.SetActive(controller != null && controller.CanBrowseStatistics);
         }
 
@@ -63,7 +62,6 @@ namespace SephiriaEnhancements.Integration
         {
             if (button == null) return;
             button.gameObject.SetActive(controller != null && controller.CanBrowseStatistics);
-            button.text.text = ModLocalization.Get(ModLocalization.ViewStatistics);
         }
 
         private void OnDestroy()

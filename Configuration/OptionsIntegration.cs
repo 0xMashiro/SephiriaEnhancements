@@ -165,6 +165,17 @@ namespace SephiriaEnhancements.Configuration
             }
 
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            if (__instance.GetComponentInChildren<InventoryReproductionOption>(true) == null)
+            {
+                GameObject row = CloneRow(template, section.transform,
+                    "Option_SephiriaEnhancements_InventoryReproduction",
+                    Diagnostics.InventoryReproductionLocalization.Setting,
+                    Diagnostics.InventoryReproductionLocalization.Help, 14,
+                    out UI_HorizontalSelectionBox box, out UI_LocalizationStringText text);
+                row.AddComponent<InventoryReproductionOption>().Configure(box, text);
+                MarkCategory(row, OptionsCategory.General);
+                row.SetActive(true);
+            }
             if (__instance.GetComponentInChildren<DeveloperPlayerDamageOption>(true) ==
                 null)
             {
@@ -257,6 +268,9 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_ShowHiddenRooms",
                 "Option_SephiriaEnhancements_DeveloperConsole",
                 "Option_SephiriaEnhancements_DeveloperPlayerDamage",
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+                "Option_SephiriaEnhancements_InventoryReproduction",
+#endif
                 "Option_SephiriaEnhancements_CombatRelationOutlines",
                 "Option_SephiriaEnhancements_CombatVisualPreset",
                 "Option_SephiriaEnhancements_CompanionBody",

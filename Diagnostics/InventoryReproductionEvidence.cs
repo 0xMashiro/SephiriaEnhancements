@@ -33,6 +33,16 @@ namespace SephiriaEnhancements.Diagnostics
             proposal.SearchMethod,
             proposal.OptimalityProven,
             proposal.DuplicateLayoutsSkipped,
+            SearchStages = proposal.SearchStages.Select(stage => new
+            {
+                stage.Stage,
+                stage.Round,
+                stage.CandidateEvaluations,
+                stage.DuplicateLayoutsSkipped,
+                stage.ElapsedMilliseconds,
+                stage.Improvements,
+                stage.LastImprovementCandidate
+            }).ToArray(),
             proposal.Issues
         };
 

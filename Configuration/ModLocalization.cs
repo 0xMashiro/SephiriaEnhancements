@@ -1309,6 +1309,9 @@ namespace SephiriaEnhancements.Configuration
             }
 
             ControlLocalization.Register(addText);
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            Diagnostics.InventoryReproductionLocalization.Register(addText);
+#endif
             MapEnhancements.MapEnhancementsLocalization.Register(addText, Texts.Keys);
             OptionsCategoryLocalization.Register(addText, Texts.Keys);
             CombatVisualLocalization.Register(addText, Texts.Keys);

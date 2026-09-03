@@ -21,6 +21,7 @@ internal static class InventoryReproductionChecks
         VerifySpecialEffects();
         VerifyPolicyComparison();
         VerifyClassification();
+        VerifyCaptureModes();
         VerifyWriter();
         Console.WriteLine("Inventory reproduction: input round-trip, replay, classification, separate writer and I/O failure passed");
     }
@@ -154,6 +155,63 @@ internal static class InventoryReproductionChecks
         }
     }
 
+    private static void VerifyCaptureModes()
+    {
+        var snapshot = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0, 5, 1, 0, 0, 0 }, new[] { 0 });
+        var preferences = InventoryOptimizationPreferences.Default;
+        var policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, preferences);
+        var budget = new InventorySearchBudget(4, 100, int.MaxValue);
+        var exact = InventoryOptimizerSelector.Solve(snapshot, policy, budget);
+        foreach (bool recordAll in new[] { false, true })
+        {
+            var input = new InventoryReproductionCase(snapshot, preferences, policy, budget, recordAll);
+            Require(input.SearchReason(exact) == (recordAll ? InventoryReproductionReason.SearchCompleted : InventoryReproductionReason.None),
+                "successful searches are sampled only when enabled");
+            Require(input.ApplicationReason(true, true) == (recordAll ? InventoryReproductionReason.ApplicationCompleted : InventoryReproductionReason.None),
+                "successful application checks follow the captured search setting");
+            Require(input.ApplicationReason(false, false).HasFlag(InventoryReproductionReason.LayoutMismatch) &&
+                input.ApplicationReason(false, false).HasFlag(InventoryReproductionReason.SettlementMismatch),
+                "application failures are retained in both modes");
+            var bounded = InventoryOptimizer.Solve(snapshot, policy, new InventorySearchBudget(1, 2, int.MaxValue));
+            Require(input.SearchReason(bounded).HasFlag(InventoryReproductionReason.BudgetExhausted),
+                "sampling does not hide the budget cutoff reason");
+        }
+        var manual = new InventoryReproductionCase(snapshot, preferences, policy, budget);
+        using var document = JsonDocument.Parse(InventoryReproductionJson.Serialize(manual.Record(InventoryReproductionReason.ManualCapture)));
+        Require(document.RootElement.GetProperty("Evidence").GetProperty("Proposal").ValueKind == JsonValueKind.Null,
+            "manual capture has no invented search result");
+        var saved = document.RootElement.GetProperty("Case");
+        var restored = InventoryReproductionReplay.Read<InventorySnapshot>(saved.GetProperty("Snapshot"));
+        var replayed = InventoryOptimizerSelector.Solve(restored, policy, budget);
+        Require(replayed.BestScore.CompareTo(exact.BestScore) == 0, "manual capture can be solved offline");
+        string path = Path.GetTempFileName();
+        TextWriter output = Console.Out;
+        using var replayOutput = new StringWriter();
+        try
+        {
+            File.WriteAllLines(path, new[] {
+                InventoryReproductionJson.Serialize(new { Event = "inventory_reproduction_start", SchemaVersion = InventoryReproductionJson.SchemaVersion }),
+                document.RootElement.GetRawText() });
+            Console.SetOut(replayOutput);
+            InventoryReproductionReplay.Run(new[] { "--inventory-replay", path, manual.Id, "--no-time-limit" });
+            Require(replayOutput.ToString().Contains("ManualCapture") && replayOutput.ToString().Contains("\"RecordedBestScore\":null"),
+                "replay command accepts manual records without a prior solver result");
+        }
+        finally
+        {
+            Console.SetOut(output);
+            File.Delete(path);
+        }
+        var texts = new Dictionary<(string Key, string Language), string>();
+        InventoryReproductionLocalization.Register((language, key, text) => texts.Add((key, language), text));
+        foreach (var entry in texts.Where(entry => entry.Key.Language == "en-US"))
+        {
+            Require(texts[(entry.Key.Key, "zh-CN")] != entry.Value, "capture group has complete Chinese localization");
+            foreach (string language in SephiriaEnhancements.Configuration.LocalizationLanguages.All.Where(language => language != "en-US"))
+                Require(texts[(entry.Key.Key, language)] != entry.Value, "capture group is translated for every game language");
+        }
+    }
+
     private static void VerifyWriter()
     {
         string directory = Path.Combine(Path.GetTempPath(), "inventory-reproduction-check-" + Guid.NewGuid().ToString("N"));
@@ -164,7 +222,7 @@ internal static class InventoryReproductionChecks
             string header = InventoryReproductionJson.Serialize(new { Event = "inventory_reproduction_start", SchemaVersion = InventoryReproductionJson.SchemaVersion });
             using (var log = new InventoryReproductionLog(path, header))
             {
-                log.Record(new { Event = "test", Value = "after exception" });
+                Require(log.Record(new { Event = "test", Value = "after exception" }), "writer accepts a manual capture");
             }
             using (var restarted = new InventoryReproductionLog(path, header))
                 restarted.Record(new { Event = "restart" });
@@ -175,7 +233,7 @@ internal static class InventoryReproductionChecks
             failed.Record(new { Event = "failed write" });
             failed.Dispose();
             Require(failed.TakeError() != null, "I/O error visible outside writer thread");
-            failed.Record(new { Event = "after failed writer" });
+            Require(!failed.Record(new { Event = "after failed writer" }), "closed writer rejects capture instead of reporting success");
             Require(failed.TakeDroppedCount() > 0, "failed writer never blocks gameplay");
         }
         finally { Directory.Delete(directory, recursive: true); }

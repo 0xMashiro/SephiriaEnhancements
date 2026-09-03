@@ -106,6 +106,7 @@ namespace SephiriaEnhancements.Inventory
         {
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             PumpReproductionLog();
+            HandleReproductionCapture();
 #endif
             PersistentInventoryOptimizationPolicyPersistence.EnsureLoaded();
             InventorySnapshot hudSnapshot = null;
@@ -388,7 +389,8 @@ namespace SephiriaEnhancements.Inventory
             InventorySnapshot snapshot = sourceSnapshot;
             InventorySearchBudget budget = InventorySearchBudget.ForEffort(searchEffort);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
-            reproductionCase = new InventoryReproductionCase(snapshot, preferences, policy, budget);
+            reproductionCase = new InventoryReproductionCase(snapshot, preferences, policy, budget,
+                DeveloperTools.InventoryReproductionSettings.RecordAllResults);
             InventoryReproductionCase capturedCase = reproductionCase;
             InventoryReproductionLog capturedLog = reproductionLog;
             solveTask = Task.Run(() => SolveWithReproduction(capturedCase, capturedLog, token), token);
@@ -594,9 +596,7 @@ namespace SephiriaEnhancements.Inventory
                         sourceSnapshot, result.Layout, expectedSettlement,
                         actualSnapshot);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
-                InventoryReproductionReason reason = InventoryReproductionReason.None;
-                if (!layoutMatched) reason |= InventoryReproductionReason.LayoutMismatch;
-                if (!differential.Matched) reason |= InventoryReproductionReason.SettlementMismatch;
+                InventoryReproductionReason reason = reproductionCase.ApplicationReason(layoutMatched, differential.Matched);
                 if (reason != InventoryReproductionReason.None)
                     RecordReproduction(reason, actualSnapshot, differential);
 #endif

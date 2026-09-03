@@ -87,6 +87,9 @@ With keyboard controls, the pause menu and settings select an available entry wh
 In settings, up/down navigation stays within the current page's available settings, left/right retains
 native value editing, and `Tab` / `Shift+Tab` switches the top-level tabs.
 
+When reward selection becomes available, keyboard focus starts on the first reward on the left.
+Picking a reward moves focus to the first main inventory slot; confirm a destination separately to place it.
+
 While navigating a focused menu by keyboard, the mouse arrow is hidden and stationary
 mouse hover cannot change focus. Carried inventory items and rewards follow the selected
 control; the map view follows the selected room. Moving the mouse, clicking, or scrolling

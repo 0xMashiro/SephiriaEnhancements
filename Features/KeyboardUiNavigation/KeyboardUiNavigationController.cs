@@ -92,6 +92,12 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             SetKeyboardDefaultSelection(controls, false);
         }
 
+        internal static void CancelSelection(UIBase panel)
+        {
+            if (current != null && current.pendingPanel == panel)
+                current.ClearPendingSelection();
+        }
+
         internal static bool IsKeyboardModeActive()
         {
             ControlsChangeHandler controls = ControlsChangeHandler.Current;
@@ -129,6 +135,11 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
 
             if (panel.CanvasGroup != null && !panel.CanvasGroup.interactable)
+            {
+                return;
+            }
+
+            if (panel is UI_SephiriteRewardPanel reward && !reward.rewardsGroupInteractable)
             {
                 return;
             }

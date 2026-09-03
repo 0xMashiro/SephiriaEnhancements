@@ -6,6 +6,11 @@
   <strong>English</strong> · <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
+<p align="center">
+  <strong><a href="https://www.nexusmods.com/sephiria/mods/24">Download on Nexus Mods</a></strong><br />
+  Free to download and use · Open source under the <a href="./LICENSE">MIT License</a>
+</p>
+
 # Sephiria Enhancements
 
 Native-feeling combat, controls, exploration, multiplayer, and inventory improvements

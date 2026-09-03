@@ -6,6 +6,11 @@
   <a href="./README.md">English</a> · <strong>简体中文</strong>
 </p>
 
+<p align="center">
+  <strong><a href="https://www.nexusmods.com/sephiria/mods/24">前往 Nexus Mods（N 网）下载</a></strong><br />
+  本 MOD 免费获取与使用 · 基于 <a href="./LICENSE">MIT 许可证</a>开源
+</p>
+
 # Sephiria Enhancements / Sephiria 增强
 
 为 Sephiria 提供贴近原生体验的战斗、操作、探索、多人游戏和背包增强。基于游戏自带

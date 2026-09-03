@@ -4,15 +4,13 @@ using SephiriaEnhancements.Integration;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace SephiriaEnhancements.RangedControls
+namespace SephiriaEnhancements.CombatTargeting
 {
     internal static class OfficialCombatBindings
     {
         private const string DefaultBindingInitializationAttemptedKey =
             "SephiriaEnhancements.Controls." +
             "OfficialDefaultBindingInitializationAttempted";
-        internal static NativeActionId FireAction => NativePlayerActions.Fire;
-        internal static NativeActionId SubFireAction => NativePlayerActions.SubFire;
         private const string FireDefaultPath = "<Keyboard>/j";
         private const string SubFireDefaultPath = "<Keyboard>/k";
 
@@ -42,7 +40,7 @@ namespace SephiriaEnhancements.RangedControls
         internal static void EnsureDefaultBindingInitializationIfEnabled()
         {
             if (!defaultBindingInitializationChecked &&
-                RangedControlsSettings.TargetingMode != TargetingMode.Disabled)
+                CombatTargetingSettings.TargetingMode != TargetingMode.Disabled)
             {
                 InitializeDefaultBindingsOnce();
             }
@@ -71,20 +69,6 @@ namespace SephiriaEnhancements.RangedControls
                 source, destination, NativePlayerActions.SubFire,
                 SubFireFallbackBindingId);
         }
-
-        internal static bool WasKeyboardCombatPressed(InputActionAsset asset) =>
-            WasPressedByKeyboard(asset, NativePlayerActions.Fire) ||
-            WasPressedByKeyboard(asset, NativePlayerActions.SubFire);
-
-        internal static bool IsActionControlledByKeyboard(InputActionAsset asset,
-            NativeActionId actionId) =>
-            NativeInputActions.FindAction(asset,
-                actionId)?.activeControl?.device is Keyboard;
-
-        internal static bool IsActionControlledByMouse(InputActionAsset asset,
-            NativeActionId actionId) =>
-            NativeInputActions.FindAction(asset,
-                actionId)?.activeControl?.device is Mouse;
 
         private static void InitializeDefaultBindingsOnce()
         {
@@ -135,14 +119,6 @@ namespace SephiriaEnhancements.RangedControls
                 SupportLogger.Info("alternate_bindings_initialized", "[SephiriaEnhancements] Official alternate combat bindings " +
                     "initialized with J/K.");
             }
-        }
-
-        private static bool WasPressedByKeyboard(InputActionAsset asset,
-            NativeActionId actionId)
-        {
-            InputAction action = NativeInputActions.FindAction(asset, actionId);
-            return action != null && action.WasPressedThisFrame() &&
-                action.activeControl?.device is Keyboard;
         }
 
     }

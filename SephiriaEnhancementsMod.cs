@@ -6,7 +6,7 @@ using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Combat;
 using SephiriaEnhancements.Diagnostics;
 using SephiriaEnhancements.Integration;
-using SephiriaEnhancements.RangedControls;
+using SephiriaEnhancements.CombatTargeting;
 using SephiriaEnhancements.ViewDistance;
 using SephiriaEnhancements.NativeCompanion;
 using SephiriaEnhancements.MapEnhancements;
@@ -76,7 +76,7 @@ namespace SephiriaEnhancements
         private GameObject controllerObject;
         private CombatRelationOutlinesController combatRelationOutlines;
         private CombatInsightsController combatInsights;
-        private RangedControlsController rangedControls;
+        private CombatTargetingController combatTargeting;
         private NativeCompanionController nativeCompanion;
         private KeyboardUiNavigationController keyboardUiNavigation;
         private MapEnhancementsController mapEnhancements;
@@ -142,7 +142,7 @@ namespace SephiriaEnhancements
             combatInsights.Initialize(runtimeKernel);
             NativeReportDismissal.SetController(combatInsights);
             NativeStatisticsPauseEntry.SetController(combatInsights);
-            rangedControls = controllerObject.AddComponent<RangedControlsController>();
+            combatTargeting = controllerObject.AddComponent<CombatTargetingController>();
             nativeCompanion = controllerObject.AddComponent<NativeCompanionController>();
             keyboardUiNavigation =
                 controllerObject.AddComponent<KeyboardUiNavigationController>();
@@ -216,8 +216,10 @@ namespace SephiriaEnhancements
                 typeof(PreserveDefeatRetryLobbyPatch),
                 typeof(PreserveDefeatRetryRejoinStatePatch),
                 typeof(DefeatRetryNewGamePatch),
-                typeof(KeyboardBasicAttackPatch),
-                typeof(KeyboardSpecialAttackPatch),
+                typeof(CombatTargetingInputPatch),
+                typeof(CombatTargetingCastPatch),
+                typeof(CombatTargetingReleasePatch),
+                typeof(CombatTargetingDashPatch),
                 typeof(ViewDistancePatch),
                 typeof(MessageBoxKeyboardInitialSelectionPatch),
                 typeof(MessageBoxKeyboardRestoredSelectionPatch),
@@ -358,7 +360,7 @@ namespace SephiriaEnhancements
 
             combatInsights = null;
             combatRelationOutlines = null;
-            rangedControls = null;
+            combatTargeting = null;
             nativeCompanion = null;
             keyboardUiNavigation = null;
             mapEnhancements = null;
@@ -388,7 +390,7 @@ namespace SephiriaEnhancements
         {
             inventoryOptimization?.ResetGameplayContext();
             combatRelationOutlines?.ResetGameplayContext();
-            rangedControls?.ResetGameplayContext();
+            combatTargeting?.ResetGameplayContext();
             keyboardUiNavigation?.ResetGameplayContext();
             mapEnhancements?.ResetGameplayContext();
             nativeCompanion?.ResetGameplayContext();

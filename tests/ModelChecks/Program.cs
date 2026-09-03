@@ -11,13 +11,20 @@ using SephiriaEnhancements.ModelChecks.Features.MapEnhancements;
 using SephiriaEnhancements.ModelChecks.Features.MultiplayerAccess;
 using SephiriaEnhancements.ModelChecks.Features.MultiplayerRules;
 using SephiriaEnhancements.ModelChecks.Features.NativeCompanion;
-using SephiriaEnhancements.ModelChecks.Features.RangedControls;
+using SephiriaEnhancements.ModelChecks.Features.CombatTargeting;
 using SephiriaEnhancements.ModelChecks.Integration;
 using SephiriaEnhancements.ModelChecks.Runtime.Diagnostics;
 using SephiriaEnhancements.ModelChecks.Runtime.Execution;
 using SephiriaEnhancements.ModelChecks.Runtime.GameBridge.Multiplayer;
 using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
+
+if (args.Contains("--combat-targeting-only"))
+{
+    CombatTargetingChecks.Run();
+    ModShortcutsChecks.Run();
+    return;
+}
 
 if (args.Contains("--combat-insights-only"))
 {
@@ -77,7 +84,7 @@ if (args.Contains("--multiplayer-rules-only"))
 DefeatRetryPolicyChecks.Run();
 RetryCheckpointsChecks.Run();
 NativeCompanionPolicyChecks.Run();
-DirectionalAimMathChecks.Run();
+CombatTargetingChecks.Run();
 CombatRelationOutlinePolicyChecks.Run();
 CombatVisualPolicyChecks.Run();
 CombatVisualLocalizationChecks.Run();

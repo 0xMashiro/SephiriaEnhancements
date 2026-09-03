@@ -29,6 +29,12 @@ internal static class ModShortcutsChecks
             if (bindingIds.Distinct(StringComparer.OrdinalIgnoreCase).Count() != bindingIds.Length)
                 throw new InvalidOperationException("shortcut binding IDs must be unique");
 
+            JsonElement targetGamepadBinding = bindings.EnumerateArray().Single(binding =>
+                binding.GetProperty("action").GetString() == ModShortcuts.SwitchLockedTarget &&
+                binding.GetProperty("groups").GetString() == ModShortcuts.GamepadScheme);
+            if (targetGamepadBinding.GetProperty("path").GetString() != string.Empty)
+                throw new InvalidOperationException("target switching must not occupy the native status-panel button");
+
             JsonElement mapOverlayBinding = bindings.EnumerateArray().Single(binding =>
                 binding.GetProperty("action").GetString() ==
                     ModShortcuts.ToggleCurrentFloorMapOverlay &&

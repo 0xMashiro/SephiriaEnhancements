@@ -2,7 +2,7 @@ using SephiriaEnhancements.Diagnostics;
 using HarmonyLib;
 using SephiriaEnhancements.CombatRelationOutlines;
 using SephiriaEnhancements.Configuration;
-using SephiriaEnhancements.RangedControls;
+using SephiriaEnhancements.CombatTargeting;
 using SephiriaEnhancements.ViewDistance;
 using SephiriaEnhancements.NativeCompanion;
 using SephiriaEnhancements.Integration;
@@ -2046,18 +2046,18 @@ namespace SephiriaEnhancements.Configuration
         private void OnEnable()
         {
             if (box == null) return;
-            box.numberOfElements = RangedControlsSettings.TargetingModeCount;
+            box.numberOfElements = CombatTargetingSettings.TargetingModeCount;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
-            int value = (int)RangedControlsSettings.TargetingMode;
+            int value = (int)CombatTargetingSettings.TargetingMode;
             box.ChangeValueWithoutNotify(value);
             valueText?.UpdateKey(ControlLocalization.TargetingModeKeys[value]);
         }
         private void OnDisable() { if (box != null) box.OnValueChanged -= Changed; }
         private void Changed(int value)
         {
-            RangedControlsSettings.TargetingMode = (TargetingMode)value;
-            RangedControlsSettings.Save();
+            CombatTargetingSettings.TargetingMode = (TargetingMode)value;
+            CombatTargetingSettings.Save();
             NativeControlCoordinator.OnTargetingSettingChanged(
                 value != (int)TargetingMode.Disabled);
             valueText?.UpdateKey(ControlLocalization.TargetingModeKeys[value]);
@@ -2075,18 +2075,18 @@ namespace SephiriaEnhancements.Configuration
         private void OnEnable()
         {
             if (box == null) return;
-            box.numberOfElements = RangedControlsSettings.MouseAimAssistModeCount;
+            box.numberOfElements = CombatTargetingSettings.MouseAimAssistModeCount;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
-            int value = RangedControlsSettings.MouseAimAssistEnabled ? 1 : 0;
+            int value = CombatTargetingSettings.MouseAimAssistEnabled ? 1 : 0;
             box.ChangeValueWithoutNotify(value);
             valueText?.UpdateKey(ControlLocalization.MouseAimAssistKeys[value]);
         }
         private void OnDisable() { if (box != null) box.OnValueChanged -= Changed; }
         private void Changed(int value)
         {
-            RangedControlsSettings.MouseAimAssistEnabled = value == 1;
-            RangedControlsSettings.Save();
+            CombatTargetingSettings.MouseAimAssistEnabled = value == 1;
+            CombatTargetingSettings.Save();
             valueText?.UpdateKey(ControlLocalization.MouseAimAssistKeys[value]);
         }
     }

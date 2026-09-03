@@ -1,7 +1,7 @@
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 
-namespace SephiriaEnhancements.RangedControls
+namespace SephiriaEnhancements.CombatTargeting
 {
     internal enum TargetingMode
     {
@@ -9,12 +9,12 @@ namespace SephiriaEnhancements.RangedControls
         Automatic
     }
 
-    internal static class RangedControlsSettings
+    internal static class CombatTargetingSettings
     {
         internal const string TargetingModeKey =
-            "SephiriaEnhancements.RangedControls.Targeting.Mode";
+            "SephiriaEnhancements.CombatTargeting.Targeting.Mode";
         internal const string MouseAimAssistEnabledKey =
-            "SephiriaEnhancements.RangedControls.MouseAimAssist.Enabled";
+            "SephiriaEnhancements.CombatTargeting.MouseAimAssist.Enabled";
 
         internal const int TargetingModeCount = 2;
         internal const int MouseAimAssistModeCount = 2;

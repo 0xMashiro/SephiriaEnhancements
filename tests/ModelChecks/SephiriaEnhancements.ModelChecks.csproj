@@ -39,7 +39,8 @@
     <Compile Include="..\..\Features\CombatInsights\Core\FloorCombatStatistics.cs" Link="Core\FloorCombatStatistics.cs" />
     <Compile Include="..\..\Features\CombatInsights\Core\EncounterReportLayout.cs" Link="Core\EncounterReportLayout.cs" />
     <Compile Include="..\..\Features\CombatInsights\Core\CombatInsightsShortcut.cs" Link="Core\CombatInsightsShortcut.cs" />
-    <Compile Include="..\..\Features\RangedControls\Core\DirectionalAimMath.cs" Link="RangedControls\DirectionalAimMath.cs" />
+    <Compile Include="..\..\Features\CombatTargeting\Core\TargetSelection.cs" Link="CombatTargeting\TargetSelection.cs" />
+    <Compile Include="..\..\Features\CombatTargeting\Core\TargetSwitchGesture.cs" Link="CombatTargeting\TargetSwitchGesture.cs" />
     <Compile Include="..\..\Features\MapEnhancements\Core\TownMapProjection.cs" Link="MapEnhancements\TownMapProjection.cs" />
     <Compile Include="..\..\Features\MapEnhancements\MapEnhancementsLocalization.cs" Link="MapEnhancements\MapEnhancementsLocalization.cs" />
     <Compile Include="..\..\Integration\ModShortcuts.cs" Link="Integration\ModShortcuts.cs" />

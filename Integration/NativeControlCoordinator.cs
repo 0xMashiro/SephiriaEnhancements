@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using SephiriaEnhancements.KeyboardUiNavigation;
-using SephiriaEnhancements.RangedControls;
+using SephiriaEnhancements.CombatTargeting;
 using UnityEngine.InputSystem;
 
 namespace SephiriaEnhancements.Integration

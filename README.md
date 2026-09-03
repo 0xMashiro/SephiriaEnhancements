@@ -22,7 +22,7 @@ for Sephiria. Built on the game's AddOns system—no BepInEx installation requir
 | --- | --- |
 | Keyboard UI | Keyboard-only navigation and actions for supported menus, maps, routes, rewards, inventories, and message boxes; Tab switches combined UI sections |
 | Combat | Rolling DPS, encounter reports, hit streaks, summon attribution, numerical BOSS HP, and clearer ally/enemy visuals |
-| Targeting | Automatic targeting & target lock enabled by default: keyboard attacks aim automatically, with a rebindable target switch for keyboard or gamepad; persistent center markers and corner frames, with amber for automatic targeting and red with a brief settling animation for manual locks |
+| Targeting | Keyboard melee follows movement or the last aim direction; ranged attacks retain nearby visible, unobstructed targets. Rebindable manual locks also support melee and gamepad. Amber markers show automatic targets; red markers show manual locks |
 | Exploration | Hidden-room display disabled by default, localized town NPC names, a manually toggled current-floor overlay, and 75%–200% camera distance (100% by default) |
 | Solo and co-op | Optional combat companion, defeat checkpoints, mid-run joining/reconnect support, and configurable 1–4 player rules |
 | Inventory | Experimental one-key arrangement using the Mod's verified solver or Sephiria's artifact-level arranger |
@@ -47,7 +47,7 @@ re-enabling the Mod does not reset settings.
 | Feature or setting | Default behavior |
 | --- | --- |
 | Mod master switch and keyboard UI enhancements | Enabled |
-| Automatic targeting & target lock | Enabled; keyboard attacks select targets automatically. Tap Switch locked target to cycle targets, or hold it to clear the manual lock. On gamepad, the Mod controls aim only while manually locked |
+| Automatic targeting & target lock | Enabled. Tap and release Switch locked target to cycle in a stable order; hold to clear the manual lock without switching first. Automatic targets remain selected until invalid. Unlocked gamepad aim uses the game’s native behavior |
 | Damage statistics, hit-streak feedback, BOSS health values | Enabled; statistics use Smart display at 100% panel scale |
 | Combat relation outlines and combat visuals | Outlines enabled; Balanced preset with slightly transparent local companion bodies and very transparent effects |
 | Town NPC map labels | Enabled |
@@ -88,7 +88,7 @@ gamepad controls.
 
 | Action | Default |
 | --- | --- |
-| Switch locked target | Middle mouse or `L`; right-stick press on gamepad |
+| Switch locked target | Middle mouse button or `L`; gamepad unbound by default to avoid the native character-status shortcut |
 | Alternate keyboard bindings for basic / secondary attacks | On first targeting enable, attempts to add conflict-free `J` / `K` bindings while preserving existing bindings |
 | Toggle current-floor overlay | `M` |
 | Open/close statistics | Tap `F7` outside combat; an automatic report is dismissed first |

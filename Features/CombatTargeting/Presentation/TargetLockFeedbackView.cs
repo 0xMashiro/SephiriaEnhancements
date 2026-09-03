@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace SephiriaEnhancements.RangedControls
+namespace SephiriaEnhancements.CombatTargeting
 {
     internal sealed class TargetLockFeedbackView : IDisposable
     {

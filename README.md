@@ -43,7 +43,7 @@ re-enabling the Mod does not reset settings.
 | --- | --- |
 | Mod master switch and keyboard UI enhancements | Enabled |
 | Automatic targeting & target lock | Enabled; keyboard attacks select targets automatically. Tap Switch locked target to cycle targets, or hold it to clear the manual lock. On gamepad, the Mod controls aim only while manually locked |
-| Damage statistics, hit-streak feedback, BOSS health values | Enabled; statistics use Smart display at 65% panel scale |
+| Damage statistics, hit-streak feedback, BOSS health values | Enabled; statistics use Smart display at 100% panel scale |
 | Combat relation outlines and combat visuals | Outlines enabled; Balanced preset with slightly transparent local companion bodies and very transparent effects |
 | Town NPC map labels | Enabled |
 | Current-floor map overlay | Initially hidden; toggle with its shortcut |
@@ -86,7 +86,8 @@ gamepad controls.
 | Switch locked target | Middle mouse or `L`; right-stick press on gamepad |
 | Alternate keyboard bindings for basic / secondary attacks | On first targeting enable, attempts to add conflict-free `J` / `K` bindings while preserving existing bindings |
 | Toggle current-floor overlay | `M` |
-| Open/close the latest combat report | Tap `F7` outside combat |
+| Open/close the latest combat report | Tap `F7`; opening requires being outside combat |
+| Dismiss the visible combat report | Native menu key: `Esc` on keyboard, Start/Menu on gamepad by default |
 | Hide/restore damage statistics | Hold `F7` for 0.5 seconds |
 | Arrange the open backpack (experimental) | `F8` |
 | Secondary UI action | Sephiria's current `UI/ThrowItem` binding |
@@ -97,12 +98,22 @@ gamepad controls.
 Native bindings and player rebinds take priority. The Mod does not freeze Sephiria's
 current physical keys.
 
+While a report is visible, pressing the native menu key closes only that report;
+press it again to open the pause menu. Existing menus, loading, cutscenes, and
+spell-casting mode retain their normal input handling. The report shows the current
+device's menu binding when dismissal is available. Movement and attacks do not dismiss it.
+The separate report-recall shortcut can also be assigned in gamepad controls.
+
+Under the Mod's **Combat and Display** settings category, **Statistics size** scales
+both live statistics and combat reports: 80%, 90%, **100% (default)**, 110%, or 120%.
+Reports retain the full statistics in a compact centered layout and fit within
+both the width and height of the game HUD canvas, including after resolution changes.
+
 Both statistics gestures use the same rebindable shortcut. With damage statistics
 enabled, a report can be reopened after its automatic display expires. Manually
 opened reports stay open until dismissed or another fight starts. The latest
 report is retained on the current floor until a new report replaces it; changing
-floors, defeat, ending the run, or disabling damage statistics clears it. Moving
-and attacking alone do not dismiss an automatic report. Hiding the display keeps
+floors, defeat, ending the run, or disabling damage statistics clears it. Hiding the display keeps
 recording damage. State changes use the game's text notifications.
 Level-up reminders and brief flashes also leave reports visible. Menus, loading,
 screen transitions, and cutscenes temporarily hide reports and preserve their

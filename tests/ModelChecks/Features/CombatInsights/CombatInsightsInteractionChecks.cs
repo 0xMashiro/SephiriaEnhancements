@@ -94,6 +94,23 @@ internal static class CombatInsightsInteractionChecks
         Require(report.State(10000f) == ReportDisplayState.Closed,
             "context reset clears the previous display reason");
 
+        report.Start(11000f, 6f);
+        report.CloseForEncounter(false, true, false);
+        Require(report.TryDismiss(11001f),
+            "a visible report can close before a candidate fight records contribution");
+        Require(report.State(11001f) == ReportDisplayState.Dismissed &&
+            !report.TryDismiss(11001f), "one dismissal cannot consume another menu press");
+        report.SetPresentationAvailable(false, 11002f);
+        report.SetPresentationAvailable(true, 11003f);
+        Require(!report.IsOpen(11003f), "menus cannot revive a dismissed report");
+        report.OpenUntilDismissed();
+        Require(report.TryDismiss(12000f), "manual reports use the same dismissal operation");
+        report.Start(13000f, 6f);
+        report.SetPresentationAvailable(false, 13001f);
+        Require(!report.TryDismiss(13002f), "hidden reports cannot consume menu input");
+        report.SetPresentationAvailable(true, 13003f);
+        Require(!report.TryDismiss(14000f), "expired reports cannot consume menu input");
+
         using JsonDocument document = JsonDocument.Parse(ModShortcuts.ActionMapJson);
         JsonElement binding = document.RootElement.GetProperty("maps")[0]
             .GetProperty("bindings").EnumerateArray().Single(item =>

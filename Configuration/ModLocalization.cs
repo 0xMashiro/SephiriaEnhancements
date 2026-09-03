@@ -109,6 +109,8 @@ namespace SephiriaEnhancements.Configuration
             "SephiriaEnhancements.Hud.ReportAverageDps";
         internal const string ReportDamageMix =
             "SephiriaEnhancements.Hud.ReportDamageMix";
+        internal const string ReportDismissHint =
+            "SephiriaEnhancements.Hud.ReportDismissHint";
         internal const string DamagePhysical =
             "SephiriaEnhancements.Hud.DamagePhysical";
         internal const string DamageFire =
@@ -133,9 +135,9 @@ namespace SephiriaEnhancements.Configuration
 
         internal static readonly string[] ScaleKeys =
         {
-            "SephiriaEnhancements.Scale.65", "SephiriaEnhancements.Scale.80",
-            "SephiriaEnhancements.Scale.100", "SephiriaEnhancements.Scale.115",
-            "SephiriaEnhancements.Scale.130"
+            "SephiriaEnhancements.Scale.80", "SephiriaEnhancements.Scale.90",
+            "SephiriaEnhancements.Scale.100", "SephiriaEnhancements.Scale.110",
+            "SephiriaEnhancements.Scale.120"
         };
 
         internal static readonly string[] DisplayPolicyKeys =
@@ -182,7 +184,7 @@ namespace SephiriaEnhancements.Configuration
                     "Statistics display unavailable during a screen transition",
                     "Statistics display unavailable during a cutscene",
                     "Close the menu to view statistics",
-                    "Combat report display is not ready yet"),
+                    "Combat report display is not ready yet", "{0}  ·  Close report"),
                 ["zh-CN"] = I("伤害统计", "智能", "仅 BOSS", "每场战斗",
                     "DPS", "击败", "我的终结", "普通", "小头目", "BOSS",
                     "战斗统计", "DMG · 占比", "DMG · 平均 DPS",
@@ -194,7 +196,7 @@ namespace SephiriaEnhancements.Configuration
                     "已打开最近一场战报", "战报已收起", "本层暂无可查看的战报",
                     "正在加载，暂时无法显示统计", "画面切换中，暂时无法显示统计",
                     "剧情播放中，暂时无法显示统计", "请关闭菜单后查看统计",
-                    "战报界面尚未就绪"),
+                    "战报界面尚未就绪", "{0}  ·  收起战报"),
                 ["zh-TW"] = I("傷害統計", "智慧", "僅 BOSS", "每場戰鬥",
                     "DPS", "擊敗", "我的終結", "普通", "小頭目", "BOSS",
                     "戰鬥統計", "DMG · 佔比", "DMG · 平均 DPS",
@@ -206,7 +208,7 @@ namespace SephiriaEnhancements.Configuration
                     "已開啟最近一場戰報", "戰報已收起", "本層暫無可查看的戰報",
                     "正在載入，暫時無法顯示統計", "畫面切換中，暫時無法顯示統計",
                     "劇情播放中，暫時無法顯示統計", "請關閉選單後查看統計",
-                    "戰報介面尚未就緒")
+                    "戰報介面尚未就緒", "{0}  ·  收起戰報")
             };
 
         private static readonly Dictionary<string, Dictionary<string, string>> Texts =
@@ -308,9 +310,9 @@ namespace SephiriaEnhancements.Configuration
             new Dictionary<string, Dictionary<string, string>>
             {
                 // "combo" here names the game's native HUD text, not CombatInsights hit streaks.
-                ["en-US"] = H("Scale only the statistics panel; the game's native HUD and combo text are unchanged."),
-                ["zh-CN"] = H("仅缩放统计界面，不改变游戏原生 HUD 与连击文字。"),
-                ["zh-TW"] = H("僅縮放統計介面，不改變遊戲原生 HUD 與連擊文字。"),
+                ["en-US"] = H("Scale live statistics and combat reports. 100% is recommended; reports fit within the screen. The game's native HUD and combo text are unchanged."),
+                ["zh-CN"] = H("缩放实时统计和战后战报，推荐 100%；战报自动适配屏幕边界。不改变游戏原生 HUD 与连击文字。"),
+                ["zh-TW"] = H("縮放即時統計與戰後戰報，建議 100%；戰報自動適配螢幕邊界。不改變遊戲原生 HUD 與連擊文字。"),
                 ["ko-KR"] = H("게임 HUD는 그대로 두고 통계 패널만 조절합니다."),
                 ["ja-JP"] = H("ゲーム本体の HUD は変えず、統計パネルのみ拡大縮小します。"),
                 ["de-DE"] = H("Skaliert nur die Statistik; das Spiel-HUD bleibt unverändert."),
@@ -470,7 +472,7 @@ namespace SephiriaEnhancements.Configuration
 
                 for (int index = 0; index < ScaleKeys.Length; index++)
                 {
-                    int[] percentages = { 65, 80, 100, 115, 130 };
+                    int[] percentages = { 80, 90, 100, 110, 120 };
                     addText(language.Key, ScaleKeys[index], percentages[index] + "%");
                 }
             }
@@ -666,7 +668,8 @@ namespace SephiriaEnhancements.Configuration
             string policyHelp, string disabled, string displayHidden,
             string displayRestored, string reportOpened, string reportClosed,
             string reportUnavailable, string reportLoading, string reportScreenTransition,
-            string reportCutscene, string reportMenu, string reportHudUnavailable)
+            string reportCutscene, string reportMenu, string reportHudUnavailable,
+            string reportDismissHint)
         {
             return new Dictionary<string, string>
             {
@@ -699,6 +702,7 @@ namespace SephiriaEnhancements.Configuration
                 [ReportShare] = reportShare,
                 [ReportAverageDps] = reportAverageDps,
                 [ReportDamageMix] = reportDamageMix,
+                [ReportDismissHint] = reportDismissHint,
                 [DamagePhysical] = damagePhysical,
                 [DamageFire] = damageFire,
                 [DamageIce] = damageIce,

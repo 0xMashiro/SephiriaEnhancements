@@ -5,6 +5,7 @@ using System.Text;
 using SephiriaEnhancements.Combat;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Core;
+using SephiriaEnhancements.Integration;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,13 +14,10 @@ namespace SephiriaEnhancements.Presentation
 {
     internal sealed class CombatInsightsHud : IDisposable
     {
-        private const float ReferenceScale = 0.8f;
+        private const float LiveBaseScale = 0.8f;
         private const float PulseWidth = 112f;
         private const float PartyLedgerWidth = 198f;
         private const float BossLedgerWidth = 236f;
-        private const float ReportPreferredWidth = 398f;
-        private const float ReportMinimumWidth = 360f;
-        private const float ReportMaximumWidth = 440f;
         private static readonly Color SoftInk =
             new Color(0.055f, 0.05f, 0.062f, 0.70f);
         private static readonly Color ReportInk =
@@ -49,7 +47,7 @@ namespace SephiriaEnhancements.Presentation
             reportShadowGroup;
         private TextMeshProUGUI pulseText, liveKicker, liveTotal,
             reportTitle, reportMeta, damageHeading, shareHeading,
-            averageDpsHeading, damageMix, localFinalBlows;
+            averageDpsHeading, damageMix, localFinalBlows, dismissHint;
         private OutcomeChip normalOutcome, minibossOutcome, bossOutcome;
         private TextMeshProUGUI fontTemplate;
         private float nextLookup, nextProjection, liveReveal, reportReveal;
@@ -96,6 +94,11 @@ namespace SephiriaEnhancements.Presentation
                 showReport ? 1f : 0f,
                 Time.unscaledDeltaTime * (showReport ? 6f : 10f));
             PresentLive(showLive);
+            string closeBinding = showReport && model.CanDismissPresentedReport
+                ? NativeReportDismissal.BindingLabel() : string.Empty;
+            dismissHint.text = string.IsNullOrEmpty(closeBinding) ? string.Empty
+                : string.Format(ModLocalization.Get(ModLocalization.ReportDismissHint),
+                    closeBinding);
             PresentReport(showReport);
         }
 
@@ -203,11 +206,11 @@ namespace SephiriaEnhancements.Presentation
         {
             reportShadowObject = NewPanel(
                 "Sephiria Enhancements — Encounter Report Shadow", parent,
-                new Vector2(ReportPreferredWidth, 180f), ShadowInk,
+                new Vector2(EncounterReportLayout.Width, 180f), ShadowInk,
                 out reportShadowRect, out reportShadowGroup);
             reportObject = NewPanel(
                 "Sephiria Enhancements — Encounter Report", parent,
-                new Vector2(ReportPreferredWidth, 180f), ReportInk,
+                new Vector2(EncounterReportLayout.Width, 180f), ReportInk,
                 out reportRect, out reportGroup);
             AnchorCenter(reportShadowRect);
             AnchorCenter(reportRect);
@@ -223,7 +226,7 @@ namespace SephiriaEnhancements.Presentation
 
             Image headerRule = CreateImage("Header Rule", reportRect,
                 new Color(0.73f, 0.54f, 0.28f, 0.55f));
-            SetTopRect(headerRule.rectTransform, 14f, 14f, 40f, 1f);
+            SetTopRect(headerRule.rectTransform, 10f, 10f, 23f, 1f);
             damageHeading = CreateText("Damage Heading", reportRect, 0.46f,
                 TextAlignmentOptions.MidlineRight, autoSize: true);
             damageHeading.color = Quiet;
@@ -250,6 +253,9 @@ namespace SephiriaEnhancements.Presentation
             localFinalBlows = CreateText("Local Final Blows", reportRect,
                 0.54f, TextAlignmentOptions.Center, autoSize: true);
             localFinalBlows.color = Moss;
+            dismissHint = CreateText("Dismiss Hint", reportRect, 0.49f,
+                TextAlignmentOptions.Center, autoSize: true);
+            dismissHint.color = Muted;
 
             reportObject.SetActive(false);
             reportShadowObject.SetActive(false);
@@ -405,55 +411,48 @@ namespace SephiriaEnhancements.Presentation
 
         private void ResizeReport(int count, bool showFinalBlows)
         {
-            float parentWidth = (reportRect.parent as RectTransform)?.rect.width
-                ?? ReportPreferredWidth;
-            float availableWidth = parentWidth * 0.78f /
-                Mathf.Max(0.01f, reportScale);
-            float width = Mathf.Min(ReportMaximumWidth,
-                Mathf.Max(ReportMinimumWidth, availableWidth));
-            const float rowsTop = 61f;
-            const float rowHeight = 29f;
-            float damageMixTop = rowsTop + count * rowHeight + 5f;
-            float outcomesTop = damageMixTop + 23f;
-            float footerHeight = showFinalBlows ? 23f : 0f;
-            float height = outcomesTop + 42f + footerHeight + 11f;
+            var layout = new EncounterReportLayout(count, showFinalBlows);
+            const float width = EncounterReportLayout.Width;
+            const float rowsTop = EncounterReportLayout.RowsTop;
+            const float rowHeight = EncounterReportLayout.RowHeight;
             reportRect.sizeDelta = reportShadowRect.sizeDelta =
-                new Vector2(width, height);
+                new Vector2(width, layout.Height);
 
-            SetTopRect(reportTitle.rectTransform, 16f, width * 0.5f,
-                8f, 28f);
-            SetTopRect(reportMeta.rectTransform, width * 0.5f, 16f,
-                8f, 28f);
-            LayoutReportColumns(width, 45f, 14f,
+            SetTopRect(reportTitle.rectTransform, 10f, width * 0.5f,
+                4f, 18f);
+            SetTopRect(reportMeta.rectTransform, width * 0.5f, 10f,
+                4f, 18f);
+            LayoutReportColumns(width, 25f, 10f,
                 damageHeading.rectTransform, shareHeading.rectTransform,
                 averageDpsHeading.rectTransform);
             SetTopRect(reportRowsRoot, 0f, 0f, rowsTop,
                 count * rowHeight);
             for (int index = 0; index < count; index++)
                 reportRows[index].SetLayout(width, index, rowHeight);
-            SetTopRect(damageMix.rectTransform, 16f, 16f,
-                damageMixTop, 18f);
+            SetTopRect(damageMix.rectTransform, 10f, 10f,
+                layout.DamageMixTop, 12f);
 
-            float chipGap = 7f;
-            float chipWidth = (width - 32f - chipGap * 2f) / 3f;
-            normalOutcome.SetLayout(width, 16f, outcomesTop,
-                chipWidth, 36f);
-            minibossOutcome.SetLayout(width, 16f + chipWidth + chipGap,
-                outcomesTop, chipWidth, 36f);
+            float chipGap = 5f;
+            float chipWidth = (width - 20f - chipGap * 2f) / 3f;
+            normalOutcome.SetLayout(width, 10f, layout.OutcomesTop,
+                chipWidth, 25f);
+            minibossOutcome.SetLayout(width, 10f + chipWidth + chipGap,
+                layout.OutcomesTop, chipWidth, 25f);
             bossOutcome.SetLayout(width,
-                16f + (chipWidth + chipGap) * 2f,
-                outcomesTop, chipWidth, 36f);
-            SetTopRect(localFinalBlows.rectTransform, 16f, 16f,
-                outcomesTop + 39f, footerHeight);
+                10f + (chipWidth + chipGap) * 2f,
+                layout.OutcomesTop, chipWidth, 25f);
+            SetTopRect(localFinalBlows.rectTransform, 10f, 10f,
+                layout.FinalBlowsTop, showFinalBlows ? 14f : 0f);
+            SetTopRect(dismissHint.rectTransform, 10f, 10f,
+                layout.DismissHintTop, 16f);
         }
 
         private void ApplyScale()
         {
-            float value = ModSettings.DamageStatisticsScale / ReferenceScale;
+            float value = ModSettings.DamageStatisticsScale * LiveBaseScale;
             Vector3 liveScale = new Vector3(value, value, 1f);
             if (pulseRect != null) pulseRect.localScale = liveScale;
             if (ledgerRect != null) ledgerRect.localScale = liveScale;
-            reportScale = value;
             lastScale = ModSettings.DamageStatisticsScaleIndex;
         }
 
@@ -475,12 +474,15 @@ namespace SephiriaEnhancements.Presentation
                 SetActive(reportObject, true);
             }
             float eased = 1f - Mathf.Pow(1f - reportReveal, 3f);
+            Rect canvas = ((RectTransform)reportRect.parent).rect;
+            reportScale = EncounterReportLayout.FitScale(canvas.width, canvas.height,
+                reportRect.sizeDelta.y, ModSettings.DamageStatisticsScale);
             float entranceScale = Mathf.Lerp(0.965f, 1f, eased) *
                 reportScale;
             Vector3 scale = new Vector3(entranceScale, entranceScale, 1f);
             reportRect.localScale = reportShadowRect.localScale = scale;
             reportRect.anchoredPosition = new Vector2(0f,
-                Mathf.Lerp(30f, 38f, eased));
+                Mathf.Lerp(-4f, 0f, eased));
             reportShadowRect.anchoredPosition = reportRect.anchoredPosition +
                 new Vector2(0f, -4f);
             reportGroup.alpha = reportReveal;
@@ -504,11 +506,11 @@ namespace SephiriaEnhancements.Presentation
             float height, RectTransform damage, RectTransform share,
             RectTransform averageDps)
         {
-            const float padding = 16f;
-            const float damageWidth = 60f;
-            const float shareWidth = 48f;
-            const float dpsWidth = 68f;
-            const float gap = 6f;
+            const float padding = 14f;
+            const float damageWidth = 44f;
+            const float shareWidth = 32f;
+            const float dpsWidth = 48f;
+            const float gap = 5f;
             float dpsLeft = panelWidth - padding - dpsWidth;
             float shareLeft = dpsLeft - gap - shareWidth;
             float damageLeft = shareLeft - gap - damageWidth;
@@ -776,16 +778,16 @@ namespace SephiriaEnhancements.Presentation
                 float rowHeight)
             {
                 RectTransform rect = Root.transform as RectTransform;
-                SetTopRect(rect, 10f, 10f, index * rowHeight,
+                SetTopRect(rect, 8f, 8f, index * rowHeight,
                     rowHeight - 2f);
-                float width = panelWidth - 20f;
+                float width = panelWidth - 16f;
                 const float padding = 6f;
-                const float rankWidth = 20f;
-                const float markerWidth = 24f;
-                const float damageWidth = 60f;
-                const float shareWidth = 48f;
-                const float dpsWidth = 68f;
-                const float gap = 6f;
+                const float rankWidth = 14f;
+                const float markerWidth = 18f;
+                const float damageWidth = 44f;
+                const float shareWidth = 32f;
+                const float dpsWidth = 48f;
+                const float gap = 5f;
                 float dpsLeft = width - padding - dpsWidth;
                 float shareLeft = dpsLeft - gap - shareWidth;
                 float damageLeft = shareLeft - gap - damageWidth;
@@ -869,8 +871,8 @@ namespace SephiriaEnhancements.Presentation
             {
                 SetTopRect(rect, left, panelWidth - left - width,
                     top, height);
-                SetTopRect(label.rectTransform, 4f, 4f, 2f, 14f);
-                SetTopRect(value.rectTransform, 4f, 4f, 15f, 18f);
+                SetTopRect(label.rectTransform, 4f, 4f, 1f, 11f);
+                SetTopRect(value.rectTransform, 4f, 4f, 12f, 12f);
             }
 
             internal void Show(string name, int count)

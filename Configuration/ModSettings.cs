@@ -14,7 +14,7 @@ namespace SephiriaEnhancements.Configuration
     internal static class ModSettings
     {
         private static readonly float[] DamageStatisticsScales =
-            { 0.65f, 0.8f, 1f, 1.15f, 1.3f };
+            { 0.8f, 0.9f, 1f, 1.1f, 1.2f };
 
         internal const string HitStreakFeedbackKey =
             "SephiriaEnhancements.HitStreakFeedback.Enabled";
@@ -59,7 +59,7 @@ namespace SephiriaEnhancements.Configuration
         internal static int DamageStatisticsScaleIndex
         {
             get => Mathf.Clamp(OptionsBinding.Instance?.DeviceOptions?.GetInt(
-                    DamageStatisticsScaleIndexKey, 0) ?? 0,
+                    DamageStatisticsScaleIndexKey, 2) ?? 2,
                 0, DamageStatisticsScales.Length - 1);
             set => OptionsBinding.Instance?.DeviceOptions?.SetInt(
                 DamageStatisticsScaleIndexKey,

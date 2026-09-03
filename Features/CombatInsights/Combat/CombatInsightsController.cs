@@ -371,25 +371,40 @@ namespace SephiriaEnhancements.Combat
                 return hudHiddenByUser ? ModLocalization.DamageStatisticsDisplayHidden
                     : ModLocalization.DamageStatisticsDisplayRestored;
             }
-            if (triggered != CombatInsightsShortcutAction.ToggleReport ||
-                encounterActive || bossEncounter.Active || FindLocal()?.IsInBattle == true)
+            if (triggered != CombatInsightsShortcutAction.ToggleReport) return null;
+            if (!hudHiddenByUser && reportWindow.TryDismiss(now))
+                return ModLocalization.EncounterReportClosed;
+            if (encounterActive || bossEncounter.Active || FindLocal()?.IsInBattle == true)
                 return null;
             if (encounterReport == null)
             {
                 return ModLocalization.EncounterReportUnavailable;
             }
-            bool closeReport = !hudHiddenByUser && reportWindow.IsOpen(now);
-            if (closeReport)
+            hudHiddenByUser = false;
+            reportWindow.OpenUntilDismissed();
+            return ModLocalization.EncounterReportOpened;
+        }
+
+        internal bool CanDismissPresentedReport
+        {
+            get
             {
-                reportWindow.Clear(ReportDisplayState.Dismissed);
+                PlayerAvatar player = FindLocal()?.Avatar;
+                return isActiveAndEnabled && runtimeCompatible && StatisticsCaptureEnabled &&
+                    !hudHiddenByUser && hud.IsReportPresented &&
+                    reportWindow.IsVisible(Time.unscaledTime) && player != null &&
+                    !player.activeMagicCastModeClientside &&
+                    NativeReportPresentation.ReadBlock(UIManager.Instance, player) ==
+                        ReportPresentationBlock.None;
             }
-            else
-            {
-                hudHiddenByUser = false;
-                reportWindow.OpenUntilDismissed();
-            }
-            return closeReport ? ModLocalization.EncounterReportClosed
-                : ModLocalization.EncounterReportOpened;
+        }
+
+        internal bool TryDismissPresentedReport()
+        {
+            if (!CanDismissPresentedReport ||
+                !reportWindow.TryDismiss(Time.unscaledTime)) return false;
+            hud.Hide();
+            return true;
         }
 
         private void SamplePlayers(float now, bool trackOrdinaryEncounters)

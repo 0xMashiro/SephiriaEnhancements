@@ -39,6 +39,13 @@ namespace SephiriaEnhancements.Combat
             unavailableSince = -1f;
         }
 
+        internal bool TryDismiss(float now)
+        {
+            if (!IsVisible(now)) return false;
+            Clear(ReportDisplayState.Dismissed);
+            return true;
+        }
+
         internal void CloseForEncounter(bool bossActive, bool ordinaryActive,
             bool hasContribution)
         {

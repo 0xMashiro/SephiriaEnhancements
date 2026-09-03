@@ -19,6 +19,18 @@ using SephiriaEnhancements.ModelChecks.Runtime.GameBridge.Multiplayer;
 using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 
+if (args.Contains("--combat-insights-only"))
+{
+    DpsFormatterChecks.Run();
+    CombatTrackingChecks.Run();
+    EncounterReportSnapshotChecks.Run();
+    CombatInsightsInteractionChecks.Run();
+    ReportDisplayWindowChecks.Run();
+    EncounterReportLayoutChecks.Run();
+    ModShortcutsChecks.Run();
+    return;
+}
+
 LoggingChecks.Run();
 if (args.Contains("--logging-only")) return;
 
@@ -70,6 +82,7 @@ CombatTrackingChecks.Run();
 EncounterReportSnapshotChecks.Run();
 CombatInsightsInteractionChecks.Run();
 ReportDisplayWindowChecks.Run();
+EncounterReportLayoutChecks.Run();
 ModShortcutsChecks.Run();
 DeveloperConsoleContractChecks.Run();
 InventorySnapshotChecks.Run();

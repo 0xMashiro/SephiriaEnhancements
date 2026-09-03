@@ -14,7 +14,7 @@ namespace SephiriaEnhancements.Presentation
 {
     internal sealed class CombatInsightsHud : IDisposable
     {
-        private const float LiveBaseScale = 0.8f;
+        private const float LiveBaseScale = 0.7f;
         private const float PulseWidth = 112f;
         private const float PartyLedgerWidth = 198f;
         private const float BossLedgerWidth = 236f;

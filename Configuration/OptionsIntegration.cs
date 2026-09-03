@@ -18,6 +18,7 @@ using SephiriaEnhancements.MultiplayerRules.Presentation;
 using SephiriaEnhancements.MultiplayerAccess;
 using SephiriaEnhancements.MultiplayerAccess.Presentation;
 using SephiriaEnhancements.CombatVisuals;
+using SephiriaEnhancements.MapEnhancements;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -119,6 +120,11 @@ namespace SephiriaEnhancements.Configuration
             if (__instance.GetComponentInChildren<DefeatRetryOption>(true) == null)
             {
                 CreateDefeatRetryRow(template, section.transform);
+            }
+
+            if (__instance.GetComponentInChildren<ShowHiddenRoomsOption>(true) == null)
+            {
+                CreateShowHiddenRoomsRow(template, section.transform);
             }
 
             if (__instance.GetComponentInChildren<HitStreakFeedbackOption>(true) == null)
@@ -248,6 +254,7 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_Category",
                 "Option_SephiriaEnhancements_NativeCompanion",
                 "Option_SephiriaEnhancements_DefeatRetry",
+                "Option_SephiriaEnhancements_ShowHiddenRooms",
                 "Option_SephiriaEnhancements_DeveloperConsole",
                 "Option_SephiriaEnhancements_DeveloperPlayerDamage",
                 "Option_SephiriaEnhancements_CombatRelationOutlines",
@@ -565,6 +572,20 @@ namespace SephiriaEnhancements.Configuration
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<DefeatRetryOption>().Configure(box, valueText);
+            MarkCategory(row, OptionsCategory.General);
+            row.SetActive(true);
+        }
+
+        private static void CreateShowHiddenRoomsRow(UI_OptionBox_PartyMemberDamage template,
+            Transform section)
+        {
+            GameObject row = CloneRow(template, section,
+                "Option_SephiriaEnhancements_ShowHiddenRooms",
+                MapEnhancementsLocalization.SettingShowHiddenRooms,
+                MapEnhancementsLocalization.HelpShowHiddenRooms, 5,
+                out UI_HorizontalSelectionBox box,
+                out UI_LocalizationStringText valueText);
+            row.AddComponent<ShowHiddenRoomsOption>().Configure(box, valueText);
             MarkCategory(row, OptionsCategory.General);
             row.SetActive(true);
         }
@@ -1857,6 +1878,48 @@ namespace SephiriaEnhancements.Configuration
             valueText?.UpdateKey(value == 1
                 ? ModLocalization.DefeatRetryOn
                 : ModLocalization.DefeatRetryOff);
+        }
+    }
+
+    internal sealed class ShowHiddenRoomsOption : MonoBehaviour
+    {
+        private UI_HorizontalSelectionBox box;
+        private UI_LocalizationStringText valueText;
+
+        internal UI_HorizontalSelectionBox Box => box;
+
+        internal void Configure(UI_HorizontalSelectionBox selectionBox,
+            UI_LocalizationStringText text)
+        {
+            box = selectionBox;
+            valueText = text;
+        }
+
+        private void OnEnable()
+        {
+            if (box == null) return;
+            box.numberOfElements = 2;
+            box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
+            box.OnValueChanged += Changed;
+            int value = MapEnhancementsSettings.ShowHiddenRooms ? 1 : 0;
+            box.ChangeValueWithoutNotify(value);
+            valueText?.UpdateKey(value == 1
+                ? MapEnhancementsLocalization.On
+                : MapEnhancementsLocalization.Off);
+        }
+
+        private void OnDisable()
+        {
+            if (box != null) box.OnValueChanged -= Changed;
+        }
+
+        private void Changed(int value)
+        {
+            MapEnhancementsSettings.ShowHiddenRooms = value == 1;
+            EnhancementsSettings.Save();
+            valueText?.UpdateKey(value == 1
+                ? MapEnhancementsLocalization.On
+                : MapEnhancementsLocalization.Off);
         }
     }
 

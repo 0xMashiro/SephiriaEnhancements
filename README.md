@@ -17,12 +17,13 @@ for Sephiria. Built on the game's AddOns system—no BepInEx installation requir
 | --- | --- |
 | Keyboard UI | Keyboard-only navigation and actions for supported menus, maps, routes, rewards, inventories, and message boxes; Tab switches combined UI sections |
 | Combat | Rolling DPS, encounter reports, hit streaks, summon attribution, numerical BOSS HP, and clearer ally/enemy visuals |
-| Targeting | Optional keyboard attacks with automatic aiming and a rebindable target switch for keyboard or gamepad; persistent center markers and corner frames, with amber for automatic targeting and red with a brief settling animation for manual locks |
-| Exploration | Hidden-room markers, localized town NPC names, a current-floor overlay, and 75%–200% camera distance |
+| Targeting | Automatic targeting & target lock enabled by default: keyboard attacks aim automatically, with a rebindable target switch for keyboard or gamepad; persistent center markers and corner frames, with amber for automatic targeting and red with a brief settling animation for manual locks |
+| Exploration | Hidden-room display disabled by default, localized town NPC names, a manually toggled current-floor overlay, and 75%–200% camera distance (100% by default) |
 | Solo and co-op | Optional native companion, defeat checkpoints, mid-run joining/reconnect support, and configurable 1–4 player rules |
 | Inventory | Experimental one-key arrangement using the Mod's verified solver or Sephiria's artifact-level arranger |
 
-Inventory optimization works automatically by default. Optionally place artifacts
+Inventory optimization runs only when you press its shortcut or click the arrange button;
+it uses the automatic optimization strategy by default. Optionally place artifacts
 in the priority queue or exclusion area. Click or drag marks to move them; right-click
 removes a mark. Use the current target-switch binding over a hovered or focused priority
 artifact to edit its minimum level. That level belongs to the individual artifact and
@@ -34,9 +35,24 @@ missing artifacts do not prevent the rest of the inventory from being optimized.
 Keyboard support is designed for fast, mouse-free menu flow, including speedrun-style
 play, while continuing to follow Sephiria's current semantic actions and player rebinds.
 
-The Mod keeps its settings, shortcuts, and prompts inside Sephiria's native UI. Features
-that change gameplay—automatic targeting, the native companion, and developer tools—are
-disabled by default.
+The Mod keeps its settings, shortcuts, and prompts inside Sephiria's native UI. These
+defaults apply when a setting has not been saved. Existing saved values take precedence;
+re-enabling the Mod does not reset settings.
+
+| Feature or setting | Default behavior |
+| --- | --- |
+| Mod master switch and keyboard UI enhancements | Enabled |
+| Automatic targeting & target lock | Enabled; keyboard attacks select targets automatically. Tap Switch locked target to cycle targets, or hold it to clear the manual lock. On gamepad, the Mod controls aim only while manually locked |
+| Damage statistics, hit-streak feedback, BOSS health values | Enabled; statistics use Smart display at 65% panel scale |
+| Combat relation outlines and combat visuals | Outlines enabled; Balanced preset with slightly transparent local companion bodies and very transparent effects |
+| Town NPC map labels | Enabled |
+| Current-floor map overlay | Initially hidden; toggle with its shortcut |
+| View distance | 100% |
+| Experimental inventory arrangement | Available on demand through its shortcut or arrange button; Automatic optimization tendency |
+| Mid-run joining/reconnect support | Enabled; the host allows new players to join mid-run and provides reconnect support when conditions permit |
+| Multiplayer rules | Original; external rule stacking disabled |
+| Retry after defeat and Show hidden rooms | Disabled; enable explicitly in settings |
+| Mouse aim assist, native companion, developer console | Disabled |
 
 ## Install
 
@@ -68,6 +84,7 @@ gamepad controls.
 | Action | Default |
 | --- | --- |
 | Switch locked target | Middle mouse or `L`; right-stick press on gamepad |
+| Alternate keyboard bindings for basic / secondary attacks | On first targeting enable, attempts to add conflict-free `J` / `K` bindings while preserving existing bindings |
 | Toggle current-floor overlay | `M` |
 | Open/close the latest combat report | Tap `F7` outside combat |
 | Hide/restore damage statistics | Hold `F7` for 0.5 seconds |
@@ -106,9 +123,13 @@ remaining display time; manually opened reports resume without a timeout.
   Position-effect observations are only available on the host. Non-host players
   cannot currently optimize inventories containing these effects, including inactive
   sources; inventories without them remain subject to the other checks above.
-- Defeat retry restores the selected floor-entry or BOSS checkpoint. Online use requires
-  Sephiria's rejoin/midsave support.
-- Mid-run access is host-controlled. New players receive new characters and save slots;
+- Defeat retry is disabled by default. Enabling it records checkpoints; restoring a
+  floor-entry or BOSS checkpoint requires clicking retry on an eligible defeat screen.
+  Online use requires Sephiria's rejoin/midsave support.
+- Hidden-room display is disabled by default on both the regular map and current-floor
+  overlay. Enabling it reveals undiscovered secret locations on supported maps. Turning
+  it off leaves normally discovered rooms visible.
+- Mid-run joining/reconnect support is enabled by default and host-controlled. New players receive new characters and save slots;
   disconnected characters and missed-route rewards are not transferred.
 - Multiplayer rule presets affect 1–4 connected human participants. Unsupported counts
   and detected multiplayer extensions keep ownership unless stacking is explicitly enabled.

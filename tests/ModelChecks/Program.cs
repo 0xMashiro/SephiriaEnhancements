@@ -42,6 +42,7 @@ Console.WriteLine("NativeUiActionCatalog: " +
     NativeUiActionCatalogChecks.Run());
 
 TownMapProjectionChecks.Run();
+MapEnhancementsLocalizationChecks.Run();
 DeveloperPlayerDamagePolicyChecks.Run();
 AmbientExecutionContextChecks.Run();
 MultiplayerExtensionDiscoveryChecks.Run();

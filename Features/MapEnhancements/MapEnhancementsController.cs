@@ -31,6 +31,7 @@ namespace SephiriaEnhancements.MapEnhancements
             new TownNpcMapMarkerLayer();
         private bool currentFloorMapOverlayCompatible = true;
         private bool hiddenRoomMapCompatible = true;
+        private bool hiddenRoomsShown;
         private bool townNpcMapMarkersCompatible = true;
         private bool currentFloorMapOverlayVisible;
         private RectTransform currentFloorMapOverlayRoot;
@@ -68,9 +69,28 @@ namespace SephiriaEnhancements.MapEnhancements
                     RestoreCurrentFloorMapOverlay();
                 }
                 wasEnabled = false;
+                hiddenRoomsShown = false;
                 return;
             }
             wasEnabled = true;
+
+            bool showHiddenRooms = MapEnhancementsSettings.ShowHiddenRooms;
+            if (hiddenRoomsShown != showHiddenRooms)
+            {
+                hiddenRoomsShown = showHiddenRooms;
+                if (!showHiddenRooms)
+                {
+                    ClearMarkers();
+                }
+                UI_MapPanel panel = UIManager.Instance?.GetElement<UI_MapPanel>();
+                if (showHiddenRooms && panel != null)
+                {
+                    foreach (string floorGuid in panel.maps.Keys)
+                    {
+                        ShowHiddenRooms(panel, floorGuid);
+                    }
+                }
+            }
 
             townNpcMapMarkers.RefreshIfDue();
 
@@ -159,7 +179,8 @@ namespace SephiriaEnhancements.MapEnhancements
         internal static void ShowHiddenRooms(UI_MapPanel panel, string floorGuid)
         {
             if (current == null || !current.hiddenRoomMapCompatible ||
-                !EnhancementsSettings.Enabled || panel == null ||
+                !EnhancementsSettings.Enabled || !MapEnhancementsSettings.ShowHiddenRooms ||
+                panel == null ||
                 string.IsNullOrEmpty(floorGuid))
             {
                 return;
@@ -406,7 +427,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 RestoreCurrentFloorMapOverlay();
                 CreateCurrentFloorMapOverlayRoot(panel);
                 AttachCurrentFloorMap(map, panel);
-                ShowHiddenRoomsInner(panel, player.currentFloorGuid);
+                ShowHiddenRooms(panel, player.currentFloorGuid);
             }
 
             SyncCurrentFloorMapOverlayRoot();

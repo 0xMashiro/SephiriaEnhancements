@@ -294,13 +294,13 @@ namespace SephiriaEnhancements.Configuration
                 new Dictionary<string, Dictionary<string, string>>
                 {
                     ["en-US"] = R("Retry after defeat",
-                        "After a party wipe, retry from the floor-entry checkpoint or from immediately before the current BOSS fight. Available offline; online play also requires the game's rejoin/midsave support.",
+                        "Disabled by default. After a party wipe, choose to retry from the floor-entry checkpoint or from immediately before the current BOSS fight. Available offline; online play also requires the game's rejoin/midsave support.",
                         "Off", "On"),
                     ["zh-CN"] = R("失败后重试",
-                        "全队死亡后，从本层入口检查点或当前 BOSS 战开始前重试。单机可用；多人游戏还需游戏开启重连/中途存档支持。",
+                        "默认关闭。全队死亡后，可选择从本层入口检查点或当前 BOSS 战开始前重试。单机可用；多人游戏还需游戏开启重连/中途存档支持。",
                         "关闭", "开启"),
                     ["zh-TW"] = R("失敗後重試",
-                        "全隊死亡後，從本層入口檢查點或目前 BOSS 戰開始前重試。單機可用；多人遊戲還需遊戲開啟重連/中途存檔支援。",
+                        "預設關閉。全隊死亡後，可選擇從本層入口檢查點或目前 BOSS 戰開始前重試。單機可用；多人遊戲還需遊戲開啟重連/中途存檔支援。",
                         "關閉", "開啟")
                 };
 
@@ -504,6 +504,7 @@ namespace SephiriaEnhancements.Configuration
             }
 
             ControlLocalization.Register(addText);
+            MapEnhancements.MapEnhancementsLocalization.Register(addText, Texts.Keys);
             OptionsCategoryLocalization.Register(addText, Texts.Keys);
             CombatVisualLocalization.Register(addText, Texts.Keys);
             Inventory.InventoryOptimizationLocalization.Register(addText);

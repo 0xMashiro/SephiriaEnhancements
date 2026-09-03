@@ -33,6 +33,7 @@
     <Compile Include="..\..\Features\CombatInsights\Core\CombatInsightsShortcut.cs" Link="Core\CombatInsightsShortcut.cs" />
     <Compile Include="..\..\Features\RangedControls\Core\DirectionalAimMath.cs" Link="RangedControls\DirectionalAimMath.cs" />
     <Compile Include="..\..\Features\MapEnhancements\Core\TownMapProjection.cs" Link="MapEnhancements\TownMapProjection.cs" />
+    <Compile Include="..\..\Features\MapEnhancements\MapEnhancementsLocalization.cs" Link="MapEnhancements\MapEnhancementsLocalization.cs" />
     <Compile Include="..\..\Integration\ModShortcuts.cs" Link="Integration\ModShortcuts.cs" />
     <Compile Include="..\..\Integration\NativeActionId.cs" Link="Integration\NativeActionId.cs" />
     <Compile Include="..\..\Integration\NativeUiActions.cs" Link="Integration\NativeUiActions.cs" />

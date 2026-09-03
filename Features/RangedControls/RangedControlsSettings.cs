@@ -23,7 +23,8 @@ namespace SephiriaEnhancements.RangedControls
         {
             get => (TargetingMode)Mathf.Clamp(
                 OptionsBinding.Instance?.DeviceOptions?.GetInt(
-                    TargetingModeKey, 0) ?? 0,
+                    TargetingModeKey, (int)TargetingMode.Automatic) ??
+                (int)TargetingMode.Automatic,
                 0, TargetingModeCount - 1);
             set => OptionsBinding.Instance?.DeviceOptions?.SetInt(TargetingModeKey,
                 Mathf.Clamp((int)value, 0, TargetingModeCount - 1));

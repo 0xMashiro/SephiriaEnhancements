@@ -1,6 +1,6 @@
-using SephiriaEnhancements.Diagnostics;
 using System;
 using SephiriaEnhancements.Core;
+using SephiriaEnhancements.Integration;
 using TMPro;
 using UnityEngine;
 
@@ -13,27 +13,20 @@ namespace SephiriaEnhancements.Presentation
         private static readonly Color Execution = new Color(1f, 0.28f, 0.56f, 1f);
         private Transform worldRoot;
         private Counter counter;
-        private bool hitFxAvailable = true;
-        private bool cameraShakeAvailable = true;
-        private bool flashAvailable = true;
 
-        internal void Show(Vector2 position, HitStreakUpdate update, HitStreakImpact impact,
-            Color sourceColor, bool ownedContribution)
+        internal void Show(UnitAvatar target, Vector2 position, HitStreakUpdate update,
+            HitStreakImpact impact, Color sourceColor)
         {
-            PlayMilestoneEffects(position, update);
             if (!TryAttach())
             {
                 return;
             }
 
-            string prefix = ownedContribution ? "◆ " : string.Empty;
-            string text = prefix + update.Count + " <size=68%>HITS</size>" +
-                (update.IsMilestone ? "!" : string.Empty);
             Color color = ResolveColor(update, impact, sourceColor);
-            float scale = 0.84f + update.Tier * 0.08f + (update.IsMilestone ? 0.05f : 0f);
-            Vector2 offset = new Vector2(0f, 0.68f + update.Tier * 0.04f);
-            counter.Show(text, color, position + offset, Time.unscaledTime, scale,
-                update.ShouldRender, update.IsMilestone);
+            float scale = 0.84f + Mathf.Min(update.Tier, 4) * 0.04f;
+            Vector2 offset = new Vector2(0.85f, 0.9f);
+            counter.Show(update.Count, color, target, position + offset, Time.unscaledTime, scale,
+                update.ShouldAnimate, update.IsMilestone);
         }
 
         internal void Update(bool visible)
@@ -87,88 +80,18 @@ namespace SephiriaEnhancements.Presentation
             {
                 size = new Vector2(180f, 42f);
             }
-            counter = new Counter(worldRoot, template.font, template.fontSharedMaterial,
-                template.fontSize, size);
+            counter = new Counter(worldRoot, template, size);
             return true;
-        }
-
-        private void PlayMilestoneEffects(Vector2 position, HitStreakUpdate update)
-        {
-            if (!update.IsMilestone || update.Count < 25)
-            {
-                return;
-            }
-
-            if (hitFxAvailable)
-            {
-                try
-                {
-                    SpriteFx.Pool?.Spawn("CommonHitFx",
-                        new Vector3(position.x, position.y + 0.0001f, 0f));
-                }
-                catch (Exception exception)
-                {
-                    DisableNativeLayer(ref hitFxAvailable, "hit effect", exception);
-                }
-            }
-
-            int strength = update.Count >= 100 ? 3 : update.Count >= 50 ? 2 : 1;
-            if (cameraShakeAvailable)
-            {
-                try
-                {
-                    TargetTracker tracker = GameCamera.Instance?.targetTracker;
-                    if (tracker != null)
-                    {
-                        float power = strength == 3 ? 0.1f : strength == 2 ? 0.075f : 0.055f;
-                        float duration = strength == 3 ? 0.14f : strength == 2 ? 0.12f : 0.1f;
-                        tracker.CreateCameraShaking(position, EShakeCameraType.Impact,
-                            Vector2.up * power, duration);
-                    }
-                }
-                catch (Exception exception)
-                {
-                    DisableNativeLayer(ref cameraShakeAvailable, "camera shake", exception);
-                }
-            }
-
-            if (strength < 2 || !flashAvailable)
-            {
-                return;
-            }
-
-            try
-            {
-                UI_FlashScreen flash = UIManager.Instance?.GetElement<UI_FlashScreen>();
-                if (flash != null)
-                {
-                    float alpha = strength == 3 ? 0.06f : 0.035f;
-                    float duration = strength == 3 ? 0.16f : 0.12f;
-                    flash.Flash(new Color(1f, 0.72f, 0.2f, alpha), duration,
-                        EFlashScreenTImeType.UNSCALED);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisableNativeLayer(ref flashAvailable, "screen flash", exception);
-            }
-        }
-
-        private static void DisableNativeLayer(ref bool available, string layer,
-            Exception exception)
-        {
-            available = false;
-            SupportLogger.Warning("hit_streak_layer_failed", "[SephiriaEnhancements] Hit-streak milestone " + layer +
-                " disabled until the Mod is reloaded: " +
-                exception.Message);
         }
 
         private static Color ResolveColor(HitStreakUpdate update, HitStreakImpact impact,
             Color sourceColor)
         {
             if (impact == HitStreakImpact.Execution) return Execution;
+            if (update.IsMilestone)
+                return Color.Lerp(update.Tier >= 3 ? HotGold : Gold, Color.white, 0.2f);
+            if (impact == HitStreakImpact.Critical) return Gold;
             if (update.Tier >= 3) return HotGold;
-            if (update.IsMilestone || impact == HitStreakImpact.Critical) return Gold;
             sourceColor.a = 1f;
             return Color.Lerp(sourceColor, Color.white, 0.25f);
         }
@@ -177,26 +100,32 @@ namespace SephiriaEnhancements.Presentation
         {
             private const float FadeDelay = 1.24f;
             private const float Lifetime = 1.6f;
-            private const float MoveDuration = 0.16f;
+            private const float FollowSmoothTime = 0.08f;
+            private const float MinimumTargetHold = 0.24f;
+            private const float RelocationFadeTime = 0.1f;
+            private const float RelocationViewportDistance = 0.18f;
             private readonly GameObject root;
             private readonly RectTransform rect;
             private readonly CanvasGroup group;
             private readonly TextMeshProUGUI label;
-            private Vector2 moveFrom;
+            private readonly TextMeshProUGUI template;
+            private readonly NativeHitStreakText animatedText;
+            private UnitAvatar target;
+            private Vector2 targetOffset;
+            private Vector2 anchorPosition;
+            private Vector2 moveVelocity;
             private Vector2 moveTo;
-            private float moveStartedAt;
+            private float lastUpdateAt;
             private float lastHitAt;
-            private float pulseStartedAt;
-            private float pulseDuration;
-            private float pulseFromScale;
-            private float pulsePeakScale;
-            private float targetScale;
-            private float currentScale;
-            private bool pulseActive;
+            private float targetSelectedAt;
+            private float relocatedAt = -1f;
+            private float emphasisUntil;
+            private Color baseColor;
+            private Color emphasisColor;
 
-            internal Counter(Transform parent, TMP_FontAsset font, Material material,
-                float fontSize, Vector2 size)
+            internal Counter(Transform parent, TextMeshProUGUI template, Vector2 size)
             {
+                this.template = template;
                 root = new GameObject("Combat Insights — Hit Streak Counter",
                     typeof(RectTransform), typeof(CanvasGroup), typeof(TextMeshProUGUI));
                 rect = root.GetComponent<RectTransform>();
@@ -206,48 +135,53 @@ namespace SephiriaEnhancements.Presentation
                 group.interactable = false;
                 group.blocksRaycasts = false;
                 label = root.GetComponent<TextMeshProUGUI>();
-                label.font = font;
-                label.fontSharedMaterial = material;
+                label.font = template.font;
+                label.fontSharedMaterial = template.fontSharedMaterial;
                 label.fontStyle = FontStyles.Bold;
-                label.fontSize = fontSize;
-                label.enableAutoSizing = false;
+                NativeLocalizedText.MatchFontSize(label, template);
+                NativeLocalizedText.BindFont(label, template);
                 label.textWrappingMode = TextWrappingModes.NoWrap;
                 label.overflowMode = TextOverflowModes.Overflow;
-                label.alignment = TextAlignmentOptions.Center;
+                label.alignment = TextAlignmentOptions.Left;
+                rect.pivot = new Vector2(0f, 0.5f);
                 label.raycastTarget = false;
                 root.SetActive(false);
+                animatedText = new NativeHitStreakText(root);
             }
 
-            internal void Show(string text, Color color, Vector2 position, float now,
+            internal void Show(int count, Color color, UnitAvatar target, Vector2 position, float now,
                 float scale, bool shouldPulse, bool milestone)
             {
                 bool entering = !root.activeSelf;
-                label.text = text;
-                label.color = color;
+                baseColor = color;
+                if (milestone)
+                {
+                    emphasisColor = color;
+                    emphasisUntil = now + 0.24f;
+                }
                 lastHitAt = now;
-                targetScale = scale;
-                moveFrom = entering ? position : (Vector2)rect.position;
-                moveTo = position;
-                moveStartedAt = now;
+                rect.localScale = new Vector3(scale, scale, 1f);
+                // Keep a stable point on the same target and coalesce rapid target changes.
+                if (entering || (this.target != target && now - targetSelectedAt >= MinimumTargetHold))
+                {
+                    this.target = target;
+                    targetOffset = position - (Vector2)target.transform.position;
+                    moveTo = position;
+                    targetSelectedAt = now;
+                }
 
                 if (entering)
                 {
-                    currentScale = targetScale * 0.94f;
+                    anchorPosition = position;
+                    moveVelocity = Vector2.zero;
+                    lastUpdateAt = now;
                     rect.position = new Vector3(position.x, position.y, 0f);
                     rect.localRotation = Quaternion.identity;
                     root.SetActive(true);
                     shouldPulse = true;
                 }
 
-                if (shouldPulse)
-                {
-                    pulseFromScale = currentScale;
-                    pulsePeakScale = Mathf.Max(currentScale,
-                        targetScale * (milestone ? 1.18f : 1.08f));
-                    pulseStartedAt = now;
-                    pulseDuration = milestone ? 0.22f : 0.16f;
-                    pulseActive = true;
-                }
+                animatedText.Show(count, milestone, shouldPulse);
 
                 Update(now, true);
             }
@@ -271,45 +205,62 @@ namespace SephiriaEnhancements.Presentation
                     return;
                 }
 
-                group.alpha = age <= FadeDelay ? 1f :
+                float alpha = age <= FadeDelay ? 1f :
                     1f - Mathf.InverseLerp(FadeDelay, Lifetime, age);
+                label.color = Color.Lerp(baseColor, emphasisColor,
+                    Mathf.Clamp01((emphasisUntil - now) / 0.24f));
 
-                float moveProgress = Mathf.Clamp01((now - moveStartedAt) / MoveDuration);
-                float moveEase = Mathf.SmoothStep(0f, 1f, moveProgress);
-                Vector2 position = Vector2.LerpUnclamped(moveFrom, moveTo, moveEase);
-                rect.position = new Vector3(position.x, position.y, 0f);
-
-                if (pulseActive)
-                {
-                    float pulseProgress = Mathf.Clamp01((now - pulseStartedAt) / pulseDuration);
-                    if (pulseProgress < 0.25f)
-                    {
-                        float rise = Mathf.SmoothStep(0f, 1f, pulseProgress / 0.25f);
-                        currentScale = Mathf.LerpUnclamped(pulseFromScale, pulsePeakScale, rise);
-                    }
-                    else
-                    {
-                        float settle = Mathf.SmoothStep(0f, 1f,
-                            Mathf.InverseLerp(0.25f, 1f, pulseProgress));
-                        currentScale = Mathf.LerpUnclamped(pulsePeakScale, targetScale, settle);
-                    }
-                    if (pulseProgress >= 1f)
-                    {
-                        pulseActive = false;
-                        currentScale = targetScale;
-                    }
-                }
+                if (template != null)
+                    NativeLocalizedText.MatchFontSize(label, template);
+                if (target != null && !target.IsDead && target.gameObject.activeInHierarchy)
+                    moveTo = (Vector2)target.transform.position + targetOffset;
                 else
+                    target = null;
+                Vector2 destination = ConstrainToView(moveTo);
+                Camera camera = GameCamera.Instance?.Camera;
+                if (camera != null)
                 {
-                    currentScale = targetScale;
+                    Vector3 from = camera.WorldToViewportPoint(anchorPosition);
+                    Vector3 to = camera.WorldToViewportPoint(destination);
+                    if (((Vector2)(to - from)).sqrMagnitude >
+                        RelocationViewportDistance * RelocationViewportDistance)
+                    {
+                        anchorPosition = destination;
+                        moveVelocity = Vector2.zero;
+                        relocatedAt = now;
+                    }
                 }
+                float delta = Mathf.Max(0f, now - lastUpdateAt);
+                lastUpdateAt = now;
+                if (delta > 0f)
+                    anchorPosition = Vector2.SmoothDamp(anchorPosition, destination,
+                        ref moveVelocity, FollowSmoothTime, Mathf.Infinity, delta);
+                group.alpha = alpha * Mathf.Clamp01((now - relocatedAt) / RelocationFadeTime);
+                float drift = Mathf.InverseLerp(FadeDelay, Lifetime, age) * 0.18f;
+                Vector2 position = ConstrainToView(anchorPosition + Vector2.up * drift);
+                rect.position = new Vector3(position.x, position.y, 0f);
+            }
 
-                rect.localScale = new Vector3(currentScale, currentScale, 1f);
+            private Vector2 ConstrainToView(Vector2 position)
+            {
+                Camera camera = GameCamera.Instance?.Camera;
+                if (camera == null) return position;
+                Vector3 point = camera.WorldToViewportPoint(position);
+                // Keep the rendered text (including its largest pulse) inside screen-edge margins.
+                Vector3 right = camera.WorldToViewportPoint((Vector3)position +
+                    rect.TransformVector(new Vector3(label.textBounds.size.x * 1.24f, 0f, 0f)));
+                float width = Mathf.Abs(right.x - point.x);
+                point.x = Mathf.Clamp(point.x, 0.06f, Mathf.Max(0.06f, 0.94f - width));
+                point.y = Mathf.Clamp(point.y, 0.12f, 0.84f);
+                return camera.ViewportToWorldPoint(point);
             }
 
             internal void Hide()
             {
-                pulseActive = false;
+                target = null;
+                emphasisUntil = 0f;
+                relocatedAt = -1f;
+                animatedText.Reset();
                 if (root != null && root.activeSelf)
                 {
                     root.SetActive(false);

@@ -65,7 +65,7 @@ namespace SephiriaEnhancements.Combat
             RecordRoundedComponent(now, targetId, damage.mpShieldDamage, damage.position, indirect);
         }
 
-        internal void CaptureFeedback(DamageFeedback feedback, bool ownedContribution)
+        internal void CaptureFeedback(DamageFeedback feedback)
         {
             if (!compatible)
             {
@@ -74,7 +74,7 @@ namespace SephiriaEnhancements.Combat
 
             try
             {
-                CaptureFeedbackCore(feedback, ownedContribution);
+                CaptureFeedbackCore(feedback);
             }
             catch (Exception exception)
             {
@@ -94,7 +94,7 @@ namespace SephiriaEnhancements.Combat
 
         internal void Dispose() => view.Dispose();
 
-        private void CaptureFeedbackCore(DamageFeedback feedback, bool ownedContribution)
+        private void CaptureFeedbackCore(DamageFeedback feedback)
         {
             // DamageFeedback.EMsgType is the game's native API; map it to the
             // CombatInsights hit-streak domain at this integration boundary.
@@ -135,7 +135,7 @@ namespace SephiriaEnhancements.Combat
 
             Color color = new Color(feedback.r / 255f, feedback.g / 255f,
                 feedback.b / 255f, feedback.a / 255f);
-            view.Show(feedback.position, update, impact, color, ownedContribution);
+            view.Show(feedback.self, feedback.position, update, impact, color);
         }
 
         private void Disable(Exception exception)

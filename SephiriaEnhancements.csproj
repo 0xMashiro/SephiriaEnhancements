@@ -34,6 +34,14 @@
   </Target>
 
   <ItemGroup>
+    <Reference Include="Febucci.TextAnimator.Runtime">
+      <HintPath>$(SephiriaGameDir)\Sephiria_Data\Managed\Febucci.TextAnimator.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Febucci.TextAnimator.TMP.Runtime">
+      <HintPath>$(SephiriaGameDir)\Sephiria_Data\Managed\Febucci.TextAnimator.TMP.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>$(SephiriaGameDir)\Sephiria_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>false</Private>

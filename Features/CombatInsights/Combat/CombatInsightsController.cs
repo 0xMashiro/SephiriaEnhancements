@@ -1042,15 +1042,14 @@ namespace SephiriaEnhancements.Combat
                     ? damageType : EncounterDamageType.Unknown;
         }
 
-        internal void RecordHitStreakFeedback(DamageFeedback feedback, PlayerAvatar owner)
+        internal void RecordHitStreakFeedback(DamageFeedback feedback, PlayerAvatar attacker)
         {
             if (!EnhancementsSettings.Enabled || !ModSettings.HitStreakFeedback ||
-                feedback == null || owner == null ||
+                feedback == null || attacker == null ||
                 feedback.damageValue <= 0 || feedback.self == null || feedback.self is PlayerAvatar ||
-                !LocalPlayerResolver.IsLocal(owner) ||
+                !LocalPlayerResolver.IsLocal(attacker) ||
                 UIManager.Instance?.CurrentControlStack != null) return;
-            hitStreakFeedback.CaptureFeedback(feedback,
-                feedback.attacker != null && feedback.attacker != owner);
+            hitStreakFeedback.CaptureFeedback(feedback);
         }
 
         private void ResetCombatState()

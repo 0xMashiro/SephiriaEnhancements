@@ -9,12 +9,12 @@ namespace SephiriaEnhancements.Core
 
     internal readonly struct HitStreakUpdate
     {
-        internal HitStreakUpdate(int count, int tier, bool milestone, bool render)
+        internal HitStreakUpdate(int count, int tier, bool milestone, bool animate)
         {
             Count = count;
             Tier = tier;
             IsMilestone = milestone;
-            ShouldRender = render;
+            ShouldAnimate = animate;
         }
 
         internal int Count { get; }
@@ -23,13 +23,13 @@ namespace SephiriaEnhancements.Core
 
         internal bool IsMilestone { get; }
 
-        internal bool ShouldRender { get; }
+        internal bool ShouldAnimate { get; }
     }
 
     internal sealed class HitStreakTracker
     {
         private const float HitStreakTimeout = 1.6f;
-        private const float MinimumVisualGap = 0.09f;
+        private const float MinimumVisualGap = 0.12f;
         private float lastHitAt = -1000f;
         private float lastVisualAt = -1000f;
 
@@ -59,14 +59,14 @@ namespace SephiriaEnhancements.Core
             bool cadence = Count >= 2 && (Count <= 5 ||
                 (Count < 10 ? Count % 2 == 0 : Count < 25 ? Count % 3 == 0 : Count % 5 == 0));
             bool important = impact != HitStreakImpact.Normal || milestone;
-            bool render = (important || cadence) &&
-                (important || now - lastVisualAt >= MinimumVisualGap);
-            if (render)
+            bool animate = Count >= 2 && (important || cadence) &&
+                (milestone || now - lastVisualAt >= MinimumVisualGap);
+            if (animate)
             {
                 lastVisualAt = now;
             }
 
-            return new HitStreakUpdate(Count, GetTier(Count), milestone, render);
+            return new HitStreakUpdate(Count, GetTier(Count), milestone, animate);
         }
 
         internal void Reset()

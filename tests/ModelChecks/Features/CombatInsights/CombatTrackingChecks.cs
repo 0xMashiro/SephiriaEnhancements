@@ -35,13 +35,13 @@ internal static class CombatTrackingChecks
         var hitStreak = new HitStreakTracker();
         HitStreakUpdate first = hitStreak.Register(0f, 10, HitStreakImpact.Normal,
             indirectDamage: false);
-        if (first.Count != 1 || first.ShouldRender) throw new InvalidOperationException("first hit must arm without rendering");
+        if (first.Count != 1 || first.ShouldAnimate) throw new InvalidOperationException("first hit must arm without rendering");
         HitStreakUpdate second = hitStreak.Register(0.1f, 20, HitStreakImpact.Normal,
             indirectDamage: false);
-        if (second.Count != 2 || !second.ShouldRender) throw new InvalidOperationException("second hit must begin visible hit streak");
+        if (second.Count != 2 || !second.ShouldAnimate) throw new InvalidOperationException("second hit must begin visible hit streak");
         HitStreakUpdate dot = hitStreak.Register(0.2f, 3, HitStreakImpact.Normal,
             indirectDamage: true);
-        if (dot.Count != 0 || dot.ShouldRender || hitStreak.Count != 2) throw new InvalidOperationException("indirect tick must not extend hit streak");
+        if (dot.Count != 0 || dot.ShouldAnimate || hitStreak.Count != 2) throw new InvalidOperationException("indirect tick must not extend hit streak");
         for (int count = 3; count <= 10; count++) hitStreak.Register(0.2f + count * 0.1f,
             1, HitStreakImpact.Normal, indirectDamage: false);
         var milestoneTracker = new HitStreakTracker();
@@ -49,15 +49,30 @@ internal static class CombatTrackingChecks
         for (int count = 1; count <= 10; count++)
             ten = milestoneTracker.Register(count * 0.1f, 1, HitStreakImpact.Normal,
                 indirectDamage: false);
-        if (!ten.IsMilestone || !ten.ShouldRender || ten.Count != 10 || ten.Tier != 1)
+        if (!ten.IsMilestone || !ten.ShouldAnimate || ten.Count != 10 || ten.Tier != 1)
             throw new InvalidOperationException("ten-hit milestone must render and enter tier one");
         HitStreakUpdate milestone = hitStreak.Register(1.21f, 1, HitStreakImpact.Critical,
             indirectDamage: false);
-        if (milestone.Count != 11 || !milestone.ShouldRender || milestone.Tier != 1)
-            throw new InvalidOperationException("critical hit must render in the ten-hit tier");
+        if (milestone.Count != 11 || milestone.ShouldAnimate || milestone.Tier != 1)
+            throw new InvalidOperationException("critical hit must update the count without interrupting a recent milestone animation");
+        HitStreakUpdate critical = hitStreak.Register(1.34f, 1, HitStreakImpact.Critical,
+            indirectDamage: false);
+        if (critical.Count != 12 || !critical.ShouldAnimate)
+            throw new InvalidOperationException("critical hit must animate after the visual interval");
+        var rapidHits = new HitStreakTracker();
+        if (rapidHits.Register(0f, 1, HitStreakImpact.Critical, false).ShouldAnimate)
+            throw new InvalidOperationException("a single critical hit must only arm the streak");
+        for (int count = 2; count <= 100; count++)
+        {
+            HitStreakUpdate rapid = rapidHits.Register(count * 0.001f, 1,
+                HitStreakImpact.Critical, false);
+            bool expectedAnimation = count == 2 || count == 10 || count == 25 || count == 50 || count == 100;
+            if (rapid.Count != count || rapid.ShouldAnimate != expectedAnimation)
+                throw new InvalidOperationException("rapid critical hits must keep every count, limit ordinary animations and preserve milestones");
+        }
         HitStreakUpdate reset = hitStreak.Register(3f, 5, HitStreakImpact.Normal,
             indirectDamage: false);
-        if (reset.Count != 1 || reset.ShouldRender) throw new InvalidOperationException("hit-streak timeout must restart at one");
+        if (reset.Count != 1 || reset.ShouldAnimate) throw new InvalidOperationException("hit-streak timeout must restart at one");
         Console.WriteLine("HitStreakTracker: timeout, cadence, critical, tier and DOT checks passed");
 
         var contexts = new DamageContextBuffer();

@@ -1060,28 +1060,28 @@ namespace SephiriaEnhancements.Configuration
             new Dictionary<string, Dictionary<string, string>>
             {
                 ["en-US"] = HitStreak("Hit-streak indicator",
-                    "Show the local player's consecutive-hit count at the hit position. Critical hits, executions, and milestones receive stronger emphasis. Identified damage-over-time ticks do not extend the streak."),
-                ["zh-CN"] = HitStreak("连续命中提示", "在实际命中位置显示本地玩家的连续命中计数；暴击、处决与里程碑会获得更强强调。游戏可识别的持续伤害不会延长连续命中。"),
-                ["zh-TW"] = HitStreak("連續命中提示", "在實際命中位置顯示本機玩家的連續命中計數；暴擊、處決與里程碑會獲得更強強調。遊戲可辨識的持續傷害不會延長連續命中。"),
-                ["ko-KR"] = HitStreak("연속 타격 표시", "명중 위치에 로컬 플레이어의 연속 타격 수를 표시합니다. 치명타, 처형, 연속 타격 이정표를 더 강하게 강조합니다. 식별된 지속 피해는 연속 타격을 연장하지 않습니다."),
-                ["ja-JP"] = HitStreak("連続ヒット表示", "命中位置に自分の連続ヒット数を表示します。クリティカル、処刑、節目のヒット数を強く演出します。識別できた継続ダメージは連続ヒットを延長しません。"),
+                    "Show the local player's consecutive-hit count near the hit target, following its movement. Critical hits, executions, and milestones receive stronger emphasis. Follower attacks and identified damage-over-time ticks do not extend the streak."),
+                ["zh-CN"] = HitStreak("连续命中提示", "在受击目标侧上方显示本地玩家本人的连续命中计数，并跟随目标移动；暴击、处决与里程碑会获得更强强调。随从攻击和游戏可识别的持续伤害不会延长连续命中。"),
+                ["zh-TW"] = HitStreak("連續命中提示", "在受擊目標側上方顯示本機玩家本人的連續命中計數，並跟隨目標移動；暴擊、處決與里程碑會獲得更強強調。隨從攻擊和遊戲可辨識的持續傷害不會延長連續命中。"),
+                ["ko-KR"] = HitStreak("연속 타격 표시", "명중한 대상 근처에 로컬 플레이어 본인의 연속 타격 수를 표시하고 대상의 움직임을 따라갑니다. 치명타, 처형, 연속 타격 이정표를 더 강하게 강조합니다. 추종자의 공격과 식별된 지속 피해는 연속 타격을 연장하지 않습니다."),
+                ["ja-JP"] = HitStreak("連続ヒット表示", "攻撃を当てた対象の近くに自分自身の連続ヒット数を表示し、対象の動きに追従します。クリティカル、処刑、節目のヒット数を強く演出します。従者の攻撃と識別できた継続ダメージは連続ヒットを延長しません。"),
                 ["de-DE"] = HitStreak("Trefferfolgen-Anzeige",
-                    "Zeigt die lokale Trefferfolge am Trefferort. Kritische Treffer, Hinrichtungen und Meilensteine werden stärker betont. Erkannter Schaden über Zeit verlängert die Trefferfolge nicht."),
+                    "Zeigt die eigene Trefferfolge nahe dem getroffenen Ziel und folgt dessen Bewegung. Kritische Treffer, Hinrichtungen und Meilensteine werden stärker betont. Angriffe von Begleitern und erkannter Schaden über Zeit verlängern die Trefferfolge nicht."),
                 ["es-ES"] = HitStreak("Indicador de golpes consecutivos",
-                    "Muestra los golpes consecutivos del jugador local en el punto de impacto. Destaca más los críticos, las ejecuciones y los hitos de la racha. El daño periódico identificado no prolonga la racha."),
+                    "Muestra los golpes consecutivos del propio jugador local cerca del objetivo golpeado y sigue su movimiento. Destaca más los críticos, las ejecuciones y los hitos de la racha. Los ataques de seguidores y el daño periódico identificado no prolongan la racha."),
                 ["fr-FR"] = HitStreak("Indicateur de série de coups",
-                    "Affiche la série de coups du joueur local au point d’impact. Les coups critiques, exécutions et paliers sont davantage mis en valeur. Les dégâts sur la durée identifiés ne prolongent pas la série."),
+                    "Affiche la série de coups du joueur local près de la cible touchée et suit son déplacement. Les coups critiques, exécutions et paliers sont davantage mis en valeur. Les attaques des compagnons et les dégâts sur la durée identifiés ne prolongent pas la série."),
                 ["it-IT"] = HitStreak("Indicatore serie di colpi",
-                    "Mostra i colpi consecutivi del giocatore locale nel punto d’impatto. Critici, esecuzioni e traguardi ricevono maggiore enfasi. I danni nel tempo identificati non prolungano la serie."),
+                    "Mostra i colpi consecutivi del giocatore locale vicino al bersaglio colpito e ne segue il movimento. Critici, esecuzioni e traguardi ricevono maggiore enfasi. Gli attacchi dei seguaci e i danni nel tempo identificati non prolungano la serie."),
                 ["pl-PL"] = HitStreak("Wskaźnik serii trafień",
-                    "Pokazuje serię trafień lokalnego gracza w miejscu trafienia. Trafienia krytyczne, egzekucje i kolejne progi serii są mocniej wyróżniane. Rozpoznane obrażenia w czasie nie przedłużają serii."),
+                    "Pokazuje serię własnych trafień lokalnego gracza przy trafionym celu i podąża za jego ruchem. Trafienia krytyczne, egzekucje i kolejne progi serii są mocniej wyróżniane. Ataki towarzyszy i rozpoznane obrażenia w czasie nie przedłużają serii."),
                 ["pt-BR"] = HitStreak("Indicador de sequência de acertos",
-                    "Mostra a sequência de acertos do jogador local no ponto de impacto. Críticos, execuções e marcos da sequência recebem mais destaque. Dano periódico identificado não prolonga a sequência."),
+                    "Mostra a sequência de acertos do próprio jogador local perto do alvo atingido e acompanha seu movimento. Críticos, execuções e marcos da sequência recebem mais destaque. Ataques de seguidores e dano periódico identificado não prolongam a sequência."),
                 ["ru-RU"] = HitStreak("Индикатор серии попаданий",
-                    "Показывает серию попаданий локального игрока в точке удара. Критические удары, казни и этапы серии выделяются сильнее. Распознанный периодический урон не продлевает серию."),
-                ["sv-SE"] = HitStreak("Indikator för träffserie", "Visar den lokala spelarens träffserie vid träffpunkten. Kritiska träffar, avrättningar och milstolpar framhävs mer. Identifierad skada över tid förlänger inte serien."),
-                ["th-TH"] = HitStreak("ตัวแสดงการโจมตีต่อเนื่อง", "แสดงจำนวนการโจมตีต่อเนื่องของผู้เล่นในเครื่อง ณ จุดที่โจมตีโดน เน้นคริติคอล การประหาร และหลักจำนวนครั้งของชุดโจมตีให้เด่นขึ้น ดาเมจต่อเนื่องที่ตรวจพบจะไม่ต่อเวลาชุดโจมตี"),
-                ["tr-TR"] = HitStreak("Seri vuruş göstergesi", "Yerel oyuncunun seri vuruş sayısını isabet noktasında gösterir. Kritik vuruşlar, infazlar ve seri eşikleri daha güçlü vurgulanır. Tanımlanan zamanla hasar, seriyi uzatmaz.")
+                    "Показывает серию собственных попаданий локального игрока рядом с поражённой целью и следует за её движением. Критические удары, казни и этапы серии выделяются сильнее. Атаки спутников и распознанный периодический урон не продлевают серию."),
+                ["sv-SE"] = HitStreak("Indikator för träffserie", "Visar den lokala spelarens egen träffserie nära det träffade målet och följer dess rörelse. Kritiska träffar, avrättningar och milstolpar framhävs mer. Följeslagares attacker och identifierad skada över tid förlänger inte serien."),
+                ["th-TH"] = HitStreak("ตัวแสดงการโจมตีต่อเนื่อง", "แสดงจำนวนการโจมตีต่อเนื่องของผู้เล่นในเครื่องเองใกล้เป้าหมายที่โดนโจมตี และเคลื่อนตามเป้าหมาย เน้นคริติคอล การประหาร และหลักจำนวนครั้งให้เด่นขึ้น การโจมตีของผู้ติดตามและดาเมจต่อเนื่องที่ตรวจพบจะไม่ต่อเวลาชุดโจมตี"),
+                ["tr-TR"] = HitStreak("Seri vuruş göstergesi", "Yerel oyuncunun kendi seri vuruş sayısını vurulan hedefin yakınında gösterir ve hedefin hareketini takip eder. Kritik vuruşlar, infazlar ve seri eşikleri daha güçlü vurgulanır. Takipçilerin saldırıları ve tanımlanan zamanla hasar, seriyi uzatmaz.")
             };
 
         private static readonly Dictionary<string, Dictionary<string, string>> OutlineTexts =

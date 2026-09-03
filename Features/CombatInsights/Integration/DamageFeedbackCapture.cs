@@ -74,9 +74,10 @@ namespace SephiriaEnhancements.Integration
                     DeveloperLogger.RecordDamageFeedback(feedback, owner);
                 }
 
-                if (captureHitStreakFeedback && owner != null)
+                // Statistics include followers; a personal hit streak uses the actual attacker.
+                if (captureHitStreakFeedback && attacker is PlayerAvatar player)
                 {
-                    controller.RecordHitStreakFeedback(feedback, owner);
+                    controller.RecordHitStreakFeedback(feedback, player);
                 }
 
                 if (feedback.damageValue <= 0)

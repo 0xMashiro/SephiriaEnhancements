@@ -183,7 +183,20 @@ namespace SephiriaEnhancements.Configuration
             {
                 ["en-US"] = "Combat report (tap) / statistics display (hold)",
                 ["zh-CN"] = "战报（短按）/统计显示（长按）",
-                ["zh-TW"] = "戰報（短按）/統計顯示（長按）"
+                ["zh-TW"] = "戰報（短按）/統計顯示（長按）",
+                ["ko-KR"] = "전투 보고서(짧게) / 통계 표시(길게)",
+                ["ja-JP"] = "戦闘レポート（短押し）／統計表示（長押し）",
+                ["de-DE"] = "Kampfbericht (kurz) / Statistik (halten)",
+                ["es-ES"] = "Informe de combate (pulsar) / estadísticas (mantener)",
+                ["fr-FR"] = "Rapport de combat (appui bref) / statistiques (maintien)",
+                ["it-IT"] = "Resoconto (pressione breve) / statistiche (pressione lunga)",
+                ["pl-PL"] = "Raport walki (naciśnij) / statystyki (przytrzymaj)",
+                ["pt-BR"] = "Relatório de combate (toque) / estatísticas (segure)",
+                ["ru-RU"] = "Отчёт о бое (нажать) / статистика (удерживать)",
+                ["sv-SE"] = "Stridsrapport (tryck) / statistik (håll)",
+                ["th-TH"] = "รายงานการต่อสู้ (กด) / สถิติ (กดค้าง)",
+                ["tr-TR"] = "Savaş raporu (bas) / istatistikler (basılı tut)"
+
             };
 
         private static readonly Dictionary<string, string> OptimizeInventoryTexts =
@@ -191,7 +204,20 @@ namespace SephiriaEnhancements.Configuration
             {
                 ["en-US"] = "Optimize inventory",
                 ["zh-CN"] = "优化背包",
-                ["zh-TW"] = "最佳化背包"
+                ["zh-TW"] = "最佳化背包",
+                ["ko-KR"] = "인벤토리 최적화",
+                ["ja-JP"] = "インベントリを最適化",
+                ["de-DE"] = "Inventar optimieren",
+                ["es-ES"] = "Optimizar inventario",
+                ["fr-FR"] = "Optimiser l’inventaire",
+                ["it-IT"] = "Ottimizza inventario",
+                ["pl-PL"] = "Optymalizuj ekwipunek",
+                ["pt-BR"] = "Otimizar inventário",
+                ["ru-RU"] = "Оптимизировать инвентарь",
+                ["sv-SE"] = "Optimera inventariet",
+                ["th-TH"] = "ปรับช่องเก็บของให้เหมาะสม",
+                ["tr-TR"] = "Envanteri iyileştir"
+
             };
 
         private static readonly Dictionary<string, string> SecondaryUiActionTexts =
@@ -199,7 +225,20 @@ namespace SephiriaEnhancements.Configuration
             {
                 ["en-US"] = "Secondary UI action",
                 ["zh-CN"] = "次要界面操作",
-                ["zh-TW"] = "次要介面操作"
+                ["zh-TW"] = "次要介面操作",
+                ["ko-KR"] = "보조 UI 동작",
+                ["ja-JP"] = "UI の副操作",
+                ["de-DE"] = "Sekundäre UI-Aktion",
+                ["es-ES"] = "Acción secundaria de interfaz",
+                ["fr-FR"] = "Action secondaire de l’interface",
+                ["it-IT"] = "Azione secondaria dell’interfaccia",
+                ["pl-PL"] = "Dodatkowa akcja interfejsu",
+                ["pt-BR"] = "Ação secundária da interface",
+                ["ru-RU"] = "Дополнительное действие интерфейса",
+                ["sv-SE"] = "Sekundär gränssnittsåtgärd",
+                ["th-TH"] = "คำสั่งรองของหน้าจอ",
+                ["tr-TR"] = "İkincil arayüz eylemi"
+
             };
 
         private static readonly Dictionary<string, string> RotateItemTexts =
@@ -207,7 +246,20 @@ namespace SephiriaEnhancements.Configuration
             {
                 ["en-US"] = "Rotate or favorite item",
                 ["zh-CN"] = "旋转物品或切换收藏",
-                ["zh-TW"] = "旋轉物品或切換收藏"
+                ["zh-TW"] = "旋轉物品或切換收藏",
+                ["ko-KR"] = "아이템 회전 또는 즐겨찾기 전환",
+                ["ja-JP"] = "アイテムの回転／お気に入り切替",
+                ["de-DE"] = "Gegenstand drehen oder favorisieren",
+                ["es-ES"] = "Girar objeto o marcar favorito",
+                ["fr-FR"] = "Tourner l’objet ou basculer le favori",
+                ["it-IT"] = "Ruota oggetto o cambia preferito",
+                ["pl-PL"] = "Obróć przedmiot lub zmień ulubione",
+                ["pt-BR"] = "Girar item ou alternar favorito",
+                ["ru-RU"] = "Повернуть предмет / изменить избранное",
+                ["sv-SE"] = "Rotera föremål eller växla favorit",
+                ["th-TH"] = "หมุนไอเทมหรือสลับรายการโปรด",
+                ["tr-TR"] = "Eşyayı döndür veya favoriyi değiştir"
+
             };
 
         private static readonly Dictionary<string, string> EngraveTabletTexts =
@@ -215,7 +267,20 @@ namespace SephiriaEnhancements.Configuration
             {
                 ["en-US"] = "Engrave tablet",
                 ["zh-CN"] = "刻印石板",
-                ["zh-TW"] = "刻印石板"
+                ["zh-TW"] = "刻印石板",
+                ["ko-KR"] = "석판 각인",
+                ["ja-JP"] = "石板を刻印",
+                ["de-DE"] = "Steintafel gravieren",
+                ["es-ES"] = "Grabar tablilla",
+                ["fr-FR"] = "Graver une tablette",
+                ["it-IT"] = "Incidi tavoletta",
+                ["pl-PL"] = "Wyryj tabliczkę",
+                ["pt-BR"] = "Gravar tabuleta",
+                ["ru-RU"] = "Выгравировать табличку",
+                ["sv-SE"] = "Gravera stentavla",
+                ["th-TH"] = "สลักแผ่นศิลา",
+                ["tr-TR"] = "Tableti kazı"
+
             };
 
         private static readonly Dictionary<string, string> ShortcutSectionTexts =

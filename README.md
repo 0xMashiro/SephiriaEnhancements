@@ -24,7 +24,7 @@ for Sephiria. Built on the game's AddOns system—no BepInEx installation requir
 | Combat | Rolling DPS, encounter reports, hit streaks, summon attribution, numerical BOSS HP, and clearer ally/enemy visuals |
 | Targeting | Automatic targeting & target lock enabled by default: keyboard attacks aim automatically, with a rebindable target switch for keyboard or gamepad; persistent center markers and corner frames, with amber for automatic targeting and red with a brief settling animation for manual locks |
 | Exploration | Hidden-room display disabled by default, localized town NPC names, a manually toggled current-floor overlay, and 75%–200% camera distance (100% by default) |
-| Solo and co-op | Optional native companion, defeat checkpoints, mid-run joining/reconnect support, and configurable 1–4 player rules |
+| Solo and co-op | Optional combat companion, defeat checkpoints, mid-run joining/reconnect support, and configurable 1–4 player rules |
 | Inventory | Experimental one-key arrangement using the Mod's verified solver or Sephiria's artifact-level arranger |
 
 Inventory optimization runs only when you press its shortcut or click the arrange button;
@@ -57,7 +57,7 @@ re-enabling the Mod does not reset settings.
 | Mid-run joining/reconnect support | Enabled; the host allows new players to join mid-run and provides reconnect support when conditions permit |
 | Multiplayer rules | Original; external rule stacking disabled |
 | Retry after defeat and Show hidden rooms | Disabled; enable explicitly in settings |
-| Mouse aim assist, native companion, developer console | Disabled |
+| Mouse aim assist, combat companion, developer console | Disabled |
 
 ## Install
 

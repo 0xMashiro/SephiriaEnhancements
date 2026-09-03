@@ -15,14 +15,14 @@ internal static class MultiplayerRulesLocalizationChecks
                 multiplayerLocalizationRegistrations++;
                 multiplayerRulesTexts[(language, key)] = value;
             },
-            new[] { "en-US", "zh-CN", "fr-FR" });
+            new[] { "en-US", "zh-CN", "und" });
         if (multiplayerRulesTexts[("zh-CN", MultiplayerRulesLocalization.Section)] !=
                 "多人游戏" ||
             multiplayerRulesTexts[("zh-CN", MultiplayerRulesLocalization.PresetSetting)] !=
                 "规则预设" ||
-            multiplayerRulesTexts[("fr-FR", MultiplayerRulesLocalization.Section)] !=
+            multiplayerRulesTexts[("und", MultiplayerRulesLocalization.Section)] !=
                 "Multiplayer" ||
-            multiplayerRulesTexts[("fr-FR", MultiplayerRulesLocalization.OptimizedPreset)] !=
+            multiplayerRulesTexts[("und", MultiplayerRulesLocalization.OptimizedPreset)] !=
                 "Optimized" ||
             multiplayerRulesTexts[("zh-CN",
                 MultiplayerRulesLocalization.CopyParticipantValuesSetting)] !=
@@ -30,7 +30,7 @@ internal static class MultiplayerRulesLocalizationChecks
             multiplayerRulesTexts[("zh-CN",
                 MultiplayerRulesLocalization.ExternalRuleStackingSetting)] !=
                 "与联机扩展叠加规则" ||
-            multiplayerRulesTexts[("fr-FR",
+            multiplayerRulesTexts[("und",
                 MultiplayerRulesLocalization.GroupEncountersAndBosses)] !=
                 "Encounters and Bosses")
         {
@@ -59,7 +59,7 @@ internal static class MultiplayerRulesLocalizationChecks
             {
                 string key = MultiplayerRulesLocalization.NumericValueKey(
                     definition, stepIndex);
-                foreach (string language in new[] { "en-US", "zh-CN", "fr-FR" })
+                foreach (string language in new[] { "en-US", "zh-CN", "und" })
                 {
                     if (!multiplayerRulesTexts.TryGetValue((language, key),
                             out string? value) || string.IsNullOrEmpty(value))

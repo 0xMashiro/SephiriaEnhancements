@@ -33,6 +33,8 @@ if (args.Contains("--combat-insights-only"))
 
 LoggingChecks.Run();
 if (args.Contains("--logging-only")) return;
+LocalizationChecks.Run();
+if (args.Contains("--localization-only")) return;
 
 Console.WriteLine("InventoryOptimizationPreferencesCodec: " +
     InventoryOptimizationPreferencesCodecChecks.Run());

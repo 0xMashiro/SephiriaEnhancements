@@ -74,7 +74,7 @@ internal static class InventoryOptimizationLocalizationChecks
     {
         var cases = new[]
         {
-            (InventoryPreferenceChoice.Automatic, 3, "跟随自动整理", "Follow automatic sorting"),
+            (InventoryPreferenceChoice.Automatic, 3, "自动选择", "Choose automatically"),
             (InventoryPreferenceChoice.Priority, 0, "计数不限（0）", "No minimum count (0)"),
             (InventoryPreferenceChoice.Priority, 3, "计数至少 3", "Count: 3 or more"),
             (InventoryPreferenceChoice.Avoid, 0, "计数最多 0", "Count: 0 or fewer"),
@@ -90,8 +90,8 @@ internal static class InventoryOptimizationLocalizationChecks
                 string condition = InventoryOptimizationLocalization.FormatTargetCondition(target, key => entries[key]);
                 if (string.IsNullOrWhiteSpace(condition) ||
                     (language == "zh-CN" && condition != chinese) ||
-                    (language != "zh-CN" && language != "zh-TW" && condition != english))
-                    throw new InvalidOperationException("target conditions must preserve threshold direction, zero semantics and whole-group English fallback");
+                    (language == "en-US" && condition != english))
+                    throw new InvalidOperationException("target conditions must preserve threshold direction and zero semantics");
             }
         }
         foreach (var (language, entries) in texts)
@@ -105,10 +105,10 @@ internal static class InventoryOptimizationLocalizationChecks
             if (!hint.Contains("BOUND-ACTION", StringComparison.Ordinal))
                 throw new InvalidOperationException("level edit hint must display the active binding, not a hard-coded physical key");
         }
-        foreach (var (language, entries) in texts.Where(pair => pair.Key != "zh-CN" && pair.Key != "zh-TW"))
+        foreach (var (language, entries) in texts)
         {
-            if (entries.Count != texts["en-US"].Count || entries.Any(pair => texts["en-US"][pair.Key] != pair.Value))
-                throw new InvalidOperationException($"inventory localization must fall back as a complete group: {language}");
+            if (!entries.Keys.ToHashSet().SetEquals(texts["en-US"].Keys))
+                throw new InvalidOperationException($"incomplete inventory localization: {language}");
         }
     }
 }

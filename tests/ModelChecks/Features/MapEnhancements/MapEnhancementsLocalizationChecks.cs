@@ -9,7 +9,7 @@ internal static class MapEnhancementsLocalizationChecks
         var texts = new Dictionary<(string Language, string Key), string>();
         MapEnhancementsLocalization.Register(
             (language, key, value) => texts.Add((language, key), value),
-            new[] { "en-US", "zh-CN", "zh-TW", "fr-FR" });
+            new[] { "en-US", "zh-CN", "zh-TW", "und" });
         string[] keys =
         {
             MapEnhancementsLocalization.SettingShowHiddenRooms,
@@ -19,7 +19,7 @@ internal static class MapEnhancementsLocalizationChecks
         };
         foreach (string key in keys)
         {
-            if (texts[("fr-FR", key)] != texts[("en-US", key)] ||
+            if (texts[("und", key)] != texts[("en-US", key)] ||
                 string.IsNullOrWhiteSpace(texts[("zh-CN", key)]) ||
                 string.IsNullOrWhiteSpace(texts[("zh-TW", key)]))
                 throw new InvalidOperationException(

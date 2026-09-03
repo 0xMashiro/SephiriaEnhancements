@@ -246,6 +246,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 marker.nameText.font = nativeTextTemplate.font;
                 marker.nameText.fontSharedMaterial =
                     nativeTextTemplate.fontSharedMaterial;
+                SephiriaEnhancements.Integration.NativeLocalizedText.BindFont(marker.nameText, nativeTextTemplate);
             }
 
             UnityEngine.UI.Shadow shadow =

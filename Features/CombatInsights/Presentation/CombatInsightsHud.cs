@@ -639,6 +639,7 @@ namespace SephiriaEnhancements.Presentation
             text.alignment = alignment;
             text.richText = false;
             text.raycastTarget = false;
+            SephiriaEnhancements.Integration.NativeLocalizedText.BindFont(text, template);
             return text;
         }
 

@@ -1360,6 +1360,7 @@ namespace SephiriaEnhancements.Inventory
             text.overflowMode = TextOverflowModes.Ellipsis;
             text.alignment = alignment;
             text.raycastTarget = false;
+            SephiriaEnhancements.Integration.NativeLocalizedText.BindFont(text, template);
             return text;
         }
 

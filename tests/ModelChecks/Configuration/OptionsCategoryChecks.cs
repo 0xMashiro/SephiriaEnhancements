@@ -10,7 +10,7 @@ internal static class OptionsCategoryChecks
             new Dictionary<(string Language, string Key), string>();
         OptionsCategoryLocalization.Register(
             (language, key, value) => optionsCategoryTexts[(language, key)] = value,
-            new[] { "en-US", "zh-CN", "fr-FR" });
+            new[] { "en-US", "zh-CN", "und" });
         if (Enum.GetValues<OptionsCategory>().Length !=
                 OptionsCategoryLocalization.CategoryKeys.Length ||
             optionsCategoryTexts[("zh-CN", OptionsCategoryLocalization.Setting)] !=
@@ -18,7 +18,7 @@ internal static class OptionsCategoryChecks
             optionsCategoryTexts[("zh-CN",
                 OptionsCategoryLocalization.CategoryKeys[
                     (int)OptionsCategory.InventoryArrangement])] != "背包整理" ||
-            optionsCategoryTexts[("fr-FR",
+            optionsCategoryTexts[("und",
                 OptionsCategoryLocalization.CategoryKeys[
                     (int)OptionsCategory.Multiplayer])] != "Multiplayer")
         {

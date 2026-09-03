@@ -11,6 +11,11 @@
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\Configuration\LocalizationLanguages.cs" Link="Configuration/LocalizationLanguages.cs" />
+    <Compile Include="..\..\Configuration\ModLocalization.cs" Link="Configuration/ModLocalization.cs" />
+    <Compile Include="..\..\Configuration\ControlLocalization.cs" Link="Configuration/ControlLocalization.cs" />
+    <Compile Include="..\..\Features\Inventory\Presentation\InventoryOptimizationLocalization.Texts.cs" Link="Features/Inventory/Presentation/InventoryOptimizationLocalization.Texts.cs" />
+    <Compile Include="..\..\Features\MultiplayerRules\Presentation\MultiplayerRulesLocalization.Rules.cs" Link="Features/MultiplayerRules/Presentation/MultiplayerRulesLocalization.Rules.cs" />
     <Compile Include="..\..\Diagnostics\RollingLogFile.cs" Link="Diagnostics\RollingLogFile.cs" />
     <Compile Include="..\..\Diagnostics\SupportLog.cs" Link="Diagnostics\SupportLog.cs" />
     <Compile Include="..\..\Runtime\GameBridge\Inventory\NativeInventoryEffectAccess.cs" Link="GameBridge\Inventory\NativeInventoryEffectAccess.cs" />

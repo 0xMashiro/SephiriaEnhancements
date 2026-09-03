@@ -63,8 +63,12 @@ The table shows defaults; on-screen hints follow your current bindings.
 If an automatic report is already visible, tapping `F7` closes it first. Gamepad target lock has no
 default binding; assign one in controls. You can also bind the statistics shortcut, or use the pause menu.
 
-In menus, use the game's navigation and confirm controls. After choosing a reward, select a backpack
-slot and confirm again to place it. Moving the mouse, clicking or scrolling switches back to mouse control.
+For keyboard navigation in menus, use the game's navigation and confirm controls. Reward selection starts in the reward area.
+Confirm a reward to pick it up; confirm the same reward again to cancel. While carrying a reward,
+Tab switches to the first empty backpack slot (or the default slot if full). Confirm there to place it.
+Tab back to the rewards to return to the reward you last browsed. While carrying a reward, the game's
+cancel control puts it down and returns focus to its source; cancel again to close the panels as usual.
+Moving the mouse, clicking or scrolling switches back to mouse control.
 Item actions follow the game's current bindings and the hints shown on screen.
 
 ## Using the features

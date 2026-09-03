@@ -31,6 +31,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             ApplyNativeSelectionPolicy(ControlsChangeHandler.Current);
             if (!EnhancementsSettings.Enabled)
             {
+                RewardKeyboardNavigation.Reset();
                 ClearPendingSelection();
                 return;
             }
@@ -61,6 +62,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         private void OnDestroy()
         {
+            RewardKeyboardNavigation.Reset();
             KeyboardUiPointer.Reset();
             SetKeyboardDefaultSelection(ControlsChangeHandler.Current, false);
             ClearPendingSelection();
@@ -72,6 +74,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         internal void ResetGameplayContext()
         {
+            RewardKeyboardNavigation.Reset();
             KeyboardUiPointer.Reset();
             ClearPendingSelection();
         }
@@ -274,9 +277,16 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                 }
                 if (index == currentPanelIndex) continue;
 
-                GameObject entry = KeyboardUiSelection.FindPanelEntry(manager.CurrentControlStack[index]);
+                UIBase targetPanel = manager.CurrentControlStack[index];
+                GameObject entry = targetPanel is UI_SephiriteRewardPanel rewardPanel
+                    ? RewardKeyboardNavigation.FindRememberedReward(rewardPanel) : null;
+                if (targetPanel is UI_CharacterStatusPanel inventory &&
+                    manager.GetElement<UI_NewItemPicker_Controller>()?.CurrentSephiriteReward != null)
+                    entry = RewardKeyboardNavigation.FindFirstEmptyInventorySlot(inventory);
+                if (entry == null) entry = KeyboardUiSelection.FindPanelEntry(targetPanel);
                 if (entry != null && entry != selected)
                 {
+                    RewardKeyboardNavigation.RememberReward(selected);
                     current?.ClearPendingSelection();
                     eventSystem.SetSelectedGameObject(entry);
                     return;

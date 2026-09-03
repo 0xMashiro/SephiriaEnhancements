@@ -34,10 +34,13 @@ foreach ($patch in @(
     'NativeBossEncounterCompletedPatch', 'NativeBossEncounterPausedPatch',
     'NativeBossEncounterResumedPatch', 'NativeBossBarValuesPatch',
     'NativeUnitBarValuesPatch', 'NativePropBarValuesPatch',
-    'NativePlayerBarValuesPatch', 'NativeManaBarValuesPatch'
+    'NativePlayerBarValuesPatch', 'NativeManaBarValuesPatch',
+    'RewardKeyboardGeneratedSelectionPatch', 'RewardKeyboardControlSelectionPatch',
+    'RewardKeyboardInventoryOpenedSelectionPatch', 'RewardKeyboardToggleSelectionPatch',
+    'RewardKeyboardClosedSelectionPatch', 'RewardKeyboardCancelSelectionPatch'
 )) {
     if ($patchList.Groups['types'].Value -notmatch ('typeof\(' + $patch + '\)')) {
-        throw "Required combat/retry hook is missing from startup: $patch"
+        throw "Required hook is missing from startup: $patch"
     }
 }
 

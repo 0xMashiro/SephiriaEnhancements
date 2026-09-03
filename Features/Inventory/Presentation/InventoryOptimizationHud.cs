@@ -53,6 +53,9 @@ namespace SephiriaEnhancements.Inventory
         private TextMeshProUGUI summary;
         private TextMeshProUGUI status;
         private Button details;
+        private Button editGoals;
+        private TextMeshProUGUI editGoalsText;
+        private InventoryItemKey? previewItemKey;
         private Button launcher;
         private Image launcherIcon;
         private Button close;
@@ -254,6 +257,9 @@ namespace SephiriaEnhancements.Inventory
                 TextAlignmentOptions.MidlineLeft);
             summary.color = SecondaryText;
             summary.textWrappingMode = TextWrappingModes.Normal;
+            summary.fontSizeMax = summary.fontSize;
+            summary.fontSizeMin = summary.fontSize * 0.75f;
+            summary.enableAutoSizing = true;
 
             priorityQueueTitle = CreateText("PriorityQueueTitle", rect,
                 template, new Vector2(24f, -102f), new Vector2(312f, 22f),
@@ -286,9 +292,14 @@ namespace SephiriaEnhancements.Inventory
                 out TextMeshProUGUI launcherText, out launcherIcon);
             launcherText.gameObject.SetActive(false);
             details = CreateButton("Details", rect, template,
-                new Vector2(24f, -InventoryOptimizationHudLayout.DetailsTop),
-                new Vector2(312f, InventoryOptimizationHudLayout.DetailsHeight),
+                new Vector2(188f, -InventoryOptimizationHudLayout.DetailsTop),
+                new Vector2(148f, InventoryOptimizationHudLayout.DetailsHeight),
                 ToggleDetails, out detailsText);
+            editGoals = CreateButton("EditGoals", rect, template,
+                new Vector2(24f, -InventoryOptimizationHudLayout.DetailsTop),
+                new Vector2(148f, InventoryOptimizationHudLayout.DetailsHeight),
+                EditPreviewedGoals, out editGoalsText);
+            editGoals.interactable = false;
             close = CreateButton("Close", rect, template,
                 new Vector2(308f, -20f), new Vector2(28f, 28f),
                 ClosePanel, out closeText);
@@ -370,8 +381,7 @@ namespace SephiriaEnhancements.Inventory
                 Vector2.zero, new Vector2(InventoryOptimizationHudLayout.SlotSize, InventoryOptimizationHudLayout.SlotSize),
                 TextAlignmentOptions.TopLeft,
                 childCoordinates: true);
-            marker.color = placeInPriorityQueue ? TitleColor :
-                new Color(1f, 0.42f, 0.36f, 1f);
+            marker.color = placeInPriorityQueue ? TitleColor : SecondaryText;
             marker.margin = new Vector4(8f, 8f, 8f, 8f);
 
             var slot = new IntentSlot
@@ -476,14 +486,33 @@ namespace SephiriaEnhancements.Inventory
                     RectTransformUtility.RectangleContainsScreenPoint(
                         candidate.Root.transform as RectTransform, position, camera));
             }
-            if (slot?.Preference == null ||
-                !HasInventoryArtifact(slot.Preference.InstanceId, slot.Preference.EntityId) ||
-                !interaction.TryEditLevel(slot.Preference)) return;
+            EditArtifactGoals(slot, action.activeControl?.device is not Mouse);
+        }
+
+        private void EditPreviewedGoals()
+        {
+            var slot = prioritySlots.Concat(avoidSlots).FirstOrDefault(candidate =>
+                previewItemKey.HasValue && candidate.Preference?.ItemKey == previewItemKey);
+            EditArtifactGoals(slot, true);
+        }
+
+        private void EditArtifactGoals(IntentSlot slot, bool selectEditor)
+        {
+            if (!panelOpen || detailsExpanded || !interaction.Editable || interaction.HasPickup ||
+                NativeInventoryIntentDrop.HasHeldItem || slot?.Root.activeInHierarchy != true ||
+                slot.Preference == null) return;
+            // Resolve the current rule by native item identity, never by a stale page index.
+            var preferences = ExplorationInventoryIntentStore.Capture();
+            var rule = preferences.ArtifactPreferences.FirstOrDefault(candidate =>
+                candidate.ItemKey == slot.Preference.ItemKey);
+            if (rule == null || !HasInventoryArtifact(rule.InstanceId, rule.EntityId) ||
+                !interaction.TryEditLevel(rule)) return;
+            previewItemKey = rule.ItemKey;
             endPriorityMarking?.Invoke();
             slot.Tooltip.Hide();
-            if (action.activeControl?.device is not Mouse && interaction.LevelTarget.HasValue)
+            if (selectEditor && interaction.LevelTarget.HasValue)
             {
-                ProjectLevelEditor(ExplorationInventoryIntentStore.Capture());
+                ProjectLevelEditor(preferences);
                 if (levelEditor.activeSelf)
                     EventSystem.current?.SetSelectedGameObject(levelMode.gameObject);
             }
@@ -500,6 +529,11 @@ namespace SephiriaEnhancements.Inventory
             if (!show) interaction.CancelLevelEdit();
             levelEditor.SetActive(show);
             boardHint.gameObject.SetActive(!show);
+            editGoals.gameObject.SetActive(!show);
+            (details.transform as RectTransform).anchoredPosition = new Vector2(show ? 24f : 188f,
+                -InventoryOptimizationHudLayout.DetailsTop);
+            (details.transform as RectTransform).sizeDelta = new Vector2(show ? 312f : 148f,
+                InventoryOptimizationHudLayout.DetailsHeight);
             if (!show) return;
             levelTargetName.text = item.Name;
             constraintStrengthText.text = Loc._(rule.Strength == InventoryConstraintStrength.Hard
@@ -624,6 +658,8 @@ namespace SephiriaEnhancements.Inventory
                 _ when priorityMarking => string.Format(Loc._(
                     InventoryOptimizationLocalization.HudMarkingHint),
                     priorityMarkCount),
+                _ when detailsExpanded => Loc._(InventoryOptimizationLocalization.HudComboPersistence),
+                _ when interaction.LevelTarget.HasValue => Loc._(InventoryOptimizationLocalization.HudConstraintHelp),
                 _ when priorityMarkCount > 0 && adjustmentCount > 0 =>
                     string.Format(Loc._(InventoryOptimizationLocalization.
                         HudMarkedAndAdjustmentCount), priorityMarkCount,
@@ -645,6 +681,7 @@ namespace SephiriaEnhancements.Inventory
                 : detailsExpanded
                     ? InventoryOptimizationLocalization.HudHideTargets
                     : InventoryOptimizationLocalization.HudAdjustTargets);
+            editGoalsText.text = Loc._(InventoryOptimizationLocalization.HudEditGoals);
             if (!panelOpen)
             {
                 return;
@@ -732,11 +769,16 @@ namespace SephiriaEnhancements.Inventory
             avoidZoneTitle.text = Loc._(
                 InventoryOptimizationLocalization.HudAvoidZone);
             string binding = NativeInventoryLevelEditShortcut.BindingLabel;
-            boardHint.text = interaction.HasPickup
-                ? Loc._(InventoryOptimizationLocalization.HudChooseIntentSlot)
+            string removeBinding = NativeInventoryIntentDrop.RemoveBindingLabel;
+            boardHint.text = UsingGamepad
+                ? string.Format(Loc._(interaction.HasPickup
+                    ? InventoryOptimizationLocalization.HudControllerChooseIntentSlot
+                    : InventoryOptimizationLocalization.HudControllerBoardHint), removeBinding)
+                : interaction.HasPickup ? Loc._(InventoryOptimizationLocalization.HudChooseIntentSlot)
                 : string.Format(Loc._(InventoryOptimizationLocalization.HudIntentBoardHint),
                     string.IsNullOrEmpty(binding)
-                        ? Loc._(InventoryOptimizationLocalization.HudLevelEditUnbound) : binding);
+                        ? Loc._(InventoryOptimizationLocalization.HudLevelEditUnbound)
+                        : string.Format(Loc._(InventoryOptimizationLocalization.HudEditGoalsShortcut), binding));
             ProjectLevelEditor(preferences);
 
             var sourceIcons = new Dictionary<InventoryItemKey, UI_NewInventoryIcon>();
@@ -782,10 +824,11 @@ namespace SephiriaEnhancements.Inventory
 
         private void ProjectHoveredGoal()
         {
-            if (interaction.HasPickup || levelEditor.activeSelf) return;
+            editGoals.interactable = false;
+            if (interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem || levelEditor.activeSelf) return;
             var slots = prioritySlots.Concat(avoidSlots);
             IntentSlot hovered = null;
-            if (InputDeviceState.TryGetPointerPosition(out var pointer))
+            if (!UsingGamepad && InputDeviceState.TryGetPointerPosition(out var pointer))
             {
                 var canvas = root.GetComponentInParent<Canvas>();
                 var camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
@@ -794,12 +837,23 @@ namespace SephiriaEnhancements.Inventory
             }
             hovered ??= slots.FirstOrDefault(slot =>
                 EventSystem.current?.currentSelectedGameObject == slot.Root);
-            var rule = hovered?.Preference;
+            if (hovered?.Preference != null) previewItemKey = hovered.Preference.ItemKey;
+            // Retain the preview while moving from the item to its Edit goals button.
+            var rule = slots.FirstOrDefault(slot => slot.Root.activeInHierarchy &&
+                previewItemKey.HasValue && slot.Preference?.ItemKey == previewItemKey)?.Preference;
             var item = currentSnapshot?.Items.FirstOrDefault(candidate => candidate.ItemKey == rule?.ItemKey);
-            if (rule == null || item?.Artifact == null) return;
-            boardHint.text = InventoryOptimizationLocalization.FormatArtifactFeedback(rule, item.Artifact,
+            if (rule == null || item?.Artifact == null)
+            {
+                previewItemKey = null;
+                return;
+            }
+            editGoals.interactable = interaction.Editable && HasInventoryArtifact(rule.InstanceId, rule.EntityId);
+            boardHint.text = item.Name + "\n" + InventoryOptimizationLocalization.FormatArtifactFeedback(rule, item.Artifact,
                 resultFeedback?.Find(rule.ItemKey), key => Loc._(key));
         }
+
+        private static bool UsingGamepad => PlayerInputController.Instance?.playerInput != null &&
+            PlayerInputController.Instance.playerInput.currentControlScheme != PlayerInputController.KeyboardAndMouseScheme;
 
         private void ActivateIntentSlot(IntentSlot slot)
         {
@@ -937,6 +991,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 optimize.interactable = false;
             }
+            if (editGoals != null && !canRun) editGoals.interactable = false;
             nextProjectionAt = 0f;
         }
 
@@ -973,6 +1028,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal void SuspendEditing()
         {
+            previewItemKey = null;
             interaction.SetEditable(false);
             ClearArtifactPickup();
         }
@@ -1167,6 +1223,7 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
             interaction.CancelLevelEdit();
+            previewItemKey = null;
             if (detailsExpanded)
             {
                 page = Math.Max(0, page + delta);
@@ -1181,6 +1238,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void ToggleDetails()
         {
+            previewItemKey = null;
             if (!panelOpen)
             {
                 panelOpen = true;
@@ -1231,8 +1289,16 @@ namespace SephiriaEnhancements.Inventory
             title?.gameObject.SetActive(panelOpen);
             launcher?.gameObject.SetActive(!panelOpen);
             details?.gameObject.SetActive(panelOpen);
+            if (details != null)
+            {
+                (details.transform as RectTransform).anchoredPosition = new Vector2(detailsExpanded ? 24f : 188f,
+                    -InventoryOptimizationHudLayout.DetailsTop);
+                (details.transform as RectTransform).sizeDelta = new Vector2(detailsExpanded ? 312f : 148f,
+                    InventoryOptimizationHudLayout.DetailsHeight);
+            }
             summary?.gameObject.SetActive(panelOpen);
             bool showBoard = panelOpen && !detailsExpanded;
+            editGoals?.gameObject.SetActive(showBoard);
             priorityQueueTitle?.gameObject.SetActive(showBoard);
             avoidZoneTitle?.gameObject.SetActive(showBoard);
             boardHint?.gameObject.SetActive(showBoard);
@@ -1407,6 +1473,9 @@ namespace SephiriaEnhancements.Inventory
                 TextAlignmentOptions.Center,
                 childCoordinates: true);
             label.color = PrimaryText;
+            label.fontSizeMax = label.fontSize;
+            label.fontSizeMin = label.fontSize * 0.75f;
+            label.enableAutoSizing = true;
             NativeInventoryOptimizationControls.SetLabel(button, label);
             return button;
         }
@@ -1525,6 +1594,9 @@ namespace SephiriaEnhancements.Inventory
             summary = null;
             status = null;
             details = null;
+            editGoals = null;
+            editGoalsText = null;
+            previewItemKey = null;
             launcher = null;
             launcherIcon = null;
             close = null;

@@ -11,7 +11,7 @@ namespace SephiriaEnhancements.Inventory
         private static readonly Color PriorityColor =
             new(1f, 0.78f, 0.16f, 1f);
         private static readonly Color AvoidColor =
-            new(1f, 0.42f, 0.36f, 1f);
+            new(0.58f, 0.76f, 0.78f, 1f);
 
         private UI_NewInventoryIcon owner;
         private GameObject badgeRoot;
@@ -60,6 +60,7 @@ namespace SephiriaEnhancements.Inventory
                 label.text = avoided
                     ? "×"
                     : "↑" + (intent.PriorityOrder + 1);
+                if (intent.Strength == InventoryConstraintStrength.Hard) label.text += "!";
                 label.color = avoided ? AvoidColor : PriorityColor;
             }
             badgeRoot?.SetActive(visible);

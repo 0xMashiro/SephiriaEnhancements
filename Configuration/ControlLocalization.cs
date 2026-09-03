@@ -189,9 +189,9 @@ namespace SephiriaEnhancements.Configuration
         private static readonly Dictionary<string, string> OptimizeInventoryTexts =
             new Dictionary<string, string>
             {
-                ["en-US"] = "Optimize inventory",
-                ["zh-CN"] = "优化背包",
-                ["zh-TW"] = "最佳化背包"
+                ["en-US"] = "Smart Arrange",
+                ["zh-CN"] = "智能整理",
+                ["zh-TW"] = "智慧整理"
             };
 
         private static readonly Dictionary<string, string> SecondaryUiActionTexts =

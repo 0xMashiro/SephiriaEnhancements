@@ -1,5 +1,6 @@
 #nullable disable
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 namespace SephiriaEnhancements.Inventory
 {
@@ -20,6 +21,10 @@ namespace SephiriaEnhancements.Inventory
 
         internal static bool WasRemovePressed => UIInputModule.current?
             .throwItemControlAction?.action?.WasPressedThisFrame() == true;
+
+        internal static string RemoveBindingLabel => UIInputModule.current?
+            .throwItemControlAction?.action?.GetBindingDisplayString(
+                group: PlayerInputController.Instance?.playerInput?.currentControlScheme) ?? string.Empty;
 
         internal static void Consume(PointerEventData eventData)
         {

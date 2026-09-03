@@ -84,6 +84,12 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.InventoryHud.AvoidZone";
         internal const string HudIntentBoardHint =
             "SephiriaEnhancements.InventoryHud.IntentBoardHint";
+        internal const string HudEditGoals = "SephiriaEnhancements.InventoryHud.EditGoals";
+        internal const string HudEditGoalsShortcut = "SephiriaEnhancements.InventoryHud.EditGoalsShortcut";
+        internal const string HudConstraintHelp = "SephiriaEnhancements.InventoryHud.ConstraintHelp";
+        internal const string HudComboPersistence = "SephiriaEnhancements.InventoryHud.ComboPersistence";
+        internal const string HudControllerBoardHint = "SephiriaEnhancements.InventoryHud.ControllerBoardHint";
+        internal const string HudControllerChooseIntentSlot = "SephiriaEnhancements.InventoryHud.ControllerChooseIntentSlot";
         internal const string HudLevelEditUnbound =
             "SephiriaEnhancements.InventoryHud.LevelEditUnbound";
         internal const string HudChooseIntentSlot =
@@ -171,7 +177,7 @@ namespace SephiriaEnhancements.Inventory
             bool active = feedback?.Active ?? artifact.EffectEnabled;
             string current = !active ? localize(HudCurrentInactive)
                 : target == 0 || rule.Level == InventoryPreferenceLevel.Avoid ? localize(HudCurrentActive)
-                : string.Format(localize(HudCurrentLevel), feedback?.CurrentLevel ?? artifact.LimitedEffectEnabledLevel, target);
+                : string.Format(localize(HudCurrentLevel), feedback?.CurrentLevel ?? artifact.LimitedEffectEnabledLevel);
             string state = localize((feedback?.State ?? InventoryIntentSatisfaction.NotEvaluated) switch
             {
                 InventoryIntentSatisfaction.Satisfied => HudResultSatisfied,
@@ -180,7 +186,7 @@ namespace SephiriaEnhancements.Inventory
                 _ => HudResultPending
             });
             return localize(rule.Strength == InventoryConstraintStrength.Hard ? HudHard : HudSoft) + " · " +
-                FormatArtifactTarget(rule, artifact, localize, target) + "\n" + current + "\n" + state;
+                FormatArtifactTarget(rule, artifact, localize, target) + "\n" + current + " · " + state;
         }
 
         private static readonly string[] Languages =
@@ -197,146 +203,103 @@ namespace SephiriaEnhancements.Inventory
                 bool simplifiedChinese = language == "zh-CN";
                 bool traditionalChinese = language == "zh-TW";
                 addText(language, Analyzing, simplifiedChinese
-                    ? "正在分析背包布局……"
-                    : traditionalChinese
-                        ? "正在分析背包配置……"
-                        : "Analyzing inventory layout…");
+                    ? "正在寻找更好的摆放……"
+                    : traditionalChinese ? "正在尋找更好的擺放……" : "Finding a better arrangement…");
                 addText(language, Applying, simplifiedChinese
-                    ? "已找到更优布局，正在应用……"
-                    : traditionalChinese
-                        ? "已找到更佳配置，正在套用……"
-                        : "A better layout was found. Applying it…");
+                    ? "正在移动物品……"
+                    : traditionalChinese ? "正在移動物品……" : "Moving items…");
                 addText(language, Completed, simplifiedChinese
-                    ? "背包优化完成。"
-                    : traditionalChinese
-                        ? "背包最佳化完成。"
-                        : "Inventory optimization complete.");
+                    ? "背包整理完成。"
+                    : traditionalChinese ? "背包整理完成。" : "Inventory arrangement complete.");
                 addText(language, NoImprovementFound, simplifiedChinese
-                    ? "本次搜索未找到优于当前布局的结果。"
-                    : traditionalChinese
-                        ? "本次搜尋未找到優於目前配置的結果。"
-                        : "No layout better than the current one was found in this search.");
+                    ? "本次未找到更好的摆放，背包保持原样。"
+                    : traditionalChinese ? "本次未找到更好的擺放，背包保持原樣。" : "No better arrangement found this time. Inventory unchanged.");
                 addText(language, Unavailable, simplifiedChinese
-                    ? "请先打开普通背包界面再使用背包优化。"
-                    : traditionalChinese
-                        ? "請先開啟一般背包介面再使用背包最佳化。"
-                        : "Open the standard inventory before optimizing it.");
+                    ? "请先打开背包，再使用智能整理。"
+                    : traditionalChinese ? "請先開啟背包，再使用智慧整理。" : "Open your inventory to use Smart Arrange.");
                 addText(language, RuntimeNotReady, simplifiedChinese
-                    ? "背包状态尚未准备完成，请稍后重试。"
-                    : traditionalChinese
-                        ? "背包狀態尚未準備完成，請稍後重試。"
-                        : "Inventory state is not ready yet. Try again shortly.");
+                    ? "背包尚未就绪，请稍后重试。"
+                    : traditionalChinese ? "背包尚未就緒，請稍後重試。" : "Inventory not ready. Try again shortly.");
                 addText(language, EmptyInventory, simplifiedChinese
-                    ? "背包中没有可优化的物品。"
-                    : traditionalChinese
-                        ? "背包中沒有可最佳化的物品。"
-                        : "There are no items to optimize.");
+                    ? "背包中没有可整理的物品。"
+                    : traditionalChinese ? "背包中沒有可整理的物品。" : "No items to arrange.");
                 addText(language, ItemIdentityConflict, simplifiedChinese
-                    ? "无法唯一识别背包中的部分物品，已停止优化。"
-                    : traditionalChinese
-                        ? "無法唯一識別背包中的部分物品，已停止最佳化。"
-                        : "Some inventory items cannot be uniquely identified. Optimization stopped.");
+                    ? "无法识别部分物品，整理已停止。"
+                    : traditionalChinese ? "無法識別部分物品，整理已停止。" : "Some items could not be identified. Arrangement stopped.");
                 addText(language, Unsupported, simplifiedChinese
-                    ? "当前背包含有尚未验证的机制，已安全跳过优化。"
-                    : traditionalChinese
-                        ? "目前背包含有尚未驗證的機制，已安全略過最佳化。"
-                        : "This inventory contains mechanics that are not yet safely supported.");
-                addText(language, HudHard, simplifiedChinese ? "必须满足" : traditionalChinese ? "必須滿足" : "Must meet");
-                addText(language, HudSoft, simplifiedChinese ? "尽力满足" : traditionalChinese ? "盡力滿足" : "Best effort");
+                    ? "暂不支持部分物品的效果，本次未整理。"
+                    : traditionalChinese ? "暫不支援部分物品的效果，本次未整理。" : "Some item effects are not supported yet. Inventory unchanged.");
+                addText(language, HudHard, simplifiedChinese
+                    ? "必须"
+                    : traditionalChinese ? "必須" : "Must");
+                addText(language, HudSoft, simplifiedChinese
+                    ? "尽量"
+                    : traditionalChinese ? "盡量" : "Try");
                 addText(language, HardInfeasible, simplifiedChinese
-                    ? "必须满足的条件无法同时达成，已保留原布局。请调整条件。"
-                    : traditionalChinese ? "必須滿足的條件無法同時達成，已保留原配置。請調整條件。"
-                    : "Mandatory conditions cannot all be met. Layout unchanged; adjust the conditions.");
+                    ? "无法同时满足全部「必须」要求，背包保持原样。请调整要求。"
+                    : traditionalChinese ? "無法同時滿足全部「必須」要求，背包保持原樣。請調整要求。" : "Your Must requirements cannot all be met. Inventory unchanged; adjust the requirements.");
                 addText(language, HardNotFound, simplifiedChinese
-                    ? "本次搜索未找到满足全部硬条件的布局，已保留原布局；尚不能确定无解。"
-                    : traditionalChinese ? "本次搜尋未找到滿足全部硬條件的配置，已保留原配置；尚不能確定無解。"
-                    : "No layout meeting all mandatory conditions was found in this search. Layout unchanged; infeasibility is not proven.");
+                    ? "本次未找到满足全部「必须」要求的摆放，背包保持原样。可尝试精细整理或调整要求。"
+                    : traditionalChinese ? "本次未找到滿足全部「必須」要求的擺放，背包保持原樣。可嘗試精細整理或調整要求。" : "No arrangement meeting all Must requirements found this time. Inventory unchanged. Try Thorough or adjust your requirements.");
                 addText(language, PositionEffectsUnavailable, simplifiedChinese
-                    ? "无法验证物品的位置效果，已停止优化。"
-                    : traditionalChinese
-                        ? "無法驗證物品的位置效果，已停止最佳化。"
-                        : "Item position effects could not be verified. Optimization stopped.");
+                    ? "无法确认物品摆放后的效果，整理已停止。"
+                    : traditionalChinese ? "無法確認物品擺放後的效果，整理已停止。" : "Could not confirm item effects after moving. Arrangement stopped.");
                 addText(language, Changed, simplifiedChinese
-                    ? "背包状态已经变化，本次优化已取消。"
-                    : traditionalChinese
-                        ? "背包狀態已經變更，本次最佳化已取消。"
-                        : "The inventory changed, so this optimization was cancelled.");
+                    ? "背包已发生变化，本次整理已取消。"
+                    : traditionalChinese ? "背包已發生變化，本次整理已取消。" : "Inventory changed. Arrangement cancelled.");
                 addText(language, InventoryClosed, simplifiedChinese
-                    ? "背包界面已关闭，本次优化已取消。"
-                    : traditionalChinese
-                        ? "背包介面已關閉，本次最佳化已取消。"
-                        : "The inventory was closed, so this optimization was cancelled.");
+                    ? "背包已关闭，本次整理已取消。"
+                    : traditionalChinese ? "背包已關閉，本次整理已取消。" : "Inventory closed. Arrangement cancelled.");
                 addText(language, GameplayContextChanged, simplifiedChinese
-                    ? "游戏已进入新的楼层或流程，本次优化已取消。"
-                    : traditionalChinese
-                        ? "遊戲已進入新的樓層或流程，本次最佳化已取消。"
-                        : "The game entered a new floor or flow, so this optimization was cancelled.");
+                    ? "游戏场景已变化，本次整理已取消。"
+                    : traditionalChinese ? "遊戲場景已變化，本次整理已取消。" : "Game context changed. Arrangement cancelled.");
                 addText(language, ApplyTimedOut, simplifiedChinese
-                    ? "应用背包布局超时，本次优化已取消。"
-                    : traditionalChinese
-                        ? "套用背包配置逾時，本次最佳化已取消。"
-                        : "Applying the inventory layout timed out and was cancelled.");
+                    ? "移动物品耗时过长，整理已停止。"
+                    : traditionalChinese ? "移動物品耗時過長，整理已停止。" : "Moving items took too long. Arrangement stopped.");
                 addText(language, Failed, simplifiedChinese
-                    ? "无法生成安全的背包操作计划。"
-                    : traditionalChinese
-                        ? "無法產生安全的背包操作計畫。"
-                        : "A safe inventory operation plan could not be created.");
+                    ? "暂时无法完成物品移动，本次未整理。"
+                    : traditionalChinese ? "暫時無法完成物品移動，本次未整理。" : "Could not prepare the item moves. Inventory unchanged.");
                 addText(language, VerificationFailed, simplifiedChinese
-                    ? "布局已应用，但游戏结算与预测不一致；本次优化已停止，可以再次尝试。"
-                    : traditionalChinese
-                        ? "配置已套用，但遊戲結算與預測不一致；本次最佳化已停止，可以再次嘗試。"
-                        : "The layout was applied, but the game's settlement differed from the prediction. This attempt was stopped; you can try again.");
+                    ? "物品移动后的效果与预期不符，整理已停止。部分物品可能已移动，请检查背包。"
+                    : traditionalChinese ? "物品移動後的效果與預期不符，整理已停止。部分物品可能已移動，請檢查背包。" : "Item effects differed from what was expected. Arrangement stopped. Some items may have moved; check your inventory.");
                 addText(language, Busy, simplifiedChinese
-                    ? "背包优化正在进行中。"
-                    : traditionalChinese
-                        ? "背包最佳化正在進行中。"
-                        : "Inventory optimization is already in progress.");
+                    ? "正在整理背包。"
+                    : traditionalChinese ? "正在整理背包。" : "Inventory arrangement is already in progress.");
                 addText(language, FinishMovingItem, simplifiedChinese
                     ? "请先放下或取消当前拿起的物品。"
                     : traditionalChinese
                         ? "請先放下或取消目前拿起的物品。"
                         : "Place or cancel the item you are holding first.");
                 addText(language, MovingItemInterrupted, simplifiedChinese
-                    ? "你拿起了物品，本次背包优化已停止。"
-                    : traditionalChinese
-                        ? "你拿起了物品，本次背包最佳化已停止。"
-                        : "Inventory optimization stopped because you picked up an item.");
+                    ? "你拿起了物品，本次整理已停止。"
+                    : traditionalChinese ? "你拿起了物品，本次整理已停止。" : "Arrangement stopped because you picked up an item.");
                 addText(language, DisabledForGameplayContext, simplifiedChinese
-                    ? "背包优化遇到意外错误，已在当前楼层停用。"
-                    : traditionalChinese
-                        ? "背包最佳化遇到意外錯誤，已在目前樓層停用。"
-                        : "Inventory optimization encountered an unexpected error and was disabled for the current floor.");
-                addText(language, SettingOptimizationTendency,
-                    simplifiedChinese
-                    ? "背包优化倾向"
-                    : traditionalChinese
-                        ? "背包最佳化傾向"
-                        : "Inventory optimization tendency");
+                    ? "整理出错，本层暂时无法使用。"
+                    : traditionalChinese ? "整理出錯，本層暫時無法使用。" : "Arrangement failed and is unavailable for this floor.");
+                addText(language, SettingOptimizationTendency, simplifiedChinese
+                    ? "智能整理方式"
+                    : traditionalChinese ? "智慧整理方式" : "Smart Arrange mode");
                 addText(language, HelpOptimizationTendency, simplifiedChinese
-                    ? "自动会根据背包规模与预期收益选择搜索方式；稳定倾向减少耗时和改动，激进倾向投入更多时间寻找更高收益。"
-                    : traditionalChinese
-                        ? "自動會依背包規模與預期收益選擇搜尋方式；穩定傾向減少耗時和改動，積極傾向投入更多時間尋找更高收益。"
-                        : "Automatic chooses the search method from inventory size and expected gain. Stable favors less work and fewer changes; Aggressive spends more time seeking greater gains.");
+                    ? "自动兼顾耗时和效果；快速减少等待；精细花更多时间寻找更好的摆放。所有方式都遵循你的规则优先级。"
+                    : traditionalChinese ? "自動兼顧耗時和效果；快速減少等待；精細花更多時間尋找更好的擺放。所有方式都遵循你的規則優先級。" : "Automatic balances time and results. Quick reduces waiting. Thorough spends more time finding a better arrangement. All modes follow your rule priorities.");
                 addText(language, OptimizationTendencyKeys[0],
                     simplifiedChinese ? "自动"
                     : traditionalChinese ? "自動" : "Automatic");
-                addText(language, OptimizationTendencyKeys[1],
-                    simplifiedChinese ? "稳定"
-                    : traditionalChinese ? "穩定" : "Stable");
-                addText(language, OptimizationTendencyKeys[2],
-                    simplifiedChinese ? "激进"
-                    : traditionalChinese ? "積極" : "Aggressive");
+                addText(language, OptimizationTendencyKeys[1], simplifiedChinese
+                    ? "快速"
+                    : traditionalChinese ? "快速" : "Quick");
+                addText(language, OptimizationTendencyKeys[2], simplifiedChinese
+                    ? "精细"
+                    : traditionalChinese ? "精細" : "Thorough");
                 addText(language, HudTitle, simplifiedChinese
                     ? "智能整理"
-                    : traditionalChinese ? "智慧整理" : "SMART INVENTORY");
+                    : traditionalChinese ? "智慧整理" : "SMART ARRANGE");
                 addText(language, HudComboTargets, simplifiedChinese
-                    ? "连击目标"
-                    : traditionalChinese ? "連擊目標" : "COMBO TARGETS");
+                    ? "连击设置"
+                    : traditionalChinese ? "連擊設定" : "COMBO SETTINGS");
                 addText(language, HudOptimize, simplifiedChinese
-                    ? "智能优化"
-                    : traditionalChinese
-                        ? "智慧最佳化"
-                        : "SMART OPTIMIZE");
+                    ? "整理"
+                    : traditionalChinese ? "整理" : "ARRANGE");
                 addText(language, HudMarkArtifacts, simplifiedChinese
                     ? "标记神器"
                     : traditionalChinese ? "標記神器" : "MARK ARTIFACTS");
@@ -344,39 +307,44 @@ namespace SephiriaEnhancements.Inventory
                     ? "完成标记"
                     : traditionalChinese ? "完成標記" : "FINISH MARKING");
                 addText(language, HudMarkingHint, simplifiedChinese
-                    ? "选择要临时优先的神器；已标记 {0} 件"
-                    : traditionalChinese
-                        ? "選擇要暫時優先的神器；已標記 {0} 件"
-                        : "Select artifacts to prioritize for this run · {0} marked");
+                    ? "选择本次探索的优先神器 · 已标记 {0} 件"
+                    : traditionalChinese ? "選擇本次探索的優先神器 · 已標記 {0} 件" : "Select priority artifacts for this run · {0} marked");
                 addText(language, HudMarkedCount, simplifiedChinese
-                    ? "本次探索临时优先 {0} 件神器"
-                    : traditionalChinese
-                        ? "本次探索暫時優先 {0} 件神器"
-                        : "{0} artifacts prioritized for this run");
-                addText(language, HudMarkedAndAdjustmentCount,
-                    simplifiedChinese
-                    ? "临时优先 {0} 件神器，另有 {1} 项目标调整"
-                    : traditionalChinese
-                        ? "暫時優先 {0} 件神器，另有 {1} 項目標調整"
-                        : "{0} artifacts prioritized · {1} other goal adjustments");
+                    ? "本次探索：{0} 件优先神器"
+                    : traditionalChinese ? "本次探索：{0} 件優先神器" : "{0} priority artifacts for this run");
+                addText(language, HudMarkedAndAdjustmentCount, simplifiedChinese
+                    ? "优先神器 {0} 件 · 其他要求 {1} 项"
+                    : traditionalChinese ? "優先神器 {0} 件 · 其他要求 {1} 項" : "{0} prioritized · {1} other requirements");
                 addText(language, HudPriorityQueue, simplifiedChinese
-                    ? "优先队列 · 越靠前越优先"
-                    : traditionalChinese
-                        ? "優先佇列 · 越靠前越優先"
-                        : "PRIORITY · LEFT FIRST");
+                    ? "优先神器 · 按顺序满足"
+                    : traditionalChinese ? "優先神器 · 按順序滿足" : "PRIORITY · IN ORDER");
                 addText(language, HudAvoidZone, simplifiedChinese
-                    ? "排除 · 同等优先级"
-                    : traditionalChinese
-                        ? "排除 · 同等優先級"
-                        : "KEEP INACTIVE · EQUAL PRIORITY");
+                    ? "保持不生效 · 同等优先"
+                    : traditionalChinese ? "保持不生效 · 同等優先" : "KEEP INACTIVE · EQUAL PRIORITY");
                 addText(language, HudIntentBoardHint, simplifiedChinese
-                    ? "点击或拖动标记换位；右键移除\n{0}：目标与软硬条件（! 为必须）\n绿：满足　黄：部分　红：未满足"
-                    : traditionalChinese
-                        ? "點擊或拖動標記換位；右鍵移除\n{0}：目標與軟硬條件（! 為必須）\n綠：滿足　黃：部分　紅：未滿足"
-                        : "Click/drag; right-click removes.\n{0}: goals / ! mandatory\nGreen met · Yellow partial · Red unmet");
+                    ? "点击或拖动标记换位；右键移除标记\n{0}\n绿：满足　黄：部分　红：未满足"
+                    : traditionalChinese ? "點擊或拖動標記換位；右鍵移除標記\n{0}\n綠：滿足　黃：部分　紅：未滿足" : "Click/drag marks; right-click removes marks.\n{0}\nGreen met · Yellow partial · Red unmet");
+                addText(language, HudEditGoals, simplifiedChinese
+                    ? "调整要求"
+                    : traditionalChinese ? "調整要求" : "EDIT GOALS");
+                addText(language, HudEditGoalsShortcut, simplifiedChinese
+                    ? "{0}：调整要求"
+                    : traditionalChinese ? "{0}：調整要求" : "{0}: edit goals");
+                addText(language, HudConstraintHelp, simplifiedChinese
+                    ? "尽量：争取满足；必须（!）：全部满足才整理。"
+                    : traditionalChinese ? "盡量：爭取滿足；必須（!）：全部滿足才整理。" : "Try: best effort. Must (!): required to arrange.");
+                addText(language, HudComboPersistence, simplifiedChinese
+                    ? "连击设置跨探索保留。必须：全部满足才整理。"
+                    : traditionalChinese ? "連擊設定跨探索保留。必須：全部滿足才整理。" : "Saved for future runs. Must: required to arrange.");
+                addText(language, HudControllerBoardHint, simplifiedChinese
+                    ? "确认：移动标记；{0}：移除标记\n选中神器后可调整要求\n绿：满足　黄：部分　红：未满足"
+                    : traditionalChinese ? "確認：移動標記；{0}：移除標記\n選取神器後可調整要求\n綠：滿足　黃：部分　紅：未滿足" : "Confirm: move mark; {0}: remove mark\nSelect an artifact to edit goals\nGreen met · Yellow partial · Red unmet");
+                addText(language, HudControllerChooseIntentSlot, simplifiedChinese
+                    ? "选择格子并确认，放下或交换标记。\n{0}：取消"
+                    : traditionalChinese ? "選擇格子並確認，放下或交換標記。\n{0}：取消" : "Choose a slot and confirm to place or swap.\n{0}: cancel");
                 addText(language, HudLevelEditUnbound, simplifiedChinese
-                    ? "请绑定切换索敌键"
-                    : traditionalChinese ? "請綁定切換索敵鍵" : "Bind the target-switch action");
+                    ? "选中神器后，点击「调整要求」"
+                    : traditionalChinese ? "選取神器後，點擊「調整要求」" : "Select an artifact, then choose Edit goals");
                 addText(language, HudChooseIntentSlot, simplifiedChinese
                     ? "选择格子放下或交换。\n右键取消；滚轮翻页。"
                     : traditionalChinese
@@ -386,88 +354,86 @@ namespace SephiriaEnhancements.Inventory
                     ? "智能整理"
                     : traditionalChinese ? "智慧整理" : "SMART ARRANGE");
                 addText(language, HudAdjustTargets, simplifiedChinese
-                    ? "调整连击目标"
-                    : traditionalChinese
-                        ? "調整連擊目標"
-                        : "ADJUST COMBO TARGETS");
+                    ? "连击设置"
+                    : traditionalChinese ? "連擊設定" : "COMBO SETTINGS");
                 addText(language, HudHideTargets, simplifiedChinese
-                    ? "返回神器队列"
-                    : traditionalChinese
-                        ? "返回神器佇列"
-                        : "BACK TO ARTIFACT QUEUE");
+                    ? "神器设置"
+                    : traditionalChinese ? "神器設定" : "ARTIFACT SETTINGS");
                 addText(language, HudAutomaticPreset, simplifiedChinese
-                    ? "自动参考当前游戏预设"
-                    : traditionalChinese
-                        ? "自動參考目前遊戲預設"
-                        : "Automatically using the current game preset");
+                    ? "整理时参考游戏预设"
+                    : traditionalChinese ? "整理時參考遊戲預設" : "Uses your game preset when arranging");
                 addText(language, HudAutomaticInventory, simplifiedChinese
-                    ? "自动分析当前背包"
-                    : traditionalChinese
-                        ? "自動分析目前背包"
-                        : "Automatically analyzing the current inventory");
+                    ? "按当前背包自动整理"
+                    : traditionalChinese ? "依目前背包自動整理" : "Uses your current items when arranging");
                 addText(language, HudAdjustmentCount, simplifiedChinese
-                    ? "本次探索有 {0} 项目标调整"
-                    : traditionalChinese
-                        ? "本次探索有 {0} 項目標調整"
-                        : "{0} goal adjustments for this run");
+                    ? "已设置 {0} 项要求"
+                    : traditionalChinese ? "已設定 {0} 項要求" : "{0} requirements set");
                 addText(language, HudEnabled, simplifiedChinese
                     ? "只需生效" : traditionalChinese ? "只需生效" : "Keep active");
                 addText(language, HudAutomaticTarget, simplifiedChinese
-                    ? "跟随自动整理" : traditionalChinese ? "跟隨自動整理" : "Follow automatic sorting");
+                    ? "自动"
+                    : traditionalChinese ? "自動" : "Automatic");
                 addText(language, HudMinimumLevel, simplifiedChinese
                     ? "至少 {0} 级" : traditionalChinese ? "至少 {0} 級" : "Level {0} or higher");
                 addText(language, HudArtifactAuto, simplifiedChinese
                     ? "自动 · {0}" : traditionalChinese ? "自動 · {0}" : "Auto · {0}");
                 addText(language, HudArtifactSafeAuto, simplifiedChinese
-                    ? "自动（限制代价）· {0}" : traditionalChinese ? "自動（限制代價）· {0}" : "Auto (limit penalties) · {0}");
+                    ? "自动（控制负面效果）· {0}"
+                    : traditionalChinese ? "自動（控制負面效果）· {0}" : "Auto (limit penalties) · {0}");
                 addText(language, HudResultPending, simplifiedChinese
-                    ? "尚无有效整理结果" : traditionalChinese ? "尚無有效整理結果" : "No current verified result");
+                    ? "暂无有效结果"
+                    : traditionalChinese ? "暫無有效結果" : "No current result");
                 addText(language, HudResultSatisfied, simplifiedChinese
-                    ? "绿色 · 已满足" : traditionalChinese ? "綠色 · 已滿足" : "Green · satisfied");
+                    ? "已满足"
+                    : traditionalChinese ? "已滿足" : "Met");
                 addText(language, HudResultPartial, simplifiedChinese
-                    ? "黄色 · 部分满足" : traditionalChinese ? "黃色 · 部分滿足" : "Yellow · partially satisfied");
+                    ? "部分满足"
+                    : traditionalChinese ? "部分滿足" : "Partly met");
                 addText(language, HudResultUnmet, simplifiedChinese
-                    ? "红色 · 本次未满足" : traditionalChinese ? "紅色 · 本次未滿足" : "Red · not satisfied this time");
+                    ? "本次未满足"
+                    : traditionalChinese ? "本次未滿足" : "Unmet");
                 addText(language, HudCurrentLevel, simplifiedChinese
-                    ? "当前：{0} / {1} 级" : traditionalChinese ? "目前：{0} / {1} 級" : "Current: level {0} / {1}");
+                    ? "当前 {0} 级"
+                    : traditionalChinese ? "目前 {0} 級" : "Level {0}");
                 addText(language, HudCurrentActive, simplifiedChinese
-                    ? "当前：已生效" : traditionalChinese ? "目前：已生效" : "Currently active");
+                    ? "已生效"
+                    : traditionalChinese ? "已生效" : "Active");
                 addText(language, HudCurrentInactive, simplifiedChinese
-                    ? "当前：未生效" : traditionalChinese ? "目前：未生效" : "Currently inactive");
+                    ? "未生效"
+                    : traditionalChinese ? "未生效" : "Inactive");
                 addText(language, HudAvoidGoal, simplifiedChinese
                     ? "保持不生效" : traditionalChinese ? "保持不生效" : "Keep inactive");
                 addText(language, HudMinimumCount, simplifiedChinese
-                    ? "计数至少 {0}" : traditionalChinese ? "計數至少 {0}" : "Count: {0} or more");
+                    ? "至少 {0}"
+                    : traditionalChinese ? "至少 {0}" : "MIN {0}");
                 addText(language, HudMaximumCount, simplifiedChinese
-                    ? "计数最多 {0}" : traditionalChinese ? "計數最多 {0}" : "Count: {0} or fewer");
+                    ? "最多 {0}"
+                    : traditionalChinese ? "最多 {0}" : "MAX {0}");
                 addText(language, HudNoMinimumCount, simplifiedChinese
-                    ? "计数不限（0）" : traditionalChinese ? "計數不限（0）" : "No minimum count (0)");
+                    ? "不设下限"
+                    : traditionalChinese ? "不設下限" : "No minimum");
                 addText(language, HudNoTargets, simplifiedChinese
-                    ? "当前背包没有此类目标"
-                    : traditionalChinese
-                        ? "目前背包沒有此類目標"
-                        : "No targets of this type in the inventory");
+                    ? "暂无连击可设置"
+                    : traditionalChinese ? "暫無連擊可設定" : "No combos to configure");
                 addText(language, HudPage, simplifiedChinese
                     ? "第 {0}/{1} 页"
                     : traditionalChinese
                         ? "第 {0}/{1} 頁"
                         : "PAGE {0}/{1}");
                 addText(language, HudSearching, simplifiedChinese
-                    ? "正在按当前目标搜索……"
-                    : traditionalChinese
-                        ? "正在依目前目標搜尋……"
-                        : "Searching with the current targets…");
+                    ? "正在寻找更好的摆放……"
+                    : traditionalChinese ? "正在尋找更好的擺放……" : "Finding a better arrangement…");
                 addText(language, HudApplying, simplifiedChinese
-                    ? "正在通过原生背包操作应用……"
-                    : traditionalChinese
-                        ? "正在透過原生背包操作套用……"
-                        : "Applying through native inventory operations…");
+                    ? "正在移动物品……"
+                    : traditionalChinese ? "正在移動物品……" : "Moving items…");
                 addText(language, PreferenceChoiceKeys[0], simplifiedChinese
                     ? "自动" : traditionalChinese ? "自動" : "AUTO");
                 addText(language, PreferenceChoiceKeys[1], simplifiedChinese
-                    ? "优先" : traditionalChinese ? "優先" : "PRIORITY");
+                    ? "至少"
+                    : traditionalChinese ? "至少" : "MIN");
                 addText(language, PreferenceChoiceKeys[2], simplifiedChinese
-                    ? "避免" : traditionalChinese ? "避免" : "AVOID");
+                    ? "最多"
+                    : traditionalChinese ? "最多" : "MAX");
             }
         }
     }

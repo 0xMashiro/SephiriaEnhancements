@@ -150,7 +150,7 @@ internal static class InventoryAutomaticGoalChecks
                     feedback.Find(item.ItemKey), key => entries[key]);
                 string pending = InventoryOptimizationLocalization.FormatArtifactFeedback(rule, item.Artifact,
                     null, key => entries[key]);
-                Require(description.Split('\n').Length == 3 && !description.Contains("{0}") &&
+                Require(description.Split('\n').Length == 2 && !description.Contains("{0}") &&
                     pending.Contains(entries[InventoryOptimizationLocalization.HudResultPending]),
                     "all locales must provide compact goal, current state and verified/pending feedback");
             }

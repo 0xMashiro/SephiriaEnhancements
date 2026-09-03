@@ -82,27 +82,27 @@ Level-up reminders and brief flashes also leave reports visible. Menus, loading,
 screen transitions, and cutscenes temporarily hide reports and preserve their
 remaining display time; manually opened reports resume without a timeout.
 
-## Inventory optimization (experimental)
+## Smart Arrange (experimental)
 
-Open the backpack and press `F8` to optimize without configuring goals. Optional
+Open the backpack and press `F8` to arrange it without configuring goals. Optional
 priority marks use automatic level targets, so there is no need to assign a level
 to every slot. Ordinary artifacts target their effective level cap; automatic
 targets are limited when upgrades worsen direct negative stats.
 
-- Place artifacts in the six-slot priority queue or the keep-inactive area. Click
+- Place artifacts in the priority or keep-inactive area, with six slots per page. Click
   or drag marks to reorder them; right-click removes a mark. Excluded items remain
   in the backpack.
-- Hover or focus an artifact mark and use the current target-switch binding to
-  edit it. Choose Auto, Keep active, or a specified level. Mode, level, and rule
+- Hover or focus an artifact mark, then choose **Edit goals**. The current
+  target-switch binding also opens the editor. Choose Auto, Keep active, or a minimum level. Mode, level, and rule
   strength follow the artifact when reordered. A specified higher level can accept
   its direct stat penalties.
-- Rules default to best effort (Soft). Artifact goals, exclusions, and combo rules
-  can individually be made mandatory (Hard), marked with `!`. Combo rules use their
-  own editor: Priority 0 sets no minimum; Avoid N targets a count at or below N.
+- Rules default to **Try** (Soft). Artifact goals, exclusions, and combo rules
+  can individually be set to **Must** (Hard), marked with `!`. **Combo settings** has
+  Auto, MIN, and MAX: MIN 0 sets no minimum; MAX N requests a count at or below N.
   Combo rules persist between runs; artifact marks apply to the current run.
 
 The Mod solver requires all Hard rules in the final layout. It then considers Soft
-exclusions, artifact slots 1–6 in order, other manual goals, and default preferences.
+exclusions, numbered artifact slots in order across pages, other manual goals, and default preferences.
 Later gains do not outweigh an earlier goal. If an earlier Soft goal cannot be fully
 met, the solver still optimizes later goals without sacrificing its achieved progress.
 When goals tie, it favors preserving modeled benefits; if both layouts involve

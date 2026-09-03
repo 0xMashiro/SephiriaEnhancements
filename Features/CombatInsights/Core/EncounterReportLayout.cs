@@ -29,5 +29,11 @@ namespace SephiriaEnhancements.Combat
                 Math.Min(requestedScale, Math.Min(
                     (canvasWidth - Margin * 2f) / Width,
                     (canvasHeight - Margin * 2f) / height)));
+
+        internal static float FitBrowserScale(float canvasWidth, float canvasHeight,
+            float reportHeight, float requestedScale) => Math.Max(0f,
+                Math.Min(Math.Min(canvasWidth / 640f, canvasHeight / 360f) * requestedScale,
+                    Math.Min((canvasWidth - Margin * 2f) / (Width + 24f),
+                        (canvasHeight - Margin * 2f) / (reportHeight + 76f))));
     }
 }

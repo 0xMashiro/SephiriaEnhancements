@@ -181,21 +181,21 @@ namespace SephiriaEnhancements.Configuration
             ToggleDamageStatisticsTexts =
             new Dictionary<string, string>
             {
-                ["en-US"] = "Combat report (tap) / statistics display (hold)",
-                ["zh-CN"] = "战报（短按）/统计显示（长按）",
-                ["zh-TW"] = "戰報（短按）/統計顯示（長按）",
-                ["ko-KR"] = "전투 보고서(짧게) / 통계 표시(길게)",
-                ["ja-JP"] = "戦闘レポート（短押し）／統計表示（長押し）",
-                ["de-DE"] = "Kampfbericht (kurz) / Statistik (halten)",
-                ["es-ES"] = "Informe de combate (pulsar) / estadísticas (mantener)",
-                ["fr-FR"] = "Rapport de combat (appui bref) / statistiques (maintien)",
-                ["it-IT"] = "Resoconto (pressione breve) / statistiche (pressione lunga)",
-                ["pl-PL"] = "Raport walki (naciśnij) / statystyki (przytrzymaj)",
-                ["pt-BR"] = "Relatório de combate (toque) / estatísticas (segure)",
-                ["ru-RU"] = "Отчёт о бое (нажать) / статистика (удерживать)",
-                ["sv-SE"] = "Stridsrapport (tryck) / statistik (håll)",
-                ["th-TH"] = "รายงานการต่อสู้ (กด) / สถิติ (กดค้าง)",
-                ["tr-TR"] = "Savaş raporu (bas) / istatistikler (basılı tut)"
+                ["en-US"] = "View statistics (tap) / hide or show (hold)",
+                ["zh-CN"] = "查看统计（短按）/隐藏或显示（长按）",
+                ["zh-TW"] = "查看統計（短按）/隱藏或顯示（長按）",
+                ["ko-KR"] = "통계 보기(짧게) / 표시 전환(길게)",
+                ["ja-JP"] = "統計を見る（短押し）／表示切替（長押し）",
+                ["de-DE"] = "Statistik öffnen (kurz) / ein- oder ausblenden (halten)",
+                ["es-ES"] = "Ver estadísticas (pulsar) / ocultar o mostrar (mantener)",
+                ["fr-FR"] = "Voir les statistiques (appui bref) / masquer ou afficher (maintien)",
+                ["it-IT"] = "Statistiche (pressione breve) / mostra o nascondi (pressione lunga)",
+                ["pl-PL"] = "Statystyki (naciśnij) / ukryj lub pokaż (przytrzymaj)",
+                ["pt-BR"] = "Ver estatísticas (toque) / ocultar ou mostrar (segure)",
+                ["ru-RU"] = "Статистика (нажать) / скрыть или показать (удерживать)",
+                ["sv-SE"] = "Visa statistik (tryck) / dölj eller visa (håll)",
+                ["th-TH"] = "ดูสถิติ (กด) / ซ่อนหรือแสดง (กดค้าง)",
+                ["tr-TR"] = "İstatistikleri aç (bas) / gizle veya göster (basılı tut)"
 
             };
 

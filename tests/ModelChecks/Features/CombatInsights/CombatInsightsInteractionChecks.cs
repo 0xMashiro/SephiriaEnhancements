@@ -12,7 +12,7 @@ internal static class CombatInsightsInteractionChecks
         Check(shortcut.Update(true, true, true, false, 0f),
             CombatInsightsShortcutAction.None, "press waits for tap or hold");
         Check(shortcut.Update(true, false, false, true, 0.2f),
-            CombatInsightsShortcutAction.ToggleReport, "tap recalls the report");
+            CombatInsightsShortcutAction.ToggleStatistics, "tap toggles statistics");
         Check(shortcut.Update(true, false, false, false, 0.3f),
             CombatInsightsShortcutAction.None, "tap fires once");
 
@@ -38,7 +38,7 @@ internal static class CombatInsightsInteractionChecks
         Check(shortcut.Update(true, false, false, true, 7.6f),
             CombatInsightsShortcutAction.ToggleDisplay, "slow frame preserves long press");
         Check(shortcut.Update(true, true, false, true, 8f),
-            CombatInsightsShortcutAction.ToggleReport, "same-frame tap is recognized");
+            CombatInsightsShortcutAction.ToggleStatistics, "same-frame tap is recognized");
 
         var report = new ReportDisplayWindow();
         report.Start(10f, 6f);
@@ -53,29 +53,22 @@ internal static class CombatInsightsInteractionChecks
         Require(!report.IsOpen(16.1f), "automatic report still expires normally");
         Require(report.State(16.1f) == ReportDisplayState.Expired,
             "timeout is distinct from explicit dismissal");
-        report.OpenUntilDismissed();
-        Require(report.IsVisible(1000f), "expired report can reopen without a timeout");
-        report.SetPresentationAvailable(false, 1001f);
-        Require(report.IsOpen(2000f) && !report.IsVisible(2000f),
-            "menu pauses a manually opened report");
-        report.SetPresentationAvailable(true, 2001f);
-        Require(report.IsVisible(3000f), "manual report resumes after menu");
         report.Clear(ReportDisplayState.Dismissed);
         Require(!report.IsOpen(3000f), "explicit dismissal closes report");
         Require(report.State(3000f) == ReportDisplayState.Dismissed,
             "explicit dismissal has its own diagnostic state");
-        report.OpenUntilDismissed();
+        report.Start(3000f, 6f);
         report.CloseForEncounter(false, false, true);
         Require(report.IsVisible(3001f), "completed encounter totals do not dismiss report");
         report.CloseForEncounter(false, true, true);
         Require(!report.IsOpen(3001f), "new ordinary contribution closes old report");
         Require(report.State(3001f) == ReportDisplayState.CombatStarted,
             "next encounter is distinct from dismissal and timeout");
-        report.OpenUntilDismissed();
+        report.Start(3000f, 6f);
         report.CloseForEncounter(true, false, false);
         Require(!report.IsOpen(3002f), "boss start closes old report immediately");
         report.Start(4000f, 6f);
-        Require(!report.IsOpen(4007f), "new automatic report replaces manual lifetime");
+        Require(!report.IsOpen(4007f), "new automatic report has its own lifetime");
 
         report.Start(5000f, 6f);
         report.SetPresentationAvailable(false, 5000f);
@@ -103,8 +96,6 @@ internal static class CombatInsightsInteractionChecks
         report.SetPresentationAvailable(false, 11002f);
         report.SetPresentationAvailable(true, 11003f);
         Require(!report.IsOpen(11003f), "menus cannot revive a dismissed report");
-        report.OpenUntilDismissed();
-        Require(report.TryDismiss(12000f), "manual reports use the same dismissal operation");
         report.Start(13000f, 6f);
         report.SetPresentationAvailable(false, 13001f);
         Require(!report.TryDismiss(13002f), "hidden reports cannot consume menu input");
@@ -119,7 +110,7 @@ internal static class CombatInsightsInteractionChecks
                 item.GetProperty("path").GetString() != string.Empty);
         Require(binding.GetProperty("path").GetString() == "<Keyboard>/f7",
             "statistics uses its dedicated default key");
-        Console.WriteLine("CombatInsightsInteraction: tap/hold, report recall, input " +
+        Console.WriteLine("CombatInsightsInteraction: tap/hold, statistics browsing, input " +
             "persistence, combat transitions and default binding passed");
     }
 

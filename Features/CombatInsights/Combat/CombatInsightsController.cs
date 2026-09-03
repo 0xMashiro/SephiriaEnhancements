@@ -57,6 +57,13 @@ namespace SephiriaEnhancements.Combat
         private readonly ReportDisplayWindow reportWindow =
             new ReportDisplayWindow();
         private EncounterReportSnapshot encounterReport;
+        private readonly FloorCombatStatistics floorStatistics = new FloorCombatStatistics();
+        private NativeStatisticsBrowser statisticsBrowser;
+        internal bool PreferFloorStatistics { get; set; }
+        internal CombatStatisticsSnapshot FloorStatistics => floorStatistics.Capture();
+        internal bool StatisticsBrowserOpen => statisticsBrowser != null && statisticsBrowser.IsOpened;
+        internal bool CanBrowseStatistics => isActiveAndEnabled && runtimeCompatible &&
+            StatisticsCaptureEnabled && LocalPlayerResolver.Resolve() != null;
         private float encounterStartedAt = -1f, encounterEndedAt = -1f;
         private float encounterLastActivity = -1000f;
         private float encounterDamage;
@@ -91,12 +98,14 @@ namespace SephiriaEnhancements.Combat
             {
                 runtimeKernel.EncounterLifecycleChanged -=
                     OnEncounterLifecycleChanged;
+                runtimeKernel.GameplayContextChanged -= OnStatisticsContextChanged;
             }
             runtimeKernel = kernel;
             if (runtimeKernel != null)
             {
                 runtimeKernel.EncounterLifecycleChanged +=
                     OnEncounterLifecycleChanged;
+                runtimeKernel.GameplayContextChanged += OnStatisticsContextChanged;
             }
         }
 
@@ -104,6 +113,8 @@ namespace SephiriaEnhancements.Combat
         {
             Initialize(null);
             ResetCombatState();
+            floorStatistics.Clear();
+            if (statisticsBrowser != null) Destroy(statisticsBrowser.gameObject);
             enabled = false;
         }
 
@@ -116,7 +127,7 @@ namespace SephiriaEnhancements.Combat
         internal float BossElapsed => bossEncounter.Elapsed(Time.time);
         internal bool IsSolo => ordered.Count <= 1;
         internal float EncounterElapsed => encounterActive
-            ? Mathf.Max(0f, Time.unscaledTime - encounterStartedAt)
+            ? Mathf.Max(0f, Time.time - encounterStartedAt)
             : Mathf.Max(0f, encounterEndedAt - encounterStartedAt);
         internal float LocalDps => FindLocal()?.RollingDps ?? 0f;
 
@@ -186,6 +197,7 @@ namespace SephiriaEnhancements.Combat
             if (!statisticsEnabled && statisticsWereEnabled)
             {
                 ResetCombatState();
+                floorStatistics.Clear();
                 encounterAreaLocator.Reset();
             }
             statisticsWereEnabled = statisticsEnabled;
@@ -208,13 +220,14 @@ namespace SephiriaEnhancements.Combat
                 nextSample = 0f;
             }
 
-            bool trackOrdinaryEncounters = statisticsEnabled &&
-                displayPolicy != CombatInsightsDisplayPolicy.BossOnly;
+            bool trackOrdinaryEncounters = statisticsEnabled;
             if (now >= nextSample)
             {
                 nextSample = now + SampleInterval;
                 SamplePlayers(now, trackOrdinaryEncounters);
             }
+            floorStatistics.UpdateClock(Time.time, StatisticsCaptureEnabled &&
+                (bossEncounter.Active ? bossEncounter.IsTiming : encounterActive));
             PlayerDamageState local = FindLocal();
             TrackLocalIdentity(local, now);
             bool menuOpen = UIManager.Instance != null && UIManager.Instance.CurrentControlStack != null;
@@ -238,8 +251,8 @@ namespace SephiriaEnhancements.Combat
                 hitStreakFeedback.IsRecent(now) || (local != null && local.IsInBattle);
             hud.Update(statisticsEnabled && contextAllowed && !hudHiddenByUser, this);
             hitStreakFeedback.Update(hitStreakEnabled && contextAllowed && inCombat);
-            if (notification == ModLocalization.EncounterReportOpened &&
-                (!reportWindow.IsVisible(now) || !hud.IsReportPresented))
+            if (notification == ModLocalization.StatisticsOpened &&
+                !StatisticsBrowserOpen)
                 notification = CombatInsightsNotifications.BlockedMessage(presentationBlock)
                     ?? ModLocalization.EncounterReportHudUnavailable;
             CombatInsightsNotifications.Show(notification);
@@ -355,34 +368,74 @@ namespace SephiriaEnhancements.Combat
             InputAction action = NativeInputActions.FindShortcut(
                 input?.playerInput?.actions, ModShortcuts.ToggleDamageStatistics);
             CombatInsightsShortcutAction triggered = statisticsShortcut.Update(
-                StatisticsCaptureEnabled && contextAllowed &&
+                StatisticsCaptureEnabled && (contextAllowed || statisticsBrowser?.IsControlEnabled == true) &&
                     !InputDeviceState.HasKeyboardModifierPressed &&
                     action != null && action.enabled,
                 action?.WasPressedThisFrame() ?? false,
                 action?.IsPressed() ?? false,
                 action?.WasReleasedThisFrame() ?? false, now);
             if (triggered == CombatInsightsShortcutAction.None) return null;
-            if (presentationBlock != ReportPresentationBlock.None)
+            if (presentationBlock != ReportPresentationBlock.None &&
+                statisticsBrowser?.IsControlEnabled != true)
                 return CombatInsightsNotifications.BlockedMessage(presentationBlock);
             if (triggered == CombatInsightsShortcutAction.ToggleDisplay)
             {
                 hudHiddenByUser = !hudHiddenByUser;
-                if (hudHiddenByUser) hud.Hide();
+                if (hudHiddenByUser)
+                {
+                    statisticsBrowser?.Close();
+                    hud.Hide();
+                }
                 return hudHiddenByUser ? ModLocalization.DamageStatisticsDisplayHidden
                     : ModLocalization.DamageStatisticsDisplayRestored;
             }
-            if (triggered != CombatInsightsShortcutAction.ToggleReport) return null;
+            if (triggered != CombatInsightsShortcutAction.ToggleStatistics) return null;
+            if (statisticsBrowser?.IsControlEnabled == true)
+            {
+                statisticsBrowser.Close();
+                return ModLocalization.StatisticsClosed;
+            }
             if (!hudHiddenByUser && reportWindow.TryDismiss(now))
-                return ModLocalization.EncounterReportClosed;
+                return ModLocalization.StatisticsClosed;
             if (encounterActive || bossEncounter.Active || FindLocal()?.IsInBattle == true)
                 return null;
-            if (encounterReport == null)
-            {
-                return ModLocalization.EncounterReportUnavailable;
-            }
+            return OpenStatisticsBrowser() ? ModLocalization.StatisticsOpened
+                : ModLocalization.EncounterReportHudUnavailable;
+        }
+
+        internal bool OpenStatisticsBrowser(UI_PausePanel pausePanel = null)
+        {
+            if (!CanBrowseStatistics) return false;
+            UI_PausePanel pause = pausePanel ?? UIManager.Instance?.GetElement<UI_PausePanel>();
+            PlayerAvatar player = LocalPlayerResolver.Resolve();
+            ReportPresentationBlock block = NativeReportPresentation.ReadBlock(UIManager.Instance, player);
+            if (block != ReportPresentationBlock.None &&
+                !(block == ReportPresentationBlock.Menu && pausePanel != null && pausePanel.IsControlEnabled))
+                return false;
+            if (pause == null || pause.ParentRoot == null) return false;
+            if (statisticsBrowser == null)
+                statisticsBrowser = NativeStatisticsBrowser.Create(pause, this);
+            if (statisticsBrowser == null) return false;
+            reportWindow.Clear(ReportDisplayState.Dismissed);
+            hud.Hide();
             hudHiddenByUser = false;
-            reportWindow.OpenUntilDismissed();
-            return ModLocalization.EncounterReportOpened;
+            statisticsBrowser.Show(pausePanel == null);
+            return true;
+        }
+
+        internal bool TryCloseStatisticsBrowser()
+        {
+            if (statisticsBrowser?.IsControlEnabled != true) return false;
+            statisticsBrowser.Close();
+            return true;
+        }
+
+        private void OnStatisticsContextChanged(LocalGameplayContextChange change)
+        {
+            if (change == LocalGameplayContextChange.WorldSessionLoaded ||
+                change == LocalGameplayContextChange.PlayerChanged ||
+                change == LocalGameplayContextChange.FloorChanged)
+                floorStatistics.Clear();
         }
 
         internal bool CanDismissPresentedReport
@@ -411,9 +464,9 @@ namespace SephiriaEnhancements.Combat
         {
             IReadOnlyList<PlayerSpawner> players = PlayerSpawner.MultiplayerList;
             activeKeys.Clear();
-            PlayerAvatar localAvatar = CombatManager.Instance?.CurrentPlayer ??
-                GameCamera.Instance?.Observer;
+            PlayerAvatar localAvatar = LocalPlayerResolver.Resolve();
             string observedFloor = localAvatar?.NetworkcurrentFloorGuid;
+            floorStatistics.ObserveFloor(observedFloor);
             if (players != null)
             {
                 for (int i = 0; i < players.Count; i++)
@@ -483,7 +536,8 @@ namespace SephiriaEnhancements.Combat
             // previous report until this encounter records damage or a defeat.
             encounterScope = scope;
             encounterActive = true;
-            encounterStartedAt = now;
+            encounterStartedAt = Time.time;
+            floorStatistics.UpdateClock(Time.time, true);
             encounterEndedAt = -1f;
             encounterLastActivity = now;
             encounterDamage = 0f;
@@ -503,8 +557,9 @@ namespace SephiriaEnhancements.Combat
         private void EndEncounter(float now)
         {
             if (!encounterActive) return;
+            floorStatistics.UpdateClock(Time.time, false);
             encounterActive = false;
-            encounterEndedAt = now;
+            encounterEndedAt = Time.time;
             encounterAreaLocator.InvalidateSelection();
             if (encounterDamage > 0f || defeats.DefeatedCount > 0)
                 PublishEncounterReport(CreateEncounterReport(
@@ -514,24 +569,24 @@ namespace SephiriaEnhancements.Combat
         private EncounterReportSnapshot CreateEncounterReport(
             EncounterReportKind kind)
         {
-            var players = new List<EncounterReportPlayerSnapshot>(4);
+            var players = new List<CombatStatisticsPlayerSnapshot>(4);
             foreach (PlayerDamageState state in states.Values)
             {
                 float damage = kind == EncounterReportKind.Boss
                     ? bossEncounter.GetDamage(state.Key)
                     : state.EncounterDamage;
                 if (!state.IsLocal && damage <= 0f) continue;
-                players.Add(new EncounterReportPlayerSnapshot(state.Key,
+                players.Add(new CombatStatisticsPlayerSnapshot(state.Key,
                     state.Name, state.IsLocal, damage));
             }
             players.Sort(CompareReportPlayers);
-            var damageTypes = new List<EncounterReportDamageTypeSnapshot>(
+            var damageTypes = new List<CombatStatisticsDamageTypeSnapshot>(
                 damageByType.Count);
             foreach (KeyValuePair<EncounterDamageType, float> type in
                 damageByType)
             {
                 if (type.Value > 0f)
-                    damageTypes.Add(new EncounterReportDamageTypeSnapshot(
+                    damageTypes.Add(new CombatStatisticsDamageTypeSnapshot(
                         type.Key, type.Value));
             }
             damageTypes.Sort((left, right) =>
@@ -553,8 +608,10 @@ namespace SephiriaEnhancements.Combat
                 (report.TotalDamage <= 0f && report.DefeatedCount == 0))
                 return;
             encounterReport = report;
-            reportWindow.Start(now,
-                EncounterReportPresentationPolicy.DisplaySeconds(report));
+            if (!StatisticsBrowserOpen &&
+                (ModSettings.DisplayPolicy != CombatInsightsDisplayPolicy.BossOnly ||
+                    report.Kind == EncounterReportKind.Boss))
+                reportWindow.Start(now, EncounterReportPresentationPolicy.DisplaySeconds(report));
         }
 
         private void ClearEncounterReport()
@@ -564,8 +621,8 @@ namespace SephiriaEnhancements.Combat
         }
 
         private static int CompareReportPlayers(
-            EncounterReportPlayerSnapshot left,
-            EncounterReportPlayerSnapshot right)
+            CombatStatisticsPlayerSnapshot left,
+            CombatStatisticsPlayerSnapshot right)
         {
             int damage = right.Damage.CompareTo(left.Damage);
             if (damage != 0) return damage;
@@ -626,6 +683,7 @@ namespace SephiriaEnhancements.Combat
                     reportWindow.State(Time.unscaledTime).ToString(),
                     presentationBlock.ToString());
             }
+            statisticsBrowser?.Close();
             hud.Hide();
             hitStreakFeedback.Hide();
         }
@@ -640,11 +698,15 @@ namespace SephiriaEnhancements.Combat
         internal void RecordBossDamage(PlayerAvatar owner, float damage,
             EncounterDamageType damageType)
         {
-            if (StatisticsCaptureEnabled && owner != null)
+            PlayerAvatar localAvatar = LocalPlayerResolver.Resolve();
+            if (StatisticsCaptureEnabled && owner != null && localAvatar != null && bossEncounter.Active &&
+                owner.NetworkcurrentFloorGuid == localAvatar.NetworkcurrentFloorGuid)
             {
                 PlayerDamageState state = GetOrCreateDamageState(owner,
                     Time.unscaledTime);
+                floorStatistics.ObserveFloor(localAvatar.NetworkcurrentFloorGuid);
                 bossEncounter.Record(state.Key, damage);
+                floorStatistics.RecordDamage(state.Key, state.Name, state.IsLocal, damage, damageType);
                 RecordDamageType(damageType, damage);
             }
         }
@@ -655,9 +717,7 @@ namespace SephiriaEnhancements.Combat
             if (!StatisticsCaptureEnabled || target == null || owner == null ||
                 damage <= 0f || bossEncounter.Active ||
                 !IsHostileEnemy(target)) return;
-            PlayerDamageState local = FindLocal();
-            PlayerAvatar localAvatar = local?.Avatar ?? CombatManager.Instance?.CurrentPlayer ??
-                GameCamera.Instance?.Observer;
+            PlayerAvatar localAvatar = LocalPlayerResolver.Resolve();
             if (localAvatar == null || !encounterAreaLocator.TryLocate(localAvatar,
                 out EncounterScope scope)) return;
             Vector3 ownerPosition = owner.transform.position;
@@ -666,11 +726,13 @@ namespace SephiriaEnhancements.Combat
                 ownerPosition.y, targetPosition.x, targetPosition.y)) return;
 
             float now = Time.unscaledTime;
+            floorStatistics.ObserveFloor(localAvatar.NetworkcurrentFloorGuid);
             if (!EnsureAreaEncounter(scope, now)) return;
             PlayerDamageState state = GetOrCreateDamageState(owner, now);
             state.Window.Record(now, damage);
             state.RollingDps = state.Window.Dps(now);
             state.EncounterDamage += damage;
+            floorStatistics.RecordDamage(state.Key, state.Name, state.IsLocal, damage, damageType);
             encounterDamage += damage;
             RecordDamageType(damageType, damage);
             encounterLastActivity = now;
@@ -690,6 +752,7 @@ namespace SephiriaEnhancements.Combat
             {
                 if (bossEncounter.Resume(Time.time))
                 {
+                    floorStatistics.UpdateClock(Time.time, true);
                     reportWindow.CloseForEncounter(true, false, false);
                 }
                 return;
@@ -706,6 +769,7 @@ namespace SephiriaEnhancements.Combat
             if (!StatisticsCaptureEnabled)
                 return;
             bossEncounter.Pause(Time.time);
+            floorStatistics.UpdateClock(Time.time, false);
         }
 
         private void OnEncounterLifecycleChanged(
@@ -786,8 +850,9 @@ namespace SephiriaEnhancements.Combat
             if (!bossEncounter.End(Time.time))
                 return;
             float now = Time.unscaledTime;
+            floorStatistics.UpdateClock(Time.time, false);
             encounterActive = false;
-            encounterEndedAt = now;
+            encounterEndedAt = Time.time;
             encounterAreaLocator.InvalidateSelection();
             encounterScope = null;
             PublishEncounterReport(CreateEncounterReport(
@@ -813,8 +878,7 @@ namespace SephiriaEnhancements.Combat
             float now = Time.unscaledTime;
             if (!bossEncounter.Active)
             {
-                PlayerAvatar localAvatar = FindLocal()?.Avatar ??
-                    CombatManager.Instance?.CurrentPlayer ?? GameCamera.Instance?.Observer;
+                PlayerAvatar localAvatar = LocalPlayerResolver.Resolve();
                 if (localAvatar == null || !encounterAreaLocator.TryLocate(localAvatar,
                     out EncounterScope scope)) return;
                 Vector3 targetPosition = target.transform.position;
@@ -828,6 +892,7 @@ namespace SephiriaEnhancements.Combat
             if (tier != EncounterEnemyTier.Normal) majorEncounter = true;
             uint identity = target.netId != 0 ? target.netId : unchecked((uint)target.GetInstanceID());
             defeats.RecordDefeat(identity, tier);
+            floorStatistics.RecordDefeat(identity, tier);
         }
 
         internal void RecordLocalFinalBlow(UnitKillData data)
@@ -842,7 +907,10 @@ namespace SephiriaEnhancements.Combat
             {
                 long hostileLayers = local.Avatar.GetHostileFactionLayers(data.fromType);
                 if (CombatManager.ContainsAttackableFaction(hostileLayers, data.factionName))
+                {
                     defeats.RecordLocalFinalBlow();
+                    floorStatistics.RecordLocalFinalBlow();
+                }
             }
             catch { }
         }
@@ -865,8 +933,10 @@ namespace SephiriaEnhancements.Combat
 
         private void BeginFreshEncounter(float now)
         {
+            floorStatistics.ObserveFloor(LocalPlayerResolver.Resolve()?.NetworkcurrentFloorGuid);
             encounterActive = true;
-            encounterStartedAt = now;
+            encounterStartedAt = Time.time;
+            floorStatistics.UpdateClock(Time.time, true);
             encounterEndedAt = -1f;
             encounterLastActivity = now;
             reportWindow.CloseForEncounter(true, false, false);
@@ -945,6 +1015,8 @@ namespace SephiriaEnhancements.Combat
 
         private void ResetCombatState()
         {
+            statisticsBrowser?.Close();
+            floorStatistics.UpdateClock(Time.time, false);
             statisticsShortcut.Reset();
             bossEncounter.Reset();
             encounterActive = false;

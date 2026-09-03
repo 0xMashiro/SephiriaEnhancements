@@ -34,6 +34,11 @@ internal static class EncounterReportLayoutChecks
                             height + 24f <= canvasHeight + 0.001f,
                             "all report content must fit with margins");
                         previousWidth = width;
+                        float browserScale = EncounterReportLayout.FitBrowserScale(
+                            canvasWidth, canvasHeight, layout.Height, setting);
+                        Require((EncounterReportLayout.Width + 24f) * browserScale <= canvasWidth - 24f + 0.001f &&
+                            (layout.Height + 76f) * browserScale <= canvasHeight - 24f + 0.001f,
+                            "browser tabs, report and close button fit together at every scale");
                         if (setting == 1f)
                         {
                             Require(scale == 1f, "100% uses the recommended layout directly");

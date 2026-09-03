@@ -1,6 +1,6 @@
 namespace SephiriaEnhancements.Combat
 {
-    internal enum CombatInsightsShortcutAction { None, ToggleReport, ToggleDisplay }
+    internal enum CombatInsightsShortcutAction { None, ToggleStatistics, ToggleDisplay }
 
     internal sealed class CombatInsightsShortcut
     {
@@ -27,7 +27,7 @@ namespace SephiriaEnhancements.Combat
                     ? CombatInsightsShortcutAction.None
                     : now - pressedAt >= HoldSeconds
                         ? CombatInsightsShortcutAction.ToggleDisplay
-                        : CombatInsightsShortcutAction.ToggleReport;
+                        : CombatInsightsShortcutAction.ToggleStatistics;
                 Reset();
                 return action;
             }

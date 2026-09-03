@@ -33,12 +33,6 @@ namespace SephiriaEnhancements.Combat
             unavailableSince = -1f;
         }
 
-        internal void OpenUntilDismissed()
-        {
-            endsAt = float.PositiveInfinity;
-            unavailableSince = -1f;
-        }
-
         internal bool TryDismiss(float now)
         {
             if (!IsVisible(now)) return false;

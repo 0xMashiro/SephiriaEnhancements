@@ -8,8 +8,8 @@ internal static class EncounterReportSnapshotChecks
     {
         var reportPlayers = new[]
         {
-            new EncounterReportPlayerSnapshot(1, "Local\n<size=99>Hero", true, 600f),
-            new EncounterReportPlayerSnapshot(2, "Teammate", false, 400f)
+            new CombatStatisticsPlayerSnapshot(1, "Local\n<size=99>Hero", true, 600f),
+            new CombatStatisticsPlayerSnapshot(2, "Teammate", false, 400f)
         };
         var ordinaryReport = new EncounterReportSnapshot(
             EncounterReportKind.Ordinary, reportPlayers, 10f,
@@ -17,12 +17,12 @@ internal static class EncounterReportSnapshotChecks
             localFinalBlows: 2,
             new[]
             {
-                new EncounterReportDamageTypeSnapshot(
+                new CombatStatisticsDamageTypeSnapshot(
                     EncounterDamageType.Fire, 700f),
-                new EncounterReportDamageTypeSnapshot(
+                new CombatStatisticsDamageTypeSnapshot(
                     EncounterDamageType.Ice, 300f)
             });
-        reportPlayers[0] = new EncounterReportPlayerSnapshot(9, "Changed", false, 1f);
+        reportPlayers[0] = new CombatStatisticsPlayerSnapshot(9, "Changed", false, 1f);
         if (ordinaryReport.Players.Count != 2 ||
             ordinaryReport.Players[0].Key != 1 ||
             ordinaryReport.TotalDamage != 1000f ||
@@ -36,7 +36,7 @@ internal static class EncounterReportSnapshotChecks
                 "encounter report snapshot, duration or player-name policy failed");
         var bossReport = new EncounterReportSnapshot(EncounterReportKind.Boss,
             reportPlayers, 2f, 0, 0, 1, 0,
-            Array.Empty<EncounterReportDamageTypeSnapshot>());
+            Array.Empty<CombatStatisticsDamageTypeSnapshot>());
         if (EncounterReportPresentationPolicy.DisplaySeconds(bossReport) != 8f)
             throw new InvalidOperationException(
                 "boss encounter report must retain the detailed display duration");

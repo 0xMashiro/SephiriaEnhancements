@@ -141,6 +141,7 @@ namespace SephiriaEnhancements
             combatInsights = controllerObject.AddComponent<CombatInsightsController>();
             combatInsights.Initialize(runtimeKernel);
             NativeReportDismissal.SetController(combatInsights);
+            NativeStatisticsPauseEntry.SetController(combatInsights);
             rangedControls = controllerObject.AddComponent<RangedControlsController>();
             nativeCompanion = controllerObject.AddComponent<NativeCompanionController>();
             keyboardUiNavigation =
@@ -172,6 +173,7 @@ namespace SephiriaEnhancements
                 typeof(UnitDeathCapture),
                 typeof(LocalFinalBlowCapture),
                 typeof(NativeReportDismissal),
+                typeof(NativeStatisticsPauseEntry),
                 typeof(NativeOrdinaryEncounterClearedPatch),
                 typeof(NativeBossEncounterStartedPatch),
                 typeof(NativeBossEncounterDefeatedPatch),
@@ -322,6 +324,7 @@ namespace SephiriaEnhancements
             inventoryOptimization?.Shutdown();
             combatInsights?.Shutdown();
             NativeReportDismissal.SetController(null);
+            NativeStatisticsPauseEntry.SetController(null);
             DeveloperLogger.Shutdown();
             if (runtimeKernel != null)
             {

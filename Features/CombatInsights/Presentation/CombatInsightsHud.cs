@@ -102,6 +102,27 @@ namespace SephiriaEnhancements.Presentation
             PresentReport(showReport);
         }
 
+        internal void AttachBrowser(RectTransform parent, TextMeshProUGUI template)
+        {
+            fontTemplate = template;
+            CreateEncounterReport(parent);
+        }
+
+        internal float DrawBrowser(CombatStatisticsSnapshot snapshot, bool floor)
+        {
+            ProjectReport(snapshot);
+            if (floor) reportTitle.text = ModLocalization.Get(ModLocalization.CurrentFloorStatistics);
+            dismissHint.text = ModLocalization.Get(floor
+                ? ModLocalization.FloorBattleTime : ModLocalization.EncounterBattleTime);
+            reportObject.SetActive(true);
+            reportShadowObject.SetActive(true);
+            reportRect.localScale = reportShadowRect.localScale = Vector3.one;
+            reportRect.anchoredPosition = Vector2.zero;
+            reportShadowRect.anchoredPosition = new Vector2(0f, -4f);
+            reportGroup.alpha = reportShadowGroup.alpha = 1f;
+            return reportRect.sizeDelta.y;
+        }
+
         internal void InvalidateLayout() => lastScale = -1;
 
         internal void Hide()
@@ -330,11 +351,11 @@ namespace SephiriaEnhancements.Presentation
             ResizeLive(count, PartyLedgerWidth, 72f);
         }
 
-        private void ProjectReport(EncounterReportSnapshot report)
+        private void ProjectReport(CombatStatisticsSnapshot report)
         {
             string title = ModLocalization.Get(ModLocalization.CombatSummary)
                 .ToUpperInvariant();
-            reportTitle.text = report.Kind == EncounterReportKind.Boss
+            reportTitle.text = report is EncounterReportSnapshot encounter && encounter.Kind == EncounterReportKind.Boss
                 ? "BOSS  ·  " + title : title;
             reportMeta.text = DpsFormatter.Seconds(report.Duration) +
                 "  ·  " + ModLocalization.Get(ModLocalization.Defeated) +
@@ -352,7 +373,7 @@ namespace SephiriaEnhancements.Presentation
                 maximum = Mathf.Max(maximum, report.Players[index].Damage);
             for (int index = 0; index < count; index++)
             {
-                EncounterReportPlayerSnapshot player = report.Players[index];
+                CombatStatisticsPlayerSnapshot player = report.Players[index];
                 reportRows[index].Show(index, player, maximum,
                     report.TotalDamage, report.Duration);
             }
@@ -388,7 +409,7 @@ namespace SephiriaEnhancements.Presentation
 
         private int EnsureReportRows(int requested)
         {
-            int count = Mathf.Min(requested, 4);
+            int count = requested;
             while (reportRows.Count < count)
                 reportRows.Add(new ReportRow(reportRowsRoot, fontTemplate,
                     reportRows.Count));
@@ -521,7 +542,7 @@ namespace SephiriaEnhancements.Presentation
             SetTopRect(averageDps, dpsLeft, padding, top, height);
         }
 
-        private static string FormatDamageMix(EncounterReportSnapshot report)
+        private static string FormatDamageMix(CombatStatisticsSnapshot report)
         {
             var result = new StringBuilder();
             result.Append(ModLocalization.Get(ModLocalization.ReportDamageMix));
@@ -529,7 +550,7 @@ namespace SephiriaEnhancements.Presentation
             int shown = 0;
             for (int index = 0; index < report.DamageTypes.Count; index++)
             {
-                EncounterReportDamageTypeSnapshot item =
+                CombatStatisticsDamageTypeSnapshot item =
                     report.DamageTypes[index];
                 if (item.Type == EncounterDamageType.Unknown || shown >= 3)
                 {
@@ -819,7 +840,7 @@ namespace SephiriaEnhancements.Presentation
             }
 
             internal void Show(int index,
-                EncounterReportPlayerSnapshot player, float maximum,
+                CombatStatisticsPlayerSnapshot player, float maximum,
                 float total, float duration)
             {
                 bool mvp = index == 0 && player.Damage > 0f;

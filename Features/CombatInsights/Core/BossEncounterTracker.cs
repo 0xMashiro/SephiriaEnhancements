@@ -13,6 +13,7 @@ namespace SephiriaEnhancements.Core
 
         internal IReadOnlyDictionary<long, float> Damage => damage;
         internal bool Active { get; private set; }
+        internal bool IsTiming => timing;
         internal float Total { get; private set; }
 
         internal bool Begin(float now)

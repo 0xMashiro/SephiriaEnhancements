@@ -22,13 +22,18 @@ namespace SephiriaEnhancements.Integration
             // Consume it before native menu opening, only when it dismisses a report.
             return __instance != UIInputModule.current ||
                 __instance.closeControlAction?.action?.WasPressedThisFrame() != true ||
-                controller == null || !controller.TryDismissPresentedReport();
+                controller == null || (!controller.TryCloseStatisticsBrowser() &&
+                    !controller.TryDismissPresentedReport());
         }
 
         internal static string BindingLabel()
         {
             if (!IsAvailable) return string.Empty;
-            InputAction action = UIInputModule.current?.closeControlAction?.action;
+            return BindingLabel(UIInputModule.current?.closeControlAction?.action);
+        }
+
+        internal static string BindingLabel(InputAction action)
+        {
             if (action == null || !action.enabled) return string.Empty;
             bool gamepad = PlayerInputController.Instance?.playerInput?
                 .currentControlScheme == ModShortcuts.GamepadScheme;

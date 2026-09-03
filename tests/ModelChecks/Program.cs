@@ -24,6 +24,7 @@ if (args.Contains("--combat-insights-only"))
     DpsFormatterChecks.Run();
     CombatTrackingChecks.Run();
     EncounterReportSnapshotChecks.Run();
+    FloorCombatStatisticsChecks.Run();
     CombatInsightsInteractionChecks.Run();
     ReportDisplayWindowChecks.Run();
     EncounterReportLayoutChecks.Run();
@@ -82,6 +83,7 @@ CombatVisualLocalizationChecks.Run();
 DpsFormatterChecks.Run();
 CombatTrackingChecks.Run();
 EncounterReportSnapshotChecks.Run();
+FloorCombatStatisticsChecks.Run();
 CombatInsightsInteractionChecks.Run();
 ReportDisplayWindowChecks.Run();
 EncounterReportLayoutChecks.Run();

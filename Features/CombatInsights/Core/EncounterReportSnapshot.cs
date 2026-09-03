@@ -22,85 +22,20 @@ namespace SephiriaEnhancements.Core
         Boss
     }
 
-    internal sealed class EncounterReportPlayerSnapshot
+    internal sealed class EncounterReportSnapshot : CombatStatisticsSnapshot
     {
-        internal EncounterReportPlayerSnapshot(long key, string name,
-            bool isLocal, float damage)
-        {
-            Key = key;
-            Name = name ?? string.Empty;
-            IsLocal = isLocal;
-            Damage = Math.Max(0f, damage);
-        }
-
-        internal long Key { get; }
-        internal string Name { get; }
-        internal bool IsLocal { get; }
-        internal float Damage { get; }
-    }
-
-    internal sealed class EncounterReportDamageTypeSnapshot
-    {
-        internal EncounterReportDamageTypeSnapshot(EncounterDamageType type,
-            float damage)
-        {
-            Type = type;
-            Damage = Math.Max(0f, damage);
-        }
-
-        internal EncounterDamageType Type { get; }
-        internal float Damage { get; }
-    }
-
-    internal sealed class EncounterReportSnapshot
-    {
-        private readonly EncounterReportPlayerSnapshot[] players;
-        private readonly EncounterReportDamageTypeSnapshot[] damageTypes;
-
         internal EncounterReportSnapshot(EncounterReportKind kind,
-            IReadOnlyList<EncounterReportPlayerSnapshot> players,
+            IReadOnlyList<CombatStatisticsPlayerSnapshot> players,
             float duration, int normalDefeated, int minibossDefeated,
             int bossDefeated, int localFinalBlows,
-            IReadOnlyList<EncounterReportDamageTypeSnapshot> damageTypes)
+            IReadOnlyList<CombatStatisticsDamageTypeSnapshot> damageTypes)
+            : base(players, duration, normalDefeated, minibossDefeated,
+                bossDefeated, localFinalBlows, damageTypes)
         {
             Kind = kind;
-            Duration = Math.Max(0f, duration);
-            NormalDefeated = Math.Max(0, normalDefeated);
-            MinibossDefeated = Math.Max(0, minibossDefeated);
-            BossDefeated = Math.Max(0, bossDefeated);
-            LocalFinalBlows = Math.Max(0, localFinalBlows);
-            this.players = new EncounterReportPlayerSnapshot[
-                Math.Min(players.Count, 4)];
-            for (int index = 0; index < this.players.Length; index++)
-            {
-                EncounterReportPlayerSnapshot player = players[index];
-                this.players[index] = new EncounterReportPlayerSnapshot(
-                    player.Key, player.Name, player.IsLocal, player.Damage);
-                TotalDamage += this.players[index].Damage;
-            }
-            this.damageTypes = new EncounterReportDamageTypeSnapshot[
-                damageTypes.Count];
-            for (int index = 0; index < this.damageTypes.Length; index++)
-            {
-                EncounterReportDamageTypeSnapshot type = damageTypes[index];
-                this.damageTypes[index] =
-                    new EncounterReportDamageTypeSnapshot(type.Type,
-                        type.Damage);
-            }
         }
 
         internal EncounterReportKind Kind { get; }
-        internal IReadOnlyList<EncounterReportPlayerSnapshot> Players => players;
-        internal IReadOnlyList<EncounterReportDamageTypeSnapshot> DamageTypes =>
-            damageTypes;
-        internal float Duration { get; }
-        internal float TotalDamage { get; }
-        internal int NormalDefeated { get; }
-        internal int MinibossDefeated { get; }
-        internal int BossDefeated { get; }
-        internal int LocalFinalBlows { get; }
-        internal int DefeatedCount =>
-            NormalDefeated + MinibossDefeated + BossDefeated;
     }
 
     internal static class EncounterReportPresentationPolicy

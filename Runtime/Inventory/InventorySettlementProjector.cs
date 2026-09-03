@@ -151,11 +151,12 @@ namespace SephiriaEnhancements.Runtime.Inventory
             }
 
             Dictionary<string, int> combos = CountCombos(snapshot, layout,
-                itemAtCell, workspace?.ComboCounts,
-                workspace?.SeenComboEntities);
+                itemAtCell, workspace);
             return new ProjectedInventorySettlement(true, cells,
                 artifacts.ToArray(), combos, Array.Empty<string>(),
-                tablets?.ToArray(), InventoryPositionEffectProjector.Evaluate(snapshot, layout, artifacts));
+                tablets?.ToArray(), workspace?.PositionEffectProjector != null
+                    ? workspace.PositionEffectProjector.Evaluate(layout, artifacts)
+                    : InventoryPositionEffectProjector.Evaluate(snapshot, layout, artifacts));
         }
 
         private static bool TryBuildOccupancy(InventorySnapshot snapshot,
@@ -381,6 +382,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     }
                 case ArtifactActivationConditionKind.BothSidesArtifacts:
                     return x > 0 && x < width - 1 &&
+                        cellIndex + 1 < snapshot.Storage &&
                         IsArtifact(snapshot, itemAtCell[cellIndex - 1]) &&
                         IsArtifact(snapshot, itemAtCell[cellIndex + 1]);
                 case ArtifactActivationConditionKind.AllNeighborsOccupied:
@@ -399,16 +401,15 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
         private static Dictionary<string, int> CountCombos(
             InventorySnapshot snapshot, InventoryLayoutProjection layout,
-            int[] itemAtCell, Dictionary<string, int> reusableResult = null,
-            HashSet<int> reusableSeenEntities = null)
+            int[] itemAtCell, InventorySettlementProjectionWorkspace workspace = null)
         {
-            Dictionary<string, int> result = reusableResult ??
+            Dictionary<string, int> result = workspace?.ComboCounts ??
                 new Dictionary<string, int>(StringComparer.Ordinal);
             result.Clear();
-            HashSet<int> seenEntities = reusableSeenEntities ?? new HashSet<int>();
+            HashSet<int> seenEntities = workspace?.SeenComboEntities ?? new HashSet<int>();
             seenEntities.Clear();
             IReadOnlyList<string>[] categories = BuildProjectedCategories(snapshot,
-                layout, itemAtCell);
+                layout, itemAtCell, workspace);
             for (int itemIndex = 0; itemIndex < snapshot.Items.Count; itemIndex++)
             {
                 InventoryItemSnapshot item = snapshot.Items[itemIndex];
@@ -439,9 +440,10 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
         private static IReadOnlyList<string>[] BuildProjectedCategories(
             InventorySnapshot snapshot, InventoryLayoutProjection layout,
-            int[] itemAtCell)
+            int[] itemAtCell, InventorySettlementProjectionWorkspace workspace)
         {
-            var result = new IReadOnlyList<string>[snapshot.Items.Count];
+            var result = workspace?.ProjectedCategories ?? new IReadOnlyList<string>[snapshot.Items.Count];
+            Array.Clear(result, 0, result.Length);
             for (int itemIndex = 0; itemIndex < snapshot.Items.Count; itemIndex++)
             {
                 InventoryItemSnapshot item = snapshot.Items[itemIndex];
@@ -453,7 +455,9 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 else if (rule.Kind == ArtifactCategoryRuleKind.RowModulo)
                 {
                     int row = layout.GetCell(itemIndex) / snapshot.Width;
-                    result[itemIndex] = new[]
+                    result[itemIndex] = workspace != null
+                        ? workspace.RowCategoryChoices[itemIndex][row % rule.RowCategories.Count]
+                        : new[]
                     {
                         rule.RowCategories[row % rule.RowCategories.Count]
                     };
@@ -464,7 +468,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 }
             }
 
-            var resolving = new HashSet<int>();
+            var resolving = workspace?.ResolvingCategories ?? new HashSet<int>();
+            resolving.Clear();
             for (int itemIndex = 0; itemIndex < snapshot.Items.Count; itemIndex++)
             {
                 if (snapshot.Items[itemIndex].Artifact?.CategoryRule.Kind ==
@@ -487,7 +492,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 int origin = layout.GetCell(itemIndex);
                 int originX = origin % snapshot.Width;
                 int originY = origin / snapshot.Width;
-                var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+                var counts = workspace?.NeighborCategoryCounts ?? new Dictionary<string, int>(StringComparer.Ordinal);
+                counts.Clear();
                 foreach (InventoryOffsetSnapshot offset in rule.NeighborOffsets)
                 {
                     int x = originX + offset.X;

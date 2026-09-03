@@ -41,6 +41,10 @@ try {
         'SephiriaEnhancements.DeveloperTools.DeveloperPlayerDamageSettings'
         'SephiriaEnhancements.Diagnostics.NativeStartupProfilingPatch'
         'SephiriaEnhancements.Diagnostics.NativeLoadingOperationProfilingPatch'
+        'SephiriaEnhancements.Diagnostics.InventoryReproductionCase'
+        'SephiriaEnhancements.Diagnostics.InventoryReproductionEvidence'
+        'SephiriaEnhancements.Diagnostics.InventoryReproductionJson'
+        'SephiriaEnhancements.Diagnostics.InventoryReproductionLog'
     )) {
         if (($types -contains $developmentType) -ne [bool]$DeveloperTools) {
             throw "Unexpected developer component for ${expected}: $developmentType"

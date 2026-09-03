@@ -238,8 +238,9 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
     internal sealed class InventorySettlementProjectionWorkspace
     {
-        internal InventorySettlementProjectionWorkspace(int storage)
+        internal InventorySettlementProjectionWorkspace(InventorySnapshot snapshot)
         {
+            int storage = snapshot.Storage;
             ItemAtCell = new int[storage];
             AdditiveLevels = new int[storage];
             Multipliers = new int[storage];
@@ -247,8 +248,21 @@ namespace SephiriaEnhancements.Runtime.Inventory
             Bypasses = new int[storage];
             MaximumLevels = new int[storage];
             TemporaryLevels = new int[storage];
+            ProjectedCategories = new IReadOnlyList<string>[snapshot.Items.Count];
+            RowCategoryChoices = new IReadOnlyList<string>[snapshot.Items.Count][];
+            for (int index = 0; index < snapshot.Items.Count; index++)
+            {
+                ArtifactCategoryRuleSnapshot rule = snapshot.Items[index].Artifact?.CategoryRule;
+                if (rule?.Kind != ArtifactCategoryRuleKind.RowModulo) continue;
+                var choices = new IReadOnlyList<string>[rule.RowCategories.Count];
+                for (int row = 0; row < choices.Length; row++) choices[row] = new[] { rule.RowCategories[row] };
+                RowCategoryChoices[index] = choices;
+            }
+            if (snapshot.PositionEffects.Rules.Count != 0)
+                PositionEffectProjector = new InventoryPositionEffectProjector(snapshot);
         }
 
+        internal InventoryPositionEffectProjector PositionEffectProjector { get; }
         internal int[] ItemAtCell { get; }
         internal int[] AdditiveLevels { get; }
         internal int[] Multipliers { get; }
@@ -261,5 +275,9 @@ namespace SephiriaEnhancements.Runtime.Inventory
         internal Dictionary<string, int> ComboCounts { get; } = new(
             StringComparer.Ordinal);
         internal HashSet<int> SeenComboEntities { get; } = new();
+        internal IReadOnlyList<string>[] ProjectedCategories { get; }
+        internal IReadOnlyList<string>[][] RowCategoryChoices { get; }
+        internal HashSet<int> ResolvingCategories { get; } = new();
+        internal Dictionary<string, int> NeighborCategoryCounts { get; } = new(StringComparer.Ordinal);
     }
 }

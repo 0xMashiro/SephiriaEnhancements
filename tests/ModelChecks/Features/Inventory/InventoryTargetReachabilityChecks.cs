@@ -12,7 +12,8 @@ internal static class InventoryTargetReachabilityChecks
         VerifySelectedLayoutReachesTarget();
         VerifyObservedReachableAvoidCondition();
         VerifyNeighborhoodEvidenceRemainsUnresolved();
-        return "selected;observed;proven-unreachable;unresolved passed";
+        VerifyUnselectedCandidateEvidence();
+        return "selected;observed;proven-unreachable;unresolved;conflicting minimum targets passed";
     }
 
     private static void VerifyProvenUnreachableArtifactTarget()
@@ -96,12 +97,9 @@ internal static class InventoryTargetReachabilityChecks
             new[] { 3, 0 }, new[] { 0 });
         ResolvedInventoryOptimizationPolicy policy = ResolveArtifactPolicy(
             snapshot, InventoryPreferenceLevel.Priority, minimumLevel: 4);
-        ProjectedInventorySettlement current =
-            InventorySettlementProjector.Evaluate(snapshot,
-                InventoryLayoutProjection.Current(snapshot));
         InventoryOptimizationTargetEvaluation evaluation =
-            new InventoryOptimizationScorer(snapshot, policy).
-                EvaluateTargets(current, current).Single();
+            InventoryOptimizer.Solve(snapshot, policy,
+                new InventorySearchBudget(8, 100, 5000)).TargetEvaluations.Single();
 
         if (evaluation.Reachability !=
                 InventoryTargetReachability.Unresolved ||
@@ -110,6 +108,33 @@ internal static class InventoryTargetReachabilityChecks
             throw new InvalidOperationException(
                 "partial observations must not be promoted to an " +
                 "unreachability proof");
+        }
+    }
+
+    private static void VerifyUnselectedCandidateEvidence()
+    {
+        // Only one level-five cell exists. Both targets are individually
+        // reachable, but the first queue entry wins their conflict.
+        InventorySnapshot snapshot = InventorySnapshotFixture.ArtifactsAtLevels(
+            new[] { 5, 0, 0, 0, 0, 0 }, new[] { 0, 1 });
+        var preferences = new InventoryOptimizationPreferences(InventorySearchEffort.Balanced, true,
+            snapshot.Items.Select((item, index) => new ArtifactOptimizationPreference(
+                item.InstanceId, item.EntityId, InventoryPreferenceLevel.Priority, 5, index)).ToArray(),
+            Array.Empty<ComboOptimizationPreference>());
+        ResolvedInventoryOptimizationPolicy policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, preferences);
+        foreach (int budget in new[] { 1, 2, 100 })
+        {
+            InventoryOptimizationProposal result = InventoryOptimizer.Solve(snapshot, policy,
+                new InventorySearchBudget(8, budget, 5000));
+            InventoryOptimizationTargetEvaluation second = result.TargetEvaluations.Single(target =>
+                target.Target == "Artifact:1001:101");
+            if (!result.Succeeded || result.Improved || second.RequiredValue != 5 ||
+                second.AfterConditionReached || second.AfterValue != 0 ||
+                second.Reachability != (budget == 1 ? InventoryTargetReachability.Unresolved
+                    : InventoryTargetReachability.ObservedReachable) ||
+                second.MaximumObservedValue != (budget == 1 ? 0 : 5))
+                throw new InvalidOperationException(
+                    "an unselected candidate proves an individual target reachable without relaxing it or sacrificing queue order");
         }
     }
 

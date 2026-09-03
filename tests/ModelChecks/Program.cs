@@ -26,6 +26,21 @@ if (args.Contains("--combat-targeting-only"))
     return;
 }
 
+if (args.FirstOrDefault() == "--inventory-replay")
+{
+    InventoryReproductionReplay.Run(args);
+    return;
+}
+InventoryReproductionChecks.Run();
+if (args.Contains("--inventory-reproduction-only")) return;
+if (args.FirstOrDefault() == "--inventory-known-solutions-benchmark")
+{
+    InventoryKnownSolutionChecks.Benchmark(args[1], args.Contains("--fixed-work"));
+    return;
+}
+InventoryKnownSolutionChecks.Run();
+if (args.Contains("--inventory-known-solutions-only")) return;
+
 if (args.Contains("--combat-insights-only"))
 {
     DpsFormatterChecks.Run();

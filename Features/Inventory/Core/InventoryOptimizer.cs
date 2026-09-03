@@ -52,7 +52,10 @@ namespace SephiriaEnhancements.Inventory
             InventoryOptimizationScore initialScore = scorer.Score(current,
                 currentSettlement);
             var evaluatedLayouts = new EvaluatedLayoutSet(snapshot, current);
+            scorer.ObserveTargets(currentSettlement, evaluatedLayouts.TargetEvidence);
             InventoryOptimizationScore currentScore = initialScore;
+            InventoryLayoutProjection bestLayout = current;
+            InventoryOptimizationScore bestScore = currentScore;
             InventorySearchTerminationReason terminationReason =
                 InventorySearchTerminationReason.ImprovementRoundLimit;
             bool searchStopped = false;
@@ -61,8 +64,8 @@ namespace SephiriaEnhancements.Inventory
                 round++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                InventoryLayoutProjection bestLayout = current;
-                InventoryOptimizationScore bestScore = currentScore;
+                bestLayout = current;
+                bestScore = currentScore;
 
                 for (int first = 0; first < snapshot.Storage &&
                     !searchStopped; first++)
@@ -126,11 +129,24 @@ namespace SephiriaEnhancements.Inventory
                 {
                     break;
                 }
+                bool resumeLocalSearchAfterImprovement = false;
                 if (bestScore.CompareTo(currentScore) <= 0)
                 {
+                    // Once every target is reached, exploit a compound improvement
+                    // with another local-search round. The final round must finish
+                    // comparing candidates because it cannot resume local search.
+                    if (round + 1 < budget.MaximumImprovementRounds)
+                    {
+                        ProjectedInventorySettlement settlement =
+                            InventorySettlementProjector.EvaluateForScoring(snapshot,
+                                current, evaluatedLayouts.EvaluationWorkspace);
+                        resumeLocalSearchAfterImprovement = scorer.EvaluateTargets(
+                            settlement, settlement).All(target => target.AfterConditionReached);
+                    }
                     if (!TrySearchSwapAndStoneTabletRotationNeighborhood(
                             snapshot, scorer,
                             current, policy.AllowStoneTabletRotation,
+                            resumeLocalSearchAfterImprovement,
                             evaluatedLayouts, budget,
                             elapsed, cancellationToken,
                             ref candidateEvaluations, ref bestLayout,
@@ -143,7 +159,8 @@ namespace SephiriaEnhancements.Inventory
                 if (bestScore.CompareTo(currentScore) <= 0)
                 {
                     if (!TrySearchTwoSwapNeighborhood(snapshot, scorer,
-                            current, evaluatedLayouts, budget, elapsed,
+                            current, resumeLocalSearchAfterImprovement,
+                            evaluatedLayouts, budget, elapsed,
                             cancellationToken,
                             ref candidateEvaluations, ref bestLayout,
                             ref bestScore, out terminationReason))
@@ -205,6 +222,10 @@ namespace SephiriaEnhancements.Inventory
                 currentScore = bestScore;
             }
 
+            // A budget cutoff can interrupt any neighborhood after it found an
+            // improvement. Retain that evaluated result even for a partial round.
+            current = bestLayout;
+            currentScore = bestScore;
             ProjectedInventorySettlement bestSettlement =
                 InventorySettlementProjector.Evaluate(snapshot, current);
             InventoryOptimizationOutcome outcome =
@@ -213,7 +234,8 @@ namespace SephiriaEnhancements.Inventory
                     currentScore);
             return new InventoryOptimizationProposal(true, current, initialScore,
                 currentScore, candidateEvaluations, Array.Empty<string>(), policy,
-                scorer.EvaluateTargets(currentSettlement, bestSettlement),
+                scorer.EvaluateTargets(currentSettlement, bestSettlement,
+                    evaluatedLayouts.TargetEvidence),
                 terminationReason, elapsed.ElapsedMilliseconds,
                 duplicateLayoutsSkipped:
                     evaluatedLayouts.DuplicateLayoutsSkipped,
@@ -223,6 +245,7 @@ namespace SephiriaEnhancements.Inventory
         private static bool TrySearchSwapAndStoneTabletRotationNeighborhood(
             InventorySnapshot snapshot, InventoryOptimizationScorer scorer,
             InventoryLayoutProjection current, bool allowStoneTabletRotation,
+            bool resumeLocalSearchAfterImprovement,
             EvaluatedLayoutSet evaluatedLayouts,
             InventorySearchBudget budget, Stopwatch elapsed,
             CancellationToken cancellationToken,
@@ -231,6 +254,7 @@ namespace SephiriaEnhancements.Inventory
             ref InventoryOptimizationScore bestScore,
             out InventorySearchTerminationReason terminationReason)
         {
+            InventoryOptimizationScore startingScore = bestScore;
             // Score the combined result because a placement projection can make
             // both its setup move and its rotation neutral when tried alone.
             // TryPromote keeps this larger neighborhood inside the shared wall-
@@ -278,6 +302,8 @@ namespace SephiriaEnhancements.Inventory
                             {
                                 return false;
                             }
+                            if (resumeLocalSearchAfterImprovement &&
+                                bestScore.CompareTo(startingScore) > 0) return true;
                         }
                     }
                 }
@@ -477,6 +503,7 @@ namespace SephiriaEnhancements.Inventory
         private static bool TrySearchTwoSwapNeighborhood(
             InventorySnapshot snapshot, InventoryOptimizationScorer scorer,
             InventoryLayoutProjection current,
+            bool resumeLocalSearchAfterImprovement,
             EvaluatedLayoutSet evaluatedLayouts,
             InventorySearchBudget budget,
             Stopwatch elapsed, CancellationToken cancellationToken,
@@ -485,6 +512,7 @@ namespace SephiriaEnhancements.Inventory
             ref InventoryOptimizationScore bestScore,
             out InventorySearchTerminationReason terminationReason)
         {
+            InventoryOptimizationScore startingScore = bestScore;
             // Two swaps produce either a three-cell cycle or two disjoint
             // transpositions. Enumerating those final permutations directly
             // avoids evaluating the same layout from multiple swap orders.
@@ -523,6 +551,8 @@ namespace SephiriaEnhancements.Inventory
                         {
                             return false;
                         }
+                        if (resumeLocalSearchAfterImprovement &&
+                            bestScore.CompareTo(startingScore) > 0) return true;
 
                         InventoryLayoutProjection reverse = current
                             .WithCellsSwapped(first, third)
@@ -535,6 +565,8 @@ namespace SephiriaEnhancements.Inventory
                         {
                             return false;
                         }
+                        if (resumeLocalSearchAfterImprovement &&
+                            bestScore.CompareTo(startingScore) > 0) return true;
                     }
                 }
             }
@@ -566,6 +598,8 @@ namespace SephiriaEnhancements.Inventory
                                 {
                                     return false;
                                 }
+                                if (resumeLocalSearchAfterImprovement &&
+                                    bestScore.CompareTo(startingScore) > 0) return true;
                             }
 
                             if ((occupiedCells[first] || occupiedCells[third]) &&
@@ -584,6 +618,8 @@ namespace SephiriaEnhancements.Inventory
                                 {
                                     return false;
                                 }
+                                if (resumeLocalSearchAfterImprovement &&
+                                    bestScore.CompareTo(startingScore) > 0) return true;
                             }
 
                             if ((occupiedCells[first] || occupiedCells[fourth]) &&
@@ -602,6 +638,8 @@ namespace SephiriaEnhancements.Inventory
                                 {
                                     return false;
                                 }
+                                if (resumeLocalSearchAfterImprovement &&
+                                    bestScore.CompareTo(startingScore) > 0) return true;
                             }
                         }
                     }
@@ -676,6 +714,7 @@ namespace SephiriaEnhancements.Inventory
                 return true;
             }
 
+            scorer.ObserveTargets(settlement, evaluatedLayouts.TargetEvidence);
             InventoryOptimizationScore score = scorer.Score(candidate, settlement);
             int comparison = score.CompareTo(bestScore);
             if (comparison > 0 || comparison == 0 &&
@@ -696,11 +735,13 @@ namespace SephiriaEnhancements.Inventory
                 InventoryLayoutProjection current)
             {
                 EvaluationWorkspace = new InventorySettlementProjectionWorkspace(
-                    snapshot.Storage);
+                    snapshot);
                 layouts.Add(current);
             }
 
             internal int DuplicateLayoutsSkipped { get; private set; }
+            internal Dictionary<string, InventoryTargetSearchEvidence> TargetEvidence { get; } =
+                new(StringComparer.Ordinal);
             internal InventorySettlementProjectionWorkspace EvaluationWorkspace
             { get; }
 

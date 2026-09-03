@@ -217,6 +217,28 @@ Oversized individual events leave an omission marker. A full background queue ca
 events and reports this in the game log, so these logs are not guaranteed to be complete.
 They are intended for detailed investigation; review their contents before sharing.
 
+Development builds automatically write separate `inventory-reproductions*.jsonl` files
+in the same developer log directory, without a launch argument. They capture rejected
+inventory inputs, solver exceptions, unmet targets, budget cutoffs and application
+verification failures. Records include inventory mechanics, preferences, budgets,
+results and available post-application observations. Budget cutoffs and unmet targets
+are labeled separately from errors. Recording runs in the background and retains up to
+four 32 MiB files; oversized records are omitted and queue or I/O failures are reported
+in the support log. Preset labels and exception messages are omitted. Files stay local.
+
+To replay the latest case using the current model sources, without launching the game:
+
+```powershell
+dotnet run --project tests/ModelChecks -c Release -- --inventory-replay "inventory-reproductions.jsonl"
+```
+
+Append a case ID to select a case, or `--no-time-limit` to retain candidate and round
+limits while removing the practical wall-clock cutoff. Replay reports the recorded
+build identity; matching model sources are needed to reproduce behavior. Search timing
+and native application sequencing cannot be reproduced exactly by the offline runner.
+Solver inputs and verification evidence are stored separately. Replay accepts only the
+current log schema; older development log formats are not migrated.
+
 ## Build from source
 
 Requirements: PowerShell 7, the .NET SDK selected by `global.json`, and a legally installed

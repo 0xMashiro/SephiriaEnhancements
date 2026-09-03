@@ -13,6 +13,7 @@ internal static class InventoryPositionEffectChecks
         SlotDamage();
         HalfBoardModes();
         DependencyChain();
+        DependencyTraversalAcrossWords();
         InvalidAndChangedParameters();
         UnavailableClientObservation();
         MixedSearchBudget();
@@ -183,6 +184,31 @@ internal static class InventoryPositionEffectChecks
         Check(Project(cycle, 6, 3, 0).Length == 0, "dependency cycle terminates without a root");
     }
 
+    private static void DependencyTraversalAcrossWords()
+    {
+        var kind = InventoryPositionEffectKind.DependencyDamage;
+        int[] positions = Enumerable.Range(0, 66).Select(index => index + 2).ToArray();
+        positions[0] = 0;
+        positions[64] = 1;
+        positions[65] = 2;
+        var rules = new[] {
+            new InventoryPositionEffectRule(Key(0), kind, new[] { 2.0 },
+                offsets: new[] { new InventoryOffsetSnapshot(1, 0) }),
+            new InventoryPositionEffectRule(Key(64), kind, new[] { 3.0 },
+                offsets: new[] { new InventoryOffsetSnapshot(1, 0) }) };
+        var snapshot = Board(6, new int[66], positions, rules,
+            new[] { Value(0, kind, 2, 65), Value(64, kind, 3, 65) });
+        RequireReady(snapshot);
+        var effects = Project(snapshot, positions);
+        Check(effects.Length == 2 && effects.All(effect => effect.Key.Target == Key(65)),
+            "dependency traversal distinguishes items with the same bit in different words");
+        rules[1] = new InventoryPositionEffectRule(Key(64), kind, new[] { 3.0 },
+            offsets: new[] { new InventoryOffsetSnapshot(-1, 0) });
+        var cycle = Board(6, new int[66], positions, rules, Array.Empty<InventoryPositionEffectValue>());
+        RequireReady(cycle);
+        Check(Project(cycle, positions).Length == 0, "dependency cycles terminate across word boundaries");
+    }
+
     private static void InvalidAndChangedParameters()
     {
         var kind = InventoryPositionEffectKind.MagicCostReduction;
@@ -304,9 +330,21 @@ internal static class InventoryPositionEffectChecks
 
     private static InventoryPositionEffectValue[] Project(InventorySnapshot snapshot, params int[] cells)
     {
-        var result = InventorySettlementProjector.Evaluate(snapshot, new InventoryLayoutProjection(cells, new int[cells.Length]));
+        var layout = new InventoryLayoutProjection(cells, new int[cells.Length]);
+        var result = InventorySettlementProjector.Evaluate(snapshot, layout);
         Check(result.Succeeded, "candidate projection failed");
+        var workspace = new InventorySettlementProjectionWorkspace(snapshot);
+        var current = InventoryLayoutProjection.Current(snapshot);
+        var initial = InventorySettlementProjector.EvaluateForScoring(snapshot, current, workspace);
+        var candidate = InventorySettlementProjector.EvaluateForScoring(snapshot, layout, workspace);
+        Check(Effects(candidate).SequenceEqual(Effects(result)), "reused workspace matches full effect projection");
+        var restored = InventorySettlementProjector.EvaluateForScoring(snapshot, current, workspace);
+        Check(Effects(initial).SequenceEqual(Effects(restored)), "workspace does not retain candidate targets");
+        Check(Effects(candidate).SequenceEqual(Effects(result)), "later projection does not mutate retained results");
         return result.PositionEffects.ToArray();
+
+        static IEnumerable<(InventoryPositionEffectKey, double, bool)> Effects(ProjectedInventorySettlement settlement) =>
+            settlement.PositionEffects.Select(effect => (effect.Key, effect.Value, effect.Mode));
     }
     private static InventoryOptimizationScorer Scorer(InventorySnapshot snapshot) => new(snapshot,
         InventoryOptimizationPolicyResolver.Resolve(snapshot, InventoryOptimizationPreferences.Default));

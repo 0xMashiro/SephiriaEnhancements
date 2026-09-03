@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace SephiriaEnhancements.Inventory
 {
-    internal sealed class InventoryOptimizationController : MonoBehaviour
+    internal sealed partial class InventoryOptimizationController : MonoBehaviour
     {
         private const float RequestCooldown = 1.5f;
         private const float ApplyTimeout = 20f;
@@ -53,6 +53,9 @@ namespace SephiriaEnhancements.Inventory
             runtimeKernel = kernel;
             PersistentInventoryOptimizationPolicyPersistence.EnsureLoaded();
             InventoryArtifactIntentClickPatch.SetController(this);
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            InitializeReproductionLog();
+#endif
         }
 
         internal void ResetExploration()
@@ -75,6 +78,11 @@ namespace SephiriaEnhancements.Inventory
 
         internal void Shutdown()
         {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            reproductionLog?.Dispose();
+            PumpReproductionLog();
+            reproductionLog = null;
+#endif
             InventoryArtifactIntentClickPatch.SetController(null);
             prioritySelectionView.Dispose();
             ExplorationInventoryIntentStore.Clear();
@@ -96,6 +104,9 @@ namespace SephiriaEnhancements.Inventory
 
         private void Update()
         {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            PumpReproductionLog();
+#endif
             PersistentInventoryOptimizationPolicyPersistence.EnsureLoaded();
             InventorySnapshot hudSnapshot = null;
             runtimeKernel?.TryGetLatestInventorySnapshot(out hudSnapshot,
@@ -311,6 +322,10 @@ namespace SephiriaEnhancements.Inventory
                     out sourceSnapshot, out sourceRuntime))
             {
                 runtimeKernel.TryGetLatestInventorySnapshot(out InventorySnapshot latest, out _);
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+                if (latest != null && !latest.SettlementValidation.LayoutProjectionReady)
+                    RecordRejectedReproduction(latest);
+#endif
                 SupportLogger.Record("inventory_projection_unavailable",
                     "consistency=" + runtimeKernel.State?.Consistency + " issues=" +
                     string.Join(",", (latest?.SettlementValidation.Issues ?? Array.Empty<string>())
@@ -368,8 +383,19 @@ namespace SephiriaEnhancements.Inventory
                 " items=" + sourceSnapshot.Items.Count + " artifactGoals=" + preferences.ArtifactPreferences.Count +
                 " comboGoals=" + preferences.ComboPreferences.Count +
                 " allowTabletRotation=" + preferences.AllowStoneTabletRotation);
+            // Capture immutable inputs: resetting the controller must not change
+            // the snapshot read by a task that has not started yet.
+            InventorySnapshot snapshot = sourceSnapshot;
+            InventorySearchBudget budget = InventorySearchBudget.ForEffort(searchEffort);
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            reproductionCase = new InventoryReproductionCase(snapshot, preferences, policy, budget);
+            InventoryReproductionCase capturedCase = reproductionCase;
+            InventoryReproductionLog capturedLog = reproductionLog;
+            solveTask = Task.Run(() => SolveWithReproduction(capturedCase, capturedLog, token), token);
+#else
             solveTask = Task.Run(() => InventoryOptimizerSelector.Solve(
-                sourceSnapshot, policy, cancellationToken: token), token);
+                snapshot, policy, budget, token), token);
+#endif
             ShowMessage(InventoryOptimizationLocalization.Analyzing);
         }
 
@@ -424,6 +450,9 @@ namespace SephiriaEnhancements.Inventory
             if (!InventoryLayoutPlanner.TryCreate(sourceSnapshot, result.Layout,
                     out applicationPlan, out string _))
             {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+                RecordReproduction(InventoryReproductionReason.ApplicationPlanRejected);
+#endif
                 ShowMessage(InventoryOptimizationLocalization.Failed);
                 ResetOperationState();
                 return;
@@ -432,6 +461,9 @@ namespace SephiriaEnhancements.Inventory
                 sourceSnapshot, result.Layout);
             if (!expectedSettlement.Succeeded)
             {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+                RecordReproduction(InventoryReproductionReason.ProjectionRejected);
+#endif
                 ShowMessage(InventoryOptimizationLocalization.Unsupported);
                 ResetOperationState();
                 return;
@@ -456,6 +488,10 @@ namespace SephiriaEnhancements.Inventory
             }
             if (Time.unscaledTime > applyDeadline)
             {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+                runtimeKernel.TryGetLatestInventorySnapshot(out InventorySnapshot latest, out _);
+                RecordReproduction(InventoryReproductionReason.ApplicationTimedOut, latest);
+#endif
                 ShowMessage(InventoryOptimizationLocalization.ApplyTimedOut);
                 ResetOperationState();
                 return;
@@ -557,6 +593,13 @@ namespace SephiriaEnhancements.Inventory
                     InventorySettlementDifferentialVerifier.Compare(
                         sourceSnapshot, result.Layout, expectedSettlement,
                         actualSnapshot);
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+                InventoryReproductionReason reason = InventoryReproductionReason.None;
+                if (!layoutMatched) reason |= InventoryReproductionReason.LayoutMismatch;
+                if (!differential.Matched) reason |= InventoryReproductionReason.SettlementMismatch;
+                if (reason != InventoryReproductionReason.None)
+                    RecordReproduction(reason, actualSnapshot, differential);
+#endif
                 DeveloperLogger.RecordInventoryApplication(layoutMatched,
                     applicationPlan, nextSwap, nextRotation,
                     actualRuntime);
@@ -606,6 +649,9 @@ namespace SephiriaEnhancements.Inventory
                 !InventoryPositionEffectComparison.ParametersMatch(
                     sourceSnapshot.PositionEffects, snapshot.PositionEffects))
             {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+                RecordReproduction(InventoryReproductionReason.PositionEffectsChanged, snapshot);
+#endif
                 ShowMessage(InventoryOptimizationLocalization.PositionEffectFailureMessage(snapshot.SettlementValidation));
                 ResetOperationState();
                 return;
@@ -779,6 +825,10 @@ namespace SephiriaEnhancements.Inventory
 
         private void Fail(Exception exception)
         {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            if (result != null)
+                RecordReproduction(InventoryReproductionReason.ApplicationException, exception: exception);
+#endif
             compatible = false;
             SupportLogger.Failure("inventory_operation_failed", exception);
             SupportLogger.Warning("inventory_context_disabled", "[SephiriaEnhancements] Inventory optimization " +
@@ -791,6 +841,9 @@ namespace SephiriaEnhancements.Inventory
 
         private void ResetOperationState()
         {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            reproductionCase = null;
+#endif
             solveCancellation?.Cancel();
             solveCancellation?.Dispose();
             solveCancellation = null;

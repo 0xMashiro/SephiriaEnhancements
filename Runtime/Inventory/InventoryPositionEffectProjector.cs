@@ -5,19 +5,40 @@ using System.Linq;
 
 namespace SephiriaEnhancements.Runtime.Inventory
 {
-    internal static class InventoryPositionEffectProjector
+    internal sealed class InventoryPositionEffectProjector
     {
+        private readonly InventorySnapshot snapshot;
+        private readonly Dictionary<InventoryItemKey, int> indexes;
+        private readonly Dictionary<InventoryItemKey, InventoryPositionTargetTraits> traits;
+        private readonly Dictionary<InventoryItemKey, InventoryPositionEffectRule> dependencyRules;
+        private readonly ulong[] visitedDependencies;
+        private readonly Dictionary<InventoryItemKey, ProjectedInventoryArtifactSettlement> settlement = new();
+
+        internal InventoryPositionEffectProjector(InventorySnapshot snapshot)
+        {
+            this.snapshot = snapshot;
+            indexes = snapshot.Items.Select((item, index) => (item.ItemKey, index))
+                .ToDictionary(pair => pair.ItemKey, pair => pair.index);
+            traits = snapshot.PositionEffects.Traits.ToDictionary(item => item.Item);
+            dependencyRules = snapshot.PositionEffects.Rules.Where(rule =>
+                rule.Kind == InventoryPositionEffectKind.DependencyDamage).ToDictionary(rule => rule.Source);
+            visitedDependencies = dependencyRules.Count == 0 ? Array.Empty<ulong>() :
+                new ulong[(snapshot.Items.Count + 63) / 64];
+        }
+
         internal static InventoryPositionEffectValue[] Evaluate(InventorySnapshot snapshot,
             InventoryLayoutProjection layout, IReadOnlyList<ProjectedInventoryArtifactSettlement> artifacts)
         {
             if (snapshot.PositionEffects.Rules.Count == 0) return Array.Empty<InventoryPositionEffectValue>();
+            return new InventoryPositionEffectProjector(snapshot).Evaluate(layout, artifacts);
+        }
+
+        internal InventoryPositionEffectValue[] Evaluate(InventoryLayoutProjection layout,
+            IReadOnlyList<ProjectedInventoryArtifactSettlement> artifacts)
+        {
             var result = new List<InventoryPositionEffectValue>();
-            var indexes = snapshot.Items.Select((item, index) => (item.ItemKey, index))
-                .ToDictionary(pair => pair.ItemKey, pair => pair.index);
-            var settlement = artifacts.ToDictionary(item => item.ItemKey);
-            var traits = snapshot.PositionEffects.Traits.ToDictionary(item => item.Item);
-            var dependencyRules = snapshot.PositionEffects.Rules.Where(rule =>
-                rule.Kind == InventoryPositionEffectKind.DependencyDamage).ToDictionary(rule => rule.Source);
+            settlement.Clear();
+            foreach (var artifact in artifacts) settlement.Add(artifact.ItemKey, artifact);
 
             foreach (var rule in snapshot.PositionEffects.Rules)
             {
@@ -95,7 +116,9 @@ namespace SephiriaEnhancements.Runtime.Inventory
                             // A dependency artifact rejects itself as a request root,
                             // so native traversal never visits its incoming dependencies.
                             bool eligible = target.Artifact.Attackable && !dependencyRules.ContainsKey(target.ItemKey);
-                            if (eligible && Reaches(rule.Source, target.ItemKey, new HashSet<InventoryItemKey>()))
+                            if (!eligible) continue;
+                            Array.Clear(visitedDependencies, 0, visitedDependencies.Length);
+                            if (Reaches(rule.Source, target.ItemKey))
                             {
                                 double bonus = value;
                                 if (rule.ConditionalDamage && traits[target.ItemKey].Rarity <= rule.MaximumRarity)
@@ -124,11 +147,16 @@ namespace SephiriaEnhancements.Runtime.Inventory
             }
             return result.ToArray();
 
-            bool Reaches(InventoryItemKey from, InventoryItemKey target, HashSet<InventoryItemKey> visited)
+            bool Reaches(InventoryItemKey from, InventoryItemKey target)
             {
-                if (!visited.Add(from) || !dependencyRules.TryGetValue(from, out var rule) ||
+                int sourceIndex = indexes[from];
+                ulong bit = 1UL << (sourceIndex & 63);
+                int word = sourceIndex >> 6;
+                if ((visitedDependencies[word] & bit) != 0) return false;
+                visitedDependencies[word] |= bit;
+                if (!dependencyRules.TryGetValue(from, out var rule) ||
                     !traits[from].NetworkReady) return false;
-                int origin = layout.GetCell(indexes[from]);
+                int origin = layout.GetCell(sourceIndex);
                 var offset = rule.Offsets[0];
                 int x = origin % snapshot.Width + offset.X;
                 int y = origin / snapshot.Width + offset.Y;
@@ -138,7 +166,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     var item = snapshot.Items[index];
                     if (layout.GetCell(index) != y * snapshot.Width + x || item.Artifact == null) continue;
                     if (item.ItemKey == target) return true;
-                    return Reaches(item.ItemKey, target, visited);
+                    return Reaches(item.ItemKey, target);
                 }
                 return false;
             }

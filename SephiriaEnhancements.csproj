@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <Compile Remove="tests/**/*.cs" />
+    <Compile Remove="Diagnostics/InventoryReproduction*.cs" Condition="'$(DeveloperTools)' != 'true'" />
   </ItemGroup>
 
   <Target Name="ValidateDeveloperTools" BeforeTargets="CoreCompile">

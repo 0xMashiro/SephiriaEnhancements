@@ -9,6 +9,7 @@ internal static class InventoryCapacitySemanticsChecks
 
     internal static string Run()
     {
+        VerifyBothSidesArtifactsAtPartialRowEnd();
         foreach ((int storage, int expectedHeight) in new[]
         {
             (24, 4), (30, 5), (32, 6), (36, 6), (42, 7)
@@ -50,6 +51,25 @@ internal static class InventoryCapacitySemanticsChecks
 
         return "capacities=24,30,32,36,42;partialRow=5x6+2;" +
             "positionalConditions=5";
+    }
+
+    private static void VerifyBothSidesArtifactsAtPartialRowEnd()
+    {
+        InventorySnapshot source = CreateConditionSnapshot(ArtifactActivationConditionKind.BothSidesArtifacts, 1);
+        var neighbor = new ArtifactSnapshot(1, 1, 0, 1, 1, true, false, false, "", true, false, false, "Pre",
+            new CriteriaSnapshot(ArtifactActivationConditionKind.None, CriteriaEvaluationState.NotApplicable,
+                CriteriaEvaluationState.NotApplicable), Array.Empty<string>(), Array.Empty<string>(), false, null);
+        var items = new[] { source.Items[0],
+            new InventoryItemSnapshot(2, 102, 1, 0, 0, 0, "Left", "", "Charm", "Normal", Array.Empty<string>(), InventoryItemKind.Artifact, neighbor, null),
+            new InventoryItemSnapshot(3, 103, 1, 2, 2, 0, "Right", "", "Charm", "Normal", Array.Empty<string>(), InventoryItemKind.Artifact, neighbor, null) };
+        var cells = source.Cells.Select(cell => cell.Index is 0 or 2
+            ? new InventoryCellSnapshot(cell.Index, cell.X, cell.Y, 1, 1, 0, 0, 0, 0, false, cell.Settlement) : cell).ToArray();
+        var snapshot = new InventorySnapshot(Width, 32, cells, items);
+        var current = InventorySettlementProjector.Evaluate(snapshot, InventoryLayoutProjection.Current(snapshot));
+        var partial = InventorySettlementProjector.Evaluate(snapshot,
+            new InventoryLayoutProjection(new[] { 31, 30, 0 }, new int[3]));
+        if (!current.Succeeded || !current.Artifacts[0].Enabled || !partial.Succeeded || partial.Artifacts[0].Enabled)
+            throw new InvalidOperationException("a missing right cell must disable the both-sides condition without indexing outside a partial row");
     }
 
     private static void AssertCondition(

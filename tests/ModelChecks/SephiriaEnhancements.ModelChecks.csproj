@@ -17,6 +17,10 @@
     <Compile Include="..\..\Features\Inventory\Presentation\InventoryOptimizationLocalization.Texts.cs" Link="Features/Inventory/Presentation/InventoryOptimizationLocalization.Texts.cs" />
     <Compile Include="..\..\Features\MultiplayerRules\Presentation\MultiplayerRulesLocalization.Rules.cs" Link="Features/MultiplayerRules/Presentation/MultiplayerRulesLocalization.Rules.cs" />
     <Compile Include="..\..\Diagnostics\RollingLogFile.cs" Link="Diagnostics\RollingLogFile.cs" />
+    <Compile Include="..\..\Diagnostics\InventoryReproductionCase.cs" Link="Diagnostics\InventoryReproductionCase.cs" />
+    <Compile Include="..\..\Diagnostics\InventoryReproductionEvidence.cs" Link="Diagnostics\InventoryReproductionEvidence.cs" />
+    <Compile Include="..\..\Diagnostics\InventoryReproductionJson.cs" Link="Diagnostics\InventoryReproductionJson.cs" />
+    <Compile Include="..\..\Diagnostics\InventoryReproductionLog.cs" Link="Diagnostics\InventoryReproductionLog.cs" />
     <Compile Include="..\..\Diagnostics\SupportLog.cs" Link="Diagnostics\SupportLog.cs" />
     <Compile Include="..\..\Runtime\GameBridge\Inventory\NativeInventoryEffectAccess.cs" Link="GameBridge\Inventory\NativeInventoryEffectAccess.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryIntentInteractionState.cs" Link="Inventory\InventoryIntentInteractionState.cs" />

@@ -383,7 +383,7 @@ namespace SephiriaEnhancements.Inventory
                 }
                 if (latest?.SettlementValidation.HasPositionEffectIssue == true)
                 {
-                    ShowMessage(InventoryOptimizationLocalization.PositionEffectFailureMessage(latest.SettlementValidation));
+                    ShowMessage(InventoryOptimizationLocalization.PositionEffectsUnavailable);
                     return;
                 }
                 RuntimeConsistencyState consistency = runtimeKernel.State?.Consistency ??
@@ -736,7 +736,7 @@ namespace SephiriaEnhancements.Inventory
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
                 RecordReproduction(InventoryReproductionReason.PositionEffectsChanged, snapshot);
 #endif
-                ShowMessage(InventoryOptimizationLocalization.PositionEffectFailureMessage(snapshot.SettlementValidation));
+                ShowMessage(InventoryOptimizationLocalization.PositionEffectsUnavailable);
                 ResetOperationState();
                 return;
             }

@@ -15,9 +15,9 @@ internal static class InventoryPositionEffectChecks
         DependencyChain();
         DependencyTraversalAcrossWords();
         InvalidAndChangedParameters();
-        UnavailableClientObservation();
+        ClientProjectionWithoutObservations();
         MixedSearchBudget();
-        return "9 effect kinds; runtime parameters; native-state mismatch; unavailable client observations; benefit preservation; inactive targets; dependency chains and cycles passed";
+        return "9 effect kinds; runtime parameters; native-state mismatch; client prediction without private observations; benefit preservation; inactive targets; dependency chains and cycles passed";
     }
 
     private static void NeighborDamageAndOptimization()
@@ -238,37 +238,49 @@ internal static class InventoryPositionEffectChecks
         Check(!failure.SettlementValidation.LayoutProjectionReady, "capture failure cannot become empty supported model");
     }
 
-    private static void UnavailableClientObservation()
+    private static void ClientProjectionWithoutObservations()
     {
+        var kind = InventoryPositionEffectKind.NeighborArtifactLevelDamage;
+        var rule = new InventoryPositionEffectRule(Key(0), kind, new[] { 2.0, 4.0 },
+            offsets: new[] { new InventoryOffsetSnapshot(1, 0) });
         foreach (bool enabled in new[] { false, true })
         {
-            // No observation is available, rather than an observed zero effect.
-            var snapshot = Board(2, new[] { enabled ? 1 : -1, 0 }, new[] { 0, 1 },
-                Array.Empty<InventoryPositionEffectRule>(), Array.Empty<InventoryPositionEffectValue>(),
-                issues: new[] { InventoryPositionEffectsSnapshot.ObservationUnavailableOnClient });
-            var validation = snapshot.SettlementValidation;
-            Check(validation.PositionEffectObservationUnavailableOnClient && validation.HasPositionEffectIssue &&
-                !validation.CurrentLayoutVerified && !validation.LayoutProjectionReady,
-                "missing client observation must reject both active and inactive effect sources");
-            Check(!validation.Issues.Any(issue => issue.StartsWith("PositionEffectMismatch:", StringComparison.Ordinal)),
-                "missing client observation must not be reported as a native-state mismatch");
-            Check(!InventorySettlementProjector.Evaluate(snapshot, InventoryLayoutProjection.Current(snapshot)).Succeeded,
-                "missing client observations must never enter the solver as an empty verified model");
-            Check(InventoryOptimizationLocalization.PositionEffectFailureMessage(validation) ==
-                InventoryOptimizationLocalization.PositionEffectObservationUnavailableOnClient,
-                "client observation limitation must have its own player message");
-            Check(!InventoryPositionEffectComparison.ParametersMatch(snapshot.PositionEffects, snapshot.PositionEffects),
-                "unavailable observations must invalidate an in-flight application");
+            int[] levels = { enabled ? 1 : -1, 1, 0, 0 };
+            var snapshot = Board(2, levels, new[] { 0, 1 }, new[] { rule },
+                Array.Empty<InventoryPositionEffectValue>(), observationsAvailable: false);
+            RequireReady(snapshot);
+            var current = InventoryLayoutProjection.Current(snapshot);
+            var expected = InventorySettlementProjector.Evaluate(snapshot, current);
+            Equal(enabled ? 4 : 0, expected.PositionEffects.Single().Value,
+                "client effects are predicted rather than treated as observed zeros");
+            Check(Scorer(snapshot).Score(current, expected).PositionEffectRegressions == 0,
+                "client baseline preserves existing benefits");
+            Check(InventorySettlementDifferentialVerifier.Compare(snapshot, current, expected, snapshot).Matched,
+                "matching native layout and synchronized state can confirm client settlement");
+            var moved = new InventoryLayoutProjection(new[] { 2, 1 }, new int[2]);
+            var after = InventorySettlementProjector.Evaluate(snapshot, moved);
+            var actual = Board(2, levels, new[] { 2, 1 }, new[] { rule },
+                Array.Empty<InventoryPositionEffectValue>(), observationsAvailable: false);
+            Check(InventorySettlementDifferentialVerifier.Compare(snapshot, moved, after, actual).Matched,
+                "client move can be confirmed without private effect caches");
+            Check(!InventorySettlementDifferentialVerifier.Compare(snapshot, moved, after, snapshot).Matched,
+                "missing native movement still fails confirmation");
+            if (enabled)
+            {
+                Check(Scorer(snapshot).Score(moved, after).PositionEffectRegressions == 1,
+                    "client scoring must penalize losing an existing position benefit");
+                var optimized = InventoryOptimizer.Solve(snapshot,
+                    InventoryOptimizationPolicyResolver.Resolve(snapshot, InventoryOptimizationPreferences.Default),
+                    new InventorySearchBudget(8, 1500, 5000));
+                Check(optimized.Succeeded && Scorer(snapshot).Score(optimized.Layout,
+                        InventorySettlementProjector.Evaluate(snapshot, optimized.Layout)).PositionEffectRegressions == 0,
+                    "client search completes while preserving position benefits");
+            }
         }
-        var noEffects = Board(2, new int[2], new[] { 0, 1 },
-            Array.Empty<InventoryPositionEffectRule>(), Array.Empty<InventoryPositionEffectValue>());
-        RequireReady(noEffects);
-        var mismatch = new InventorySettlementValidationSnapshot(InventorySettlementCapabilities.None,
-            new[] { "PositionEffectMismatch:source" });
-        Check(!mismatch.PositionEffectObservationUnavailableOnClient &&
-            InventoryOptimizationLocalization.PositionEffectFailureMessage(mismatch) ==
-                InventoryOptimizationLocalization.PositionEffectsUnavailable,
-            "an actual mismatch must remain distinct from unavailable client observations");
+        var invalid = Board(2, new int[2], new[] { 0, 1 }, new[] { rule }, new[] { Value(0, kind, 0) },
+            observationsAvailable: false);
+        Check(!invalid.SettlementValidation.LayoutProjectionReady,
+            "a client snapshot must not claim private cache observations");
     }
 
     private static void MixedSearchBudget()
@@ -309,7 +321,7 @@ internal static class InventoryPositionEffectChecks
 
     private static InventorySnapshot Board(int width, int[] levels, int[] positions,
         InventoryPositionEffectRule[] rules, InventoryPositionEffectValue[] observed,
-        InventoryPositionTargetTraits[]? traits = null, string[]? issues = null)
+        InventoryPositionTargetTraits[]? traits = null, string[]? issues = null, bool observationsAvailable = true)
     {
         var items = positions.Select((cell, index) =>
         {
@@ -325,7 +337,10 @@ internal static class InventoryPositionEffectChecks
             level, positions.Contains(cell) ? 3 : -1, 0, 0, 0, 0, false,
             new InventoryCellSettlementSnapshot(true, level, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))).ToArray();
         return new InventorySnapshot(width, levels.Length, cells, items,
-            positionEffects: new InventoryPositionEffectsSnapshot(rules, traits ?? Traits(items.Length), observed, issues));
+            comboCategories: new[] { new ComboCategorySnapshot("TestPlanet", items.Length, items.Length,
+                items.Length, 0, 0, Array.Empty<int>(), Array.Empty<int>(), false) },
+            positionEffects: new InventoryPositionEffectsSnapshot(rules, traits ?? Traits(items.Length), observed, issues,
+                observationsAvailable));
     }
 
     private static InventoryPositionEffectValue[] Project(InventorySnapshot snapshot, params int[] cells)
@@ -341,11 +356,23 @@ internal static class InventoryPositionEffectChecks
         var restored = InventorySettlementProjector.EvaluateForScoring(snapshot, current, workspace);
         Check(Effects(initial).SequenceEqual(Effects(restored)), "workspace does not retain candidate targets");
         Check(Effects(candidate).SequenceEqual(Effects(result)), "later projection does not mutate retained results");
+        var client = WithoutObservations(snapshot);
+        RequireReady(client);
+        var clientResult = InventorySettlementProjector.Evaluate(client, layout);
+        Check(Effects(clientResult).SequenceEqual(Effects(result)), "client and host predict the same position effects");
+        Check(Scorer(client).Score(layout, clientResult).CompareTo(Scorer(snapshot).Score(layout, result)) == 0,
+            "client and host scoring preserve the same position benefits");
         return result.PositionEffects.ToArray();
 
         static IEnumerable<(InventoryPositionEffectKey, double, bool)> Effects(ProjectedInventorySettlement settlement) =>
             settlement.PositionEffects.Select(effect => (effect.Key, effect.Value, effect.Mode));
     }
+    private static InventorySnapshot WithoutObservations(InventorySnapshot snapshot) =>
+        new(snapshot.Width, snapshot.Storage, snapshot.Cells.ToArray(), snapshot.Items.ToArray(),
+            comboCategories: snapshot.ComboCategories.ToArray(),
+            positionEffects: new InventoryPositionEffectsSnapshot(snapshot.PositionEffects.Rules.ToArray(),
+                snapshot.PositionEffects.Traits.ToArray(), null, snapshot.PositionEffects.Issues.ToArray(),
+                observationsAvailable: false));
     private static InventoryOptimizationScorer Scorer(InventorySnapshot snapshot) => new(snapshot,
         InventoryOptimizationPolicyResolver.Resolve(snapshot, InventoryOptimizationPreferences.Default));
     private static void RequireReady(InventorySnapshot snapshot) => Check(snapshot.SettlementValidation.LayoutProjectionReady,

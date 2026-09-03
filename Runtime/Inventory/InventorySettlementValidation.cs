@@ -23,7 +23,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
         SnapshotShapeVerified = 1 << 10,
         LayoutProjectionArrangementBonuses = 1 << 11,
         LayoutProjectionArtifactEffectsActive = 1 << 12,
-        CurrentPositionEffectsVerified = 1 << 13
+        CurrentPositionEffectInputsVerified = 1 << 13
     }
 
     internal sealed class InventoryCellSettlementSnapshot
@@ -90,8 +90,6 @@ namespace SephiriaEnhancements.Runtime.Inventory
             issue.StartsWith("SnapshotItemIdentityDuplicate:", StringComparison.Ordinal));
         internal bool HasPositionEffectIssue => Issues.Any(issue =>
             issue.StartsWith("PositionEffect", StringComparison.Ordinal));
-        internal bool PositionEffectObservationUnavailableOnClient => Issues.Contains(
-            InventoryPositionEffectsSnapshot.ObservationUnavailableOnClient);
         internal bool CurrentLayoutVerified =>
             Has(InventorySettlementCapabilities.SnapshotShapeVerified) &&
             Has(InventorySettlementCapabilities.BaselineState) &&
@@ -99,7 +97,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             Has(InventorySettlementCapabilities.CurrentArtifactActivationVerified) &&
             Has(InventorySettlementCapabilities.CurrentComboAccountingVerified) &&
             Has(InventorySettlementCapabilities.CurrentTabletApplicationVerified) &&
-            Has(InventorySettlementCapabilities.CurrentPositionEffectsVerified);
+            Has(InventorySettlementCapabilities.CurrentPositionEffectInputsVerified);
         internal bool LayoutProjectionReady => CurrentLayoutVerified &&
             Has(InventorySettlementCapabilities.LayoutProjectionArtifactEffectsActive) &&
             Has(InventorySettlementCapabilities.LayoutProjectionTabletEffects) &&
@@ -186,7 +184,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
             AddLayoutProjectionReadiness(snapshot, ref capabilities, issues);
             if (InventoryPositionEffectValidation.Validate(snapshot, issues))
-                capabilities |= InventorySettlementCapabilities.CurrentPositionEffectsVerified;
+                capabilities |= InventorySettlementCapabilities.CurrentPositionEffectInputsVerified;
             if (!snapshot.ArrangementBonusesEnabled)
             {
                 capabilities |= InventorySettlementCapabilities.

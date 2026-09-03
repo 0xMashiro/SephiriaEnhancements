@@ -43,7 +43,7 @@ namespace SephiriaEnhancements.Inventory
                 (rule, ArtifactTarget(rule.EntityId, -1))).ToArray();
             comboTargets = policy.ComboRules.Values.Select(rule =>
                 (rule, ComboTarget(rule.CategoryId))).ToArray();
-            baselineEffects = snapshot.PositionEffects.Observed.ToDictionary(value => value.Key);
+            baselineEffects = InventoryPositionEffectProjector.EvaluateCurrent(snapshot).ToDictionary(value => value.Key);
         }
 
         internal InventoryOptimizationScore Score(InventoryLayoutProjection layout,
@@ -248,7 +248,7 @@ namespace SephiriaEnhancements.Inventory
 
         private int CountPositionEffectRegressions(ProjectedInventorySettlement settlement)
         {
-            if (snapshot.PositionEffects.Observed.Count == 0 && settlement.PositionEffects.Count == 0) return 0;
+            if (baselineEffects.Count == 0 && settlement.PositionEffects.Count == 0) return 0;
             candidateEffects.Clear();
             foreach (var effect in settlement.PositionEffects) candidateEffects.Add(effect.Key, effect);
             int regressions = 0;

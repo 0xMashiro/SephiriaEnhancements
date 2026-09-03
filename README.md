@@ -105,8 +105,9 @@ marks show met, partly met and unmet goals. If item movement is interrupted, mov
 
 The Mod may skip upgrades that add
 unwanted costs, or stop when it cannot check an item's effects. Some arrangements remain unsupported,
-including multiple sources of the same-row companion effect. In co-op, non-host players currently cannot
-use the Mod's optimization on backpacks containing position-based effects, even if those effects are inactive.
+including multiple sources of the same-row companion effect. Position-based effects are calculated locally;
+item movement, levels, activation and combo counts are checked against the game's normal synchronization.
+Smart Arrange does not require the host to install this Mod.
 
 ### Retry after defeat
 

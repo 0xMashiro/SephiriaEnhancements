@@ -16,7 +16,7 @@ namespace SephiriaEnhancements.Diagnostics
     // properties are not part of the input contract; evidence is projected explicitly.
     internal static class InventoryReproductionJson
     {
-        internal const int SchemaVersion = 3;
+        internal const int SchemaVersion = 4;
         private static readonly Dictionary<Type, ConstructorInfo> Constructors = BuildContracts();
 
         internal static ConstructorInfo InputConstructor(Type type) => Constructors.TryGetValue(type, out ConstructorInfo constructor)

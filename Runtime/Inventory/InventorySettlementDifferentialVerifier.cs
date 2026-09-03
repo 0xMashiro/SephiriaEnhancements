@@ -248,11 +248,13 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     mismatches.Add("TabletApplied:" + predicted.ItemKey);
             }
 
-            mismatches.AddRange(actual.PositionEffects.Issues);
+            mismatches.AddRange(actual.SettlementValidation.Issues.Where(issue =>
+                issue.StartsWith("PositionEffect", StringComparison.Ordinal)));
             if (!InventoryPositionEffectComparison.ParametersMatch(source.PositionEffects, actual.PositionEffects))
                 mismatches.Add("PositionEffectParametersChanged");
-            mismatches.AddRange(InventoryPositionEffectComparison.Differences(
-                expected.PositionEffects, actual.PositionEffects.Observed));
+            if (actual.PositionEffects.ObservationsAvailable)
+                mismatches.AddRange(InventoryPositionEffectComparison.Differences(
+                    expected.PositionEffects, actual.PositionEffects.Observed));
             return new InventorySettlementDifferentialReport(mismatches
                 .Distinct(StringComparer.Ordinal).ToArray(), coverage);
         }

@@ -435,7 +435,8 @@ namespace SephiriaEnhancements.Diagnostics
             WriteLine("{\"event\":\"inventory_position_effects\",\"time\":" + TimeValue() +
                 ",\"inventoryRevision\":" + state.InventoryRevision +
                 ",\"rules\":[" + rules + "],\"traits\":[" + traits +
-                "],\"observed\":" + PositionEffects(effects.Observed) +
+                "],\"observationsAvailable\":" + Bool(effects.ObservationsAvailable) +
+                ",\"observed\":" + PositionEffects(effects.Observed) +
                 ",\"issues\":[" + string.Join(",", effects.Issues.Select(Json)) + "]}");
         }
 

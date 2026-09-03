@@ -115,22 +115,23 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
     internal sealed class InventoryPositionEffectsSnapshot
     {
-        internal const string ObservationUnavailableOnClient = "PositionEffectObservationUnavailableOnClient";
         internal static readonly InventoryPositionEffectsSnapshot Empty = new(null, null, null, null);
 
         internal InventoryPositionEffectsSnapshot(InventoryPositionEffectRule[] rules,
             InventoryPositionTargetTraits[] traits, InventoryPositionEffectValue[] observed,
-            string[] issues)
+            string[] issues, bool observationsAvailable = true)
         {
             Rules = Array.AsReadOnly((InventoryPositionEffectRule[])(rules ?? Array.Empty<InventoryPositionEffectRule>()).Clone());
             Traits = Array.AsReadOnly((InventoryPositionTargetTraits[])(traits ?? Array.Empty<InventoryPositionTargetTraits>()).Clone());
             Observed = Array.AsReadOnly((InventoryPositionEffectValue[])(observed ?? Array.Empty<InventoryPositionEffectValue>()).Clone());
             Issues = Array.AsReadOnly((string[])(issues ?? Array.Empty<string>()).Clone());
+            ObservationsAvailable = observationsAvailable;
         }
 
         internal IReadOnlyList<InventoryPositionEffectRule> Rules { get; }
         internal IReadOnlyList<InventoryPositionTargetTraits> Traits { get; }
         internal IReadOnlyList<InventoryPositionEffectValue> Observed { get; }
+        internal bool ObservationsAvailable { get; }
         internal IReadOnlyList<string> Issues { get; }
     }
 
@@ -140,6 +141,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             InventoryPositionEffectsSnapshot current)
         {
             if (source.Issues.Count != 0 || current.Issues.Count != 0 ||
+                source.ObservationsAvailable != current.ObservationsAvailable ||
                 source.Rules.Count != current.Rules.Count ||
                 source.Rules.Any(rule => rule == null) || current.Rules.Any(rule => rule == null) ||
                 source.Rules.Select(rule => rule.Source).Distinct().Count() != source.Rules.Count ||

@@ -27,7 +27,6 @@ internal static class InventoryOptimizationLocalizationChecks
                 !InventoryOptimizationLocalization.PreferenceChoiceKeys.All(
                     texts.ContainsKey) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.PositionEffectsUnavailable) ||
-                !texts.ContainsKey(InventoryOptimizationLocalization.PositionEffectObservationUnavailableOnClient) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudComboTargets) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudLevelEditUnbound) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudEditGoals) ||

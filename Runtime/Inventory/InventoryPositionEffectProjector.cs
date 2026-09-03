@@ -26,6 +26,13 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 new ulong[(snapshot.Items.Count + 63) / 64];
         }
 
+        internal static InventoryPositionEffectValue[] EvaluateCurrent(InventorySnapshot snapshot) =>
+            Evaluate(snapshot, InventoryLayoutProjection.Current(snapshot),
+                snapshot.Items.Where(item => item.Artifact != null).Select(item =>
+                    new ProjectedInventoryArtifactSettlement(item.ItemKey, item.Artifact.EffectEnabled,
+                        item.Artifact.PenaltyEnabled, item.Artifact.DisplayedLevel,
+                        item.Artifact.LimitedEffectEnabledLevel)).ToArray());
+
         internal static InventoryPositionEffectValue[] Evaluate(InventorySnapshot snapshot,
             InventoryLayoutProjection layout, IReadOnlyList<ProjectedInventoryArtifactSettlement> artifacts)
         {

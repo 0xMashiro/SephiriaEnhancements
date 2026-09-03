@@ -13,8 +13,9 @@ internal static class InventoryRowCategoryStatChecks
         RowAndActivationProjection();
         PreserveStatChannelAndRespectAvoid();
         RejectIncompleteOrStaleState();
+        ClientRowChangesAndSynchronization();
         Console.WriteLine("InventoryRowCategoryStats: RowAndActivationProjection; PreserveStatChannelAndRespectAvoid; " +
-            "RejectIncompleteOrStaleState passed");
+            "RejectIncompleteOrStaleState; ClientRowChangesAndSynchronization passed");
     }
 
     private static void RowAndActivationProjection()
@@ -78,8 +79,41 @@ internal static class InventoryRowCategoryStatChecks
                 "invalid row cycle, curve or observed contribution must reject projection");
     }
 
+    private static void ClientRowChangesAndSynchronization()
+    {
+        foreach (int level in new[] { -1, 0, 2 })
+        {
+            var levels = Enumerable.Repeat(level, 4).ToArray();
+            var client = Board(2, levels, observationsAvailable: false);
+            Ready(client);
+            Check(client.PositionEffects.Observed.Count == 0 && client.PositionEffects.Rules.Count == 1,
+                "client retains row rules without inventing observed damage");
+            var moved = new InventoryLayoutProjection(new[] { 2 }, new int[1]);
+            var expected = InventorySettlementProjector.Evaluate(client, moved);
+            var actual = Board(2, levels, origin: 2, observationsAvailable: false);
+            Ready(actual);
+            Check(InventorySettlementDifferentialVerifier.Compare(client, moved, expected, actual).Matched,
+                "row changes confirm from synchronized categories, positions and levels");
+            var stale = Board(2, levels, origin: 2, observationsAvailable: false, effectiveCategory: "A");
+            Check(!stale.SettlementValidation.CurrentLayoutVerified &&
+                stale.SettlementValidation.Issues.Any(issue => issue.StartsWith("PositionEffectRowCategoryMismatch:")),
+                "stale category must wait for native synchronization, including inactive sources");
+            Check(!InventorySettlementDifferentialVerifier.Compare(client, moved, expected, stale).Matched,
+                "matching item positions alone cannot confirm a row category change");
+            var host = Board(2, levels);
+            var hostExpected = InventorySettlementProjector.Evaluate(host, moved);
+            var policy = InventoryOptimizationPolicyResolver.Resolve(client, InventoryOptimizationPreferences.Default);
+            Check(new InventoryOptimizationScorer(client, policy).Score(moved, expected).CompareTo(
+                    new InventoryOptimizationScorer(host, policy).Score(moved, hostExpected)) == 0,
+                "row benefit preservation is identical on client and host");
+        }
+        var invalid = Board(2, new int[4], channels: new[] { "PowerA" }, observationsAvailable: false);
+        Check(!invalid.SettlementValidation.LayoutProjectionReady, "clients still reject incomplete effect models");
+    }
+
     internal static InventorySnapshot Board(int width, int[] levels, int origin = 0,
-        string[]? categories = null, string[]? channels = null, double[]? values = null, double? observedValue = null)
+        string[]? categories = null, string[]? channels = null, double[]? values = null, double? observedValue = null,
+        bool observationsAvailable = true, string? effectiveCategory = null)
     {
         categories ??= new[] { "A", "B" };
         channels ??= new[] { "PowerA", "PowerB" };
@@ -90,7 +124,7 @@ internal static class InventoryRowCategoryStatChecks
         var artifact = new ArtifactSnapshot(level, 2, 0, level, enabled ? Math.Min(2, level) : 0,
             enabled, !enabled, false, "", true, false, false, "Pre",
             new CriteriaSnapshot(ArtifactActivationConditionKind.None, CriteriaEvaluationState.NotApplicable,
-                CriteriaEvaluationState.NotApplicable), new[] { category }, categories.Distinct().ToArray(), true, null,
+                CriteriaEvaluationState.NotApplicable), new[] { effectiveCategory ?? category }, categories.Distinct().ToArray(), true, null,
             new ArtifactCategoryRuleSnapshot(ArtifactCategoryRuleKind.RowModulo, categories));
         var item = new InventoryItemSnapshot(Source.NativeInstanceId, Source.EntityId, 1, origin, origin % width, origin / width,
             "Synthetic row artifact", "", "Charm", "Normal", Array.Empty<string>(), InventoryItemKind.Artifact, artifact, null);
@@ -100,11 +134,15 @@ internal static class InventoryRowCategoryStatChecks
         // Independent fixture expectation; do not ask the projector to generate its own baseline.
         double observed = observedValue ?? (enabled ? new[] { 7.0, 11.0, 19.0 }[Math.Min(2, level)] : 0);
         return new InventorySnapshot(width, levels.Length, cells, new[] { item },
+            comboCategories: categories.Distinct().Select(value => new ComboCategorySnapshot(value,
+                value == category ? 1 : 0, value == category ? 1 : 0, value == category ? 1 : 0, 0, 0,
+                Array.Empty<int>(), Array.Empty<int>(), false)).ToArray(),
             positionEffects: new InventoryPositionEffectsSnapshot(
                 new[] { new InventoryPositionEffectRule(Source, Kind, values, channels: channels) },
                 new[] { new InventoryPositionTargetTraits(Source, false, false, true, 0, false) },
-                new[] { new InventoryPositionEffectValue(new InventoryPositionEffectKey(Source, Kind, null,
-                    channels[origin / width % channels.Length]), observed, false) }, Array.Empty<string>()));
+                observationsAvailable ? new[] { new InventoryPositionEffectValue(new InventoryPositionEffectKey(Source, Kind, null,
+                    channels[origin / width % channels.Length]), observed, false) } : Array.Empty<InventoryPositionEffectValue>(),
+                Array.Empty<string>(), observationsAvailable));
     }
 
     internal static void AssertProjection(InventorySnapshot board, int cell, string category, string channel, double amount)

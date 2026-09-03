@@ -15,6 +15,11 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 issues.AddRange(state.Issues);
                 return false;
             }
+            if (!state.ObservationsAvailable && state.Observed.Count != 0)
+            {
+                issues.Add("PositionEffectObservationInvalid");
+                return false;
+            }
             if (state.Rules.Count == 0)
             {
                 if (state.Observed.Count == 0) return true;
@@ -45,12 +50,19 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 issues.Add("PositionEffectRowCategoryCycleUnavailable");
                 return false;
             }
-            var actual = artifacts.Values.Select(item => new ProjectedInventoryArtifactSettlement(
-                item.ItemKey, item.Artifact.EffectEnabled, item.Artifact.PenaltyEnabled,
-                item.Artifact.DisplayedLevel, item.Artifact.LimitedEffectEnabledLevel)).ToArray();
+            // Row categories are synchronized even for inactive artifacts. Wait for
+            // their actual category to agree with the current position on either peer.
+            foreach (var rule in state.Rules.Where(rule => rule.Kind == InventoryPositionEffectKind.RowCategoryStats))
+            {
+                var item = artifacts[rule.Source];
+                var categories = item.Artifact.CategoryRule.RowCategories;
+                if (!item.Artifact.EffectiveCategories.SequenceEqual(new[] { categories[item.Y % categories.Count] }))
+                    issues.Add("PositionEffectRowCategoryMismatch:" + item.ItemKey);
+            }
+            if (issues.Any(issue => issue.StartsWith("PositionEffect", StringComparison.Ordinal))) return false;
+            if (!state.ObservationsAvailable) return true;
             var differences = InventoryPositionEffectComparison.Differences(
-                InventoryPositionEffectProjector.Evaluate(snapshot, InventoryLayoutProjection.Current(snapshot), actual),
-                state.Observed);
+                InventoryPositionEffectProjector.EvaluateCurrent(snapshot), state.Observed);
             issues.AddRange(differences);
             return differences.Length == 0;
         }

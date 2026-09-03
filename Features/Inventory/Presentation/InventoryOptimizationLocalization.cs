@@ -30,8 +30,6 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.Inventory.ItemIdentityConflict";
         internal const string PositionEffectsUnavailable =
             "SephiriaEnhancements.Inventory.PositionEffectsUnavailable";
-        internal const string PositionEffectObservationUnavailableOnClient =
-            "SephiriaEnhancements.Inventory.PositionEffectObservationUnavailableOnClient";
         internal const string Unsupported =
             "SephiriaEnhancements.Inventory.Unsupported";
         internal const string Changed =
@@ -161,10 +159,6 @@ namespace SephiriaEnhancements.Inventory
         internal static string FormatArtifactMinimumLevel(int level, Func<string, string> localize) =>
             level == 0 ? localize(HudEnabled) : string.Format(localize(HudMinimumLevel), level);
 
-        internal static string PositionEffectFailureMessage(InventorySettlementValidationSnapshot validation) =>
-            validation.PositionEffectObservationUnavailableOnClient
-                ? PositionEffectObservationUnavailableOnClient : PositionEffectsUnavailable;
-
         internal static string FormatArtifactTarget(ArtifactOptimizationPreference rule,
             ArtifactSnapshot artifact, Func<string, string> localize, int? targetLevel = null)
         {
@@ -207,7 +201,6 @@ namespace SephiriaEnhancements.Inventory
             ItemIdentityConflict,
             Unsupported,
             PositionEffectsUnavailable,
-            PositionEffectObservationUnavailableOnClient,
             Changed,
             OptimizationUnavailable,
             GameplayContextChanged,

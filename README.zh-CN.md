@@ -179,6 +179,42 @@ Get-Content -LiteralPath .\SHA256SUMS.txt
 
 ## 问题反馈与日志
 
+通过 [GitHub Issues](https://github.com/0xMashiro/SephiriaEnhancements/issues) 反馈问题或提出建议。
+请先搜索已有 Issue；相同问题可以补充到原帖，否则
+[新建 Issue](https://github.com/0xMashiro/SephiriaEnhancements/issues/new/choose)。支持中文或英文反馈。
+报告故障时，请提供：
+
+- 游戏和 Mod 版本，以及使用的是普通版还是开发版。
+- 复现步骤、预期表现、实际表现和发生频率。
+- 单人还是联机；联机时说明自己是房主还是客户端，以及玩家人数。
+- 操作系统、游戏语言、相关 Mod 设置、输入设备和其他已安装 Mod。
+- 下方说明的反馈日志，必要时附截图或短视频。找不到日志或无法稳定复现时，
+  请直接说明，仍然可以提交问题。
+
+提出建议时，说明希望改善的使用场景和预期行为即可；只有日志有助于说明问题时才需要提供。
+
+### 查找并附上日志（Windows）
+
+Mod 反馈日志与游戏原始日志位于**不同目录**：
+
+| 文件 | 位置 | 何时提供 |
+| --- | --- | --- |
+| `support.log`、`support.1.log`、`support.2.log`（以实际存在为准） | 系统**文档**目录 → `Saved Games\Sephiria\Mods\SephiriaEnhancements\Logs\Support` | 报告故障时附上全部现有 `support*.log` |
+| `Player.log` | `%USERPROFILE%\AppData\LocalLow\TEAMHORAY\Sephiria` | 加载失败、崩溃或维护者要求时 |
+| `Player-prev.log`（如果存在） | 与 `Player.log` 相同 | 问题发生后已经重启过游戏时，一并提供 |
+
+按 **Win+R**，输入 `shell:Personal` 打开系统“文档”，再进入上表中的反馈日志目录。
+此方法也适用于“文档”被重定向到 OneDrive 等位置的情况。查找游戏日志时，将
+`%USERPROFILE%\AppData\LocalLow\TEAMHORAY\Sephiria` 粘贴到资源管理器地址栏。
+这些是存档或日志位置，不是游戏安装目录。
+
+问题发生后请及时复制相关文件，尽量在再次启动游戏前保存，避免后续运行覆盖旧日志。
+检查文件内容后压缩为 ZIP，作为附件上传到 Issue。游戏日志可能包含本机路径、玩家信息
+及其他 Mod 的消息，公开上传前请移除私人信息。无需上传整个存档目录或游戏文件。
+如果 Mod 加载失败，可能不会生成反馈日志，此时请提供游戏日志。
+
+### 反馈日志记录什么
+
 普通版和开发版都会自动在游戏存档目录下的
 `Mods/SephiriaEnhancements/Logs/Support/` 写入用户反馈日志。提交问题时，请附上此目录
 内的 `support*.log`，并说明复现步骤。这些日志只保存在本机，不会自动上传。日志包含
@@ -189,6 +225,10 @@ Mod 与游戏版本、构建类型、功能事件码、战斗 HUD 状态、背�
 
 游戏的 `Player.log` 仍保留原始加载、警告和错误消息。如果上述摘要不足以定位问题，
 维护者可能另行请求此文件；其中可能包含游戏、其他 Mod 和本机环境信息。
+
+### 开发诊断日志
+
+普通问题反馈无需安装开发版或添加诊断启动参数。使用开发版协助排查时，可额外提供以下日志。
 
 开发版还支持启动参数 `-sephiria-enhancements-devlog`，在
 `Mods/SephiriaEnhancements/Logs/Developer/` 写入 `diagnostics*.jsonl`。

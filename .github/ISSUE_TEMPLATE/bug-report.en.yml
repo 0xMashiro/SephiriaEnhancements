@@ -1,0 +1,60 @@
+name: Bug report (English)
+description: Report a problem with SephiriaEnhancements.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search [existing issues](https://github.com/0xMashiro/SephiriaEnhancements/issues) first and add details there if the same problem has been reported.
+        See [log locations and attachment instructions](https://github.com/0xMashiro/SephiriaEnhancements/blob/HEAD/README.md#find-and-attach-logs-windows).
+        Missing logs or an intermittent problem should not prevent you from reporting. Write "unknown" where necessary.
+  - type: input
+    id: versions
+    attributes:
+      label: Game and Mod versions
+      description: Include whether the Mod is a release or development build.
+      placeholder: "Game version / Mod version / release or development"
+    validations:
+      required: true
+  - type: dropdown
+    id: play-mode
+    attributes:
+      label: Play mode and your role
+      options:
+        - Solo
+        - Co-op host
+        - Co-op client
+        - Before entering a game / not applicable
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Settings and environment
+      description: Include OS, game language, keyboard/mouse or controller, relevant Mod settings and other mods (or none). For co-op, include player count and other players' Mod versions if known.
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Describe what you did and how often the problem occurs. If it happened only once, describe what happened beforehand.
+      placeholder: |
+        1.
+        2.
+        Frequency:
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Describe what you expected and what happened, including any on-screen error text.
+    validations:
+      required: true
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Logs, screenshots or video
+      description: |
+        Attach a ZIP containing available support*.log files from Documents → `Saved Games\Sephiria\Mods\SephiriaEnhancements\Logs\Support`.
+        For loading failures or crashes, also attach Player.log from `%USERPROFILE%\AppData\LocalLow\TEAMHORAY\Sephiria`, plus Player-prev.log if you restarted after the problem.
+        Copy logs before restarting again. Remove private information before uploading; attachments are public. If logs are unavailable, say so. Do not upload game files or your entire save folder.

@@ -214,6 +214,45 @@ download has not changed; it does not guarantee code safety.
 
 ## Reporting problems and logs
 
+Report bugs and suggest improvements through [GitHub Issues](https://github.com/0xMashiro/SephiriaEnhancements/issues).
+Search existing issues first; add details to a matching report or
+[open a new issue](https://github.com/0xMashiro/SephiriaEnhancements/issues/new/choose).
+Reports in English or Chinese are welcome. For bugs, include:
+
+- Game and Mod versions, and whether you use a release or development build.
+- Steps to reproduce, expected and actual behavior, and how often it happens.
+- Solo or co-op; for co-op, your host/client role and the number of players.
+- Operating system, game language, relevant Mod settings, input device and other installed mods.
+- The support logs below, plus screenshots or a short video when helpful. If logs are
+  missing or the issue cannot be reproduced reliably, say so; you can still report it.
+
+For suggestions, describe the situation you want to improve and the desired behavior;
+logs are only needed when they help explain a problem.
+
+### Find and attach logs (Windows)
+
+The Mod's support logs and the game's original logs are in **different directories**:
+
+| Files | Location | When to attach |
+| --- | --- | --- |
+| `support.log`, `support.1.log`, `support.2.log` (when present) | Your system **Documents** folder → `Saved Games\Sephiria\Mods\SephiriaEnhancements\Logs\Support` | Include all available `support*.log` files with a bug report |
+| `Player.log` | `%USERPROFILE%\AppData\LocalLow\TEAMHORAY\Sephiria` | For loading failures, crashes, or when requested |
+| `Player-prev.log` (when present) | Same directory as `Player.log` | Also include it if you have restarted since the problem |
+
+To open Documents, press **Win+R**, enter `shell:Personal`, then navigate to the support
+log folder above. This also works when Documents is redirected, for example to OneDrive.
+For game logs, paste `%USERPROFILE%\AppData\LocalLow\TEAMHORAY\Sephiria` into File Explorer's
+address bar. These are save/log locations, not the game's installation folder.
+
+Copy the relevant files soon after the problem occurs, before launching the game again;
+later sessions can replace older logs. Review the files, compress them into a ZIP and
+attach it to the issue. Game logs can include local paths, player information and messages
+from other mods; remove private information before posting publicly. You do not need to
+upload your entire save folder or game files. If the Mod fails to load, support logs may
+not be created; attach the game log instead.
+
+### What the support logs contain
+
 Both release and development builds automatically write support logs under
 `Mods/SephiriaEnhancements/Logs/Support/` in the game's save directory. Include the
 `support*.log` files and reproduction steps when reporting a problem. These logs remain
@@ -228,6 +267,12 @@ in the game log without interrupting gameplay features.
 The game's `Player.log` still contains the original loading messages, warnings and
 errors. A maintainer may request it when the support summary is insufficient; it may
 contain information from the game, other mods, and your local environment.
+
+### Development diagnostics
+
+Normal bug reports do not require a development build or diagnostic launch arguments.
+If you are using a development build to investigate a problem, the following additional
+logs are available.
 
 Development builds also accept `-sephiria-enhancements-devlog` to write
 `diagnostics*.jsonl` under `Mods/SephiriaEnhancements/Logs/Developer/`. These diagnostics

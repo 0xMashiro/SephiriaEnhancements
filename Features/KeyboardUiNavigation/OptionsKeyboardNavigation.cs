@@ -79,12 +79,6 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             eventData.Use();
             return false;
         }
-
-        internal static bool Owns(Selectable source)
-        {
-            UI_OptionsPanel panel = ActivePanel();
-            return panel != null && source.transform.IsChildOf(panel.transform);
-        }
     }
 
     [HarmonyPatch(typeof(UI_OptionsPanel), nameof(UI_OptionsPanel.SelectTab))]
@@ -102,36 +96,5 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static bool Prefix(Selectable __instance, AxisEventData eventData) =>
             OptionsKeyboardNavigation.Move(__instance, eventData);
-    }
-
-    [HarmonyPatch]
-    internal static class OptionsPointerExitSelectionPatch
-    {
-        private static IEnumerable<System.Reflection.MethodBase> TargetMethods()
-        {
-            yield return AccessTools.Method(typeof(UI_HorizontalSelectionBox), "OnPointerExit");
-            yield return AccessTools.Method(typeof(UI_HorayButton), "OnPointerExit");
-        }
-
-        private static bool Prefix(Selectable __instance) =>
-            !OptionsKeyboardNavigation.Owns(__instance);
-    }
-
-    [HarmonyPatch]
-    internal static class OptionsPointerEnterSelectionPatch
-    {
-        private static IEnumerable<System.Reflection.MethodBase> TargetMethods()
-        {
-            yield return AccessTools.Method(typeof(UI_HorizontalSelectionBox), "OnPointerEnter");
-            yield return AccessTools.Method(typeof(UI_HorayButton), "OnPointerEnter");
-        }
-
-        private static bool Prefix(Selectable __instance)
-        {
-            if (!OptionsKeyboardNavigation.Owns(__instance)) return true;
-            Mouse mouse = Mouse.current;
-            return mouse != null && (mouse.delta.ReadValue().sqrMagnitude > 0f ||
-                mouse.leftButton.wasPressedThisFrame);
-        }
     }
 }

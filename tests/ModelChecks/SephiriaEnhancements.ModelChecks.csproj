@@ -80,6 +80,7 @@
     <Compile Include="..\..\Features\Inventory\Core\InventoryComboTargetEditor.cs" Link="Inventory\InventoryComboTargetEditor.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryArtifactIntentEditor.cs" Link="Inventory\InventoryArtifactIntentEditor.cs" />
     <Compile Include="..\..\Features\KeyboardUiNavigation\Core\KeyboardSelectionRecoveryPolicy.cs" Link="KeyboardUiNavigation\KeyboardSelectionRecoveryPolicy.cs" />
+    <Compile Include="..\..\Features\KeyboardUiNavigation\Core\KeyboardPointerOwnership.cs" Link="KeyboardUiNavigation\KeyboardPointerOwnership.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationPreferencesCodec.cs" Link="Inventory\InventoryOptimizationPreferencesCodec.cs" />
     <Compile Include="..\..\Features\Inventory\Presentation\InventoryOptimizationLocalization.cs" Link="Inventory\InventoryOptimizationLocalization.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryArrangementLifecyclePolicy.cs" Link="Inventory\InventoryArrangementLifecyclePolicy.cs" />

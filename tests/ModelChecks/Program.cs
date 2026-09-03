@@ -19,6 +19,9 @@ using SephiriaEnhancements.ModelChecks.Runtime.GameBridge.Multiplayer;
 using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 
+KeyboardPointerOwnershipChecks.Run();
+if (args.Contains("--keyboard-pointer-only")) return;
+
 if (args.Contains("--combat-targeting-only"))
 {
     CombatTargetingChecks.Run();

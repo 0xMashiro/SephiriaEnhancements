@@ -28,6 +28,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         private void Update()
         {
+            KeyboardUiPointer.RefreshInput();
             ApplyNativeSelectionPolicy(ControlsChangeHandler.Current);
             if (!EnhancementsSettings.Enabled)
             {
@@ -41,8 +42,22 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             RestoreMissingKeyboardSelection();
         }
 
+        private void LateUpdate()
+        {
+            // Navigation and scroll/layout updates can run after a picker's Update.
+            // Resolve its final position again before rendering the same frame.
+            if (KeyboardUiPointer.SelectedTarget() != null)
+            {
+                UI_NewItemPicker_Controller picker = UIManager.Instance
+                    .GetElement<UI_NewItemPicker_Controller>();
+                if (picker != null) KeyboardUiPointer.PositionCarriedItem(picker);
+            }
+            KeyboardUiPointer.UpdateCursor();
+        }
+
         private void OnDestroy()
         {
+            KeyboardUiPointer.Reset();
             SetKeyboardDefaultSelection(ControlsChangeHandler.Current, false);
             ClearPendingSelection();
             if (current == this)
@@ -53,6 +68,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         internal void ResetGameplayContext()
         {
+            KeyboardUiPointer.Reset();
             ClearPendingSelection();
         }
 
@@ -205,7 +221,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         private static bool WasKeyboardNavigationPressed()
         {
-            if (!IsKeyboardModeActive())
+            if (!IsKeyboardModeActive() || !KeyboardUiPointer.OwnsFocus)
             {
                 return false;
             }

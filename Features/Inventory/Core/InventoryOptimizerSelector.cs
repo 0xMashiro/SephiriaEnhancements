@@ -55,6 +55,59 @@ namespace SephiriaEnhancements.Inventory
         internal InventorySnapshot Snapshot { get; }
         internal ResolvedInventoryOptimizationPolicy Policy { get; }
         internal InventorySearchBudget Budget { get; }
+
+        // Strategies supply a layout and search evidence, never their own scoring
+        // semantics. Build all player-facing results from the original request.
+        internal InventoryOptimizationProposal CreateProposal(
+            InventoryLayoutProjection layout, int candidateEvaluations,
+            InventorySearchTerminationReason terminationReason,
+            long elapsedMilliseconds,
+            InventoryOptimizationSearchMethod searchMethod = InventoryOptimizationSearchMethod.Neighborhood,
+            bool optimalityProven = false, int duplicateLayoutsSkipped = 0,
+            IReadOnlyDictionary<string, InventoryTargetSearchEvidence> searchEvidence = null,
+            InventorySearchStageStatistics[] searchStages = null)
+        {
+            if (Snapshot == null || Policy == null || layout == null ||
+                layout.CopyRotations().Length != layout.ItemCount)
+                return Reject("OptimizationInputUnavailable");
+
+            ProjectedInventorySettlement after = InventorySettlementProjector.Evaluate(Snapshot, layout);
+            if (!after.Succeeded)
+                return Reject(after.Issues.ToArray());
+            for (int index = 0; index < Snapshot.Items.Count; index++)
+            {
+                StoneTabletSnapshot tablet = Snapshot.Items[index].StoneTablet;
+                if (tablet != null && !Policy.AllowStoneTabletRotation &&
+                    layout.GetRotation(index) != tablet.Rotation)
+                    return Reject("StoneTabletRotationDisabled");
+            }
+
+            InventoryLayoutProjection original = InventoryLayoutProjection.Current(Snapshot);
+            ProjectedInventorySettlement before = InventorySettlementProjector.Evaluate(Snapshot, original);
+            if (!before.Succeeded)
+                return Reject(before.Issues.ToArray());
+            var scorer = new InventoryOptimizationScorer(Snapshot, Policy);
+            InventoryOptimizationScore current = scorer.Score(original, before);
+            InventoryOptimizationScore best = scorer.Score(layout, after);
+            if (best.CompareTo(current) < 0)
+            {
+                layout = original;
+                after = before;
+                best = current;
+                optimalityProven = false;
+            }
+            return new InventoryOptimizationProposal(true, layout, current, best,
+                candidateEvaluations, Array.Empty<string>(), Policy,
+                scorer.EvaluateTargets(before, after, searchEvidence, optimalityProven),
+                terminationReason, elapsedMilliseconds, searchMethod, optimalityProven,
+                duplicateLayoutsSkipped, InventoryOptimizationOutcomeBuilder.Build(
+                    Snapshot, before, after, current, best), searchStages);
+
+            InventoryOptimizationProposal Reject(params string[] issues) => new(false,
+                null, null, null, candidateEvaluations, issues, Policy,
+                terminationReason: InventorySearchTerminationReason.InputRejected,
+                elapsedMilliseconds: elapsedMilliseconds, searchMethod: searchMethod);
+        }
     }
 
     internal interface IInventoryLayoutOptimizer
@@ -75,6 +128,7 @@ namespace SephiriaEnhancements.Inventory
             new()
             {
                 new ExactInventoryLayoutOptimizer(),
+                new MultiStartInventoryLayoutOptimizer(),
                 new BoundedInventoryLayoutOptimizer()
             };
 
@@ -123,19 +177,42 @@ namespace SephiriaEnhancements.Inventory
         {
             var request = new InventoryOptimizationRequest(snapshot, policy,
                 budget);
-            foreach (IInventoryLayoutOptimizer optimizer in
-                InventoryOptimizerRegistry.Capture())
+            return Solve(request, InventoryOptimizerRegistry.Capture(), cancellationToken);
+        }
+
+        // Explicit composition also lets contract checks exercise a contributed
+        // strategy without changing the process-wide registry.
+        internal static InventoryOptimizationProposal Solve(
+            InventoryOptimizationRequest request,
+            IEnumerable<IInventoryLayoutOptimizer> optimizers,
+            CancellationToken cancellationToken = default)
+        {
+            foreach (IInventoryLayoutOptimizer optimizer in optimizers)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (optimizer.CanOptimize(request) && optimizer.TryOptimize(
                         request, cancellationToken,
-                        out InventoryOptimizationProposal proposal))
+                        out InventoryOptimizationProposal proposal) && proposal != null)
                 {
-                    return proposal;
+                    if (!proposal.Succeeded) return proposal;
+                    var evidence = new Dictionary<string, InventoryTargetSearchEvidence>(StringComparer.Ordinal);
+                    foreach (InventoryOptimizationTargetEvaluation target in proposal.TargetEvaluations)
+                        evidence[target.Target] = new InventoryTargetSearchEvidence(
+                            target.MaximumObservedValue, target.MaximumObservedCompletionPoints,
+                            target.Reachability == InventoryTargetReachability.SelectedLayoutReachesCondition ||
+                            target.Reachability == InventoryTargetReachability.ObservedReachable);
+                    InventoryOptimizationProposal verified = request.CreateProposal(
+                        proposal.Layout, proposal.CandidateEvaluations,
+                        proposal.TerminationReason, proposal.ElapsedMilliseconds,
+                        proposal.SearchMethod, proposal.OptimalityProven &&
+                            optimizer.Metadata.Capabilities.HasFlag(InventoryOptimizerCapabilities.OptimalityProof),
+                        proposal.DuplicateLayoutsSkipped, evidence, proposal.SearchStages.ToArray());
+                    if (verified.TerminationReason != InventorySearchTerminationReason.InputRejected)
+                        return verified;
                 }
             }
 
-            return InventoryOptimizer.Solve(snapshot, policy, request.Budget,
+            return InventoryOptimizer.Solve(request.Snapshot, request.Policy, request.Budget,
                 cancellationToken);
         }
     }
@@ -162,7 +239,7 @@ namespace SephiriaEnhancements.Inventory
             }
             return InventoryExhaustiveSearchOracle.EstimateCandidateLayouts(
                 request.Snapshot,
-                request.Budget.MaximumCandidateEvaluations) <=
+                request.Budget.MaximumCandidateEvaluations, request.Policy.AllowStoneTabletRotation) <=
                 request.Budget.MaximumCandidateEvaluations;
         }
 
@@ -174,7 +251,7 @@ namespace SephiriaEnhancements.Inventory
                 InventoryExhaustiveSearchOracle.Solve(request.Snapshot,
                     request.Policy, new InventoryExhaustiveSearchLimits(
                         request.Budget.MaximumCandidateEvaluations,
-                        request.Budget.MaximumElapsedMilliseconds),
+                        request.Budget.MaximumElapsedMilliseconds, request.Budget.UseElapsedTimeLimit),
                     cancellationToken);
             if (!exact.SearchStarted)
             {
@@ -182,31 +259,14 @@ namespace SephiriaEnhancements.Inventory
                 return false;
             }
 
-            InventoryLayoutProjection current = InventoryLayoutProjection.Current(
-                request.Snapshot);
-            ProjectedInventorySettlement currentSettlement =
-                InventorySettlementProjector.Evaluate(
-                    request.Snapshot, current);
-            ProjectedInventorySettlement bestSettlement =
-                InventorySettlementProjector.Evaluate(
-                    request.Snapshot, exact.BestLayout);
-            var scorer = new InventoryOptimizationScorer(request.Snapshot,
-                request.Policy);
-            InventoryOptimizationOutcome outcome =
-                InventoryOptimizationOutcomeBuilder.Build(request.Snapshot,
-                    currentSettlement, bestSettlement, exact.CurrentScore,
-                    exact.BestScore);
-            proposal = new InventoryOptimizationProposal(true,
-                exact.BestLayout, exact.CurrentScore, exact.BestScore,
-                exact.CandidateLayoutsEvaluated, exact.Issues.ToArray(),
-                request.Policy, scorer.EvaluateTargets(currentSettlement,
-                    bestSettlement, exact.TargetSearchEvidence,
-                    exact.ProvenOptimal), exact.ProvenOptimal
+            proposal = request.CreateProposal(exact.BestLayout,
+                exact.CandidateLayoutsEvaluated, exact.SearchSpaceExhausted
                     ? InventorySearchTerminationReason.SearchSpaceExhausted
                     : InventorySearchTerminationReason.ElapsedTimeLimit,
                 exact.ElapsedMilliseconds,
                 InventoryOptimizationSearchMethod.Exhaustive,
-                optimalityProven: exact.ProvenOptimal, outcome: outcome);
+                optimalityProven: exact.SearchSpaceExhausted,
+                searchEvidence: exact.TargetSearchEvidence);
             return true;
         }
     }

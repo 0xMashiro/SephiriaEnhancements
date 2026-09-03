@@ -30,6 +30,12 @@ internal static class InventoryOptimizationLocalizationChecks
                 !texts.ContainsKey(InventoryOptimizationLocalization.PositionEffectObservationUnavailableOnClient) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudComboTargets) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudLevelEditUnbound) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.HudEditGoals) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.HudEditGoalsShortcut) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.HudConstraintHelp) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.HudComboPersistence) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.HudControllerBoardHint) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.HudControllerChooseIntentSlot) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudOptimize) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.
                     HudMarkArtifacts) ||
@@ -74,11 +80,11 @@ internal static class InventoryOptimizationLocalizationChecks
     {
         var cases = new[]
         {
-            (InventoryPreferenceChoice.Automatic, 3, "自动选择", "Choose automatically"),
-            (InventoryPreferenceChoice.Priority, 0, "计数不限（0）", "No minimum count (0)"),
-            (InventoryPreferenceChoice.Priority, 3, "计数至少 3", "Count: 3 or more"),
-            (InventoryPreferenceChoice.Avoid, 0, "计数最多 0", "Count: 0 or fewer"),
-            (InventoryPreferenceChoice.Avoid, 3, "计数最多 3", "Count: 3 or fewer")
+            (InventoryPreferenceChoice.Automatic, 3, "自动", "Automatic"),
+            (InventoryPreferenceChoice.Priority, 0, "不设下限", "No minimum"),
+            (InventoryPreferenceChoice.Priority, 3, "至少 3", "MIN 3"),
+            (InventoryPreferenceChoice.Avoid, 0, "最多 0", "MAX 0"),
+            (InventoryPreferenceChoice.Avoid, 3, "最多 3", "MAX 3")
         };
         if (InventoryOptimizationLocalization.PreferenceChoiceKeys.Length != 3)
             throw new InvalidOperationException("target editor must expose only Automatic, Priority and Avoid");

@@ -84,7 +84,7 @@ namespace SephiriaEnhancements.Inventory
         internal bool TryEditLevel(ArtifactOptimizationPreference source)
         {
             if (!Editable || HasPickup || source?.TargetsInstance != true ||
-                source.Level != InventoryPreferenceLevel.Priority || source.IntentSlotIndex < 0)
+                source.IntentSlotIndex < 0)
             {
                 return false;
             }

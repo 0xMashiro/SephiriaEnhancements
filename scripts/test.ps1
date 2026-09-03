@@ -22,7 +22,7 @@ foreach ($patch in @(
     }
 }
 
-dotnet restore $modelProject
+dotnet restore $modelProject --locked-mode
 if ($LASTEXITCODE -ne 0) { throw 'Model check restore failed.' }
 
 dotnet format $modelProject --verify-no-changes --no-restore --verbosity quiet

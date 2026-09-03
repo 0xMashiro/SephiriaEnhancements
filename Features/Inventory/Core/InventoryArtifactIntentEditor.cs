@@ -83,14 +83,26 @@ namespace SephiriaEnhancements.Inventory
                 return preferences;
             }
             int level = Math.Max(0, Math.Min(item.Artifact.MaxLevel, minimumEffectiveLevel));
-            if (level == source.MinimumEffectiveLevel)
+            var mode = level == 0 ? ArtifactLevelTargetMode.ActiveOnly : ArtifactLevelTargetMode.SpecifiedLevel;
+            if (level == source.MinimumEffectiveLevel && source.TargetMode == mode)
             {
                 return preferences;
             }
             return ReplaceArtifacts(preferences, preferences.ArtifactPreferences.Select(rule =>
                 ReferenceEquals(rule, source)
                     ? new ArtifactOptimizationPreference(source.InstanceId, source.EntityId,
-                        source.Level, level, source.IntentSlotIndex)
+                        source.Level, level, source.IntentSlotIndex, strength: source.Strength)
+                    : rule).ToArray());
+        }
+
+        internal static InventoryOptimizationPreferences SetAutomatic(
+            InventoryOptimizationPreferences preferences, InventoryItemKey itemKey)
+        {
+            preferences ??= InventoryOptimizationPreferences.Default;
+            return ReplaceArtifacts(preferences, preferences.ArtifactPreferences.Select(rule =>
+                rule.TargetsInstance && rule.ItemKey == itemKey && rule.Level == InventoryPreferenceLevel.Priority
+                    ? new ArtifactOptimizationPreference(rule.InstanceId, rule.EntityId, rule.Level,
+                        rule.MinimumEffectiveLevel, rule.IntentSlotIndex, ArtifactLevelTargetMode.Automatic, rule.Strength)
                     : rule).ToArray());
         }
 
@@ -138,7 +150,10 @@ namespace SephiriaEnhancements.Inventory
             }
             rules.Add(new ArtifactOptimizationPreference(instanceId, entityId, level,
                 source?.Level == InventoryPreferenceLevel.Priority
-                    ? source.MinimumEffectiveLevel : 0, index));
+                    ? source.MinimumEffectiveLevel : 0, index,
+                source?.Level == InventoryPreferenceLevel.Priority
+                    ? source.TargetMode : ArtifactLevelTargetMode.Automatic,
+                source?.Strength ?? InventoryConstraintStrength.Soft));
             return ReplaceArtifacts(preferences, rules.ToArray());
         }
 
@@ -146,7 +161,21 @@ namespace SephiriaEnhancements.Inventory
             ArtifactOptimizationPreference rule, InventoryPreferenceLevel level,
             int index) => new(rule.InstanceId, rule.EntityId, level,
                 rule.Level == InventoryPreferenceLevel.Priority
-                    ? rule.MinimumEffectiveLevel : 0, index);
+                    ? rule.MinimumEffectiveLevel : 0, index,
+                rule.Level == InventoryPreferenceLevel.Priority
+                    ? rule.TargetMode : ArtifactLevelTargetMode.Automatic, rule.Strength);
+
+        internal static InventoryOptimizationPreferences SetStrength(
+            InventoryOptimizationPreferences preferences, InventoryItemKey itemKey,
+            InventoryConstraintStrength strength)
+        {
+            preferences ??= InventoryOptimizationPreferences.Default;
+            return ReplaceArtifacts(preferences, preferences.ArtifactPreferences.Select(rule =>
+                rule.TargetsInstance && rule.ItemKey == itemKey
+                    ? new ArtifactOptimizationPreference(rule.InstanceId, rule.EntityId, rule.Level,
+                        rule.MinimumEffectiveLevel, rule.IntentSlotIndex, rule.TargetMode, strength)
+                    : rule).ToArray());
+        }
 
         internal static InventoryOptimizationPreferences Remove(
             InventoryOptimizationPreferences preferences, InventoryItemKey itemKey)

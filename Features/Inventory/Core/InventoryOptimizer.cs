@@ -50,7 +50,7 @@ namespace SephiriaEnhancements.Inventory
 
             InventoryOptimizationScore initialScore = scorer.Score(current,
                 currentSettlement);
-            if (elapsed.ElapsedMilliseconds < budget.MaximumElapsedMilliseconds &&
+            if ((!budget.UseElapsedTimeLimit || elapsed.ElapsedMilliseconds < budget.MaximumElapsedMilliseconds) &&
                 InventoryAdditiveScoreBound.IsAttained(snapshot, policy, initialScore))
             {
                 return new InventoryOptimizationProposal(true, current, initialScore, initialScore, 1,
@@ -62,11 +62,11 @@ namespace SephiriaEnhancements.Inventory
             var evaluator = new InventoryCandidateEvaluator(snapshot, policy, budget, elapsed, cancellationToken, current, batchEvaluator);
             scorer.ObserveTargets(currentSettlement, evaluator.TargetEvidence);
             InventoryOptimizationScore currentScore = initialScore;
-            InventoryLayoutProjection bestLayout = current;
-            InventoryOptimizationScore bestScore = currentScore;
             InventorySearchTerminationReason terminationReason =
                 InventorySearchTerminationReason.ImprovementRoundLimit;
             bool searchStopped = false;
+            InventoryLayoutProjection bestLayout = current;
+            InventoryOptimizationScore bestScore = currentScore;
 
             for (int round = 0; round < budget.MaximumImprovementRounds;
                 round++)

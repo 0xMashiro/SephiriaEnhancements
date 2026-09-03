@@ -29,6 +29,7 @@ internal static class InventoryItemIdentityChecks
             "different entities sharing native ID zero must remain projectable");
         InventoryOptimizationPreferences preferences = InventoryArtifactIntentEditor.PlaceAvoid(
             InventoryArtifactIntentEditor.Toggle(InventoryOptimizationPreferences.Default, 0, 5004), 0, 5005, 0);
+        preferences = InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(preferences, source, CompanionKeys[0], 0);
         ResolvedInventoryOptimizationPolicy policy = InventoryOptimizationPolicyResolver.Resolve(source, preferences);
         InventoryOptimizationProposal proposal = InventoryOptimizerSelector.Solve(source, policy,
             new InventorySearchBudget(4, 200, 1000));
@@ -106,6 +107,9 @@ internal static class InventoryItemIdentityChecks
         Require(expected.Tablets.Count == 3 &&
             InventorySettlementDifferentialVerifier.Compare(source, target, expected, actual).Matched,
             "movable tablets and a fixed source sharing an item key must retain separate settlements");
+        Require(InventoryApplicationConfirmation.VerifyStep(actual, source, target).Matched &&
+            !InventoryApplicationConfirmation.VerifyStep(Tablets(1, 1), source, target).Matched,
+            "confirming one rotation must reject a concurrent rotation of another tablet");
     }
 
     private static InventorySnapshot Tablets(int firstRotation, int secondRotation)

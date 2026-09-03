@@ -6,7 +6,7 @@ namespace SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 internal static class InventorySnapshotFixture
 {
     internal static InventorySnapshot ArtifactsAtLevels(int[] levels,
-        int[] itemCells, int maxLevel = 10)
+        int[] itemCells, int maxLevel = 10, int[]? safeAutomaticLevels = null)
     {
         var cells = new InventoryCellSnapshot[levels.Length];
         for (int cell = 0; cell < levels.Length; cell++)
@@ -27,7 +27,7 @@ internal static class InventorySnapshotFixture
             bool enabled = levels[cell] >= 0;
             items[index] = ArtifactItem(100 + index, 1000 + index, cell,
                 levels.Length, levels[cell], maxLevel, enchantLevel: 0,
-                enabled);
+                enabled, safeAutomaticLevel: safeAutomaticLevels?[index]);
         }
         return RequireValid(new InventorySnapshot(levels.Length,
             levels.Length, cells, items), "artifact-level");
@@ -149,7 +149,7 @@ internal static class InventorySnapshotFixture
         int entityId, int cell, int width, int displayedLevel, int maxLevel,
         int enchantLevel, bool enabled, int? cappedLevel = null,
         string name = "Boundary Artifact", bool uniqueEffect = false,
-        bool uniqueEffectRegistered = false)
+        bool uniqueEffectRegistered = false, int? safeAutomaticLevel = null)
     {
         int effectiveLevel = cappedLevel ??
             (enabled ? Math.Min(displayedLevel, maxLevel) : 0);
@@ -164,7 +164,7 @@ internal static class InventorySnapshotFixture
                 CriteriaEvaluationState.NotApplicable,
                 CriteriaEvaluationState.NotApplicable),
             Array.Empty<string>(), Array.Empty<string>(), attackable: false,
-            magic: null);
+            magic: null, safeAutomaticLevel: safeAutomaticLevel);
         return new InventoryItemSnapshot(instanceId, entityId, quantity: 1,
             cellIndex: cell, x: cell % width, y: cell / width, name,
             nameKey: string.Empty, nativeItemTypeName: "Charm",

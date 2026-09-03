@@ -38,6 +38,13 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 issues.Add("PositionEffectCompanionRefreshOrderUnavailable");
                 return false;
             }
+            if (state.Rules.Any(rule => rule.Kind == InventoryPositionEffectKind.RowCategoryStats &&
+                (artifacts[rule.Source].Artifact.CategoryRule.Kind != ArtifactCategoryRuleKind.RowModulo ||
+                 artifacts[rule.Source].Artifact.CategoryRule.RowCategories.Count != rule.Channels.Count)))
+            {
+                issues.Add("PositionEffectRowCategoryCycleUnavailable");
+                return false;
+            }
             var actual = artifacts.Values.Select(item => new ProjectedInventoryArtifactSettlement(
                 item.ItemKey, item.Artifact.EffectEnabled, item.Artifact.PenaltyEnabled,
                 item.Artifact.DisplayedLevel, item.Artifact.LimitedEffectEnabledLevel)).ToArray();
@@ -57,6 +64,9 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 return false;
             switch (rule.Kind)
             {
+                case InventoryPositionEffectKind.RowCategoryStats:
+                    return rule.ValuesByLevel.Count > 0 && rule.Channels.Count > 0 &&
+                        rule.Channels.All(channel => !string.IsNullOrEmpty(channel));
                 case InventoryPositionEffectKind.NeighborArtifactLevelDamage:
                     return rule.ValuesByLevel.Count > 0 && rule.Offsets.Count > 0;
                 case InventoryPositionEffectKind.AdjacentPlanetEnhancement:

@@ -54,7 +54,7 @@ internal sealed class GpuInventoryBatchEvaluator : IInventoryCandidateBatchEvalu
         for (int c = 0; c < candidates.Count; c++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            scores[c] = scorer.Score(results, c, evidence);
+            scores[c] = scorer.Score(results, c, candidates[c], evidence);
         }
     }
 }

@@ -13,6 +13,21 @@ $projectPath = Join-Path $repoRoot 'SephiriaEnhancements.csproj'
 $packagingRoot = Join-Path $repoRoot 'packaging'
 $metadataPath = Join-Path $packagingRoot 'metadata.json'
 
+# ZIP stores timestamps without a timezone and with two-second precision.
+# Use the release commit's UTC time for meaningful, reproducible file dates.
+# A downloaded source archive has no Git checkout; retain its metadata date.
+$archiveTimestamp = [DateTimeOffset](Get-Item -LiteralPath $metadataPath).LastWriteTimeUtc
+if (Test-Path -LiteralPath (Join-Path $repoRoot '.git')) {
+    $commitEpoch = git -C $repoRoot log -1 --format=%ct
+    if ($LASTEXITCODE -ne 0) { throw 'Could not read the release commit timestamp.' }
+    $archiveTimestamp = [DateTimeOffset]::FromUnixTimeSeconds([long]$commitEpoch)
+}
+if ($archiveTimestamp.Year -lt 1980 -or $archiveTimestamp.Year -gt 2107) {
+    throw 'Release timestamp is outside the ZIP date range (1980-2107).'
+}
+$archiveTimestamp = [DateTimeOffset]::FromUnixTimeSeconds(
+    $archiveTimestamp.ToUnixTimeSeconds() - ($archiveTimestamp.ToUnixTimeSeconds() % 2))
+
 [xml]$project = Get-Content -LiteralPath $projectPath -Raw
 $version = [string]($project.Project.PropertyGroup.Version |
     Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
@@ -73,11 +88,12 @@ function Add-ArchiveFile {
     param(
         [System.IO.Compression.ZipArchive]$Archive,
         [string]$Source,
-        [string]$EntryName
+        [string]$EntryName,
+        [DateTimeOffset]$Timestamp
     )
 
     $entry = $Archive.CreateEntry($EntryName, [System.IO.Compression.CompressionLevel]::Optimal)
-    $entry.LastWriteTime = [DateTimeOffset]::new(2000, 1, 1, 0, 0, 0, [TimeSpan]::Zero)
+    $entry.LastWriteTime = $Timestamp
     $inputStream = [System.IO.File]::OpenRead($Source)
     $outputStream = $entry.Open()
     try {
@@ -94,7 +110,7 @@ $archive = [System.IO.Compression.ZipFile]::Open(
     [System.IO.Compression.ZipArchiveMode]::Create)
 try {
     foreach ($file in $files) {
-        Add-ArchiveFile -Archive $archive -Source $file.Source -EntryName $file.Entry
+        Add-ArchiveFile -Archive $archive -Source $file.Source -EntryName $file.Entry -Timestamp $archiveTimestamp
     }
 }
 finally {
@@ -108,6 +124,11 @@ try {
     if (($actualEntries -join "`n") -ne ($expectedEntries -join "`n")) {
         throw 'Release archive contents do not match the approved package manifest.'
     }
+    foreach ($entry in $archive.Entries) {
+        if ($entry.LastWriteTime.DateTime -ne $archiveTimestamp.DateTime) {
+            throw "Release archive timestamp mismatch: $($entry.FullName)"
+        }
+    }
 }
 finally {
     $archive.Dispose()
@@ -118,4 +139,5 @@ $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvar
 
 Write-Host "Package: $zipPath"
 Write-Host "Checksums: $checksumPath"
+Write-Host "Archive file date (UTC): $($archiveTimestamp.ToString('yyyy-MM-dd HH:mm:ss'))"
 Write-Host "SHA-256: $hash"

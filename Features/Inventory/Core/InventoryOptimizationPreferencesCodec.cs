@@ -10,7 +10,7 @@ namespace SephiriaEnhancements.Inventory
 {
     internal static class InventoryOptimizationPreferencesCodec
     {
-        private const string Version = "v3";
+        private const string Version = "v4";
 
         internal static string Encode(
             InventoryOptimizationPreferences preferences)
@@ -24,7 +24,8 @@ namespace SephiriaEnhancements.Inventory
                 lines.Add(string.Join("|", "C",
                     Uri.EscapeDataString(rule.CategoryId),
                     ((int)rule.Level).ToString(CultureInfo.InvariantCulture),
-                    rule.TargetCount.ToString(CultureInfo.InvariantCulture)));
+                    rule.TargetCount.ToString(CultureInfo.InvariantCulture),
+                    ((int)rule.Strength).ToString(CultureInfo.InvariantCulture)));
             }
             return string.Join("\n", lines);
         }
@@ -59,7 +60,7 @@ namespace SephiriaEnhancements.Inventory
                     continue;
                 }
                 string[] fields = lines[index].Split('|');
-                if (fields.Length != 4 ||
+                if (fields.Length != 5 ||
                     !int.TryParse(fields[2], NumberStyles.Integer,
                         CultureInfo.InvariantCulture, out int levelValue) ||
                     !Enum.IsDefined(typeof(InventoryPreferenceLevel),
@@ -71,6 +72,8 @@ namespace SephiriaEnhancements.Inventory
                 }
 
                 var level = (InventoryPreferenceLevel)levelValue;
+                if (!int.TryParse(fields[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out int strength) ||
+                    !Enum.IsDefined(typeof(InventoryConstraintStrength), strength)) return false;
                 if (fields[0] != "C" || requiredValue < 0)
                 {
                     return false;
@@ -90,7 +93,7 @@ namespace SephiriaEnhancements.Inventory
                     return false;
                 }
                 combos[categoryId] = new ComboOptimizationPreference(
-                    categoryId, level, requiredValue);
+                    categoryId, level, requiredValue, (InventoryConstraintStrength)strength);
             }
 
             preferences = new InventoryOptimizationPreferences(searchEffort,

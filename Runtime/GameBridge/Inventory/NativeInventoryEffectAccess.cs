@@ -142,5 +142,39 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 body[index - 1].Operand is MethodInfo getter && getter.Name == "get_NetworkAvatar")
                 .Select(index => (string)body[index].Operand).Distinct().ToArray();
         }
+
+        internal static string[] RowStatChannels(Type type, IReadOnlyList<string> categories)
+        {
+            if (categories == null || categories.Count == 0)
+                throw new InvalidOperationException("Row category cycle is empty");
+            var body = Instructions(Method(type, "SearchCategory"));
+            bool rowModulo = Enumerable.Range(0, Math.Max(0, body.Length - 5)).Any(index =>
+                body[index].Operand is FieldInfo coordinate && coordinate.Name == "YIdx" &&
+                body[index + 1].Code == OpCodes.Ldarg_0 &&
+                body[index + 2].Operand is FieldInfo cycle && cycle.Name == "lineCategory" &&
+                body[index + 3].Code == OpCodes.Ldlen && body[index + 4].Code == OpCodes.Conv_I4 &&
+                body[index + 5].Code == OpCodes.Rem);
+            if (!rowModulo) throw new InvalidOperationException("Changed row category selection");
+            var channels = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (int index in Enumerable.Range(0, body.Length).Where(index =>
+                         body[index].Code == OpCodes.Stfld && body[index].Operand is FieldInfo field && field.Name == "addedStat"))
+            {
+                // assignedCategory == literal; false branch skips the enum-field assignment.
+                if (index < 7 || body[index - 7].Code != OpCodes.Ldarg_0 ||
+                    !(body[index - 6].Operand is FieldInfo category) || category.Name != "assignedCategory" ||
+                    body[index - 5].Code != OpCodes.Ldstr ||
+                    !(body[index - 4].Operand is MethodInfo comparison) || comparison.DeclaringType != typeof(string) ||
+                    comparison.Name != "op_Equality" ||
+                    (body[index - 3].Code != OpCodes.Brfalse && body[index - 3].Code != OpCodes.Brfalse_S) ||
+                    body[index - 2].Code != OpCodes.Ldarg_0 || !body[index - 1].Integer.HasValue)
+                    throw new InvalidOperationException("Changed row category stat mapping");
+                var stat = (FieldInfo)body[index].Operand;
+                string channel = stat.FieldType.IsEnum ? Enum.GetName(stat.FieldType, body[index - 1].Integer.Value) : null;
+                if (channel == null || !channels.TryAdd((string)body[index - 5].Operand, channel))
+                    throw new InvalidOperationException("Ambiguous row category stat mapping");
+            }
+            return categories.Select(category => category != null && channels.TryGetValue(category, out string channel)
+                ? channel : throw new InvalidOperationException("Unknown row category stat: " + category)).ToArray();
+        }
     }
 }

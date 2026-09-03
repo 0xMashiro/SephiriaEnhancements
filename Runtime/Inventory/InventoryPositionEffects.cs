@@ -15,7 +15,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
         FirstSlotsElementDamage,
         HalfBoardStats,
         HalfBoardWeaponMode,
-        DependencyDamage
+        DependencyDamage,
+        RowCategoryStats
     }
 
     internal sealed class InventoryPositionEffectRule

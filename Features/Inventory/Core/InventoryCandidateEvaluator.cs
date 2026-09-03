@@ -80,7 +80,7 @@ namespace SephiriaEnhancements.Inventory
                             reason = InventorySearchTerminationReason.CandidateEvaluationLimit;
                             return false;
                         }
-                        if (elapsed.ElapsedMilliseconds >= budget.MaximumElapsedMilliseconds)
+                        if (budget.UseElapsedTimeLimit && elapsed.ElapsedMilliseconds >= budget.MaximumElapsedMilliseconds)
                         {
                             reason = InventorySearchTerminationReason.ElapsedTimeLimit;
                             return false;
@@ -96,7 +96,7 @@ namespace SephiriaEnhancements.Inventory
                         pending.Add((layout, index));
                     }
                     if (pending.Count == 0) return true;
-                    if (elapsed.ElapsedMilliseconds >= budget.MaximumElapsedMilliseconds)
+                    if (budget.UseElapsedTimeLimit && elapsed.ElapsedMilliseconds >= budget.MaximumElapsedMilliseconds)
                     {
                         reason = InventorySearchTerminationReason.ElapsedTimeLimit;
                         return false;

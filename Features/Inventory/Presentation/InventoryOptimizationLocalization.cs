@@ -8,6 +8,10 @@ namespace SephiriaEnhancements.Inventory
 {
     internal static partial class InventoryOptimizationLocalization
     {
+        internal const string HudHard = "SephiriaEnhancements.InventoryHud.Hard";
+        internal const string HudSoft = "SephiriaEnhancements.InventoryHud.Soft";
+        internal const string HardInfeasible = "SephiriaEnhancements.Inventory.HardInfeasible";
+        internal const string HardNotFound = "SephiriaEnhancements.Inventory.HardNotFound";
         internal const string Analyzing =
             "SephiriaEnhancements.Inventory.Analyzing";
         internal const string Applying =
@@ -82,6 +86,12 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.InventoryHud.AvoidZone";
         internal const string HudIntentBoardHint =
             "SephiriaEnhancements.InventoryHud.IntentBoardHint";
+        internal const string HudEditGoals = "SephiriaEnhancements.InventoryHud.EditGoals";
+        internal const string HudEditGoalsShortcut = "SephiriaEnhancements.InventoryHud.EditGoalsShortcut";
+        internal const string HudConstraintHelp = "SephiriaEnhancements.InventoryHud.ConstraintHelp";
+        internal const string HudComboPersistence = "SephiriaEnhancements.InventoryHud.ComboPersistence";
+        internal const string HudControllerBoardHint = "SephiriaEnhancements.InventoryHud.ControllerBoardHint";
+        internal const string HudControllerChooseIntentSlot = "SephiriaEnhancements.InventoryHud.ControllerChooseIntentSlot";
         internal const string HudLevelEditUnbound =
             "SephiriaEnhancements.InventoryHud.LevelEditUnbound";
         internal const string HudChooseIntentSlot =
@@ -104,6 +114,16 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.InventoryHud.AutomaticTarget";
         internal const string HudMinimumLevel =
             "SephiriaEnhancements.InventoryHud.MinimumLevel";
+        internal const string HudArtifactAuto = "SephiriaEnhancements.InventoryHud.ArtifactAuto";
+        internal const string HudArtifactSafeAuto = "SephiriaEnhancements.InventoryHud.ArtifactSafeAuto";
+        internal const string HudResultPending = "SephiriaEnhancements.InventoryHud.ResultPending";
+        internal const string HudResultSatisfied = "SephiriaEnhancements.InventoryHud.ResultSatisfied";
+        internal const string HudResultPartial = "SephiriaEnhancements.InventoryHud.ResultPartial";
+        internal const string HudResultUnmet = "SephiriaEnhancements.InventoryHud.ResultUnmet";
+        internal const string HudCurrentLevel = "SephiriaEnhancements.InventoryHud.CurrentLevel";
+        internal const string HudCurrentActive = "SephiriaEnhancements.InventoryHud.CurrentActive";
+        internal const string HudCurrentInactive = "SephiriaEnhancements.InventoryHud.CurrentInactive";
+        internal const string HudAvoidGoal = "SephiriaEnhancements.InventoryHud.AvoidGoal";
         internal const string HudMinimumCount =
             "SephiriaEnhancements.InventoryHud.MinimumCount";
         internal const string HudMaximumCount =
@@ -144,6 +164,36 @@ namespace SephiriaEnhancements.Inventory
         internal static string PositionEffectFailureMessage(InventorySettlementValidationSnapshot validation) =>
             validation.PositionEffectObservationUnavailableOnClient
                 ? PositionEffectObservationUnavailableOnClient : PositionEffectsUnavailable;
+
+        internal static string FormatArtifactTarget(ArtifactOptimizationPreference rule,
+            ArtifactSnapshot artifact, Func<string, string> localize, int? targetLevel = null)
+        {
+            if (rule.Level == InventoryPreferenceLevel.Avoid) return localize(HudAvoidGoal);
+            int target = targetLevel ?? rule.ResolveTargetLevel(artifact);
+            string condition = FormatArtifactMinimumLevel(target, localize);
+            return rule.TargetMode != ArtifactLevelTargetMode.Automatic ? condition
+                : string.Format(localize(artifact.SafeAutomaticLevel < artifact.MaxLevel
+                    ? HudArtifactSafeAuto : HudArtifactAuto), condition);
+        }
+
+        internal static string FormatArtifactFeedback(ArtifactOptimizationPreference rule,
+            ArtifactSnapshot artifact, InventoryArtifactGoalFeedback feedback, Func<string, string> localize)
+        {
+            int target = feedback?.TargetLevel ?? rule.ResolveTargetLevel(artifact);
+            bool active = feedback?.Active ?? artifact.EffectEnabled;
+            string current = !active ? localize(HudCurrentInactive)
+                : target == 0 || rule.Level == InventoryPreferenceLevel.Avoid ? localize(HudCurrentActive)
+                : string.Format(localize(HudCurrentLevel), feedback?.CurrentLevel ?? artifact.LimitedEffectEnabledLevel);
+            string state = localize((feedback?.State ?? InventoryIntentSatisfaction.NotEvaluated) switch
+            {
+                InventoryIntentSatisfaction.Satisfied => HudResultSatisfied,
+                InventoryIntentSatisfaction.Partial => HudResultPartial,
+                InventoryIntentSatisfaction.Unmet => HudResultUnmet,
+                _ => HudResultPending
+            });
+            return localize(rule.Strength == InventoryConstraintStrength.Hard ? HudHard : HudSoft) + " · " +
+                FormatArtifactTarget(rule, artifact, localize, target) + "\n" + current + " · " + state;
+        }
 
         private static readonly string[] Keys =
         {
@@ -205,7 +255,27 @@ namespace SephiriaEnhancements.Inventory
             PreferenceChoiceKeys[0],
             PreferenceChoiceKeys[1],
             PreferenceChoiceKeys[2],
-        };
+                    HudHard,
+            HudSoft,
+            HardInfeasible,
+            HardNotFound,
+            HudEditGoals,
+            HudEditGoalsShortcut,
+            HudConstraintHelp,
+            HudComboPersistence,
+            HudControllerBoardHint,
+            HudControllerChooseIntentSlot,
+            HudArtifactAuto,
+            HudArtifactSafeAuto,
+            HudResultPending,
+            HudResultSatisfied,
+            HudResultPartial,
+            HudResultUnmet,
+            HudCurrentLevel,
+            HudCurrentActive,
+            HudCurrentInactive,
+            HudAvoidGoal,
+};
 
         internal static void Register(Action<string, string, string> addText)
         {

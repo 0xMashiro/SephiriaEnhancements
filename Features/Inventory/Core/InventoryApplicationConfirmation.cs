@@ -7,6 +7,20 @@ namespace SephiriaEnhancements.Inventory
 {
     internal static class InventoryApplicationConfirmation
     {
+        // Confirm the whole intermediate board, not only the cells involved in
+        // the last operation. Hard requirements constrain the final layout only.
+        internal static InventorySettlementDifferentialReport VerifyStep(
+            InventorySnapshot actual, InventorySnapshot source,
+            InventoryLayoutProjection expectedLayout)
+        {
+            if (!MatchesTarget(actual, source, expectedLayout))
+                return new InventorySettlementDifferentialReport(
+                    new[] { "ApplicationLayoutChanged" });
+
+            return InventorySettlementDifferentialVerifier.Compare(source,
+                expectedLayout, InventorySettlementProjector.Evaluate(source, expectedLayout), actual);
+        }
+
         internal static bool IsSwapObserved(InventorySnapshot snapshot,
             InventorySwapOperation operation)
         {

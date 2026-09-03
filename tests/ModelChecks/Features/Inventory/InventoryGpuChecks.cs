@@ -86,11 +86,12 @@ internal static class InventoryGpuChecks
         yield return InventoryOptimizationPreferences.Default;
         foreach (var level in new[] { InventoryPreferenceLevel.Priority, InventoryPreferenceLevel.Avoid })
             foreach (bool instance in new[] { true, false })
-                yield return new InventoryOptimizationPreferences(InventorySearchEffort.Thorough, true,
-                    snapshot.Items.Where(i => i.Artifact != null).GroupBy(i => instance ? i.InstanceId : i.EntityId)
-                        .Select((g, index) => new ArtifactOptimizationPreference(instance ? g.First().InstanceId : -1,
-                            g.First().EntityId, level, index == 0 ? int.MaxValue : 2, intentSlotIndex: index)).ToArray(),
-                    snapshot.ComboCategories.Select(c => new ComboOptimizationPreference(c.CategoryId, level, 2)).ToArray());
+                foreach (var strength in new[] { InventoryConstraintStrength.Soft, InventoryConstraintStrength.Hard })
+                    yield return new InventoryOptimizationPreferences(InventorySearchEffort.Thorough, true,
+                        snapshot.Items.Where(i => i.Artifact != null).GroupBy(i => instance ? i.InstanceId : i.EntityId)
+                            .Select((g, index) => new ArtifactOptimizationPreference(instance ? g.First().InstanceId : -1,
+                                g.First().EntityId, level, index == 0 ? int.MaxValue : 2, intentSlotIndex: index, strength: strength)).ToArray(),
+                        snapshot.ComboCategories.Select(c => new ComboOptimizationPreference(c.CategoryId, level, 2, strength: strength)).ToArray());
     }
 
     private static string Encode(object? value) => JsonSerializer.Serialize(value, JsonOptions);

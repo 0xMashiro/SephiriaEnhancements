@@ -19,8 +19,9 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                 UIManager.Instance?.GetElement<UI_NewItemPicker_Controller>()?.CurrentAny == true)
                 return;
             List<UI_SephiriteRewardElement> rewards = RewardElements(panel);
-            if (rewards.Count > 0 && rewards[0] != null)
-                KeyboardUiNavigationController.RequestSelection(panel, rewards[0].gameObject);
+            if (rewards.Count > 0)
+                KeyboardUiNavigationController.RequestSelection(panel,
+                    rewards[0] != null ? rewards[0].gameObject : null);
         }
 
         internal static void SelectFirstInventorySlot(UI_SephiriteRewardElement reward)

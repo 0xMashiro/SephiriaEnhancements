@@ -78,14 +78,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         {
             if (!OwnsFocus) return null;
             GameObject selected = EventSystem.current?.currentSelectedGameObject;
-            if (selected == null || !selected.activeInHierarchy) return null;
-            Selectable selectable = selected.GetComponent<Selectable>();
-            if (selectable != null && !selectable.IsInteractable()) return null;
-            foreach (UIBase panel in UIManager.Instance.CurrentControlStack)
-                if (panel != null && panel.IsControlEnabled &&
-                    selected.transform.IsChildOf(panel.transform))
-                    return selected;
-            return null;
+            return KeyboardUiSelection.IsInControlStack(selected) ? selected : null;
         }
 
         internal static void UpdateCursor()

@@ -43,12 +43,14 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             return entries;
         }
 
-        internal static void RequestEntry(UI_OptionsPanel panel)
+        internal static GameObject FindEntry(UI_OptionsPanel panel)
         {
             List<Selectable> entries = Entries(panel);
-            if (entries.Count > 0)
-                KeyboardUiNavigationController.RequestSelection(panel, entries[0].gameObject);
+            return entries.Count > 0 ? entries[0].gameObject : null;
         }
+
+        internal static void RequestEntry(UI_OptionsPanel panel) =>
+            KeyboardUiNavigationController.RequestSelection(panel, FindEntry(panel));
 
         internal static bool SwitchTab()
         {

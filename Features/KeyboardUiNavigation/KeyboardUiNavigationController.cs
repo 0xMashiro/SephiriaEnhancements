@@ -4,7 +4,6 @@ using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 namespace SephiriaEnhancements.KeyboardUiNavigation
 {
@@ -36,6 +35,11 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                 return;
             }
 
+            // A new navigation gesture on an existing control supersedes an
+            // entry request still waiting for another panel's animation.
+            if (WasKeyboardNavigationPressed() &&
+                KeyboardUiSelection.IsInControlStack(EventSystem.current?.currentSelectedGameObject))
+                ClearPendingSelection();
             InitializePendingSelection();
             if (!OptionsKeyboardNavigation.SwitchTab())
                 SwitchCombinedPanelWithTab();
@@ -134,34 +138,21 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                 return;
             }
 
-            if (panel.CanvasGroup != null && !panel.CanvasGroup.interactable)
+            if (!KeyboardUiSelection.IsPanelReady(panel))
             {
                 return;
             }
 
-            if (panel is UI_SephiriteRewardPanel reward && !reward.rewardsGroupInteractable)
-            {
-                return;
-            }
-
-            GameObject selectable = pendingSelectable;
-            if (selectable == null || !selectable.activeInHierarchy)
+            GameObject selectable = KeyboardUiSelection.FindPanelEntry(panel, pendingSelectable);
+            if (selectable == null || !KeyboardUiSelection.IsInControlStack(selectable))
             {
                 return;
             }
 
             GameObject selected = eventSystem.currentSelectedGameObject;
-            if (selected != null && selected != selectable &&
-                selected.activeInHierarchy &&
-                selected.transform.IsChildOf(panel.transform))
+            if (KeyboardUiSelection.IsInPanel(panel, selected))
             {
                 ClearPendingSelection();
-                return;
-            }
-
-            Selectable nativeSelectable = selectable.GetComponent<Selectable>();
-            if (nativeSelectable != null && !nativeSelectable.IsInteractable())
-            {
                 return;
             }
 
@@ -201,8 +192,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
 
             GameObject selected = eventSystem.currentSelectedGameObject;
-            bool hasUsableSelection = selected != null &&
-                selected.activeInHierarchy;
+            bool hasUsableSelection = KeyboardUiSelection.IsInControlStack(selected);
             if (!KeyboardSelectionRecoveryPolicy.ShouldRestore(
                     keyboardMode: true, hasUsableSelection,
                     WasKeyboardNavigationPressed()))
@@ -217,16 +207,13 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                 return;
             }
 
-            GameObject selectable = manager.CurrentControlStack[0].defaultSelectable;
-            if (selectable == null || !selectable.activeInHierarchy)
+            foreach (UIBase panel in manager.CurrentControlStack)
             {
-                return;
-            }
-
-            Selectable nativeSelectable = selectable.GetComponent<Selectable>();
-            if (nativeSelectable == null || nativeSelectable.IsInteractable())
-            {
+                GameObject selectable = KeyboardUiSelection.FindPanelEntry(panel);
+                if (selectable == null) continue;
+                current?.ClearPendingSelection();
                 eventSystem.SetSelectedGameObject(selectable);
+                return;
             }
         }
 
@@ -266,8 +253,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             for (int index = 0; index < manager.CurrentControlStack.Count; index++)
             {
                 UIBase panel = manager.CurrentControlStack[index];
-                if (panel != null && selected != null &&
-                    selected.transform.IsChildOf(panel.transform))
+                if (KeyboardUiSelection.IsInPanel(panel, selected))
                 {
                     currentPanelIndex = index;
                     break;
@@ -276,67 +262,26 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
             bool reverse = keyboard.leftShiftKey.isPressed ||
                 keyboard.rightShiftKey.isPressed;
+            int startIndex = currentPanelIndex < 0 && reverse ? 0 : currentPanelIndex;
             int direction = reverse ? -1 : 1;
             int panelCount = manager.CurrentControlStack.Count;
             for (int offset = 1; offset <= panelCount; offset++)
             {
-                int index = (currentPanelIndex + direction * offset) % panelCount;
+                int index = (startIndex + direction * offset) % panelCount;
                 if (index < 0)
                 {
                     index += panelCount;
                 }
+                if (index == currentPanelIndex) continue;
 
-                GameObject entry = FindPanelEntry(manager.CurrentControlStack[index]);
+                GameObject entry = KeyboardUiSelection.FindPanelEntry(manager.CurrentControlStack[index]);
                 if (entry != null && entry != selected)
                 {
+                    current?.ClearPendingSelection();
                     eventSystem.SetSelectedGameObject(entry);
                     return;
                 }
             }
-        }
-
-        private static GameObject FindPanelEntry(UIBase panel)
-        {
-            if (panel == null || !panel.IsControlEnabled)
-            {
-                return null;
-            }
-
-            GameObject entry = panel.defaultSelectable;
-            if (IsSelectable(entry))
-            {
-                return entry;
-            }
-
-            // Reward entries are generated after the panel opens, so the native
-            // panel has no serialized defaultSelectable for this partition.
-            if (panel is UI_SephiriteRewardPanel rewardPanel &&
-                rewardPanel.rewardZone != null)
-            {
-                for (int index = 0; index < rewardPanel.rewardZone.childCount;
-                    index++)
-                {
-                    UI_SephiriteRewardElement reward = rewardPanel.rewardZone.
-                        GetChild(index).GetComponent<UI_SephiriteRewardElement>();
-                    if (reward != null && IsSelectable(reward.gameObject))
-                    {
-                        return reward.gameObject;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        private static bool IsSelectable(GameObject candidate)
-        {
-            if (candidate == null || !candidate.activeInHierarchy)
-            {
-                return false;
-            }
-
-            Selectable selectable = candidate.GetComponent<Selectable>();
-            return selectable == null || selectable.IsInteractable();
         }
 
         private void ClearPendingSelection()

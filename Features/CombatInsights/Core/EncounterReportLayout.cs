@@ -9,18 +9,20 @@ namespace SephiriaEnhancements.Combat
         internal const float RowHeight = 20f;
         internal const float Margin = 12f;
 
-        internal EncounterReportLayout(int playerCount, bool showFinalBlows)
+        internal EncounterReportLayout(int playerCount, bool showFinalBlows, bool showNavigation = false)
         {
             DamageMixTop = RowsTop + playerCount * RowHeight + 3f;
             OutcomesTop = DamageMixTop + 15f;
             FinalBlowsTop = OutcomesTop + 28f;
-            DismissHintTop = FinalBlowsTop + (showFinalBlows ? 14f : 0f);
+            NavigationTop = FinalBlowsTop + (showFinalBlows ? 14f : 0f);
+            DismissHintTop = NavigationTop + (showNavigation ? 18f : 0f);
             Height = DismissHintTop + 22f;
         }
 
         internal float DamageMixTop { get; }
         internal float OutcomesTop { get; }
         internal float FinalBlowsTop { get; }
+        internal float NavigationTop { get; }
         internal float DismissHintTop { get; }
         internal float Height { get; }
 

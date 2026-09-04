@@ -55,6 +55,7 @@ The table shows defaults; on-screen hints follow your current bindings.
 | Switch locked target | Tap middle mouse button or `L`; hold to release the lock |
 | Show/hide the current-floor map overlay | `M` |
 | View statistics outside combat | Tap `F7`, or choose **View statistics** in the pause menu |
+| Switch a visible battle report | `Q`: This battle; `E`: Current floor (follows the game's previous/next tab bindings) |
 | Hide/restore the damage display | Hold `F7` for half a second; recording continues |
 | Close a visible battle report | `L` or middle mouse button (current target-switch binding), `Esc`, or Start/Menu on gamepad; pressing `Esc` or Start/Menu again opens the pause menu |
 | Arrange your open backpack | `F8`, or click the arrange button |
@@ -82,6 +83,11 @@ Ranged attacks keep a nearby visible, unobstructed target until it is no longer 
 Statistics offer **Recent battle** and **Current floor** pages. Multi-phase BOSS fights produce one combined
 report after the final phase, once menus and cutscenes are out of the way. In **Combat and Display**, change
 **Statistics size** to make the display smaller or larger.
+
+Automatic reports start on **This battle**. Switch to **Current floor** directly on the report;
+changing pages restarts its display timer, with at least eight seconds for floor totals. Both pages keep
+the same panel size and navigation position. A new fight dismisses the report. Floor average DPS uses
+accumulated battle time, excluding time spent moving between fights.
 
 Hiding the display does not stop recording. Floor totals cover combat recorded on your machine, so co-op
 players may see different numbers, especially after joining late. They are temporary: changing floors,

@@ -124,6 +124,7 @@ namespace SephiriaEnhancements.Combat
         internal IReadOnlyDictionary<long, float> BossDamage => bossEncounter.Damage;
         internal EncounterDefeatTracker Defeats => defeats;
         internal EncounterReportSnapshot EncounterReport => encounterReport;
+        internal bool ShowFloorReport => reportWindow.ShowFloorStatistics;
         internal float BossTotal => bossEncounter.Total;
         internal bool BossActive => bossEncounter.Active;
         internal float BossElapsed => bossEncounter.Elapsed(Time.time);
@@ -251,6 +252,7 @@ namespace SephiriaEnhancements.Combat
                 !hudHiddenByUser && !bossEncounter.Active &&
                 presentationBlock == ReportPresentationBlock.None;
             reportWindow.SetPresentationAvailable(reportPresentationAvailable, now);
+            HandleReportNavigation(now);
             bool inCombat = ViewMode != CombatInsightsViewMode.Hidden ||
                 hitStreakFeedback.IsRecent(now) || (local != null && local.IsInBattle);
             hud.Update(statisticsEnabled && contextAllowed && !hudHiddenByUser, this);
@@ -455,13 +457,14 @@ namespace SephiriaEnhancements.Combat
                 floorStatistics.Clear();
         }
 
-        internal bool CanDismissPresentedReport
+        internal bool CanInteractWithPresentedReport
         {
             get
             {
                 PlayerAvatar player = FindLocal()?.Avatar;
                 return isActiveAndEnabled && runtimeCompatible && StatisticsCaptureEnabled &&
                     !hudHiddenByUser && hud.IsReportPresented &&
+                    ViewMode == CombatInsightsViewMode.Report &&
                     reportWindow.IsVisible(Time.unscaledTime) && player != null &&
                     !player.activeMagicCastModeClientside &&
                     NativeReportPresentation.ReadBlock(UIManager.Instance, player) ==
@@ -471,10 +474,22 @@ namespace SephiriaEnhancements.Combat
 
         internal bool TryDismissPresentedReport()
         {
-            if (!CanDismissPresentedReport ||
+            if (!CanInteractWithPresentedReport ||
                 !reportWindow.TryDismiss(Time.unscaledTime)) return false;
             hud.Hide();
             return true;
+        }
+
+        private void HandleReportNavigation(float now)
+        {
+            if (!CanInteractWithPresentedReport) return;
+            var asset = PlayerInputController.Instance?.playerInput?.actions;
+            InputAction previous = NativeInputActions.FindAction(asset, NativeUiActions.PrevTab);
+            InputAction next = NativeInputActions.FindAction(asset, NativeUiActions.NextTab);
+            bool changed = previous?.WasPressedThisFrame() == true
+                ? reportWindow.TrySelectPage(false, now)
+                : next?.WasPressedThisFrame() == true && reportWindow.TrySelectPage(true, now);
+            if (changed) hud.RefreshReport();
         }
 
         private void SamplePlayers(float now, bool trackOrdinaryEncounters)
@@ -625,6 +640,7 @@ namespace SephiriaEnhancements.Combat
                 (report.TotalDamage <= 0f && report.DefeatedCount == 0))
                 return;
             encounterReport = report;
+            hud.RefreshReport();
             if (!StatisticsBrowserOpen &&
                 (ModSettings.DisplayPolicy != CombatInsightsDisplayPolicy.BossOnly ||
                     report.Kind == EncounterReportKind.Boss))

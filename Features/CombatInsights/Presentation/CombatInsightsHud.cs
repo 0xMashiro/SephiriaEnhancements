@@ -47,7 +47,8 @@ namespace SephiriaEnhancements.Presentation
             reportShadowGroup;
         private TextMeshProUGUI pulseText, liveKicker, liveTotal,
             reportTitle, reportMeta, damageHeading, shareHeading,
-            averageDpsHeading, damageMix, localFinalBlows, dismissHint;
+            averageDpsHeading, damageMix, localFinalBlows, dismissHint,
+            encounterPage, floorPage;
         private OutcomeChip normalOutcome, minibossOutcome, bossOutcome;
         private TextMeshProUGUI fontTemplate;
         private float nextLookup, nextProjection, liveReveal, reportReveal;
@@ -85,7 +86,16 @@ namespace SephiriaEnhancements.Presentation
             {
                 nextProjection = now + 0.2f;
                 if (showLive) ProjectLive(model, mode);
-                if (showReport) ProjectReport(model.EncounterReport);
+                if (showReport)
+                {
+                    CombatStatisticsSnapshot floor = model.FloorStatistics;
+                    var layout = new EncounterReportLayout(
+                        Mathf.Max(model.EncounterReport.Players.Count, floor.Players.Count),
+                        model.EncounterReport.LocalFinalBlows > 0 ||
+                            floor.LocalFinalBlows > 0, true);
+                    ProjectReport(model.ShowFloorReport ? floor : model.EncounterReport,
+                        model.ShowFloorReport, true, layout);
+                }
             }
 
             liveReveal = Mathf.MoveTowards(liveReveal, showLive ? 1f : 0f,
@@ -94,7 +104,8 @@ namespace SephiriaEnhancements.Presentation
                 showReport ? 1f : 0f,
                 Time.unscaledDeltaTime * (showReport ? 6f : 10f));
             PresentLive(showLive);
-            string closeBinding = showReport && model.CanDismissPresentedReport
+            if (showReport) ProjectNavigation(model);
+            string closeBinding = showReport && model.CanInteractWithPresentedReport
                 ? NativeReportDismissal.BindingLabel() : string.Empty;
             dismissHint.text = string.IsNullOrEmpty(closeBinding) ? string.Empty
                 : string.Format(ModLocalization.Get(ModLocalization.ReportDismissHint),
@@ -110,8 +121,8 @@ namespace SephiriaEnhancements.Presentation
 
         internal float DrawBrowser(CombatStatisticsSnapshot snapshot, bool floor)
         {
-            ProjectReport(snapshot);
-            if (floor) reportTitle.text = ModLocalization.Get(ModLocalization.CurrentFloorStatistics);
+            ProjectReport(snapshot, floor, false,
+                new EncounterReportLayout(snapshot.Players.Count, snapshot.LocalFinalBlows > 0));
             dismissHint.text = ModLocalization.Get(floor
                 ? ModLocalization.FloorBattleTime : ModLocalization.EncounterBattleTime);
             reportObject.SetActive(true);
@@ -124,6 +135,7 @@ namespace SephiriaEnhancements.Presentation
         }
 
         internal void InvalidateLayout() => lastScale = -1;
+        internal void RefreshReport() => nextProjection = 0f;
 
         internal void Hide()
         {
@@ -277,6 +289,10 @@ namespace SephiriaEnhancements.Presentation
             dismissHint = CreateText("Dismiss Hint", reportRect, 0.49f,
                 TextAlignmentOptions.Center, autoSize: true);
             dismissHint.color = Muted;
+            encounterPage = CreateText("Encounter Page", reportRect, 0.49f,
+                TextAlignmentOptions.Center, autoSize: true);
+            floorPage = CreateText("Floor Page", reportRect, 0.49f,
+                TextAlignmentOptions.Center, autoSize: true);
 
             reportObject.SetActive(false);
             reportShadowObject.SetActive(false);
@@ -351,13 +367,40 @@ namespace SephiriaEnhancements.Presentation
             ResizeLive(count, PartyLedgerWidth, 72f);
         }
 
-        private void ProjectReport(CombatStatisticsSnapshot report)
+        private void ProjectNavigation(CombatInsightsController model)
+        {
+            float size = Mathf.Max(8f, fontTemplate.fontSize * 0.49f);
+            NativeLocalizedText.SetShrinkOnlySize(encounterPage, size, Mathf.Max(8f, size * 0.82f));
+            NativeLocalizedText.SetShrinkOnlySize(floorPage, size, Mathf.Max(8f, size * 0.82f));
+            var asset = PlayerInputController.Instance?.playerInput?.actions;
+            bool allowed = model.CanInteractWithPresentedReport;
+            string previous = allowed ? NativeReportDismissal.BindingLabel(
+                NativeInputActions.FindAction(asset, NativeUiActions.PrevTab)) : string.Empty;
+            string next = allowed ? NativeReportDismissal.BindingLabel(
+                NativeInputActions.FindAction(asset, NativeUiActions.NextTab)) : string.Empty;
+            encounterPage.text = PageLabel(ModLocalization.CurrentEncounterStatistics, previous,
+                !model.ShowFloorReport);
+            floorPage.text = PageLabel(ModLocalization.CurrentFloorStatistics, next,
+                model.ShowFloorReport);
+            encounterPage.color = model.ShowFloorReport ? Muted : Moss;
+            floorPage.color = model.ShowFloorReport ? Moss : Muted;
+        }
+
+        private static string PageLabel(string key, string binding, bool selected) =>
+            (selected ? "●  " : string.Empty) +
+            (string.IsNullOrEmpty(binding) ? string.Empty : "[" + binding + "]  ") +
+            ModLocalization.Get(key);
+
+        private void ProjectReport(CombatStatisticsSnapshot report, bool floor, bool showNavigation,
+            EncounterReportLayout layout)
         {
             string title = ModLocalization.Get(ModLocalization.CombatSummary)
                 .ToUpperInvariant();
-            reportTitle.text = report is EncounterReportSnapshot encounter && encounter.Kind == EncounterReportKind.Boss
+            reportTitle.text = floor ? ModLocalization.Get(ModLocalization.CurrentFloorStatistics)
+                : report is EncounterReportSnapshot encounter && encounter.Kind == EncounterReportKind.Boss
                 ? "BOSS  ·  " + title : title;
-            reportMeta.text = DpsFormatter.Seconds(report.Duration) +
+            reportMeta.text = floor ? string.Format(ModLocalization.Get(ModLocalization.FloorBattleDuration),
+                DpsFormatter.Seconds(report.Duration)) : DpsFormatter.Seconds(report.Duration) +
                 "  ·  " + ModLocalization.Get(ModLocalization.Defeated) +
                 " ×" + report.DefeatedCount;
             damageHeading.text = ModLocalization.Get(
@@ -393,7 +436,11 @@ namespace SephiriaEnhancements.Presentation
                     ModLocalization.FinalBlows) + "  ×" +
                     report.LocalFinalBlows;
             }
-            ResizeReport(count, showFinalBlows);
+            encounterPage.gameObject.SetActive(showNavigation);
+            floorPage.gameObject.SetActive(showNavigation);
+            float metaSize = Mathf.Max(8f, fontTemplate.fontSize * 0.54f);
+            NativeLocalizedText.SetShrinkOnlySize(reportMeta, metaSize, Mathf.Max(8f, metaSize * 0.82f));
+            ResizeReport(count, showFinalBlows, layout);
         }
 
         private int EnsureLiveRows(int requested)
@@ -430,9 +477,8 @@ namespace SephiriaEnhancements.Presentation
                 liveRows[index].SetLayout(width - 8f, valueWidth, index);
         }
 
-        private void ResizeReport(int count, bool showFinalBlows)
+        private void ResizeReport(int count, bool showFinalBlows, EncounterReportLayout layout)
         {
-            var layout = new EncounterReportLayout(count, showFinalBlows);
             const float width = EncounterReportLayout.Width;
             const float rowsTop = EncounterReportLayout.RowsTop;
             const float rowHeight = EncounterReportLayout.RowHeight;
@@ -466,6 +512,10 @@ namespace SephiriaEnhancements.Presentation
                 layout.FinalBlowsTop, showFinalBlows ? 14f : 0f);
             SetTopRect(dismissHint.rectTransform, 10f, 10f,
                 layout.DismissHintTop, 16f);
+            SetTopRect(encounterPage.rectTransform, 10f, width / 2f + 3f,
+                layout.NavigationTop, 16f);
+            SetTopRect(floorPage.rectTransform, width / 2f + 3f, 10f,
+                layout.NavigationTop, 16f);
         }
 
         private void ApplyScale()

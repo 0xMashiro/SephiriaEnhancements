@@ -33,6 +33,14 @@ namespace SephiriaEnhancements.Integration
                 minimumDistancePixels * minimumDistancePixels;
         }
 
+        internal static bool HasPointerAction()
+        {
+            Mouse mouse = Mouse.current;
+            return mouse != null && (mouse.leftButton.wasPressedThisFrame ||
+                mouse.rightButton.wasPressedThisFrame || mouse.middleButton.wasPressedThisFrame ||
+                mouse.scroll.ReadValue().sqrMagnitude > 0f);
+        }
+
         private static bool HasModifier(Keyboard keyboard) =>
             keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed ||
             keyboard.leftAltKey.isPressed || keyboard.rightAltKey.isPressed ||

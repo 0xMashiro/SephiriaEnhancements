@@ -38,7 +38,9 @@ internal static class CombatTargetingChecks
 
         var gesture = new TargetSwitchGesture();
         Expect(gesture.Update(true, true, false, 0) == TargetSwitchCommand.None, "Press alone must not switch");
+        Expect(gesture.IsPending, "Pending keyboard press enters combat before choosing a target");
         Expect(gesture.Update(false, false, true, 0.1f) == TargetSwitchCommand.Switch, "Tap switches on release");
+        Expect(!gesture.IsPending, "Tap completes the gesture");
         gesture.Update(true, true, false, 1);
         Expect(gesture.Update(false, true, false, 1.5f) == TargetSwitchCommand.Unlock, "Hold unlocks without switching");
         Expect(gesture.Update(false, false, true, 1.6f) == TargetSwitchCommand.None, "Release after hold must not switch");
@@ -46,6 +48,7 @@ internal static class CombatTargetingChecks
         Expect(gesture.Update(false, false, true, 2.5f) == TargetSwitchCommand.Unlock, "Slow frame release still recognizes hold");
         gesture.Update(true, true, false, 3);
         gesture.Clear();
+        Expect(!gesture.IsPending, "Suspending combat cancels the pending gesture");
         Expect(gesture.Update(false, false, true, 3.1f) == TargetSwitchCommand.None, "Context loss cancels pending tap");
         Console.WriteLine("CombatTargeting: target retention, stable switching and tap/hold checks passed");
     }

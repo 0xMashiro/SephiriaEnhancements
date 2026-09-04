@@ -77,8 +77,9 @@ Item actions follow the game's current bindings and the hints shown on screen.
 ### Combat and statistics
 
 Automatic targets use an **amber marker**; manually locked targets use a **red marker**.
-With keyboard controls, melee attacks follow movement or your last aim direction unless you lock a target.
-Ranged attacks keep a nearby visible, unobstructed target until it is no longer valid. Unlocked gamepad aiming works as usual.
+Press the keyboard target-switch binding (default `L`), or attack with a keyboard binding, to enter keyboard combat and hide the pointer, even without enemies. Tap and release the target-switch control to lock or cycle targets; hold to clear the manual lock while staying in keyboard combat.
+Locked melee and ranged attacks aim at the target. Unlocked melee follows movement; ranged attacks and abilities retain nearby visible, unobstructed enemies. Without a target, movement sets the aim direction; stopping preserves it.
+Menus and travel suspend targeting and clear the lock. Keyboard combat resumes for the same player after control returns, unless you used the mouse. Move, click or scroll the mouse to resume mouse control. Mouse target switching does not hide the pointer. Unlocked gamepad aiming works as usual.
 
 Statistics offer **Recent battle** and **Current floor** pages. Multi-phase BOSS fights produce one combined
 report after the final phase, once menus and cutscenes are out of the way. In **Combat and Display**, change

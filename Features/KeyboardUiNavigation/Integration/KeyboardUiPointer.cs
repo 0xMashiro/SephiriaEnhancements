@@ -84,7 +84,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         internal static void UpdateCursor()
         {
             UI_Cursor cursor = UI_Cursor.Current;
-            bool hide = SelectedTarget() != null;
+            bool hide = SelectedTarget() != null || CombatTargeting.CombatTargetingController.HidesPointer;
             if (!hide || hiddenCursor != cursor)
                 RestoreCursor();
             if (!hide) return;

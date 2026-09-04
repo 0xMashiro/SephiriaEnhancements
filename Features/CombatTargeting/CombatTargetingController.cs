@@ -28,8 +28,12 @@ namespace SephiriaEnhancements.CombatTargeting
         private float nextRefreshAt;
         private int inputFrame = -1;
         private int keyboardActionFrame = -1;
-        private bool keyboardAimActive;
+        private bool keyboardCombatActive;
+        private bool aimApplied;
         private bool runtimeCompatible = true;
+
+        internal static bool HidesPointer => current != null && current.aimApplied &&
+            current.keyboardCombatActive && Application.isFocused;
 
         private void Awake() => current = this;
 
@@ -66,14 +70,14 @@ namespace SephiriaEnhancements.CombatTargeting
                     else if (action?.activeControl?.device is Keyboard && action.IsPressed() &&
                         CombatTargetingSettings.TargetingMode != TargetingMode.Disabled)
                     {
-                        current.keyboardAimActive = true;
+                        current.keyboardCombatActive = true;
                         current.keyboardActionFrame = Time.frameCount;
                         current.abilityAction = NativeTargetingBridge.IsAbility(source, slot) ? action : null;
                     }
                     else return;
                 }
                 current.RefreshAim(input);
-                if (mouseAction || current.keyboardAimActive || current.selection.IsManual)
+                if (mouseAction || current.keyboardCombatActive || current.selection.IsManual)
                 {
                     aimPosition = current.player.NetworkaimObject.transform.position;
                     aimTarget = input.autoAimedTarget;
@@ -90,10 +94,7 @@ namespace SephiriaEnhancements.CombatTargeting
 
         internal void ResetGameplayContext()
         {
-            ClearControl(PlayerInputController.Instance);
-            player = null;
-            weapon = null;
-            controlScheme = null;
+            ClearControl(PlayerInputController.Instance, preserveInputMode: true);
             runtimeCompatible = true;
         }
 
@@ -120,9 +121,7 @@ namespace SephiriaEnhancements.CombatTargeting
             if (!runtimeCompatible || !isActiveAndEnabled || !EnhancementsSettings.Enabled ||
                 input == null || !input.isActiveAndEnabled || input.playerInput == null ||
                 local == null || local.IsDead || !local.gameObject.activeInHierarchy ||
-                local.NetworkaimObject == null || local.loadingScreenType != -1 || input.BlockAvatarInput ||
-                UIManager.Instance == null || UIManager.Instance.CurrentControlStack != null ||
-                !NativeTargetingBridge.IsReady(input))
+                local.NetworkaimObject == null || UIManager.Instance == null)
             {
                 ClearControl(input);
                 return false;
@@ -142,6 +141,15 @@ namespace SephiriaEnhancements.CombatTargeting
                 Vector2 facing = player.CurrentLookingPosition - (Vector2)player.transform.position;
                 lastDirection = facing.sqrMagnitude > 0.0001f ? facing.normalized : Vector2.right;
             }
+            if (!Application.isFocused || local.loadingScreenType != -1 || input.BlockAvatarInput ||
+                UIManager.Instance.CurrentControlStack != null || !NativeTargetingBridge.IsReady(input))
+            {
+                ClearControl(input, preserveInputMode: true);
+                // UI pointer input also chooses how combat resumes after closing the panel.
+                if (Application.isFocused && (InputDeviceState.HasPointerMoved() ||
+                    InputDeviceState.HasPointerAction())) keyboardCombatActive = false;
+                return false;
+            }
             NativeControlCoordinator.PreparePlayerInput(input);
             return weapon != null;
         }
@@ -157,32 +165,44 @@ namespace SephiriaEnhancements.CombatTargeting
             else
             {
                 Vector2 movement = NativeTargetingBridge.ReadMovement(input);
-                if (keyboardScheme && !selection.IsManual && movement.sqrMagnitude > 0.16f &&
-                    (!PrefersTarget() || !keyboardAimActive)) lastDirection = movement.normalized;
 
                 if (inputFrame != Time.frameCount)
                 {
                     inputFrame = Time.frameCount;
                     InputAction action = NativeInputActions.FindShortcut(input.playerInput.actions, ModShortcuts.SwitchLockedTarget);
-                    TargetSwitchCommand command = switchGesture.Update(action?.WasPressedThisFrame() ?? false,
+                    bool pressed = action?.WasPressedThisFrame() ?? false;
+                    if (keyboardScheme && pressed && action.activeControl?.device is Keyboard)
+                    {
+                        keyboardCombatActive = true;
+                        keyboardActionFrame = Time.frameCount;
+                    }
+                    else if (keyboardScheme && pressed && action.activeControl?.device is Mouse)
+                        keyboardCombatActive = false;
+                    TargetSwitchCommand command = switchGesture.Update(pressed,
                         action?.IsPressed() ?? false, action?.WasReleasedThisFrame() ?? false, Time.unscaledTime);
                     if (command != TargetSwitchCommand.None)
                     {
-                        RefreshCandidates(force: true, allowAutomatic: keyboardScheme && keyboardAimActive && PrefersTarget());
+                        RefreshCandidates(force: true, allowAutomatic: keyboardScheme && keyboardCombatActive &&
+                            selection.Target != null && PrefersTarget());
                         if (command == TargetSwitchCommand.Switch)
                         {
                             selection.Switch(input.autoAimedTarget);
-                            if (keyboardScheme && selection.IsManual) keyboardAimActive = true;
                         }
                         else selection.Unlock();
                     }
                     else if (keyboardScheme && keyboardActionFrame != Time.frameCount &&
-                        InputDeviceState.HasPointerMoved()) YieldToMouse(input);
+                        !switchGesture.IsPending &&
+                        (InputDeviceState.HasPointerMoved() || InputDeviceState.HasPointerAction())) YieldToMouse(input);
                 }
 
-                if (keyboardScheme && keyboardAimActive)
+                if (keyboardScheme && (keyboardCombatActive || selection.IsManual))
                 {
-                    RefreshCandidates(force: false, allowAutomatic: PrefersTarget());
+                    RefreshCandidates(force: false, allowAutomatic: keyboardCombatActive &&
+                        (!switchGesture.IsPending || selection.Target != null) && PrefersTarget());
+                    if (selection.Target == null && movement.sqrMagnitude > 0.16f)
+                        lastDirection = movement.normalized;
+                    aimApplied = keyboardCombatActive;
+                    if (keyboardCombatActive) NativeTargetingBridge.ClearPointerHover(input);
                     ApplyAim(input, selection.Target, selection.Target != null
                         ? (Vector2)selection.Target.transform.position
                         : (Vector2)player.transform.position + lastDirection * PlayerInputController.MaxAimDistance);
@@ -306,13 +326,14 @@ namespace SephiriaEnhancements.CombatTargeting
             inputFrame = Time.frameCount;
         }
 
-        private void ClearControl(PlayerInputController input)
+        private void ClearControl(PlayerInputController input, bool preserveInputMode = false)
         {
             ClearOwnedTarget(input);
             selection.Clear();
             candidates.Clear();
             abilityAction = null;
-            keyboardAimActive = false;
+            if (!preserveInputMode) keyboardCombatActive = false;
+            aimApplied = false;
             nextRefreshAt = 0f;
             switchGesture.Clear();
             inputFrame = -1;

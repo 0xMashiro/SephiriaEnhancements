@@ -8,6 +8,8 @@ namespace SephiriaEnhancements.CombatTargeting
         private bool pending;
         private float pressedAt;
 
+        internal bool IsPending => pending;
+
         internal TargetSwitchCommand Update(bool pressed, bool held, bool released, float now)
         {
             if (pressed)

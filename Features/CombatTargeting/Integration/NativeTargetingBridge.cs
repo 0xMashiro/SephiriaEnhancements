@@ -10,6 +10,11 @@ namespace SephiriaEnhancements.CombatTargeting
     {
         private static readonly AccessTools.FieldRef<PlayerInputController, Vector2> Movement =
             AccessTools.FieldRefAccess<PlayerInputController, Vector2>("moveInput");
+        private static readonly AccessTools.FieldRef<PlayerInputController, bool> PointerHovered =
+            AccessTools.FieldRefAccess<PlayerInputController, bool>("isAnyUIHovered");
+        private static readonly Func<PlayerInputController, bool> ReadPointerHover =
+            AccessTools.MethodDelegate<Func<PlayerInputController, bool>>(
+                AccessTools.Method(typeof(PlayerInputController), "IsPointerOverClickableUI"));
         private static readonly Func<PlayerInputController, bool> ValidateMovement =
             AccessTools.MethodDelegate<Func<PlayerInputController, bool>>(
                 AccessTools.Method(typeof(PlayerInputController), "ValidateScreenFader_PlayerMove"));
@@ -19,6 +24,7 @@ namespace SephiriaEnhancements.CombatTargeting
 
         internal static Vector2 ReadMovement(PlayerInputController input) => Movement(input);
         internal static bool IsReady(PlayerInputController input) => ValidateMovement(input);
+        internal static void ClearPointerHover(PlayerInputController input) => PointerHovered(input) = false;
 
         // These indices and slot types belong to the native Cast API.
         internal static InputAction FindAction(InputActionAsset actions, int slot)
@@ -40,6 +46,7 @@ namespace SephiriaEnhancements.CombatTargeting
         internal static void RestoreMouseAim(PlayerInputController input, PlayerAvatar player,
             WeaponControllerSimple weapon)
         {
+            PointerHovered(input) = ReadPointerHover(input);
             Camera camera = GameCamera.Instance?.Camera;
             if (camera == null || !InputDeviceState.TryGetPointerPosition(out Vector2 pointer)) return;
             Vector2 position = camera.ScreenToWorldPoint(pointer);

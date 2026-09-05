@@ -1,4 +1,5 @@
 using SephiriaEnhancements.Inventory;
+using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.Runtime.Inventory;
 using Layout = SephiriaEnhancements.Inventory.InventoryOptimizationHudLayout;
 
@@ -13,6 +14,8 @@ internal static class InventoryHudInteractionChecks
         VerifyPagesAndReordering();
         VerifySlotSwaps();
         VerifyLevelEditAndPickupAreExclusive();
+        VerifyArtifactGoalEdits();
+        VerifyComboGoalEdits();
         return "HUD bounds, click/drag pickup lifecycle, sparse slots, swaps and target preservation passed";
     }
 
@@ -41,6 +44,88 @@ internal static class InventoryHudInteractionChecks
         state.SetEditable(false);
         if (state.LevelTarget != null || state.HasPickup)
             throw new InvalidOperationException("suspending inventory interaction must clear transient editing state");
+    }
+
+    private static void VerifyArtifactGoalEdits()
+    {
+        var snapshot = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 2, 0 }, new[] { 0, 1 }, maxLevel: 4);
+        var preferences = InventoryArtifactIntentEditor.PlacePriority(InventoryOptimizationPreferences.Default, 100, 1000, 0);
+        var state = new InventoryIntentInteractionState();
+        state.SetEditable(true);
+        state.TryEditLevel(preferences.ArtifactPreferences.Single());
+        void Edit(InventoryArtifactGoalEdit edit)
+        {
+            if (!state.TryEditArtifactGoal(preferences, snapshot, edit, out var updated))
+                throw new InvalidOperationException("active goal edit was rejected");
+            preferences = updated;
+        }
+        void Expect(ArtifactLevelTargetMode mode, int level, InventoryConstraintStrength strength)
+        {
+            var rule = preferences.ArtifactPreferences.Single();
+            if (rule.TargetMode != mode || rule.MinimumEffectiveLevel != level || rule.Strength != strength)
+                throw new InvalidOperationException("goal edit changed the wrong condition");
+        }
+        Edit(InventoryArtifactGoalEdit.CycleTargetMode);
+        Expect(ArtifactLevelTargetMode.ActiveOnly, 0, InventoryConstraintStrength.Soft);
+        Edit(InventoryArtifactGoalEdit.CycleTargetMode);
+        Expect(ArtifactLevelTargetMode.SpecifiedLevel, 2, InventoryConstraintStrength.Soft);
+        Edit(InventoryArtifactGoalEdit.ToggleStrength);
+        Edit(InventoryArtifactGoalEdit.IncreaseLevel);
+        Edit(InventoryArtifactGoalEdit.IncreaseLevel);
+        Edit(InventoryArtifactGoalEdit.IncreaseLevel);
+        Expect(ArtifactLevelTargetMode.SpecifiedLevel, 4, InventoryConstraintStrength.Hard);
+        Edit(InventoryArtifactGoalEdit.DecreaseLevel);
+        Expect(ArtifactLevelTargetMode.SpecifiedLevel, 3, InventoryConstraintStrength.Hard);
+        Edit(InventoryArtifactGoalEdit.CycleTargetMode);
+        Expect(ArtifactLevelTargetMode.Automatic, 3, InventoryConstraintStrength.Hard);
+        // The selected key stays stable when its rule is replaced or moved to another slot.
+        preferences = InventoryArtifactIntentEditor.PlaceAvoid(preferences, 100, 1000, 2);
+        Edit(InventoryArtifactGoalEdit.ToggleStrength);
+        Expect(ArtifactLevelTargetMode.ActiveOnly, 0, InventoryConstraintStrength.Soft);
+        foreach (var invalid in new[] { InventoryOptimizationPreferences.Default,
+            InventoryArtifactIntentEditor.PlacePriority(InventoryOptimizationPreferences.Default, 101, 1001, 0) })
+            if (state.TryEditArtifactGoal(invalid, snapshot, InventoryArtifactGoalEdit.ToggleStrength, out var updated) ||
+                !ReferenceEquals(invalid, updated)) throw new InvalidOperationException("stale selection edited a replacement slot");
+        if (state.TryEditArtifactGoal(preferences, InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0 }, Array.Empty<int>()),
+                InventoryArtifactGoalEdit.ToggleStrength, out _)) throw new InvalidOperationException("missing artifact was edited");
+        state.SetEditable(false);
+        if (state.TryEditArtifactGoal(preferences, snapshot, InventoryArtifactGoalEdit.ToggleStrength, out _))
+            throw new InvalidOperationException("busy HUD changed an artifact goal");
+    }
+
+    private static void VerifyComboGoalEdits()
+    {
+        var snapshot = new InventorySnapshot(1, 0, Array.Empty<InventoryCellSnapshot>(), Array.Empty<InventoryItemSnapshot>(),
+            comboCategories: new[] { new ComboCategorySnapshot("Scholar", 0, 0, 0, 0, 0, new[] { 3 }, Array.Empty<int>(), false) });
+        var preferences = InventoryOptimizationPreferences.Default;
+        var state = new InventoryIntentInteractionState();
+        state.SetEditable(true);
+        void Edit(InventoryComboGoalEdit edit)
+        {
+            if (!state.TryEditComboGoal(preferences, snapshot, "Scholar", edit, out var updated))
+                throw new InvalidOperationException("combo edit rejected");
+            preferences = updated;
+        }
+        Edit(InventoryComboGoalEdit.CycleChoice);
+        Edit(InventoryComboGoalEdit.IncreaseCount);
+        Edit(InventoryComboGoalEdit.IncreaseCount);
+        Edit(InventoryComboGoalEdit.ToggleStrength);
+        if (preferences.ComboPreferences.Single().TargetCount != 2 ||
+            preferences.ComboPreferences.Single().Strength != InventoryConstraintStrength.Hard)
+            throw new InvalidOperationException("successive edits reused a stale row projection");
+        Edit(InventoryComboGoalEdit.CycleChoice);
+        Edit(InventoryComboGoalEdit.DecreaseCount);
+        if (preferences.ComboPreferences.Single().Level != InventoryPreferenceLevel.Avoid ||
+            preferences.ComboPreferences.Single().TargetCount != 1 ||
+            preferences.ComboPreferences.Single().Strength != InventoryConstraintStrength.Hard)
+            throw new InvalidOperationException("cycling choice lost the current count or strength");
+        Edit(InventoryComboGoalEdit.CycleChoice);
+        if (preferences.ComboPreferences.Count != 0 ||
+            state.TryEditComboGoal(preferences, snapshot, "Scholar", InventoryComboGoalEdit.IncreaseCount, out _))
+            throw new InvalidOperationException("automatic mode retained an editable override");
+        state.SetEditable(false);
+        if (state.TryEditComboGoal(preferences, snapshot, "Scholar", InventoryComboGoalEdit.CycleChoice, out _))
+            throw new InvalidOperationException("busy HUD edited a combo goal");
     }
 
     private static void VerifyDisclosureLayout()

@@ -3,7 +3,6 @@ using SephiriaEnhancements.Runtime.Inventory;
 
 using System;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Diagnostics;
@@ -26,24 +25,11 @@ namespace SephiriaEnhancements.Inventory
             new Integration.NativeRewardComboHighlightView();
         private RuntimeKernel runtimeKernel;
         private Integration.Gpu.GpuInventoryLayoutOptimizer gpuOptimizer;
-        private CancellationTokenSource solveCancellation;
-        private Task<InventoryOptimizationProposal> solveTask;
-        private InventorySnapshot sourceSnapshot;
-        private RuntimeStateSnapshot sourceRuntime;
-        private InventoryOptimizationProposal result;
-        private ProjectedInventorySettlement expectedSettlement;
-        private InventoryApplicationPlan applicationPlan;
-        private InventoryLayoutProjection confirmedLayout;
-        private long confirmedRevision;
+        private InventoryOptimizationSearch search;
+        private InventoryLayoutApplication application;
+        // The native view is bound only while this controller owns an application.
         private GridInventory applyingInventory;
-        private int nextSwap;
-        private int nextRotation;
         private float nextRequestAt;
-        private float applyDeadline;
-        private long pendingOperationRevision;
-        private int pendingRotation;
-        private bool awaitingNativeConfirmation;
-        private bool awaitingSwapConfirmation;
         private bool compatible = true;
         private float nextPriorityVisualRefreshAt;
         private InventoryIntentResultFeedback intentFeedback;
@@ -115,11 +101,11 @@ namespace SephiriaEnhancements.Inventory
             enabled = false;
         }
 
-        private bool Busy => solveTask != null || applicationPlan != null;
+        private bool Busy => search != null || application != null;
 
-        private InventoryOptimizationHudPhase HudPhase => solveTask != null
+        private InventoryOptimizationHudPhase HudPhase => search != null
             ? InventoryOptimizationHudPhase.Searching
-            : applicationPlan != null
+            : application != null
                 ? InventoryOptimizationHudPhase.Applying
                 : InventoryOptimizationHudPhase.Ready;
 
@@ -161,15 +147,15 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
 
-            if (solveTask != null && CancelSearchIfContextInvalid())
+            if (search != null && CancelSearchIfContextInvalid())
             {
                 return;
             }
-            if (solveTask != null)
+            if (search != null)
             {
                 PollSolver();
             }
-            if (applicationPlan != null)
+            if (application != null)
             {
                 ApplyNextStep();
             }
@@ -364,7 +350,7 @@ namespace SephiriaEnhancements.Inventory
             }
 
             if (!runtimeKernel.TryGetProjectableInventorySnapshot(
-                    out sourceSnapshot, out sourceRuntime))
+                    out InventorySnapshot sourceSnapshot, out RuntimeStateSnapshot sourceRuntime))
             {
                 runtimeKernel.TryGetLatestInventorySnapshot(out InventorySnapshot latest, out _);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
@@ -412,8 +398,6 @@ namespace SephiriaEnhancements.Inventory
             hud.SuspendEditing();
             intentFeedback = null;
             LastAppliedOutcome = null;
-            solveCancellation = new CancellationTokenSource();
-            CancellationToken token = solveCancellation.Token;
             InventorySearchEffort searchEffort =
                 InventoryOptimizationTendencyPolicy.GetSearchEffort(
                     ModSettings.InventoryOptimizationTendency);
@@ -439,25 +423,27 @@ namespace SephiriaEnhancements.Inventory
                 DeveloperTools.InventoryReproductionSettings.RecordAllResults);
             InventoryReproductionCase capturedCase = reproductionCase;
             InventoryReproductionLog capturedLog = reproductionLog;
-            solveTask = Task.Run(() => SolveWithReproduction(capturedCase, capturedLog, token), token);
+            search = new InventoryOptimizationSearch(snapshot, sourceRuntime,
+                token => SolveWithReproduction(capturedCase, capturedLog, token));
 #else
-            solveTask = Task.Run(() => InventoryOptimizerSelector.Solve(
-                snapshot, policy, budget, token), token);
+            search = new InventoryOptimizationSearch(snapshot, sourceRuntime,
+                token => InventoryOptimizerSelector.Solve(snapshot, policy, budget, token));
 #endif
             ShowMessage(InventoryOptimizationLocalization.Analyzing);
         }
 
         private void PollSolver()
         {
-            if (!solveTask.IsCompleted)
+            if (!search.Task.IsCompleted)
             {
                 return;
             }
 
-            Task<InventoryOptimizationProposal> completed = solveTask;
-            solveTask = null;
-            solveCancellation?.Dispose();
-            solveCancellation = null;
+            Task<InventoryOptimizationProposal> completed = search.Task;
+            InventorySnapshot sourceSnapshot = search.SourceSnapshot;
+            RuntimeStateSnapshot sourceRuntime = search.SourceRuntime;
+            search.Dispose();
+            search = null;
             if (completed.IsCanceled)
             {
                 ResetOperationState();
@@ -469,7 +455,7 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
 
-            result = completed.Result;
+            InventoryOptimizationProposal result = completed.Result;
             SupportLogger.Record("inventory_search_completed", "succeeded=" + result.Succeeded +
                 " improved=" + result.Improved + " reason=" + result.TerminationReason +
                 " candidates=" + result.CandidateEvaluations + " elapsedMs=" + result.ElapsedMilliseconds);
@@ -479,7 +465,7 @@ namespace SephiriaEnhancements.Inventory
                     runtimeKernel?.State);
                 bool hardFailure = result.HardConstraintStatus == InventoryHardConstraintStatus.ProvenInfeasible ||
                     result.HardConstraintStatus == InventoryHardConstraintStatus.NotFound;
-                if (hardFailure && RuntimeStillMatches() && TryGetOpenInventory(out var unchangedInventory) &&
+                if (hardFailure && RuntimeStillMatches(sourceRuntime) && TryGetOpenInventory(out var unchangedInventory) &&
                     MatchesInventory(sourceSnapshot, unchangedInventory))
                     intentFeedback = new InventoryIntentResultFeedback(sourceSnapshot, result.Policy,
                         ExplorationInventoryIntentStore.Capture(), sourceRuntime);
@@ -491,7 +477,7 @@ namespace SephiriaEnhancements.Inventory
             }
             if (!result.Improved)
             {
-                if (RuntimeStillMatches() && TryGetOpenInventory(out var unchangedInventory) &&
+                if (RuntimeStillMatches(sourceRuntime) && TryGetOpenInventory(out var unchangedInventory) &&
                     MatchesInventory(sourceSnapshot, unchangedInventory))
                 {
                     intentFeedback = new InventoryIntentResultFeedback(sourceSnapshot, result.Policy,
@@ -501,30 +487,30 @@ namespace SephiriaEnhancements.Inventory
                 ResetOperationState();
                 return;
             }
-            if (!TryGetOpenInventory(out applyingInventory) ||
-                !RuntimeStillMatches() ||
-                !MatchesInventory(sourceSnapshot, applyingInventory))
+            if (!TryGetOpenInventory(out GridInventory inventory) ||
+                !RuntimeStillMatches(sourceRuntime) ||
+                !MatchesInventory(sourceSnapshot, inventory))
             {
                 ShowMessage(InventoryOptimizationLocalization.Changed);
                 ResetOperationState();
                 return;
             }
             if (!InventoryLayoutPlanner.TryCreate(sourceSnapshot, result.Layout,
-                    out applicationPlan, out string _))
+                    out InventoryApplicationPlan applicationPlan, out string _))
             {
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
-                RecordReproduction(InventoryReproductionReason.ApplicationPlanRejected);
+                RecordReproduction(InventoryReproductionReason.ApplicationPlanRejected, proposal: result);
 #endif
                 ShowMessage(InventoryOptimizationLocalization.Failed);
                 ResetOperationState();
                 return;
             }
-            expectedSettlement = InventorySettlementProjector.Evaluate(
+            ProjectedInventorySettlement expectedSettlement = InventorySettlementProjector.Evaluate(
                 sourceSnapshot, result.Layout);
             if (!expectedSettlement.Succeeded)
             {
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
-                RecordReproduction(InventoryReproductionReason.ProjectionRejected);
+                RecordReproduction(InventoryReproductionReason.ProjectionRejected, proposal: result);
 #endif
                 ShowMessage(InventoryOptimizationLocalization.Unsupported);
                 ResetOperationState();
@@ -542,12 +528,9 @@ namespace SephiriaEnhancements.Inventory
             DeveloperLogger.RecordInventoryOptimization(result, applicationPlan,
                 runtimeKernel?.State);
 
-            nextSwap = 0;
-            nextRotation = 0;
-            confirmedLayout = InventoryLayoutProjection.Current(sourceSnapshot);
-            confirmedRevision = sourceRuntime.InventoryRevision;
-            awaitingNativeConfirmation = false;
-            applyDeadline = Time.unscaledTime + ApplyTimeout;
+            application = new InventoryLayoutApplication(sourceSnapshot, sourceRuntime, result,
+                applicationPlan, expectedSettlement, Time.unscaledTime + ApplyTimeout);
+            applyingInventory = inventory;
             ShowMessage(InventoryOptimizationLocalization.Applying);
         }
 
@@ -559,7 +542,7 @@ namespace SephiriaEnhancements.Inventory
                 ResetOperationState();
                 return;
             }
-            if (Time.unscaledTime > applyDeadline)
+            if (Time.unscaledTime > application.Deadline)
             {
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
                 runtimeKernel.TryGetLatestInventorySnapshot(out InventorySnapshot latest, out _);
@@ -590,7 +573,7 @@ namespace SephiriaEnhancements.Inventory
 
             try
             {
-                if (awaitingNativeConfirmation)
+                if (application.PendingOperation != InventoryPendingOperation.None)
                 {
                     ConfirmPendingNativeOperation();
                     return;
@@ -599,18 +582,18 @@ namespace SephiriaEnhancements.Inventory
                 // The previous native acknowledgement does not authorize another
                 // operation after an unrelated inventory update or manual move.
                 if (runtimeKernel.State?.HasSettledInventoryObservation != true ||
-                    runtimeKernel.State.InventoryRevision != confirmedRevision ||
-                    !MatchesLayout(current, sourceSnapshot, confirmedLayout))
+                    runtimeKernel.State.InventoryRevision != application.ConfirmedRevision ||
+                    !MatchesLayout(current, application.SourceSnapshot, application.ConfirmedLayout))
                 {
                     ShowMessage(InventoryOptimizationLocalization.Changed);
                     ResetOperationState();
                     return;
                 }
 
-                if (nextSwap < applicationPlan.Swaps.Count)
+                if (application.NextSwap < application.Plan.Swaps.Count)
                 {
                     InventorySwapOperation operation =
-                        applicationPlan.Swaps[nextSwap];
+                        application.Plan.Swaps[application.NextSwap];
                     if (GetItemKey(current, operation.FirstCell) !=
                             operation.ExpectedFirstItemKey ||
                         GetItemKey(current, operation.SecondCell) !=
@@ -623,18 +606,15 @@ namespace SephiriaEnhancements.Inventory
 
                     ItemPosition first = current.IdxToPos(operation.FirstCell);
                     ItemPosition second = current.IdxToPos(operation.SecondCell);
-                    pendingOperationRevision = runtimeKernel.State.
-                        InventoryRevision;
-                    awaitingNativeConfirmation = true;
-                    awaitingSwapConfirmation = true;
+                    application.BeginSwap(runtimeKernel.State.InventoryRevision);
                     current.Swap(first.x, first.y, second.x, second.y);
                     return;
                 }
 
-                if (nextRotation < applicationPlan.Rotations.Count)
+                if (application.NextRotation < application.Plan.Rotations.Count)
                 {
                     InventoryRotationOperation operation =
-                        applicationPlan.Rotations[nextRotation];
+                        application.Plan.Rotations[application.NextRotation];
                     ItemPosition position = current.IdxToPos(operation.Cell);
                     NewItemOwnInstance item = current.FindItem(position);
                     if (GetItemKey(current, operation.Cell) != operation.ItemKey ||
@@ -646,15 +626,11 @@ namespace SephiriaEnhancements.Inventory
                     }
                     if (item.StoneTablet.rotation == operation.TargetRotation)
                     {
-                        nextRotation++;
+                        application.SkipCompletedRotation();
                         return;
                     }
 
-                    pendingOperationRevision = runtimeKernel.State.
-                        InventoryRevision;
-                    pendingRotation = item.StoneTablet.rotation;
-                    awaitingNativeConfirmation = true;
-                    awaitingSwapConfirmation = false;
+                    application.BeginRotation(runtimeKernel.State.InventoryRevision, item.StoneTablet.rotation);
                     current.DoClickAction(position);
                     return;
                 }
@@ -663,19 +639,19 @@ namespace SephiriaEnhancements.Inventory
                         out InventorySnapshot actualSnapshot,
                         out RuntimeStateSnapshot actualRuntime) ||
                     actualRuntime.GameplayContextEpoch !=
-                        sourceRuntime.GameplayContextEpoch ||
-                    actualRuntime.PlayerNetId != sourceRuntime.PlayerNetId ||
+                        application.SourceRuntime.GameplayContextEpoch ||
+                    actualRuntime.PlayerNetId != application.SourceRuntime.PlayerNetId ||
                     !InventoryApplicationConfirmation.MatchesTarget(
-                        actualSnapshot, sourceSnapshot, result.Layout))
+                        actualSnapshot, application.SourceSnapshot, application.Proposal.Layout))
                 {
                     return;
                 }
 
-                bool layoutMatched = MatchesLayout(current, sourceSnapshot,
-                    result.Layout);
+                bool layoutMatched = MatchesLayout(current, application.SourceSnapshot,
+                    application.Proposal.Layout);
                 InventorySettlementDifferentialReport differential =
                     InventorySettlementDifferentialVerifier.Compare(
-                        sourceSnapshot, result.Layout, expectedSettlement,
+                        application.SourceSnapshot, application.Proposal.Layout, application.ExpectedSettlement,
                         actualSnapshot);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
                 InventoryReproductionReason reason = reproductionCase.ApplicationReason(layoutMatched, differential.Matched);
@@ -683,13 +659,13 @@ namespace SephiriaEnhancements.Inventory
                     RecordReproduction(reason, actualSnapshot, differential);
 #endif
                 DeveloperLogger.RecordInventoryApplication(layoutMatched,
-                    applicationPlan, nextSwap, nextRotation,
+                    application.Plan, application.NextSwap, application.NextRotation,
                     actualRuntime);
                 DeveloperLogger.RecordInventorySettlementDifferential(
                     differential, actualRuntime);
                 SupportLogger.Record("inventory_application_completed", "layoutMatched=" + layoutMatched +
                     " settlementMatched=" + differential.Matched + " mismatches=" + differential.Mismatches.Count +
-                    " swaps=" + nextSwap + " rotations=" + nextRotation,
+                    " swaps=" + application.NextSwap + " rotations=" + application.NextRotation,
                     layoutMatched && differential.Matched ? "INFO" : "WARN");
                 if (!layoutMatched)
                 {
@@ -703,8 +679,8 @@ namespace SephiriaEnhancements.Inventory
                 }
                 else
                 {
-                    LastAppliedOutcome = result.Outcome;
-                    intentFeedback = new InventoryIntentResultFeedback(actualSnapshot, result.Policy,
+                    LastAppliedOutcome = application.Proposal.Outcome;
+                    intentFeedback = new InventoryIntentResultFeedback(actualSnapshot, application.Proposal.Policy,
                         ExplorationInventoryIntentStore.Capture(), actualRuntime);
                     ShowMessage(InventoryOptimizationLocalization.Completed);
                 }
@@ -719,19 +695,12 @@ namespace SephiriaEnhancements.Inventory
         private void ConfirmPendingNativeOperation()
         {
             if (!runtimeKernel.TryGetSettledInventorySnapshot(
-                    out InventorySnapshot snapshot,
-                    out RuntimeStateSnapshot runtime) ||
-                runtime.GameplayContextEpoch !=
-                    sourceRuntime.GameplayContextEpoch ||
-                runtime.PlayerNetId != sourceRuntime.PlayerNetId ||
-                runtime.InventoryRevision <= pendingOperationRevision)
-            {
-                return;
-            }
+                    out InventorySnapshot snapshot, out RuntimeStateSnapshot runtime) ||
+                !application.CanObserveAcknowledgement(runtime)) return;
 
             if (snapshot.SettlementValidation.HasPositionEffectIssue ||
                 !InventoryPositionEffectComparison.ParametersMatch(
-                    sourceSnapshot.PositionEffects, snapshot.PositionEffects))
+                    application.SourceSnapshot.PositionEffects, snapshot.PositionEffects))
             {
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
                 RecordReproduction(InventoryReproductionReason.PositionEffectsChanged, snapshot);
@@ -741,36 +710,8 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
 
-            InventoryLayoutProjection observedLayout;
-            if (awaitingSwapConfirmation)
-            {
-                if (!InventoryApplicationConfirmation.IsSwapObserved(snapshot,
-                        applicationPlan.Swaps[nextSwap]))
-                {
-                    return;
-                }
-                InventorySwapOperation operation = applicationPlan.Swaps[nextSwap];
-                observedLayout = confirmedLayout.WithCellsSwapped(
-                    operation.FirstCell, operation.SecondCell);
-            }
-            else
-            {
-                InventoryRotationOperation operation =
-                    applicationPlan.Rotations[nextRotation];
-                if (!InventoryApplicationConfirmation.IsRotationStepObserved(
-                        snapshot, operation, pendingRotation))
-                {
-                    return;
-                }
-                InventoryItemSnapshot item = snapshot.Items.First(value =>
-                    value.ItemKey == operation.ItemKey);
-                int itemIndex = Enumerable.Range(0, sourceSnapshot.Items.Count)
-                    .First(index => sourceSnapshot.Items[index].ItemKey == operation.ItemKey);
-                observedLayout = confirmedLayout.WithRotation(itemIndex, item.StoneTablet.Rotation);
-            }
-
-            InventorySettlementDifferentialReport verification =
-                InventoryApplicationConfirmation.VerifyStep(snapshot, sourceSnapshot, observedLayout);
+            if (!application.TryObservePendingOperation(snapshot, runtime,
+                    out InventorySettlementDifferentialReport verification)) return;
             if (!verification.Matched)
             {
                 DeveloperLogger.RecordInventorySettlementDifferential(verification, runtime);
@@ -780,27 +721,9 @@ namespace SephiriaEnhancements.Inventory
                 ResetOperationState();
                 return;
             }
-
-            if (awaitingSwapConfirmation)
-            {
-                nextSwap++;
-            }
-            else
-            {
-                InventoryRotationOperation operation = applicationPlan.Rotations[nextRotation];
-                InventoryItemSnapshot item = snapshot.Items.First(value => value.ItemKey == operation.ItemKey);
-                if (item.StoneTablet.Rotation == operation.TargetRotation)
-                {
-                    nextRotation++;
-                }
-            }
-
-            confirmedLayout = observedLayout;
-            confirmedRevision = runtime.InventoryRevision;
-            awaitingNativeConfirmation = false;
         }
 
-        private bool RuntimeStillMatches()
+        private bool RuntimeStillMatches(RuntimeStateSnapshot sourceRuntime)
         {
             RuntimeStateSnapshot current = runtimeKernel?.State;
             return current != null && sourceRuntime != null &&
@@ -822,15 +745,15 @@ namespace SephiriaEnhancements.Inventory
                 out GridInventory currentInventory);
             RuntimeStateSnapshot currentRuntime = runtimeKernel?.State;
             bool gameplayContextMatches = currentRuntime != null &&
-                sourceRuntime != null &&
+                search.SourceRuntime != null &&
                 currentRuntime.GameplayContextEpoch ==
-                    sourceRuntime.GameplayContextEpoch &&
-                currentRuntime.PlayerNetId == sourceRuntime.PlayerNetId;
+                    search.SourceRuntime.GameplayContextEpoch &&
+                currentRuntime.PlayerNetId == search.SourceRuntime.PlayerNetId;
             bool inventoryRevisionMatches = gameplayContextMatches &&
-                currentRuntime.InventoryRevision == sourceRuntime.InventoryRevision;
+                currentRuntime.InventoryRevision == search.SourceRuntime.InventoryRevision;
             bool sourceLayoutMatches = inventoryOptimizationAvailable &&
-                sourceSnapshot != null &&
-                MatchesInventory(sourceSnapshot, currentInventory);
+                search.SourceSnapshot != null &&
+                MatchesInventory(search.SourceSnapshot, currentInventory);
             InventoryArrangementInvalidationReason reason =
                 InventoryArrangementLifecyclePolicy.Evaluate(
                     InventoryArrangementOperationPhase.Searching,
@@ -862,10 +785,10 @@ namespace SephiriaEnhancements.Inventory
         private bool RuntimeGameplayContextStillMatches()
         {
             RuntimeStateSnapshot current = runtimeKernel?.State;
-            return current != null && sourceRuntime != null &&
+            return current != null && application.SourceRuntime != null &&
                 current.GameplayContextEpoch ==
-                    sourceRuntime.GameplayContextEpoch &&
-                current.PlayerNetId == sourceRuntime.PlayerNetId;
+                    application.SourceRuntime.GameplayContextEpoch &&
+                current.PlayerNetId == application.SourceRuntime.PlayerNetId;
         }
 
         private static bool TryGetOpenInventory(out GridInventory inventory)
@@ -929,7 +852,7 @@ namespace SephiriaEnhancements.Inventory
         private void Fail(Exception exception)
         {
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
-            if (result != null)
+            if (application != null)
                 RecordReproduction(InventoryReproductionReason.ApplicationException, exception: exception);
 #endif
             compatible = false;
@@ -947,24 +870,10 @@ namespace SephiriaEnhancements.Inventory
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             reproductionCase = null;
 #endif
-            solveCancellation?.Cancel();
-            solveCancellation?.Dispose();
-            solveCancellation = null;
-            solveTask = null;
-            sourceSnapshot = null;
-            sourceRuntime = null;
-            result = null;
-            expectedSettlement = null;
-            applicationPlan = null;
-            confirmedLayout = null;
-            confirmedRevision = 0;
+            search?.Dispose();
+            search = null;
+            application = null;
             applyingInventory = null;
-            nextSwap = 0;
-            nextRotation = 0;
-            pendingOperationRevision = 0;
-            pendingRotation = 0;
-            awaitingNativeConfirmation = false;
-            awaitingSwapConfirmation = false;
         }
 
         private void OnDestroy()

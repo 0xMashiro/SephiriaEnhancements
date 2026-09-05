@@ -104,6 +104,7 @@
     <Compile Include="..\..\Features\Inventory\Core\InventoryCandidateNeighborhoods.cs" Link="Inventory\InventoryCandidateNeighborhoods.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationSearchModels.cs" Link="Inventory\InventoryOptimizationSearchModels.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationScorer.cs" Link="Inventory\InventoryOptimizationScorer.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryTargetState.cs" Link="Inventory\InventoryTargetState.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryIntentResultFeedback.cs" Link="Inventory\InventoryIntentResultFeedback.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationOutcome.cs" Link="Inventory\InventoryOptimizationOutcome.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizerSelector.cs" Link="Inventory\InventoryOptimizerSelector.cs" />
@@ -111,6 +112,8 @@
     <Compile Include="..\..\Features\Inventory\Core\InventoryExhaustiveSearchOracle.cs" Link="Inventory\InventoryExhaustiveSearchOracle.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryLayoutPlanner.cs" Link="Inventory\InventoryLayoutPlanner.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryApplicationConfirmation.cs" Link="Inventory\InventoryApplicationConfirmation.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryLayoutApplication.cs" Link="Inventory\InventoryLayoutApplication.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationSearch.cs" Link="Inventory\InventoryOptimizationSearch.cs" />
     <Compile Include="..\..\Runtime\Inventory\InventorySettlementDifferentialVerifier.cs" Link="Runtime\Inventory\InventorySettlementDifferentialVerifier.cs" />
     <Compile Include="..\..\Runtime\Contracts\RuntimeStateSnapshot.cs" Link="Runtime\RuntimeStateSnapshot.cs" />
     <Compile Include="..\..\Runtime\Contracts\MultiplayerSessionSnapshot.cs" Link="Runtime\MultiplayerSessionSnapshot.cs" />

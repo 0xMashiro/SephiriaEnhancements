@@ -30,7 +30,8 @@ namespace SephiriaEnhancements.Inventory
         SwapAndRotation,
         TwoSwaps,
         TwoItemRelocationAndRotation,
-        ThreeItemRelocation
+        ThreeItemRelocation,
+        Restart
     }
 
     internal sealed class InventorySearchStageStatistics
@@ -260,6 +261,18 @@ namespace SephiriaEnhancements.Inventory
         {
             Observe(maximumObservedValue, maximumObservedCompletionPoints,
                 conditionObserved);
+        }
+
+        internal static Dictionary<string, InventoryTargetSearchEvidence> Capture(
+            IEnumerable<InventoryOptimizationTargetEvaluation> evaluations)
+        {
+            var result = new Dictionary<string, InventoryTargetSearchEvidence>(StringComparer.Ordinal);
+            foreach (var target in evaluations)
+                result[target.Target] = new InventoryTargetSearchEvidence(
+                    target.MaximumObservedValue, target.MaximumObservedCompletionPoints,
+                    target.Reachability == InventoryTargetReachability.SelectedLayoutReachesCondition ||
+                    target.Reachability == InventoryTargetReachability.ObservedReachable);
+            return result;
         }
 
         internal int MaximumObservedValue { get; private set; }

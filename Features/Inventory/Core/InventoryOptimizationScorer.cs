@@ -9,8 +9,6 @@ namespace SephiriaEnhancements.Inventory
 {
     internal sealed class InventoryOptimizationScorer
     {
-        internal const int TargetCompletionScale = 10_000;
-
         private readonly InventorySnapshot snapshot;
         private readonly ResolvedInventoryOptimizationPolicy policy;
         private readonly Dictionary<InventoryItemKey, InventoryItemSnapshot> itemsByKey;
@@ -91,20 +89,13 @@ namespace SephiriaEnhancements.Inventory
                         artifact.ItemKey,
                         out ResolvedArtifactOptimizationRule rule))
                 {
-                    int effectiveLevel = artifact.Enabled
-                        ? artifact.CappedEffectiveLevel
-                        : 0;
-                    bool reached = artifact.Enabled &&
-                        effectiveLevel >= rule.MinimumEffectiveLevel;
-                    int completionPoints = CalculateArtifactCompletionPoints(
-                        artifact.Enabled, effectiveLevel,
-                        rule.MinimumEffectiveLevel);
+                    InventoryTargetState state = EvaluateArtifactInstance(rule, artifact);
+                    bool reached = state.Reached;
+                    int completionPoints = state.CompletionPoints;
                     if (rule.Strength == InventoryConstraintStrength.Hard)
                     {
-                        bool satisfied = rule.Level == InventoryPreferenceLevel.Avoid ? !artifact.Enabled : reached;
-                        if (!satisfied) hardViolations++;
-                        hardCompletion += rule.Level == InventoryPreferenceLevel.Avoid
-                            ? satisfied ? TargetCompletionScale : 0 : completionPoints;
+                        if (!reached) hardViolations++;
+                        hardCompletion += completionPoints;
                         continue;
                     }
                     if (rule.Level == InventoryPreferenceLevel.Priority &&
@@ -130,40 +121,19 @@ namespace SephiriaEnhancements.Inventory
             foreach (ResolvedArtifactOptimizationRule rule in
                 policy.ArtifactEntityRules.Values)
             {
-                ProjectedInventoryArtifactSettlement[] candidates = settlement.Artifacts.
-                    Where(artifact => !policy.ArtifactInstanceRules.ContainsKey(
-                            artifact.ItemKey) &&
-                        itemsByKey[artifact.ItemKey].EntityId ==
-                            rule.EntityId).ToArray();
-                if (rule.Level == InventoryPreferenceLevel.Avoid)
-                {
-                    if (rule.Strength == InventoryConstraintStrength.Hard)
-                    {
-                        bool inactive = candidates.All(artifact => !artifact.Enabled);
-                        if (!inactive) hardViolations++;
-                        else hardCompletion += TargetCompletionScale;
-                        continue;
-                    }
-                    avoidedTargetsActive += candidates.Count(artifact =>
-                        artifact.Enabled);
-                    continue;
-                }
-
-                bool reached = candidates.Any(artifact => artifact.Enabled &&
-                    artifact.CappedEffectiveLevel >=
-                        rule.MinimumEffectiveLevel);
-                int completionPoints = candidates.Select(artifact =>
-                    CalculateArtifactCompletionPoints(artifact.Enabled,
-                        artifact.CappedEffectiveLevel,
-                        rule.MinimumEffectiveLevel)).DefaultIfEmpty(0).Max();
+                InventoryTargetState state = EvaluateArtifactEntity(rule, settlement.Artifacts);
                 if (rule.Strength == InventoryConstraintStrength.Hard)
                 {
-                    if (!reached) hardViolations++;
-                    hardCompletion += completionPoints;
-                    continue;
+                    if (!state.Reached) hardViolations++;
+                    hardCompletion += state.CompletionPoints;
                 }
-                if (reached) presetTargetsSatisfied++;
-                presetTargetCompletionPoints += completionPoints;
+                else if (rule.Level == InventoryPreferenceLevel.Avoid)
+                    avoidedTargetsActive += state.Value;
+                else
+                {
+                    if (state.Reached) presetTargetsSatisfied++;
+                    presetTargetCompletionPoints += state.CompletionPoints;
+                }
             }
 
             int comboBreakpointValue = 0;
@@ -177,7 +147,7 @@ namespace SephiriaEnhancements.Inventory
             foreach (ResolvedComboOptimizationRule rule in policy.ComboRules.Values)
             {
                 settlement.ComboCounts.TryGetValue(rule.CategoryId, out int count);
-                var (targetReached, completionPoints) = EvaluateComboTarget(rule, count);
+                var (targetReached, completionPoints) = InventoryTargetState.Combo(rule, count);
                 if (rule.Strength == InventoryConstraintStrength.Hard)
                 {
                     if (!targetReached) hardViolations++;
@@ -300,40 +270,6 @@ namespace SephiriaEnhancements.Inventory
             }
         }
 
-        internal static int CalculateTargetCompletionPoints(bool active,
-            int currentValue, int minimumValue)
-        {
-            if (!active)
-            {
-                return 0;
-            }
-            if (minimumValue <= 0)
-            {
-                return TargetCompletionScale;
-            }
-
-            long nonNegativeValue = Math.Max(0, currentValue);
-            return (int)Math.Min(TargetCompletionScale,
-                nonNegativeValue * TargetCompletionScale / minimumValue);
-        }
-
-        // Level zero is a working artifact, and must outrank an inactive one
-        // within its queue slot even when its upgrade target is out of reach.
-        private static int CalculateArtifactCompletionPoints(bool active, int currentValue, int minimumValue) =>
-            Math.Max(active ? 1 : 0, CalculateTargetCompletionPoints(active, currentValue, minimumValue));
-
-        private static (bool Reached, int CompletionPoints) EvaluateComboTarget(
-            ResolvedComboOptimizationRule rule, int count)
-        {
-            if (rule.Level == InventoryPreferenceLevel.Avoid)
-            {
-                bool reached = count <= rule.TargetCount;
-                return (reached, reached ? TargetCompletionScale : 0);
-            }
-            return (count >= rule.TargetCount,
-                CalculateTargetCompletionPoints(true, count, rule.TargetCount));
-        }
-
         internal InventoryOptimizationTargetEvaluation[] EvaluateTargets(
             ProjectedInventorySettlement before,
             ProjectedInventorySettlement after,
@@ -353,9 +289,9 @@ namespace SephiriaEnhancements.Inventory
                     out ProjectedInventoryArtifactSettlement beforeArtifact);
                 afterArtifacts.TryGetValue(rule.ItemKey,
                     out ProjectedInventoryArtifactSettlement afterArtifact);
-                ArtifactTargetState beforeState = EvaluateArtifactInstance(
+                InventoryTargetState beforeState = EvaluateArtifactInstance(
                     rule, beforeArtifact);
-                ArtifactTargetState afterState = EvaluateArtifactInstance(
+                InventoryTargetState afterState = EvaluateArtifactInstance(
                     rule, afterArtifact);
                 int requiredValue = ArtifactRequiredValue(rule);
                 string target = ArtifactTarget(rule.EntityId,
@@ -382,10 +318,10 @@ namespace SephiriaEnhancements.Inventory
             foreach (ResolvedArtifactOptimizationRule rule in
                 policy.ArtifactEntityRules.Values)
             {
-                ArtifactTargetState beforeState = EvaluateArtifactEntity(
-                    rule, beforeArtifacts);
-                ArtifactTargetState afterState = EvaluateArtifactEntity(
-                    rule, afterArtifacts);
+                InventoryTargetState beforeState = EvaluateArtifactEntity(
+                    rule, before.Artifacts);
+                InventoryTargetState afterState = EvaluateArtifactEntity(
+                    rule, after.Artifacts);
                 int requiredValue = ArtifactRequiredValue(rule);
                 string target = ArtifactTarget(rule.EntityId, -1);
                 InventoryTargetSearchEvidence evidence = CombineEvidence(
@@ -412,8 +348,8 @@ namespace SephiriaEnhancements.Inventory
                     out int beforeCount);
                 after.ComboCounts.TryGetValue(rule.CategoryId,
                     out int afterCount);
-                var (beforeReached, beforeCompletion) = EvaluateComboTarget(rule, beforeCount);
-                var (afterReached, afterCompletion) = EvaluateComboTarget(rule, afterCount);
+                var (beforeReached, beforeCompletion) = InventoryTargetState.Combo(rule, beforeCount);
+                var (afterReached, afterCompletion) = InventoryTargetState.Combo(rule, afterCount);
                 string target = ComboTarget(rule.CategoryId);
                 InventoryTargetSearchEvidence evidence = CombineEvidence(
                     searchEvidence, target, beforeCount, beforeCompletion,
@@ -448,7 +384,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 observedArtifacts.TryGetValue(rule.ItemKey,
                     out ProjectedInventoryArtifactSettlement artifact);
-                ArtifactTargetState state = EvaluateArtifactInstance(rule,
+                InventoryTargetState state = EvaluateArtifactInstance(rule,
                     artifact);
                 Observe(evidence, target, state.Value, state.CompletionPoints,
                     state.Reached);
@@ -456,8 +392,8 @@ namespace SephiriaEnhancements.Inventory
 
             foreach (var (rule, target) in entityTargets)
             {
-                ArtifactTargetState state = EvaluateArtifactEntity(rule,
-                    observedArtifacts);
+                InventoryTargetState state = EvaluateArtifactEntity(rule,
+                    settlement.Artifacts);
                 Observe(evidence, target,
                     state.Value, state.CompletionPoints, state.Reached);
             }
@@ -466,7 +402,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 settlement.ComboCounts.TryGetValue(rule.CategoryId,
                     out int count);
-                var (reached, completion) = EvaluateComboTarget(rule, count);
+                var (reached, completion) = InventoryTargetState.Combo(rule, count);
                 Observe(evidence, target, count,
                     completion, reached);
             }
@@ -531,60 +467,39 @@ namespace SephiriaEnhancements.Inventory
                 ? 0
                 : rule.MinimumEffectiveLevel;
 
-        private static ArtifactTargetState EvaluateArtifactInstance(
+        private static InventoryTargetState EvaluateArtifactInstance(
             ResolvedArtifactOptimizationRule rule,
-            ProjectedInventoryArtifactSettlement artifact)
+            ProjectedInventoryArtifactSettlement artifact) => artifact == null ? default :
+            InventoryTargetState.Artifact(rule.Level, rule.MinimumEffectiveLevel,
+                artifact.Enabled, artifact.CappedEffectiveLevel);
+
+        private InventoryTargetState EvaluateArtifactEntity(
+            ResolvedArtifactOptimizationRule rule,
+            IReadOnlyList<ProjectedInventoryArtifactSettlement> artifacts)
         {
-            if (artifact == null)
+            int value = 0;
+            int completion = 0;
+            bool reached = rule.Level == InventoryPreferenceLevel.Avoid;
+            foreach (var artifact in artifacts)
             {
-                return default;
+                if (policy.ArtifactInstanceRules.ContainsKey(artifact.ItemKey) ||
+                    itemsByKey[artifact.ItemKey].EntityId != rule.EntityId) continue;
+                var state = EvaluateArtifactInstance(rule, artifact);
+                if (rule.Level == InventoryPreferenceLevel.Avoid)
+                {
+                    value += state.Value;
+                    reached &= state.Reached;
+                }
+                else
+                {
+                    value = Math.Max(value, state.Value);
+                    completion = Math.Max(completion, state.CompletionPoints);
+                    reached |= state.Reached;
+                }
             }
             if (rule.Level == InventoryPreferenceLevel.Avoid)
-            {
-                bool disabled = !artifact.Enabled;
-                return new ArtifactTargetState(artifact.Enabled ? 1 : 0,
-                    disabled, disabled ? TargetCompletionScale : 0);
-            }
-
-            int value = EffectiveLevel(artifact);
-            bool reached = artifact.Enabled &&
-                value >= rule.MinimumEffectiveLevel;
-            return new ArtifactTargetState(value, reached,
-                CalculateArtifactCompletionPoints(artifact.Enabled, value,
-                    rule.MinimumEffectiveLevel));
-        }
-
-        private ArtifactTargetState EvaluateArtifactEntity(
-            ResolvedArtifactOptimizationRule rule,
-            IReadOnlyDictionary<InventoryItemKey, ProjectedInventoryArtifactSettlement> artifacts)
-        {
-            ProjectedInventoryArtifactSettlement[] candidates = artifacts.Values.Where(
-                artifact => !policy.ArtifactInstanceRules.ContainsKey(
-                        artifact.ItemKey) &&
-                    itemsByKey[artifact.ItemKey].EntityId ==
-                        rule.EntityId).ToArray();
-            if (candidates.Length == 0)
-            {
-                return default;
-            }
-            if (rule.Level == InventoryPreferenceLevel.Avoid)
-            {
-                int activeCount = candidates.Count(artifact =>
-                    artifact.Enabled);
-                bool allDisabled = activeCount == 0;
-                return new ArtifactTargetState(activeCount, allDisabled,
-                    allDisabled ? TargetCompletionScale : 0);
-            }
-
-            int value = candidates.Max(EffectiveLevel);
-            bool reached = candidates.Any(artifact => artifact.Enabled &&
-                artifact.CappedEffectiveLevel >=
-                    rule.MinimumEffectiveLevel);
-            int completion = candidates.Max(artifact =>
-                CalculateArtifactCompletionPoints(artifact.Enabled,
-                    artifact.CappedEffectiveLevel,
-                    rule.MinimumEffectiveLevel));
-            return new ArtifactTargetState(value, reached, completion);
+                completion = reached ? InventoryTargetState.TargetCompletionScale : 0;
+            return new InventoryTargetState(value, reached, completion);
         }
 
         private static string ArtifactTarget(int entityId, int instanceId) =>
@@ -593,29 +508,6 @@ namespace SephiriaEnhancements.Inventory
 
         private static string ComboTarget(string categoryId) =>
             "Combo:" + categoryId;
-
-        private static int EffectiveLevel(
-            ProjectedInventoryArtifactSettlement artifact)
-        {
-            return artifact?.Enabled == true
-                ? artifact.CappedEffectiveLevel
-                : 0;
-        }
-
-        private readonly struct ArtifactTargetState
-        {
-            internal ArtifactTargetState(int value, bool reached,
-                int completionPoints)
-            {
-                Value = value;
-                Reached = reached;
-                CompletionPoints = completionPoints;
-            }
-
-            internal int Value { get; }
-            internal bool Reached { get; }
-            internal int CompletionPoints { get; }
-        }
 
         internal static int CalculateReachedBreakpointValue(
             ComboCategorySnapshot category, int count)

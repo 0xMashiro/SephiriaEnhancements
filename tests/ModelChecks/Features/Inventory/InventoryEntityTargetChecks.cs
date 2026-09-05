@@ -10,6 +10,7 @@ internal static class InventoryEntityTargetChecks
     {
         VerifyEntityTargetCountsOnce();
         VerifyInstanceRuleOverridesEntityMembership();
+        VerifyEmptyExclusionAgreesWithScore();
         return "any matching instance;single entity score;instance override passed";
     }
 
@@ -33,7 +34,7 @@ internal static class InventoryEntityTargetChecks
             policy.ArtifactEntityRules.Count != 1 ||
             score.PresetTargetsSatisfied != 1 ||
             score.PresetTargetCompletionPoints !=
-                InventoryOptimizationScorer.TargetCompletionScale ||
+                InventoryTargetState.TargetCompletionScale ||
             evaluations.Length != 1 ||
             evaluations[0].Target != "Artifact:1000:*" ||
             !evaluations[0].AfterConditionReached)
@@ -74,6 +75,26 @@ internal static class InventoryEntityTargetChecks
                 "an instance rule must be evaluated separately and excluded from its entity group");
         }
     }
+    private static void VerifyEmptyExclusionAgreesWithScore()
+    {
+        var snapshot = PresetSnapshot();
+        var rule = new ResolvedArtifactOptimizationRule(-1, 9999, InventoryPreferenceLevel.Avoid,
+            0, InventoryPreferenceSource.NativePreset, strength: InventoryConstraintStrength.Hard);
+        var policy = new ResolvedInventoryOptimizationPolicy(InventorySearchEffort.Balanced, true,
+            new Dictionary<InventoryItemKey, ResolvedArtifactOptimizationRule>(),
+            new Dictionary<int, ResolvedArtifactOptimizationRule> { [9999] = rule },
+            new Dictionary<string, ResolvedComboOptimizationRule>());
+        var scorer = new InventoryOptimizationScorer(snapshot, policy);
+        var layout = InventoryLayoutProjection.Current(snapshot);
+        var settlement = InventorySettlementProjector.Evaluate(snapshot, layout);
+        var evidence = new Dictionary<string, InventoryTargetSearchEvidence>();
+        scorer.ObserveTargets(settlement, evidence);
+        if (!scorer.Score(layout, settlement).HardConstraintsSatisfied ||
+            !scorer.EvaluateTargets(settlement, settlement).Single().AfterConditionReached ||
+            !evidence.Single().Value.ConditionObserved)
+            throw new InvalidOperationException("no active member must satisfy an entity exclusion across all evaluation paths");
+    }
+
     private static InventorySnapshot PresetSnapshot()
     {
         var source = InventorySnapshotFixture.DuplicateArtifactsAtLevels(

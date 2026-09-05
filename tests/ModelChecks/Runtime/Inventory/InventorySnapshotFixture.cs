@@ -5,6 +5,23 @@ namespace SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 
 internal static class InventorySnapshotFixture
 {
+    internal static InventorySnapshot Tablets(int firstRotation, int secondRotation)
+    {
+        InventorySnapshot template = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0, 0 }, Array.Empty<int>());
+        TabletRotationProjectionSnapshot[] rotations = Enumerable.Range(0, 4).Select(rotation =>
+            new TabletRotationProjectionSnapshot(rotation, Array.Empty<TabletAdditionSnapshot>(),
+                Array.Empty<TabletAdditionSnapshot>(), true)).ToArray();
+        TabletPlacementProjectionSnapshot[] placements = Enumerable.Range(0, 2).Select(cell =>
+            new TabletPlacementProjectionSnapshot(cell, cell, 0, rotations)).ToArray();
+        InventoryItemSnapshot[] items = new[] { firstRotation, secondRotation }.Select((rotation, cell) =>
+            new InventoryItemSnapshot(0, 6001 + cell, 1, cell, cell, 0, "Tablet", string.Empty,
+                "StoneTablet", "Normal", Array.Empty<string>(), InventoryItemKind.StoneTablet, null,
+                new StoneTabletSnapshot(rotation, true, false, true, false, string.Empty, string.Empty,
+                    placementProjections: placements))).ToArray();
+        return new InventorySnapshot(2, 2, template.Cells.ToArray(), items,
+            fixedTabletSources: new[] { new FixedTabletSourceSnapshot(0, 6001, 0, 0, true, rotations[0]) });
+    }
+
     internal static InventorySnapshot ArtifactsAtLevels(int[] levels,
         int[] itemCells, int maxLevel = 10, int[]? safeAutomaticLevels = null)
     {

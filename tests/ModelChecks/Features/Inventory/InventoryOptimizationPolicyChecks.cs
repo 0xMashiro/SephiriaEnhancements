@@ -74,7 +74,7 @@ internal static class InventoryOptimizationPolicyChecks
             !iceEvaluation.AfterConditionReached ||
             iceEvaluation.BeforeCompletionPoints != 0 ||
             iceEvaluation.AfterCompletionPoints !=
-                InventoryOptimizationScorer.TargetCompletionScale)
+                InventoryTargetState.TargetCompletionScale)
             throw new InvalidOperationException(
                 "explicit required combo must drive and evaluate the proposal target");
         Console.WriteLine("InventoryOptimizationPolicy: precedence, capture and target evaluation passed");
@@ -143,8 +143,8 @@ internal static class InventoryOptimizationPolicyChecks
                 if (evaluation.BeforeValue != 0 || evaluation.AfterValue != 1 ||
                     evaluation.BeforeConditionReached != beforeReached || evaluation.AfterConditionReached != afterReached ||
                     evidence["Combo:ICE"].ConditionObserved != beforeReached ||
-                    (evaluation.BeforeCompletionPoints == InventoryOptimizationScorer.TargetCompletionScale) != beforeReached ||
-                    (evaluation.AfterCompletionPoints == InventoryOptimizationScorer.TargetCompletionScale) != afterReached ||
+                    (evaluation.BeforeCompletionPoints == InventoryTargetState.TargetCompletionScale) != beforeReached ||
+                    (evaluation.AfterCompletionPoints == InventoryTargetState.TargetCompletionScale) != afterReached ||
                     (intent == InventoryPreferenceLevel.Avoid &&
                         (beforeScore.AvoidedTargetsActive != (beforeReached ? 0 : 1) ||
                          afterScore.AvoidedTargetsActive != (afterReached ? 0 : 1))) ||

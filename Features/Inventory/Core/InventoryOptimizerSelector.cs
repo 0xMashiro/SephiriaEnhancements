@@ -195,12 +195,7 @@ namespace SephiriaEnhancements.Inventory
                         out InventoryOptimizationProposal proposal) && proposal != null)
                 {
                     if (!proposal.Succeeded) return proposal;
-                    var evidence = new Dictionary<string, InventoryTargetSearchEvidence>(StringComparer.Ordinal);
-                    foreach (InventoryOptimizationTargetEvaluation target in proposal.TargetEvaluations)
-                        evidence[target.Target] = new InventoryTargetSearchEvidence(
-                            target.MaximumObservedValue, target.MaximumObservedCompletionPoints,
-                            target.Reachability == InventoryTargetReachability.SelectedLayoutReachesCondition ||
-                            target.Reachability == InventoryTargetReachability.ObservedReachable);
+                    var evidence = InventoryTargetSearchEvidence.Capture(proposal.TargetEvaluations);
                     InventoryOptimizationProposal verified = request.CreateProposal(
                         proposal.Layout, proposal.CandidateEvaluations,
                         proposal.TerminationReason, proposal.ElapsedMilliseconds,

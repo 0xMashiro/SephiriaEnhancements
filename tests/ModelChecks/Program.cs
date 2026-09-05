@@ -117,6 +117,8 @@ Console.WriteLine("InventoryArtifactIntent: " +
 InventoryPriorityQueueChecks.Run();
 InventoryDamagePriorityChecks.Run();
 InventoryAutomaticGoalChecks.Run();
+InventoryTargetConsistencyChecks.Run();
+InventoryOperationOwnershipChecks.Run();
 InventoryPreferenceComparisonChecks.Run();
 InventoryHardConstraintChecks.Run();
 Console.WriteLine("InventoryHudInteraction: " +

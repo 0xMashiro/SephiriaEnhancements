@@ -54,6 +54,10 @@ namespace SephiriaEnhancements.Inventory
                 ? proposal.BestScore : proposal.CurrentScore;
             int evaluations = proposal.CandidateEvaluations;
             int restarts = 0;
+            var evidence = InventoryTargetSearchEvidence.Capture(proposal.TargetEvaluations);
+            var stages = proposal.SearchStages.ToList();
+            InventorySearchStageStatistics restartStage = null;
+            long restartStartedAt = 0;
             InventorySearchTerminationReason reason = proposal.TerminationReason;
 
             for (int start = 0; start < budget.MaximumImprovementRounds; start++)
@@ -74,7 +78,10 @@ namespace SephiriaEnhancements.Inventory
 
                 var current = new InventoryLayoutProjection(
                     cells.Take(snapshot.Items.Count).ToArray(), rotations);
+                restartStage = new InventorySearchStageStatistics(InventorySearchStage.Restart, start + 1);
+                restartStartedAt = elapsed.ElapsedMilliseconds;
                 if (!TryEvaluate(current, out InventoryOptimizationScore currentScore)) break;
+                stages.Add(restartStage);
                 restarts++;
                 if (currentScore == null) continue;
 
@@ -106,7 +113,8 @@ namespace SephiriaEnhancements.Inventory
             if (!Stopped()) reason = InventorySearchTerminationReason.ImprovementRoundLimit;
             proposal = request.CreateProposal(bestLayout, evaluations, reason,
                 elapsed.ElapsedMilliseconds, InventoryOptimizationSearchMethod.MultiStart,
-                duplicateLayoutsSkipped: proposal.DuplicateLayoutsSkipped);
+                duplicateLayoutsSkipped: proposal.DuplicateLayoutsSkipped,
+                searchEvidence: evidence, searchStages: stages.ToArray());
             return true;
 
             bool Stopped()
@@ -132,14 +140,26 @@ namespace SephiriaEnhancements.Inventory
                 ProjectedInventorySettlement settlement = InventorySettlementProjector.
                     EvaluateForScoring(snapshot, candidate, workspace);
                 evaluations++;
-                if (!settlement.Succeeded) return true;
+                restartStage.CandidateEvaluations++;
+                if (!settlement.Succeeded)
+                {
+                    restartStage.ElapsedMilliseconds = elapsed.ElapsedMilliseconds - restartStartedAt;
+                    return true;
+                }
                 score = scorer.Score(candidate, settlement);
+                scorer.ObserveTargets(settlement, evidence);
                 if (score.CompareTo(bestScore) > 0 || score.CompareTo(bestScore) == 0 &&
                     candidate.CompareStableTo(bestLayout) < 0)
                 {
+                    if (score.CompareTo(bestScore) > 0)
+                    {
+                        restartStage.Improvements++;
+                        restartStage.LastImprovementCandidate = evaluations;
+                    }
                     bestLayout = candidate;
                     bestScore = score;
                 }
+                restartStage.ElapsedMilliseconds = elapsed.ElapsedMilliseconds - restartStartedAt;
                 return true;
             }
         }

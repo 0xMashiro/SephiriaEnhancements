@@ -37,7 +37,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 if (rule.Source == InventoryPreferenceSource.NativePreset) continue;
                 int count = actual.ComboCategories.FirstOrDefault(category => category.CategoryId == rule.CategoryId)?.CurrentCount ?? 0;
-                bool reached = rule.Level == InventoryPreferenceLevel.Avoid ? count <= rule.TargetCount : count >= rule.TargetCount;
+                bool reached = InventoryTargetState.Combo(rule, count).Reached;
                 comboGoals[rule.CategoryId] = reached ? InventoryIntentSatisfaction.Satisfied
                     : rule.Strength == InventoryConstraintStrength.Hard || rule.Level == InventoryPreferenceLevel.Avoid || count == 0
                         ? InventoryIntentSatisfaction.Unmet : InventoryIntentSatisfaction.Partial;
@@ -69,12 +69,10 @@ namespace SephiriaEnhancements.Inventory
             TargetLevel = targetLevel;
             CurrentLevel = Math.Max(0, artifact.LimitedEffectEnabledLevel);
             Active = artifact.EffectEnabled;
-            State = preference == InventoryPreferenceLevel.Avoid
-                ? Active ? InventoryIntentSatisfaction.Unmet : InventoryIntentSatisfaction.Satisfied
-                : !Active ? InventoryIntentSatisfaction.Unmet
-                : CurrentLevel >= targetLevel ? InventoryIntentSatisfaction.Satisfied : InventoryIntentSatisfaction.Partial;
-            if (strength == InventoryConstraintStrength.Hard && State == InventoryIntentSatisfaction.Partial)
-                State = InventoryIntentSatisfaction.Unmet;
+            var target = InventoryTargetState.Artifact(preference, targetLevel, Active, CurrentLevel);
+            State = target.Reached ? InventoryIntentSatisfaction.Satisfied
+                : strength == InventoryConstraintStrength.Hard || !Active || preference == InventoryPreferenceLevel.Avoid
+                    ? InventoryIntentSatisfaction.Unmet : InventoryIntentSatisfaction.Partial;
         }
 
         internal int TargetLevel { get; }

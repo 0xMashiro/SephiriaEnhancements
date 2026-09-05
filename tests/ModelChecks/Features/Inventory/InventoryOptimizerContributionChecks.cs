@@ -10,11 +10,12 @@ internal static class InventoryOptimizerContributionChecks
     {
         VerifyRegisteredStrategies();
         VerifyRestartsImproveAfterWarmup();
+        VerifyRestartEvidenceAndAccounting();
         VerifyRepeatabilityAndSharedBudget();
         VerifyCancellationAndRotationPolicy();
         VerifyProposalValidation();
         VerifySelectionRechecksOriginalPolicy();
-        return "6 contribution checks passed (contracts, restarts, repeatability, budgets, cancellation, validation)";
+        return "7 contribution checks passed (contracts, restarts, evidence, repeatability, budgets, cancellation, validation)";
     }
 
     // Reuse this check for a new strategy, with representative supported inputs.
@@ -94,6 +95,33 @@ internal static class InventoryOptimizerContributionChecks
             result.CandidateEvaluations > warmup.CandidateEvaluations &&
             result.SearchMethod == InventoryOptimizationSearchMethod.MultiStart && !result.OptimalityProven,
             "restarts must do useful work after the one-round warm-up, reaching both highest-value cells");
+    }
+
+    private static void VerifyRestartEvidenceAndAccounting()
+    {
+        var board = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0, 0, 6 }, new[] { 0, 1 }, 6);
+        var preferences = InventoryOptimizationPreferences.Default;
+        foreach (var item in board.Items)
+            preferences = InventoryArtifactIntentEditor.PlacePriority(preferences, item.InstanceId, item.EntityId, item.InstanceId - 100);
+        var request = Request(board, new InventorySearchBudget(1, 500, 0, false),
+            preferences.WithExecutionSettings(InventorySearchEffort.Thorough, true));
+        var warmup = InventoryOptimizer.Solve(board, request.Policy, request.Budget);
+        var result = VerifyContract(new MultiStartInventoryLayoutOptimizer(123), request);
+        var second = result.TargetEvaluations.Single(t => t.Target == "Artifact:1001:101");
+        Check(result.SearchMethod == InventoryOptimizationSearchMethod.MultiStart && !second.AfterConditionReached &&
+            second.Reachability == InventoryTargetReachability.ObservedReachable && second.MaximumObservedValue == 6,
+            "a reached but unselected target must survive restart proposal construction");
+        Check(result.SearchStages.Sum(stage => stage.CandidateEvaluations) + 1 == result.CandidateEvaluations &&
+            result.SearchStages.Any(stage => stage.Stage == InventorySearchStage.Restart) &&
+            result.SearchStages.Count > warmup.SearchStages.Count,
+            "stage accounting must include warm-up and every restart without counting the baseline twice");
+        foreach (var previous in warmup.TargetEvaluations)
+        {
+            var final = result.TargetEvaluations.Single(t => t.Target == previous.Target);
+            Check(final.MaximumObservedValue >= previous.MaximumObservedValue &&
+                final.MaximumObservedCompletionPoints >= previous.MaximumObservedCompletionPoints,
+                "restart evidence must not discard earlier maxima");
+        }
     }
 
     private static void VerifyRepeatabilityAndSharedBudget()

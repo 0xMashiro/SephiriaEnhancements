@@ -56,7 +56,7 @@ internal static class InventoryTargetReachabilityChecks
                 SelectedLayoutReachesCondition ||
             evaluation.MaximumObservedValue != 3 ||
             evaluation.MaximumObservedCompletionPoints !=
-                InventoryOptimizationScorer.TargetCompletionScale)
+                InventoryTargetState.TargetCompletionScale)
         {
             throw new InvalidOperationException(
                 "selected layout must report its reached target directly");
@@ -81,7 +81,7 @@ internal static class InventoryTargetReachabilityChecks
             evaluation.BeforeConditionReached ||
             evaluation.MaximumObservedValue != 1 ||
             evaluation.MaximumObservedCompletionPoints !=
-                InventoryOptimizationScorer.TargetCompletionScale ||
+                InventoryTargetState.TargetCompletionScale ||
             evaluation.Reachability !=
                 InventoryTargetReachability.SelectedLayoutReachesCondition)
         {

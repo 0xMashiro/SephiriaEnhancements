@@ -129,7 +129,7 @@ internal static class InventoryArtifactLevelBoundaryChecks
             after.PriorityTargetsSatisfied != 1 ||
             before.PriorityTargetCompletionPoints != 0 ||
             after.PriorityTargetCompletionPoints !=
-                InventoryOptimizationScorer.TargetCompletionScale ||
+                InventoryTargetState.TargetCompletionScale ||
             evaluation.Kind != InventoryOptimizationTargetKind.Artifact ||
             evaluation.RequiredValue != 0 ||
             evaluation.BeforeValue != 0 || evaluation.AfterValue != 0 ||
@@ -137,7 +137,7 @@ internal static class InventoryArtifactLevelBoundaryChecks
             !evaluation.AfterConditionReached ||
             evaluation.BeforeCompletionPoints != 0 ||
             evaluation.AfterCompletionPoints !=
-                InventoryOptimizationScorer.TargetCompletionScale ||
+                InventoryTargetState.TargetCompletionScale ||
             after.CompareTo(before) <= 0)
         {
             throw new InvalidOperationException(
@@ -149,26 +149,26 @@ internal static class InventoryArtifactLevelBoundaryChecks
     private static void VerifyTargetCompletionUsesOneScale()
     {
         int artifactHalf =
-            InventoryOptimizationScorer.CalculateTargetCompletionPoints(
+            InventoryTargetState.CalculateTargetCompletionPoints(
                 active: true, currentValue: 2, minimumValue: 4);
         int comboHalf =
-            InventoryOptimizationScorer.CalculateTargetCompletionPoints(
+            InventoryTargetState.CalculateTargetCompletionPoints(
                 active: true, currentValue: 3, minimumValue: 6);
         int saturated =
-            InventoryOptimizationScorer.CalculateTargetCompletionPoints(
+            InventoryTargetState.CalculateTargetCompletionPoints(
                 active: true, currentValue: 5, minimumValue: 4);
         int disabledZeroTarget =
-            InventoryOptimizationScorer.CalculateTargetCompletionPoints(
+            InventoryTargetState.CalculateTargetCompletionPoints(
                 active: false, currentValue: 0, minimumValue: 0);
         int enabledZeroTarget =
-            InventoryOptimizationScorer.CalculateTargetCompletionPoints(
+            InventoryTargetState.CalculateTargetCompletionPoints(
                 active: true, currentValue: 0, minimumValue: 0);
 
         if (artifactHalf != 5_000 || comboHalf != artifactHalf ||
-            saturated != InventoryOptimizationScorer.TargetCompletionScale ||
+            saturated != InventoryTargetState.TargetCompletionScale ||
             disabledZeroTarget != 0 ||
             enabledZeroTarget !=
-                InventoryOptimizationScorer.TargetCompletionScale)
+                InventoryTargetState.TargetCompletionScale)
         {
             throw new InvalidOperationException(
                 "artifact levels and combo counts must share one saturated " +
@@ -207,9 +207,9 @@ internal static class InventoryArtifactLevelBoundaryChecks
         if (before.PriorityTargetsSatisfied != 1 ||
             after.PriorityTargetsSatisfied != 1 ||
             before.PriorityTargetCompletionPoints !=
-                InventoryOptimizationScorer.TargetCompletionScale ||
+                InventoryTargetState.TargetCompletionScale ||
             after.PriorityTargetCompletionPoints !=
-                InventoryOptimizationScorer.TargetCompletionScale ||
+                InventoryTargetState.TargetCompletionScale ||
             before.EnabledArtifactCount != 1 ||
             after.EnabledArtifactCount != 2 ||
             after.CompareTo(before) <= 0)

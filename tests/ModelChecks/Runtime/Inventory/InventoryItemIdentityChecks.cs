@@ -100,15 +100,15 @@ internal static class InventoryItemIdentityChecks
 
     private static void VerifyTabletIdentity()
     {
-        InventorySnapshot source = Tablets(0, 0);
+        InventorySnapshot source = InventorySnapshotFixture.Tablets(0, 0);
         var target = new InventoryLayoutProjection(new[] { 0, 1 }, new[] { 0, 1 });
         Require(source.SettlementValidation.LayoutProjectionReady &&
             InventoryLayoutPlanner.TryCreate(source, target, out InventoryApplicationPlan plan, out _) &&
             plan.Rotations.Count == 1 && plan.Rotations[0].ItemKey == new InventoryItemKey(6002, 0),
             "rotation planning must distinguish tablet entities sharing a native ID");
         var rotation = new InventoryRotationOperation(new InventoryItemKey(6002, 0), 1, 1);
-        InventorySnapshot actual = Tablets(0, 1);
-        Require(!InventoryApplicationConfirmation.IsRotationStepObserved(Tablets(1, 0), rotation, 0) &&
+        InventorySnapshot actual = InventorySnapshotFixture.Tablets(0, 1);
+        Require(!InventoryApplicationConfirmation.IsRotationStepObserved(InventorySnapshotFixture.Tablets(1, 0), rotation, 0) &&
             InventoryApplicationConfirmation.IsRotationStepObserved(actual, rotation, 0),
             "rotating the other zero-ID tablet must not acknowledge this rotation");
         ProjectedInventorySettlement expected = InventorySettlementProjector.Evaluate(source, target);
@@ -116,25 +116,8 @@ internal static class InventoryItemIdentityChecks
             InventorySettlementDifferentialVerifier.Compare(source, target, expected, actual).Matched,
             "movable tablets and a fixed source sharing an item key must retain separate settlements");
         Require(InventoryApplicationConfirmation.VerifyStep(actual, source, target).Matched &&
-            !InventoryApplicationConfirmation.VerifyStep(Tablets(1, 1), source, target).Matched,
+            !InventoryApplicationConfirmation.VerifyStep(InventorySnapshotFixture.Tablets(1, 1), source, target).Matched,
             "confirming one rotation must reject a concurrent rotation of another tablet");
-    }
-
-    private static InventorySnapshot Tablets(int firstRotation, int secondRotation)
-    {
-        InventorySnapshot template = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0, 0 }, Array.Empty<int>());
-        TabletRotationProjectionSnapshot[] rotations = Enumerable.Range(0, 4).Select(rotation =>
-            new TabletRotationProjectionSnapshot(rotation, Array.Empty<TabletAdditionSnapshot>(),
-                Array.Empty<TabletAdditionSnapshot>(), true)).ToArray();
-        TabletPlacementProjectionSnapshot[] placements = Enumerable.Range(0, 2).Select(cell =>
-            new TabletPlacementProjectionSnapshot(cell, cell, 0, rotations)).ToArray();
-        InventoryItemSnapshot[] items = new[] { firstRotation, secondRotation }.Select((rotation, cell) =>
-            new InventoryItemSnapshot(0, 6001 + cell, 1, cell, cell, 0, "Tablet", string.Empty,
-                "StoneTablet", "Normal", Array.Empty<string>(), InventoryItemKind.StoneTablet, null,
-                new StoneTabletSnapshot(rotation, true, false, true, false, string.Empty, string.Empty,
-                    placementProjections: placements))).ToArray();
-        return new InventorySnapshot(2, 2, template.Cells.ToArray(), items,
-            fixedTabletSources: new[] { new FixedTabletSourceSnapshot(0, 6001, 0, 0, true, rotations[0]) });
     }
 
     private static void VerifyIdentityConflicts()

@@ -448,19 +448,19 @@ namespace SephiriaEnhancements.Inventory
                 Vector2.zero, new Vector2(164f, 28f), TextAlignmentOptions.MidlineLeft);
             levelTargetName.color = PrimaryText;
             constraintStrength = CreateButton("ConstraintStrength", rect, template,
-                new Vector2(170f, 0f), new Vector2(106f, 28f), ToggleArtifactStrength, out constraintStrengthText);
+                new Vector2(170f, 0f), new Vector2(106f, 28f), () => EditArtifactGoal(InventoryArtifactGoalEdit.ToggleStrength), out constraintStrengthText);
             CreateButton("CloseLevelEditor", rect, template, new Vector2(284f, 0f),
                 new Vector2(28f, 28f), ClearArtifactPickup, out var closeLevelText);
             closeLevelText.text = "×";
             levelMode = CreateButton("TargetMode", rect, template,
                 new Vector2(0f, -36f), new Vector2(228f, 28f),
-                CycleArtifactTargetMode, out levelCondition);
+                () => EditArtifactGoal(InventoryArtifactGoalEdit.CycleTargetMode), out levelCondition);
             decreaseLevel = CreateButton("DecreaseLevel", rect, template,
                 new Vector2(236f, -36f), new Vector2(30f, 28f),
-                () => AdjustArtifactLevel(-1), out var decreaseText);
+                () => EditArtifactGoal(InventoryArtifactGoalEdit.DecreaseLevel), out var decreaseText);
             increaseLevel = CreateButton("IncreaseLevel", rect, template,
                 new Vector2(282f, -36f), new Vector2(30f, 28f),
-                () => AdjustArtifactLevel(1), out var increaseText);
+                () => EditArtifactGoal(InventoryArtifactGoalEdit.IncreaseLevel), out var increaseText);
             decreaseText.text = "−";
             increaseText.text = "+";
         }
@@ -553,50 +553,14 @@ namespace SephiriaEnhancements.Inventory
             increaseLevel.interactable = specified && rule.MinimumEffectiveLevel < item.Artifact.MaxLevel;
         }
 
-        private void ToggleArtifactStrength()
+        private void EditArtifactGoal(InventoryArtifactGoalEdit edit)
         {
-            if (!interaction.Editable || interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem ||
-                !interaction.LevelTarget.HasValue) return;
-            var preferences = ExplorationInventoryIntentStore.Capture();
+            if (NativeInventoryIntentDrop.HasHeldItem || !interaction.LevelTarget.HasValue) return;
             var key = interaction.LevelTarget.Value;
             if (!HasInventoryArtifact(key.NativeInstanceId, key.EntityId)) return;
-            var rule = preferences.ArtifactPreferences.FirstOrDefault(candidate => candidate.ItemKey == key);
-            if (rule == null) return;
-            ReplacePreferences(InventoryArtifactIntentEditor.SetStrength(preferences, key,
-                rule.Strength == InventoryConstraintStrength.Hard ? InventoryConstraintStrength.Soft : InventoryConstraintStrength.Hard));
-            nextProjectionAt = 0f;
-        }
-
-        private void CycleArtifactTargetMode()
-        {
-            if (!interaction.Editable || interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem ||
-                !interaction.LevelTarget.HasValue) return;
-            var key = interaction.LevelTarget.Value;
-            if (!HasInventoryArtifact(key.NativeInstanceId, key.EntityId)) return;
-            var preferences = ExplorationInventoryIntentStore.Capture();
-            var rule = preferences.ArtifactPreferences.FirstOrDefault(candidate => candidate.ItemKey == key);
-            var item = currentSnapshot?.Items.FirstOrDefault(candidate => candidate.ItemKey == key);
-            if (rule == null || item?.Artifact == null) return;
-            ReplacePreferences(rule.TargetMode == ArtifactLevelTargetMode.Automatic
-                ? InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(preferences, currentSnapshot, key, 0)
-                : rule.TargetMode == ArtifactLevelTargetMode.ActiveOnly && item.Artifact.MaxLevel > 0
-                    ? InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(preferences, currentSnapshot, key,
-                        Math.Max(1, item.Artifact.LimitedEffectEnabledLevel))
-                    : InventoryArtifactIntentEditor.SetAutomatic(preferences, key));
-            nextProjectionAt = 0f;
-        }
-
-        private void AdjustArtifactLevel(int delta)
-        {
-            if (!interaction.Editable || interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem ||
-                !interaction.LevelTarget.HasValue) return;
-            var key = interaction.LevelTarget.Value;
-            if (!HasInventoryArtifact(key.NativeInstanceId, key.EntityId)) return;
-            var preferences = ExplorationInventoryIntentStore.Capture();
-            var rule = preferences.ArtifactPreferences.FirstOrDefault(candidate => candidate.ItemKey == key);
-            if (rule == null) return;
-            ReplacePreferences(InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(
-                preferences, currentSnapshot, key, rule.MinimumEffectiveLevel + delta));
+            if (!interaction.TryEditArtifactGoal(ExplorationInventoryIntentStore.Capture(),
+                    currentSnapshot, edit, out var preferences)) return;
+            ReplacePreferences(preferences);
             nextProjectionAt = 0f;
         }
 
@@ -624,20 +588,20 @@ namespace SephiriaEnhancements.Inventory
             row.Select.colors = nameColors;
             row.Choice = CreateButton("Choice", rect, template,
                 new Vector2(208f, 0f), new Vector2(120f, 26f),
-                () => CycleChoice(row), out row.ChoiceText);
+                () => EditComboGoal(row, InventoryComboGoalEdit.CycleChoice), out row.ChoiceText);
             row.Decrease = CreateButton("Decrease", rect, template,
                 new Vector2(260f, -28f), new Vector2(30f, 24f),
-                () => AdjustRequiredValue(row, -1), out row.DecreaseText);
+                () => EditComboGoal(row, InventoryComboGoalEdit.DecreaseCount), out row.DecreaseText);
             row.Value = CreateText("Value", rect, template,
                 new Vector2(128f, -28f), new Vector2(124f, 24f),
                 TextAlignmentOptions.MidlineLeft);
             row.Strength = CreateButton("ConstraintStrength", rect, template,
-                new Vector2(16f, -28f), new Vector2(106f, 24f), () => ToggleComboStrength(row), out row.StrengthText);
+                new Vector2(16f, -28f), new Vector2(106f, 24f), () => EditComboGoal(row, InventoryComboGoalEdit.ToggleStrength), out row.StrengthText);
             row.Value.color = SecondaryText;
             row.Value.fontSize *= 0.8f;
             row.Increase = CreateButton("Increase", rect, template,
                 new Vector2(298f, -28f), new Vector2(30f, 24f),
-                () => AdjustRequiredValue(row, 1), out row.IncreaseText);
+                () => EditComboGoal(row, InventoryComboGoalEdit.IncreaseCount), out row.IncreaseText);
             row.DecreaseText.text = "−";
             row.IncreaseText.text = "+";
             return row;
@@ -1191,41 +1155,15 @@ namespace SephiriaEnhancements.Inventory
             nextProjectionAt = 0f;
         }
 
-        private void CycleChoice(TargetRow row)
+        private void EditComboGoal(TargetRow row, InventoryComboGoalEdit edit)
         {
-            if (!interaction.Editable || row?.Target == null)
-            {
-                return;
-            }
-            InventoryPreferenceChoice nextChoice = InventoryComboTargetEditor.NextChoice(row.Target.Choice);
-            InventoryOptimizationPreferences updated =
-                InventoryComboTargetEditor.SetChoice(
-                    ExplorationInventoryIntentStore.Capture(), row.Target,
-                    nextChoice);
-            ReplacePreferences(updated);
-            expandedComboCategoryId = nextChoice == InventoryPreferenceChoice.Automatic ? null : row.Target.CategoryId;
-            nextProjectionAt = 0f;
-        }
-
-        private void AdjustRequiredValue(TargetRow row, int delta)
-        {
-            if (!interaction.Editable || row?.Target?.CanAdjustRequiredValue != true)
-            {
-                return;
-            }
-            InventoryOptimizationPreferences updated =
-                InventoryComboTargetEditor.SetRequiredValue(
-                    ExplorationInventoryIntentStore.Capture(), row.Target,
-                    row.Target.RequiredValue + delta);
-            ReplacePreferences(updated);
-            nextProjectionAt = 0f;
-        }
-
-        private void ToggleComboStrength(TargetRow row)
-        {
-            if (!interaction.Editable || row?.Target?.CanAdjustRequiredValue != true) return;
-            ReplacePreferences(InventoryComboTargetEditor.SetStrength(ExplorationInventoryIntentStore.Capture(), row.Target,
-                row.Target.Strength == InventoryConstraintStrength.Hard ? InventoryConstraintStrength.Soft : InventoryConstraintStrength.Hard));
+            string categoryId = row?.Target?.CategoryId;
+            if (!interaction.TryEditComboGoal(ExplorationInventoryIntentStore.Capture(),
+                    currentSnapshot, categoryId, edit, out var preferences)) return;
+            ReplacePreferences(preferences);
+            if (edit == InventoryComboGoalEdit.CycleChoice)
+                expandedComboCategoryId = preferences.ComboPreferences.Any(rule => rule.CategoryId == categoryId)
+                    ? categoryId : null;
             nextProjectionAt = 0f;
         }
 

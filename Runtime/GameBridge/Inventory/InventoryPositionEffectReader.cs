@@ -265,7 +265,8 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 {
                     // These callbacks replace/consume the source at its current cell.
                     // Their resulting inventory changes invalidate the active plan.
-                    if (owner.Name == "Charm_SweepRange" && method.Name == "OnUpdate" ||
+                    if ((owner.Name == "Charm_SweepRange" || owner.Name == "Charm_GrowthStatusInstance") &&
+                        method.Name == "OnUpdate" ||
                         owner.Name == "Charm_Chintamani" && method.Name == "Avatar_OnDamagedServerside") continue;
                     if (method.IsSpecialName || method.Name.StartsWith("GetSubIcon", StringComparison.Ordinal) ||
                         method.Name == "GetCustomIcon" || method.Name == "GetConnectedCharmPositions" ||

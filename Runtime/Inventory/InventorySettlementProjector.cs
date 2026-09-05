@@ -399,10 +399,11 @@ namespace SephiriaEnhancements.Runtime.Inventory
             }
         }
 
-        private static Dictionary<string, int> CountCombos(
+        internal static Dictionary<string, int> CountCombos(
             InventorySnapshot snapshot, InventoryLayoutProjection layout,
             int[] itemAtCell, InventorySettlementProjectionWorkspace workspace = null)
         {
+            if (workspace?.StaticComboCounts != null) return workspace.StaticComboCounts;
             Dictionary<string, int> result = workspace?.ComboCounts ??
                 new Dictionary<string, int>(StringComparer.Ordinal);
             result.Clear();
@@ -521,10 +522,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                             out int count) ? count + 1 : 1;
                     }
                 }
-                result[itemIndex] = counts.Where(entry => entry.Value >= rule.Match)
-                    .Select(entry => entry.Key)
-                    .OrderBy(value => value, StringComparer.Ordinal)
-                    .ToArray();
+                result[itemIndex] = SelectMatchedCategories(counts, rule.Match);
             }
 
             for (int index = 0; index < result.Length; index++)
@@ -532,6 +530,16 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 result[index] ??= Array.Empty<string>();
             }
             return result;
+        }
+
+        // Keep the predicate closure out of the per-item loop.
+        private static string[] SelectMatchedCategories(
+            Dictionary<string, int> counts, int minimumCount)
+        {
+            return counts.Where(entry => entry.Value >= minimumCount)
+                .Select(entry => entry.Key)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
         }
 
         private static IReadOnlyList<string> ResolveDependencyCategories(

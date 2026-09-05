@@ -48,6 +48,13 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 return false;
             }
 
+            if (catalog == null &&
+                !InventoryCatalogReader.TryCapture(inventory.UnitAvatar, out catalog))
+            {
+                snapshot = null;
+                return false;
+            }
+
             int width = inventory.Width;
             int storage = inventory.CurrentInventoryStorage;
             var cells = new InventoryCellSnapshot[storage];
@@ -312,7 +319,7 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
 
             bool weaponCompatible = !charm.isWeaponRelatedCharm ||
                 charm.WeaponController?.currentWeapon?.weaponType == charm.relatedWeapon;
-            bool attackable = TryIsAttackable(charm);
+            bool attackable = ReadIsAttackable(charm);
             MagicSnapshot magic = CaptureMagic(charm as Charm_Magic);
 
             return new ArtifactSnapshot(
@@ -330,8 +337,8 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 charm.IsUniqueEffectRegistered,
                 charm.Order.ToString(),
                 CaptureCriteria(item, inventory, position, charm),
-                TryCategories(() => charm.GetItemCategory()),
-                TryCategories(() => charm.GetPossibleCategory(entity)),
+                ReadCategories(() => charm.GetItemCategory()),
+                ReadCategories(() => charm.GetPossibleCategory(entity)),
                 attackable,
                 magic,
                 CaptureCategoryRule(charm),
@@ -582,12 +589,6 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
             var favoriteCategories = new HashSet<string>(
                 nativePreset?.FavoriteCategories ?? Array.Empty<string>(),
                 StringComparer.Ordinal);
-            if (catalog == null &&
-                !InventoryCatalogReader.TryCapture(inventory.UnitAvatar, out catalog))
-            {
-                return Array.Empty<ComboCategorySnapshot>();
-            }
-
             foreach (InventoryCategoryCatalogSnapshot category in catalog.Categories)
             {
                 int currentCount = GetValue(inventory.currentSetEffectCount,
@@ -673,29 +674,16 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
             }
         }
 
-        private static bool TryIsAttackable(Charm_Basic charm)
+        private static bool ReadIsAttackable(Charm_Basic charm)
         {
-            try
-            {
-                return charm is IAttackableCharm attackable &&
-                    attackable.IsAttackableCharm();
-            }
-            catch (Exception)
-            {
-                return false;
-            }
+            // Failed native reads invalidate the capture; false is a real trait.
+            return charm is IAttackableCharm attackable &&
+                attackable.IsAttackableCharm();
         }
 
-        private static string[] TryCategories(Func<IEnumerable<string>> read)
+        private static string[] ReadCategories(Func<IEnumerable<string>> read)
         {
-            try
-            {
-                return ToArray(read());
-            }
-            catch (Exception)
-            {
-                return Array.Empty<string>();
-            }
+            return ToArray(read());
         }
 
         private static string[] ToArray(IEnumerable<string> values)

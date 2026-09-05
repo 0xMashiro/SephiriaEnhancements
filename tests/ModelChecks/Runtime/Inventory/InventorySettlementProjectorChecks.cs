@@ -15,7 +15,59 @@ internal static class InventorySettlementProjectorChecks
             throw new InvalidOperationException(
                 "row-dependent categories must follow the candidate row");
         VerifyCategoryWorkspaceReuse();
+        VerifyNeighborMatchThreshold();
+        VerifyStaticCategoryWorkspace();
         Console.WriteLine("InventorySettlementProjector: dynamic categories, dependency cycles and retained results passed");
+    }
+
+    private static void VerifyNeighborMatchThreshold()
+    {
+        foreach (int minimumCount in new[] { 1, 2, 3 })
+        {
+            string[] matched = minimumCount == 1 ? new[] { "FIRE", "ICE" } :
+                minimumCount == 2 ? new[] { "FIRE" } : Array.Empty<string>();
+            var snapshot = CategoryBoard(new[] {
+                new ArtifactCategoryRuleSnapshot(ArtifactCategoryRuleKind.NeighborMatch,
+                    neighborOffsets: new[] { new InventoryOffsetSnapshot(1, 0), new InventoryOffsetSnapshot(0, 1) },
+                    match: minimumCount), ArtifactCategoryRuleSnapshot.Static,
+                ArtifactCategoryRuleSnapshot.Static, ArtifactCategoryRuleSnapshot.Static },
+                new[] { matched, new[] { "FIRE", "ICE" }, new[] { "FIRE" }, new[] { "ICE" } });
+            var layout = InventoryLayoutProjection.Current(snapshot);
+            var workspace = new InventorySettlementProjectionWorkspace(snapshot);
+            foreach (var result in new[] { InventorySettlementProjector.Evaluate(snapshot, layout),
+                         InventorySettlementProjector.EvaluateForScoring(snapshot, layout, workspace) })
+                if (!result.Succeeded || result.ComboCounts["FIRE"] != (minimumCount <= 2 ? 3 : 2) ||
+                    result.ComboCounts["ICE"] != (minimumCount == 1 ? 3 : 2))
+                    throw new InvalidOperationException("neighbor categories must independently meet the inclusive match threshold");
+        }
+    }
+
+    private static void VerifyStaticCategoryWorkspace()
+    {
+        var snapshot = CategoryBoard(Enumerable.Repeat(ArtifactCategoryRuleSnapshot.Static, 4).ToArray(),
+            new[] { new[] { "FIRE" }, new[] { "FIRE" }, new[] { "ICE" }, Array.Empty<string>() });
+        var workspace = new InventorySettlementProjectionWorkspace(snapshot);
+        if (workspace.StaticComboCounts == null)
+            throw new InvalidOperationException("static inventory categories must be prepared once");
+        for (int first = 0; first < 4; first++)
+            for (int second = 0; second < 4; second++)
+            {
+                var layout = InventoryLayoutProjection.Current(snapshot).WithCellsSwapped(first, second);
+                var projected = InventorySettlementProjector.EvaluateForScoring(snapshot, layout, workspace);
+                var full = InventorySettlementProjector.Evaluate(snapshot, layout);
+                if (!projected.Succeeded || !projected.ComboCounts.OrderBy(pair => pair.Key)
+                        .SequenceEqual(full.ComboCounts.OrderBy(pair => pair.Key)) ||
+                    projected.ComboCounts["FIRE"] != 2 || projected.ComboCounts["ICE"] != 1)
+                    throw new InvalidOperationException("static categories must match full settlement for every swap");
+            }
+        var dynamic = InventorySnapshotFixture.RowDependentArtifact();
+        if (new InventorySettlementProjectionWorkspace(dynamic).StaticComboCounts != null)
+            throw new InvalidOperationException("dynamic categories must not use the static count cache");
+        var other = CategoryBoard(Enumerable.Repeat(ArtifactCategoryRuleSnapshot.Static, 4).ToArray(),
+            new[] { new[] { "ICE" }, new[] { "ICE" }, new[] { "ICE" }, new[] { "FIRE" } });
+        var otherWorkspace = new InventorySettlementProjectionWorkspace(other);
+        if (otherWorkspace.StaticComboCounts["FIRE"] != 1 || workspace.StaticComboCounts["FIRE"] != 2)
+            throw new InvalidOperationException("category counts belong to one input snapshot");
     }
 
     private static void VerifyCategoryWorkspaceReuse()

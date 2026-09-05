@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SephiriaEnhancements.Runtime.Inventory
 {
@@ -260,8 +261,15 @@ namespace SephiriaEnhancements.Runtime.Inventory
             }
             if (snapshot.PositionEffects.Rules.Count != 0)
                 PositionEffectProjector = new InventoryPositionEffectProjector(snapshot);
+            // Static categories count inventory membership, not activation or level.
+            // Keep this cache local to the immutable input owned by this workspace.
+            if (snapshot.Items.All(item => item.Artifact == null ||
+                    item.Artifact.CategoryRule.Kind == ArtifactCategoryRuleKind.Static))
+                StaticComboCounts = InventorySettlementProjector.CountCombos(snapshot,
+                    InventoryLayoutProjection.Current(snapshot), ItemAtCell);
         }
 
+        internal Dictionary<string, int> StaticComboCounts { get; }
         internal InventoryPositionEffectProjector PositionEffectProjector { get; }
         internal int[] ItemAtCell { get; }
         internal int[] AdditiveLevels { get; }

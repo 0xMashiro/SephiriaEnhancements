@@ -73,24 +73,16 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
             }
 
             var thresholds = new HashSet<int>();
-            try
+            foreach (ComboEffectElement element in
+                comboEffect.RequestComboData(avatar))
             {
-                foreach (ComboEffectElement element in
-                    comboEffect.RequestComboData(avatar))
-                {
-                    thresholds.Add(element.comboCount);
-                }
-
-                highestComboCount = comboEffect.GetHighestComboCount();
-                if (highestComboCount > 0)
-                {
-                    thresholds.Add(highestComboCount);
-                }
+                thresholds.Add(element.comboCount);
             }
-            catch (Exception)
+
+            highestComboCount = comboEffect.GetHighestComboCount();
+            if (highestComboCount > 0)
             {
-                // Some native combo prefabs require a live avatar. A later
-                // catalog refresh after player attachment can resolve them.
+                thresholds.Add(highestComboCount);
             }
 
             return thresholds.OrderBy(value => value).ToArray();
@@ -103,14 +95,7 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
             if (entity.resourcePrefab != null &&
                 entity.resourcePrefab.TryGetComponent<Charm_Basic>(out var charm))
             {
-                try
-                {
-                    return Normalize(charm.GetPossibleCategory(entity));
-                }
-                catch (Exception)
-                {
-                    return Normalize(entity.categories);
-                }
+                return Normalize(charm.GetPossibleCategory(entity));
             }
 
             return Normalize(entity.categories);

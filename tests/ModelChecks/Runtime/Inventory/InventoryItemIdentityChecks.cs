@@ -80,6 +80,14 @@ internal static class InventoryItemIdentityChecks
             !InventorySettlementDifferentialVerifier.Compare(source, target, expected, fewerItems).Matched,
             "missing items must fail final confirmation");
 
+        var replacedKeys = (InventoryItemKey[])CompanionKeys.Clone();
+        replacedKeys[2] = new InventoryItemKey(9000, CompanionKeys[2].NativeInstanceId);
+        InventorySnapshot replaced = Snapshot(replacedKeys, levels, new[] { 1, 0, 2 });
+        Require(InventoryApplicationConfirmation.IsSwapObserved(replaced, plan.Swaps[0]) &&
+            !InventoryApplicationConfirmation.MatchesTarget(replaced, source, target) &&
+            !InventoryApplicationConfirmation.VerifyStep(replaced, source, target).Matched,
+            "growth replacement outside the swapped cells keeps its instance ID but invalidates the whole plan");
+
         InventoryItemKey[] sameEntityKeys = { new(5004, 21), new(5004, 22), new(5004, 23) };
         InventorySnapshot sameEntitySource = Snapshot(sameEntityKeys, levels, new[] { 0, 1, 2 });
         Require(sameEntitySource.SettlementValidation.LayoutProjectionReady &&

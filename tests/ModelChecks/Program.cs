@@ -115,6 +115,7 @@ Console.WriteLine("InventoryOptimizerContribution: " + InventoryOptimizerContrib
 Console.WriteLine("InventoryArtifactIntent: " +
     InventoryArtifactIntentEditorChecks.Run());
 InventoryPriorityQueueChecks.Run();
+InventoryDamagePriorityChecks.Run();
 InventoryAutomaticGoalChecks.Run();
 InventoryPreferenceComparisonChecks.Run();
 InventoryHardConstraintChecks.Run();

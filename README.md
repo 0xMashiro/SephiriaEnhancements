@@ -112,9 +112,13 @@ marks to reorder them; right-click to remove one. Select an artifact and choose 
 automatic level target, keep it active, or request a minimum level. Combo targets are adjusted separately
 and saved for future runs; artifact marks apply to the current run.
 
+After hard requirements, each artifact's level or activation goal is pursued in priority order,
+followed by its incoming directional damage bonuses, before moving to the next artifact.
+This allows bonuses to move from their previous recipient to a higher-priority artifact; it does not guarantee the highest combat damage.
+
 Goals default to **Try**. Choose **Must** if a goal must be met before any arrangement is applied.
 If no arrangement meeting all Must goals is found, your backpack stays as it was. Green, yellow and red
-marks show met, partly met and unmet goals. If item movement is interrupted, moves already made are not undone.
+marks show met, partly met and unmet level or activation goals, not optimal directional bonuses. If item movement is interrupted, moves already made are not undone.
 
 The Mod may skip upgrades that add
 unwanted costs, or stop when it cannot check an item's effects. Some arrangements remain unsupported,

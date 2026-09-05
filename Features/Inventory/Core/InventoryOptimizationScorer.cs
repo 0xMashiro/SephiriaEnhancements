@@ -23,6 +23,9 @@ namespace SephiriaEnhancements.Inventory
         // A scorer belongs to one search; scratch indexes never escape into its results.
         private readonly Dictionary<InventoryItemKey, ProjectedInventoryArtifactSettlement> observedArtifacts = new();
         private readonly Dictionary<InventoryPositionEffectKey, InventoryPositionEffectValue> candidateEffects = new();
+        private readonly Dictionary<InventoryItemKey, int> damageTargetOrders;
+        private readonly HashSet<InventoryItemKey> activeDamageTargets = new();
+        private readonly HashSet<InventoryItemKey> redirectedDamageSources = new();
 
         internal InventoryOptimizationScorer(InventorySnapshot snapshot,
             ResolvedInventoryOptimizationPolicy policy)
@@ -44,6 +47,9 @@ namespace SephiriaEnhancements.Inventory
             comboTargets = policy.ComboRules.Values.Select(rule =>
                 (rule, ComboTarget(rule.CategoryId))).ToArray();
             baselineEffects = InventoryPositionEffectProjector.EvaluateCurrent(snapshot).ToDictionary(value => value.Key);
+            damageTargetOrders = policy.ArtifactInstanceRules.Values.Where(rule =>
+                rule.Level == InventoryPreferenceLevel.Priority && rule.PriorityOrder >= 0).
+                ToDictionary(rule => rule.ItemKey, rule => rule.PriorityOrder);
         }
 
         internal InventoryOptimizationScore Score(InventoryLayoutProjection layout,
@@ -62,6 +68,8 @@ namespace SephiriaEnhancements.Inventory
             int hardCompletion = 0;
             int[] orderedPriorityCompletionPoints =
                 new int[orderedPriorityCount];
+            activeDamageTargets.Clear();
+            redirectedDamageSources.Clear();
 
             foreach (ProjectedInventoryArtifactSettlement artifact in settlement.Artifacts)
             {
@@ -72,6 +80,7 @@ namespace SephiriaEnhancements.Inventory
                 }
                 if (artifact.Enabled)
                 {
+                    if (damageTargetOrders.ContainsKey(artifact.ItemKey)) activeDamageTargets.Add(artifact.ItemKey);
                     enabledArtifactCount++;
                     cappedEffectiveArtifactLevelTotal +=
                         artifact.CappedEffectiveLevel;
@@ -204,6 +213,16 @@ namespace SephiriaEnhancements.Inventory
                 }
             }
 
+            double[] orderedDamage = settlement.PositionEffects.Count == 0 || damageTargetOrders.Count == 0
+                ? Array.Empty<double>() : new double[orderedPriorityCount];
+            foreach (var effect in settlement.PositionEffects)
+            {
+                if (effect.Key.Kind != InventoryPositionEffectKind.DependencyDamage ||
+                    !effect.Key.Target.HasValue || !activeDamageTargets.Contains(effect.Key.Target.Value)) continue;
+                orderedDamage[damageTargetOrders[effect.Key.Target.Value]] += effect.Value;
+                if (effect.Value > 0) redirectedDamageSources.Add(effect.Key.Source);
+            }
+
             return new InventoryOptimizationScore(
                 priorityTargetsSatisfied: priorityTargetsSatisfied,
                 priorityTargetCompletionPoints:
@@ -225,7 +244,8 @@ namespace SephiriaEnhancements.Inventory
                     orderedPriorityCompletionPoints,
                 positionEffectRegressions: CountPositionEffectRegressions(settlement),
                 automaticLevelRegressions: CountAutomaticLevelRegressions(settlement),
-                hardConstraintViolations: hardViolations, hardConstraintCompletionPoints: hardCompletion);
+                hardConstraintViolations: hardViolations, hardConstraintCompletionPoints: hardCompletion,
+                orderedPriorityDamageBonuses: orderedDamage);
         }
 
         private int CountAutomaticLevelRegressions(ProjectedInventorySettlement settlement)
@@ -269,6 +289,10 @@ namespace SephiriaEnhancements.Inventory
                 if (!policy.ArtifactInstanceRules.ContainsKey(key.Source) &&
                     policy.ArtifactEntityRules.TryGetValue(key.Source.EntityId, out var entityRule) &&
                     entityRule.Level == InventoryPreferenceLevel.Avoid) return false;
+                // The explicit recipient order owns this transfer. Broken chains
+                // and unrelated position effects retain their normal protection.
+                if (key.Kind == InventoryPositionEffectKind.DependencyDamage &&
+                    redirectedDamageSources.Contains(key.Source)) return false;
                 double current = after?.Value ?? 0;
                 return (before?.Mode ?? after?.Mode) == true
                     ? before != null && before.Value >= 0 && (after == null || current != before.Value)

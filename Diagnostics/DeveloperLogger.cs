@@ -868,6 +868,7 @@ namespace SephiriaEnhancements.Diagnostics
             return "{\"prioritySatisfied\":" + score.PriorityTargetsSatisfied +
                 ",\"priorityTargetCompletionPoints\":" +
                 score.PriorityTargetCompletionPoints +
+                ",\"orderedPriorityDamageBonuses\":[" + string.Join(",", score.OrderedPriorityDamageBonuses.Select(value => Number(value))) + "]" +
                 ",\"avoidedActive\":" + score.AvoidedTargetsActive +
                 ",\"positionEffectRegressions\":" + score.PositionEffectRegressions +
                 ",\"presetTargetsSatisfied\":" +

@@ -121,7 +121,9 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         private void InitializePendingSelection()
         {
             UIBase panel = pendingPanel;
-            if (panel == null || !panel.IsOpened ||
+            // A mouse takeover cancels delayed entry focus, including requests
+            // waiting for a reward panel's opening animation.
+            if (panel == null || !KeyboardUiPointer.OwnsFocus || !panel.IsOpened ||
                 (panel.hasControl && !panel.IsControlEnabled))
             {
                 ClearPendingSelection();

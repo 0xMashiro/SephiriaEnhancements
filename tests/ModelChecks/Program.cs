@@ -134,7 +134,7 @@ Console.WriteLine("InventoryEntityTargets: " +
 Console.WriteLine("NativeUiActionCatalog: " +
     NativeUiActionCatalogChecks.Run());
 
-TownMapProjectionChecks.Run();
+FixedFloorMapProjectionChecks.Run();
 MapEnhancementsLocalizationChecks.Run();
 DeveloperPlayerDamagePolicyChecks.Run();
 AmbientExecutionContextChecks.Run();

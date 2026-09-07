@@ -139,6 +139,7 @@ availability also depends on the game's save and loading state.
 ### Maps and co-op
 
 - The map overlay starts hidden; use `M` to show it. Camera distance can be set from **75% to 200%**.
+- The full map adds NPC names, active native quest indicators and available interaction labels in safe fixed-layout areas. Where map artwork is missing, it shows a location overview built from the current scene. This overview does not add fast travel.
 - **Show hidden rooms** reveals undiscovered secret locations on supported maps. It is off by default;
   turning it off keeps rooms you have already discovered visible.
 - Mid-run joining/reconnect support is on by default and controlled by the host. New arrivals use new

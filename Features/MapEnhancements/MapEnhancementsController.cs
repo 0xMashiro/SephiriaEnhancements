@@ -27,12 +27,12 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private readonly List<HiddenRoomMapMarker> markers =
             new List<HiddenRoomMapMarker>();
-        private readonly TownNpcMapMarkerLayer townNpcMapMarkers =
-            new TownNpcMapMarkerLayer();
+        private readonly FixedFloorMapLayer fixedFloorMap =
+            new FixedFloorMapLayer();
         private bool currentFloorMapOverlayCompatible = true;
         private bool hiddenRoomMapCompatible = true;
         private bool hiddenRoomsShown;
-        private bool townNpcMapMarkersCompatible = true;
+        private bool fixedFloorMapCompatible = true;
         private bool currentFloorMapOverlayVisible;
         private RectTransform currentFloorMapOverlayRoot;
         private UI_Map currentFloorMap;
@@ -64,7 +64,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 if (wasEnabled)
                 {
                     ClearMarkers();
-                    townNpcMapMarkers.Clear();
+                    fixedFloorMap.Clear();
                     currentFloorMapOverlayVisible = false;
                     RestoreCurrentFloorMapOverlay();
                 }
@@ -92,7 +92,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 }
             }
 
-            townNpcMapMarkers.RefreshIfDue();
+            // Fixed-floor markers refresh after the native map update.
 
             if (!currentFloorMapOverlayCompatible)
             {
@@ -144,7 +144,7 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void OnDestroy()
         {
-            townNpcMapMarkers.Clear();
+            fixedFloorMap.Clear();
             ClearMarkers();
             RestoreCurrentFloorMapOverlay();
 
@@ -156,7 +156,7 @@ namespace SephiriaEnhancements.MapEnhancements
 
         internal void ResetGameplayContext()
         {
-            townNpcMapMarkers.Clear();
+            fixedFloorMap.Clear();
             RestoreCurrentFloorMapOverlay();
             ClearMarkers();
             wasEnabled = EnhancementsSettings.Enabled;
@@ -213,25 +213,50 @@ namespace SephiriaEnhancements.MapEnhancements
                 FindKeyboardRoomNavigationStart(panel, floorGuid));
         }
 
-        internal static void ShowTownNpcMapMarkers(UI_MapPanel panel,
+        internal static void PrepareFixedFloorMap(UI_MapPanel panel, string floorGuid)
+        {
+            if (current == null || !current.fixedFloorMapCompatible ||
+                !EnhancementsSettings.Enabled) return;
+            try { current.fixedFloorMap.Prepare(panel, floorGuid); }
+            catch (Exception ex)
+            {
+                current.fixedFloorMap.Clear();
+                SupportLogger.Warning("fixed_floor_map_prepare_failed",
+                    "[SephiriaEnhancements] Fixed-floor map could not be prepared: " + ex.Message);
+            }
+        }
+
+        internal static void RefreshFixedFloorMap()
+        {
+            if (current == null) return;
+            try { current.fixedFloorMap.RefreshIfDue(); }
+            catch (Exception ex)
+            {
+                current.fixedFloorMap.Clear();
+                SupportLogger.Warning("fixed_floor_map_refresh_failed",
+                    "[SephiriaEnhancements] Fixed-floor map could not be refreshed: " + ex.Message);
+            }
+        }
+
+        internal static void ShowFixedFloorMapMarkers(UI_MapPanel panel,
             string floorGuid)
         {
-            if (current == null || !current.townNpcMapMarkersCompatible ||
+            if (current == null || !current.fixedFloorMapCompatible ||
                 !EnhancementsSettings.Enabled || panel == null)
             {
-                current?.townNpcMapMarkers.Clear();
+                current?.fixedFloorMap.Clear();
                 return;
             }
 
             try
             {
-                current.townNpcMapMarkers.Show(panel, floorGuid);
+                current.fixedFloorMap.Show(panel, floorGuid);
             }
             catch (Exception ex)
             {
-                current.townNpcMapMarkers.Clear();
-                current.townNpcMapMarkersCompatible = false;
-                SupportLogger.Warning("town_markers_failed", "[SephiriaEnhancements] Town NPC map markers " +
+                current.fixedFloorMap.Clear();
+                current.fixedFloorMapCompatible = false;
+                SupportLogger.Warning("fixed_floor_map_failed", "[SephiriaEnhancements] Fixed-floor map display " +
                     "disabled until the Mod is reloaded: " + ex.Message);
             }
         }
@@ -324,7 +349,7 @@ namespace SephiriaEnhancements.MapEnhancements
             }
 
             current.nativeMapPanelOpen = true;
-            current.townNpcMapMarkers.Clear();
+            current.fixedFloorMap.Clear();
             current.RestoreCurrentFloorMapOverlay();
         }
 
@@ -336,7 +361,7 @@ namespace SephiriaEnhancements.MapEnhancements
             }
 
             current.nativeMapPanelOpen = false;
-            current.townNpcMapMarkers.Clear();
+            current.fixedFloorMap.Clear();
             if (EnhancementsSettings.Enabled &&
                 current.currentFloorMapOverlayVisible)
             {

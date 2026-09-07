@@ -6,6 +6,7 @@ using SephiriaEnhancements.CombatVisuals;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Inventory;
 using SephiriaEnhancements.MapEnhancements;
+using SephiriaEnhancements.ModJournal;
 using SephiriaEnhancements.MultiplayerAccess.Presentation;
 using SephiriaEnhancements.MultiplayerRules.Presentation;
 
@@ -26,7 +27,8 @@ internal static class LocalizationChecks
             typeof(ModLocalization), typeof(ControlLocalization),
             typeof(OptionsCategoryLocalization), typeof(CombatVisualLocalization),
             typeof(InventoryOptimizationLocalization), typeof(MapEnhancementsLocalization),
-            typeof(MultiplayerAccessLocalization), typeof(MultiplayerRulesLocalization)
+            typeof(MultiplayerAccessLocalization), typeof(MultiplayerRulesLocalization),
+            typeof(ModJournalLocalization)
         };
         int tableCount = 0;
         foreach (Type owner in owners)
@@ -52,6 +54,11 @@ internal static class LocalizationChecks
             _ => new Dictionary<string, string>(StringComparer.Ordinal));
         ModLocalization.Register((language, key, value) => texts[language].Add(key, value));
         Dictionary<string, string> english = texts["en-US"];
+        var journalFallback = new Dictionary<string, string>();
+        ModJournalLocalization.Register((_, key, value) => journalFallback.Add(key, value),
+            new[] { "unsupported-language" });
+        if (journalFallback.Count != 5 || journalFallback.Any(entry => english[entry.Key] != entry.Value))
+            throw new InvalidOperationException("mod journal must fall back to English as a complete group");
         foreach (var (language, entries) in texts)
         {
             if (!entries.Keys.ToHashSet().SetEquals(english.Keys))

@@ -10,6 +10,7 @@ using SephiriaEnhancements.CombatTargeting;
 using SephiriaEnhancements.ViewDistance;
 using SephiriaEnhancements.NativeCompanion;
 using SephiriaEnhancements.MapEnhancements;
+using SephiriaEnhancements.ModJournal.Integration;
 using SephiriaEnhancements.ResourceBarValues.Integration;
 using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Inventory;
@@ -175,6 +176,10 @@ namespace SephiriaEnhancements
                 typeof(LocalFinalBlowCapture),
                 typeof(NativeReportDismissal),
                 typeof(NativeStatisticsPauseEntry),
+                typeof(ModJournalRefreshPatch),
+                typeof(ModJournalClearPatch),
+                typeof(ModJournalCategoryPatch),
+                typeof(ModJournalTutorialPatch),
                 typeof(NativeOrdinaryEncounterClearedPatch),
                 typeof(NativeBossEncounterStartedPatch),
                 typeof(NativeBossEncounterDefeatedPatch),
@@ -371,6 +376,7 @@ namespace SephiriaEnhancements
             LocalFinalBlowCapture.SetController(null);
             NativeResourceBarValueView.DisposeAll();
             harmony?.UnpatchAll(HarmonyId);
+            NativeModJournal.DisposeAll();
             harmony = null;
             multiplayerRulesCompatibilityAvailable = false;
             multiplayerRuleBehaviorPatchesAttempted = false;

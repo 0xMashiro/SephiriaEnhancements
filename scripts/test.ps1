@@ -35,6 +35,8 @@ foreach ($patch in @(
     'NativeBossEncounterResumedPatch', 'NativeBossBarValuesPatch',
     'NativeUnitBarValuesPatch', 'NativePropBarValuesPatch',
     'NativePlayerBarValuesPatch', 'NativeManaBarValuesPatch',
+    'ModJournalRefreshPatch', 'ModJournalClearPatch',
+    'ModJournalCategoryPatch', 'ModJournalTutorialPatch',
     'RewardKeyboardGeneratedSelectionPatch', 'RewardKeyboardControlSelectionPatch',
     'RewardKeyboardInventoryOpenedSelectionPatch', 'RewardKeyboardToggleSelectionPatch',
     'RewardKeyboardClosedSelectionPatch', 'RewardKeyboardCancelSelectionPatch'

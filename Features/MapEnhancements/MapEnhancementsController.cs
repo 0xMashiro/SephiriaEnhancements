@@ -24,15 +24,18 @@ namespace SephiriaEnhancements.MapEnhancements
             typeof(LibraryFloorGenerator), "hiddenRoomInstances");
 
         private static MapEnhancementsController current;
+        private readonly NpcTracking npcTracking = new();
+        internal static Transform TrackedNpc => current?.npcTracking.Target;
+        internal static void ToggleNpcTracking(Transform target) => current?.npcTracking.Toggle(target);
 
         private readonly List<HiddenRoomMapMarker> markers =
             new List<HiddenRoomMapMarker>();
-        private readonly FixedFloorMapLayer fixedFloorMap =
-            new FixedFloorMapLayer();
+        private readonly MapNavigationLayer mapNavigation =
+            new MapNavigationLayer();
         private bool currentFloorMapOverlayCompatible = true;
         private bool hiddenRoomMapCompatible = true;
         private bool hiddenRoomsShown;
-        private bool fixedFloorMapCompatible = true;
+        private bool mapNavigationCompatible = true;
         private bool currentFloorMapOverlayVisible;
         private RectTransform currentFloorMapOverlayRoot;
         private UI_Map currentFloorMap;
@@ -64,7 +67,8 @@ namespace SephiriaEnhancements.MapEnhancements
                 if (wasEnabled)
                 {
                     ClearMarkers();
-                    fixedFloorMap.Clear();
+                    mapNavigation.Clear();
+                    npcTracking.Clear();
                     currentFloorMapOverlayVisible = false;
                     RestoreCurrentFloorMapOverlay();
                 }
@@ -73,6 +77,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 return;
             }
             wasEnabled = true;
+            npcTracking.Update();
 
             bool showHiddenRooms = MapEnhancementsSettings.ShowHiddenRooms;
             if (hiddenRoomsShown != showHiddenRooms)
@@ -142,9 +147,12 @@ namespace SephiriaEnhancements.MapEnhancements
             }
         }
 
+        private void OnDisable() => npcTracking.Clear();
+
         private void OnDestroy()
         {
-            fixedFloorMap.Clear();
+            npcTracking.Clear();
+            mapNavigation.Clear();
             ClearMarkers();
             RestoreCurrentFloorMapOverlay();
 
@@ -156,7 +164,8 @@ namespace SephiriaEnhancements.MapEnhancements
 
         internal void ResetGameplayContext()
         {
-            fixedFloorMap.Clear();
+            npcTracking.Clear();
+            mapNavigation.Clear();
             RestoreCurrentFloorMapOverlay();
             ClearMarkers();
             wasEnabled = EnhancementsSettings.Enabled;
@@ -210,53 +219,54 @@ namespace SephiriaEnhancements.MapEnhancements
             // current room to defaultSelectable. Let that frame finish before
             // seeding keyboard focus so the native UI lifecycle cannot clear it.
             KeyboardUiNavigationController.RequestSelection(panel,
+                current.mapNavigation.IsActive ? panel.defaultSelectable :
                 FindKeyboardRoomNavigationStart(panel, floorGuid));
         }
 
-        internal static void PrepareFixedFloorMap(UI_MapPanel panel, string floorGuid)
+        internal static void PrepareMapNavigation(UI_MapPanel panel, string floorGuid)
         {
-            if (current == null || !current.fixedFloorMapCompatible ||
+            if (current == null || !current.mapNavigationCompatible ||
                 !EnhancementsSettings.Enabled) return;
-            try { current.fixedFloorMap.Prepare(panel, floorGuid); }
+            try { current.mapNavigation.Prepare(panel, floorGuid); }
             catch (Exception ex)
             {
-                current.fixedFloorMap.Clear();
-                SupportLogger.Warning("fixed_floor_map_prepare_failed",
-                    "[SephiriaEnhancements] Fixed-floor map could not be prepared: " + ex.Message);
+                current.mapNavigation.Clear();
+                SupportLogger.Warning("map_navigation_prepare_failed",
+                    "[SephiriaEnhancements] Map navigation could not be prepared: " + ex.Message);
             }
         }
 
-        internal static void RefreshFixedFloorMap()
+        internal static void RefreshMapNavigation()
         {
             if (current == null) return;
-            try { current.fixedFloorMap.RefreshIfDue(); }
+            try { current.mapNavigation.RefreshIfDue(); }
             catch (Exception ex)
             {
-                current.fixedFloorMap.Clear();
-                SupportLogger.Warning("fixed_floor_map_refresh_failed",
-                    "[SephiriaEnhancements] Fixed-floor map could not be refreshed: " + ex.Message);
+                current.mapNavigation.Clear();
+                SupportLogger.Warning("map_navigation_refresh_failed",
+                    "[SephiriaEnhancements] Map navigation could not be refreshed: " + ex.Message);
             }
         }
 
-        internal static void ShowFixedFloorMapMarkers(UI_MapPanel panel,
+        internal static void ShowMapNavigationMarkers(UI_MapPanel panel,
             string floorGuid)
         {
-            if (current == null || !current.fixedFloorMapCompatible ||
+            if (current == null || !current.mapNavigationCompatible ||
                 !EnhancementsSettings.Enabled || panel == null)
             {
-                current?.fixedFloorMap.Clear();
+                current?.mapNavigation.Clear();
                 return;
             }
 
             try
             {
-                current.fixedFloorMap.Show(panel, floorGuid);
+                current.mapNavigation.Show(panel, floorGuid);
             }
             catch (Exception ex)
             {
-                current.fixedFloorMap.Clear();
-                current.fixedFloorMapCompatible = false;
-                SupportLogger.Warning("fixed_floor_map_failed", "[SephiriaEnhancements] Fixed-floor map display " +
+                current.mapNavigation.Clear();
+                current.mapNavigationCompatible = false;
+                SupportLogger.Warning("map_navigation_failed", "[SephiriaEnhancements] Map navigation display " +
                     "disabled until the Mod is reloaded: " + ex.Message);
             }
         }
@@ -349,7 +359,7 @@ namespace SephiriaEnhancements.MapEnhancements
             }
 
             current.nativeMapPanelOpen = true;
-            current.fixedFloorMap.Clear();
+            current.mapNavigation.Clear();
             current.RestoreCurrentFloorMapOverlay();
         }
 
@@ -361,7 +371,7 @@ namespace SephiriaEnhancements.MapEnhancements
             }
 
             current.nativeMapPanelOpen = false;
-            current.fixedFloorMap.Clear();
+            current.mapNavigation.Clear();
             if (EnhancementsSettings.Enabled &&
                 current.currentFloorMapOverlayVisible)
             {

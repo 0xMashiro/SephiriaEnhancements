@@ -1345,6 +1345,7 @@ namespace SephiriaEnhancements.Configuration
             Diagnostics.InventoryReproductionLocalization.Register(addText);
 #endif
             MapEnhancements.MapEnhancementsLocalization.Register(addText, Texts.Keys);
+            MapEnhancements.MapNavigationLocalization.Register(addText, Texts.Keys);
             ModJournal.ModJournalLocalization.Register(addText, Texts.Keys);
             OptionsCategoryLocalization.Register(addText, Texts.Keys);
             CombatVisualLocalization.Register(addText, Texts.Keys);

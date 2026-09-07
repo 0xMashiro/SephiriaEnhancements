@@ -7,21 +7,21 @@ namespace SephiriaEnhancements.MapEnhancements
     internal static class MapPanelShowPatch
     {
         private static void Prefix(UI_MapPanel __instance, string floorGuid) =>
-            MapEnhancementsController.PrepareFixedFloorMap(__instance, floorGuid);
+            MapEnhancementsController.PrepareMapNavigation(__instance, floorGuid);
 
         private static void Postfix(UI_MapPanel __instance, string floorGuid)
         {
             MapEnhancementsController.ShowHiddenRooms(__instance, floorGuid);
-            MapEnhancementsController.ShowFixedFloorMapMarkers(__instance, floorGuid);
+            MapEnhancementsController.ShowMapNavigationMarkers(__instance, floorGuid);
             MapEnhancementsController.InitializeKeyboardRoomNavigation(__instance,
                 floorGuid);
         }
     }
 
     [HarmonyPatch(typeof(UI_MapPanel), "Update")]
-    internal static class FixedFloorMapUpdatePatch
+    internal static class MapNavigationUpdatePatch
     {
-        private static void Postfix() => MapEnhancementsController.RefreshFixedFloorMap();
+        private static void Postfix() => MapEnhancementsController.RefreshMapNavigation();
     }
 
     [HarmonyPatch(typeof(UI_MapPanel), nameof(UI_MapPanel.OnOpened))]

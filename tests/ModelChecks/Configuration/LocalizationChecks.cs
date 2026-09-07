@@ -26,7 +26,7 @@ internal static class LocalizationChecks
         {
             typeof(ModLocalization), typeof(ControlLocalization),
             typeof(OptionsCategoryLocalization), typeof(CombatVisualLocalization),
-            typeof(InventoryOptimizationLocalization), typeof(MapEnhancementsLocalization),
+            typeof(InventoryOptimizationLocalization), typeof(MapEnhancementsLocalization), typeof(MapNavigationLocalization),
             typeof(MultiplayerAccessLocalization), typeof(MultiplayerRulesLocalization),
             typeof(ModJournalLocalization)
         };

@@ -27,5 +27,20 @@ internal static class FixedFloorMapProjectionChecks
                 throw new InvalidOperationException("Fixed-floor markers must stay inside the displayed floor's world bounds.");
         }
         Console.WriteLine("FixedFloorMapProjection: native origin, scale, offset and floor isolation passed");
+        bool[] empty = new bool[9];
+        bool[] filled = Enumerable.Repeat(true, 9).ToArray();
+        for (int y = 0; y < 3; y++)
+            for (int x = 0; x < 3; x++)
+                if (FixedFloorMapOutline.IsEdge(empty, 3, 3, x, y) ||
+                    FixedFloorMapOutline.IsEdge(filled, 3, 3, x, y))
+                    throw new InvalidOperationException("Map sampling bounds must not create a rectangular frame.");
+        empty[4] = true;
+        if (!FixedFloorMapOutline.IsEdge(empty, 3, 3, 1, 1) ||
+            FixedFloorMapOutline.IsEdge(empty, 3, 3, 0, 1))
+            throw new InvalidOperationException("Only the occupied side of an obstacle boundary receives ink.");
+        filled[0] = false;
+        if (FixedFloorMapOutline.IsEdge(filled, 3, 3, 1, 1) ||
+            !FixedFloorMapOutline.IsEdge(filled, 3, 3, 1, 0))
+            throw new InvalidOperationException("Obstacle interiors and cardinal boundaries must stay distinct.");
     }
 }

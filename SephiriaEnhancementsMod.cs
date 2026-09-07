@@ -257,7 +257,7 @@ namespace SephiriaEnhancements
                 typeof(ItemBoxKeyboardSecondaryActionPatch),
                 typeof(TreeShopKeyboardSecondaryActionPatch),
                 typeof(MapPanelShowPatch),
-                typeof(FixedFloorMapUpdatePatch),
+                typeof(MapNavigationUpdatePatch),
                 typeof(MapPanelOpenedPatch),
                 typeof(MapPanelClosedPatch),
                 typeof(NativeInventoryItemSelectionModePatch),

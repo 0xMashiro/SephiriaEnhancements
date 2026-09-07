@@ -16,7 +16,7 @@ internal static class KeyboardPointerOwnershipChecks
         state.Update(true, false, false, true, 10, 10);
         Check(false, "Opening UI alone must not claim keyboard ownership.");
         state.Update(true, true, false, true, 10, 10);
-        Check(true, "Keyboard input takes focus.");
+        Check(true, "UI navigation takes focus.");
         state.Update(true, false, false, true, 10, 10);
         Check(true, "Idle frames preserve keyboard focus.");
         state.Update(true, false, false, true, 11, 10);
@@ -38,6 +38,13 @@ internal static class KeyboardPointerOwnershipChecks
         Check(true, "A physical mouse is not required for keyboard navigation.");
         state.Reset();
         Check(false, "Context reset and unload release ownership.");
+
+        state.Update(true, false, false, true, 10, 10);
+        state.Update(true, true, false, true, 10, 10);
+        state.Update(true, true, false, true, 11, 10);
+        Check(true, "Navigation and sub-threshold movement preserve keyboard focus.");
+        state.Update(true, true, false, true, 12, 10);
+        Check(false, "Repeated navigation must not erase accumulated mouse movement.");
         Console.WriteLine("KeyboardPointerOwnership: input priority, movement threshold, transitions and reset passed.");
     }
 }

@@ -52,7 +52,12 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                  mouse.middleButton.isPressed || mouse.middleButton.wasReleasedThisFrame ||
                  mouse.scroll.ReadValue().sqrMagnitude > 0f);
             bool keyboardOwnedFocus = Ownership.KeyboardOwnsFocus;
-            Ownership.Update(available, Keyboard.current?.anyKey.wasPressedThisFrame == true,
+            // Opening a menu or typing is not a request to replace mouse hover.
+            // Use the same native navigation action that moves UI selection.
+            bool navigationPressed = UIInputModule.currentModule?.move?.action?
+                .WasPressedThisFrame() == true;
+            bool tabPressed = Keyboard.current?.tabKey.wasPressedThisFrame == true;
+            Ownership.Update(available, navigationPressed || tabPressed,
                 pointerAction, mouse != null, position.x, position.y);
             if (keyboardOwnedFocus && !Ownership.KeyboardOwnsFocus)
                 RestorePointerHover(position);

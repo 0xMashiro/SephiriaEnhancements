@@ -8,7 +8,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         internal bool KeyboardOwnsFocus { get; private set; }
 
-        internal void Update(bool available, bool keyboardInput,
+        internal void Update(bool available, bool navigationInput,
             bool pointerAction, bool hasPointer, float x, float y)
         {
             float dx = x - pointerX;
@@ -17,10 +17,10 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             bool moved = hasPointer && hasPointerPosition && dx * dx + dy * dy >= 4f;
             if (!available || pointerAction || moved)
                 KeyboardOwnsFocus = false;
-            else if (keyboardInput)
+            else if (navigationInput)
                 KeyboardOwnsFocus = true;
 
-            if (!KeyboardOwnsFocus || keyboardInput || !hasPointerPosition)
+            if (!KeyboardOwnsFocus || !hasPointerPosition)
             {
                 pointerX = x;
                 pointerY = y;

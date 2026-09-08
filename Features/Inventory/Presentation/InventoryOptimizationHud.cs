@@ -75,6 +75,12 @@ namespace SephiriaEnhancements.Inventory
         private TextMeshProUGUI comboTargetsTitle;
         private GameObject levelEditor;
         private TextMeshProUGUI levelTargetName;
+        private TextMeshProUGUI levelTargetLabel;
+        private TextMeshProUGUI levelRequirementLabel;
+        private TextMeshProUGUI levelSummary;
+        private TextMeshProUGUI levelBackText;
+        private Button levelBack;
+        private GameObject lastCustomSelection;
         private TextMeshProUGUI levelCondition;
         private Button levelMode;
         private Button constraintStrength;
@@ -205,6 +211,7 @@ namespace SephiriaEnhancements.Inventory
             priorityMarking = false;
             priorityMarkCount = 0;
             lastInventorySelection = null;
+            lastCustomSelection = null;
             SuspendEditing();
         }
 
@@ -233,6 +240,7 @@ namespace SephiriaEnhancements.Inventory
             attachedInventoryZone = inventoryZone;
             attachedPanel = context.Panel;
             lastInventorySelection = null;
+            lastCustomSelection = null;
             root = new GameObject(
                 "Sephiria Enhancements — Smart Inventory",
                 typeof(RectTransform), typeof(CanvasGroup), typeof(Image),
@@ -453,25 +461,35 @@ namespace SephiriaEnhancements.Inventory
             levelEditor = new GameObject("ArtifactLevelEditor", typeof(RectTransform));
             var rect = levelEditor.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
-            SetTopRect(rect, new Vector2(24f, -InventoryOptimizationHudLayout.HintTop),
-                new Vector2(312f, InventoryOptimizationHudLayout.HintHeight));
+            SetTopRect(rect, new Vector2(24f, -104f), new Vector2(312f, 324f));
+            // Use the native content-button text for controls and body text,
+            // preserving the inventory canvas's two design units per native unit.
+            template = (nativeTemplates.ContentButton as UI_HorayButton)?.text ?? template;
             levelTargetName = CreateText("ArtifactName", rect, template,
-                Vector2.zero, new Vector2(164f, 28f), TextAlignmentOptions.MidlineLeft);
-            levelTargetName.color = PrimaryText;
-            constraintStrength = CreateButton("ConstraintStrength", rect, template,
-                new Vector2(170f, 0f), new Vector2(106f, 28f), () => EditArtifactGoal(InventoryArtifactGoalEdit.ToggleStrength), out constraintStrengthText);
-            CreateButton("CloseLevelEditor", rect, template, new Vector2(284f, 0f),
-                new Vector2(28f, 28f), ClearArtifactPickup, out var closeLevelText);
-            closeLevelText.text = "×";
+                Vector2.zero, new Vector2(312f, 40f), TextAlignmentOptions.MidlineLeft);
+            NativeLocalizedText.SetShrinkOnlySize(levelTargetName, levelTargetName.fontSize, levelTargetName.fontSize * 0.75f);
+            levelTargetLabel = CreateText("TargetLabel", rect, template,
+                new Vector2(0f, -48f), new Vector2(312f, 24f), TextAlignmentOptions.MidlineLeft);
             levelMode = CreateButton("TargetMode", rect, template,
-                new Vector2(0f, -36f), new Vector2(228f, 28f),
+                new Vector2(0f, -76f), new Vector2(228f, 36f),
                 () => EditArtifactGoal(InventoryArtifactGoalEdit.CycleTargetMode), out levelCondition);
             decreaseLevel = CreateButton("DecreaseLevel", rect, template,
-                new Vector2(236f, -36f), new Vector2(30f, 28f),
+                new Vector2(236f, -76f), new Vector2(30f, 36f),
                 () => EditArtifactGoal(InventoryArtifactGoalEdit.DecreaseLevel), out var decreaseText);
             increaseLevel = CreateButton("IncreaseLevel", rect, template,
-                new Vector2(282f, -36f), new Vector2(30f, 28f),
+                new Vector2(282f, -76f), new Vector2(30f, 36f),
                 () => EditArtifactGoal(InventoryArtifactGoalEdit.IncreaseLevel), out var increaseText);
+            levelRequirementLabel = CreateText("RequirementLabel", rect, template,
+                new Vector2(0f, -124f), new Vector2(312f, 24f), TextAlignmentOptions.MidlineLeft);
+            constraintStrength = CreateButton("ConstraintStrength", rect, template,
+                new Vector2(0f, -152f), new Vector2(312f, 36f),
+                () => EditArtifactGoal(InventoryArtifactGoalEdit.ToggleStrength), out constraintStrengthText);
+            levelSummary = CreateText("GoalSummary", rect, template,
+                new Vector2(0f, -200f), new Vector2(312f, 76f), TextAlignmentOptions.TopLeft);
+            levelSummary.textWrappingMode = TextWrappingModes.Normal;
+            NativeLocalizedText.SetShrinkOnlySize(levelSummary, levelSummary.fontSize, levelSummary.fontSize * 0.75f);
+            levelBack = CreateButton("BackToArtifacts", rect, template,
+                new Vector2(0f, -288f), new Vector2(312f, 32f), CloseLevelEditor, out levelBackText);
             decreaseText.text = "−";
             increaseText.text = "+";
         }
@@ -528,7 +546,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 ProjectLevelEditor(preferences);
                 if (levelEditor.activeSelf)
-                    EventSystem.current?.SetSelectedGameObject(levelMode.gameObject);
+                    EventSystem.current?.SetSelectedGameObject(levelMode.IsInteractable() ? levelMode.gameObject : constraintStrength.gameObject);
             }
             nextProjectionAt = 0f;
         }
@@ -542,22 +560,49 @@ namespace SephiriaEnhancements.Inventory
                 rule != null && item?.Artifact != null && HasInventoryArtifact(rule.InstanceId, rule.EntityId);
             if (!show) interaction.CancelLevelEdit();
             levelEditor.SetActive(show);
+            foreach (var slot in prioritySlots.Concat(avoidSlots)) slot.Root.SetActive(!show);
+            priorityQueueTitle.gameObject.SetActive(!show);
+            avoidZoneTitle.gameObject.SetActive(!show);
+            previousPage.gameObject.SetActive(!show);
+            nextPage.gameObject.SetActive(!show);
+            status.gameObject.SetActive(!show);
+            markPriorities.gameObject.SetActive(!show);
             boardHint.gameObject.SetActive(!show);
             editGoals.gameObject.SetActive(!show && editGoals.interactable);
             if (!show) return;
-            levelTargetName.text = item.Name;
+            var nativeText = (nativeTemplates.ContentButton as UI_HorayButton)?.text;
+            if (nativeText != null)
+            {
+                float designSize = nativeText.fontSize * InventoryOptimizationHudLayout.NativeUnitScale;
+                foreach (var text in new[] { levelTargetName, levelTargetLabel, levelRequirementLabel,
+                    levelCondition, constraintStrengthText, levelSummary, levelBackText })
+                    NativeLocalizedText.SetShrinkOnlySize(text, designSize, designSize * 0.75f);
+            }
+            levelTargetName.text = string.Format(Loc._(InventoryOptimizationLocalization.HudGoalTitle), item.Name);
+            levelTargetLabel.text = Loc._(InventoryOptimizationLocalization.HudGoalTarget);
+            levelRequirementLabel.text = Loc._(InventoryOptimizationLocalization.HudGoalRequirement);
+            levelBackText.text = Loc._(InventoryOptimizationLocalization.HudGoalBack);
             constraintStrengthText.text = Loc._(rule.Strength == InventoryConstraintStrength.Hard
-                ? InventoryOptimizationLocalization.HudHard : InventoryOptimizationLocalization.HudSoft);
+                ? InventoryOptimizationLocalization.HudGoalHard : InventoryOptimizationLocalization.HudGoalSoft);
             constraintStrength.interactable = interaction.Editable;
-            levelCondition.text = rule.Level == InventoryPreferenceLevel.Avoid
-                ? Loc._(InventoryOptimizationLocalization.HudAvoidGoal)
-                : rule.TargetMode == ArtifactLevelTargetMode.Automatic
-                ? Loc._(InventoryOptimizationLocalization.PreferenceChoiceKeys[0])
-                : InventoryOptimizationLocalization.FormatArtifactMinimumLevel(rule.ResolveTargetLevel(item.Artifact), key => Loc._(key));
+            levelCondition.text = InventoryOptimizationLocalization.FormatArtifactTarget(rule, item.Artifact, key => Loc._(key));
+            levelSummary.text = InventoryOptimizationLocalization.FormatArtifactGoalSummary(rule, item.Artifact, key => Loc._(key));
             levelMode.interactable = interaction.Editable && rule.Level == InventoryPreferenceLevel.Priority;
             bool specified = rule.Level == InventoryPreferenceLevel.Priority && rule.TargetMode == ArtifactLevelTargetMode.SpecifiedLevel;
-            decreaseLevel.interactable = specified && rule.MinimumEffectiveLevel > 1;
-            increaseLevel.interactable = specified && rule.MinimumEffectiveLevel < item.Artifact.MaxLevel;
+            // Move focus before disabling the selected control. Native selection
+            // recovery must never mistake an exhausted adjustment for leaving the editor.
+            GameObject selected = EventSystem.current?.currentSelectedGameObject;
+            bool canDecrease = specified && rule.MinimumEffectiveLevel > 1;
+            bool canIncrease = specified && rule.MinimumEffectiveLevel < item.Artifact.MaxLevel;
+            if (selected == decreaseLevel.gameObject && !canDecrease ||
+                selected == increaseLevel.gameObject && !canIncrease)
+                EventSystem.current?.SetSelectedGameObject(levelMode.IsInteractable() ? levelMode.gameObject : constraintStrength.gameObject);
+            decreaseLevel.interactable = canDecrease;
+            increaseLevel.interactable = canIncrease;
+            decreaseLevel.gameObject.SetActive(specified);
+            increaseLevel.gameObject.SetActive(specified);
+            SetTopRect((RectTransform)levelMode.transform, new Vector2(0f, -76f), new Vector2(specified ? 228f : 312f, 36f));
+            ConfigureLevelEditorNavigation();
         }
 
         private void EditArtifactGoal(InventoryArtifactGoalEdit edit)
@@ -568,6 +613,7 @@ namespace SephiriaEnhancements.Inventory
             if (!interaction.TryEditArtifactGoal(ExplorationInventoryIntentStore.Capture(),
                     currentSnapshot, edit, out var preferences)) return;
             ReplacePreferences(preferences);
+            ProjectLevelEditor(preferences);
             nextProjectionAt = 0f;
         }
 
@@ -1037,6 +1083,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void ClearArtifactPickup()
         {
+            if (interaction.LevelTarget.HasValue && levelEditor?.activeSelf == true) CloseLevelEditor();
             interaction.CancelPickup();
             interaction.CancelLevelEdit();
             pickupView?.Hide();
@@ -1219,7 +1266,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void ChangePage(int delta)
         {
-            if (!interaction.Editable || !preferencesExpanded)
+            if (!interaction.Editable || !preferencesExpanded || levelEditor.activeSelf)
             {
                 return;
             }
@@ -1628,6 +1675,12 @@ namespace SephiriaEnhancements.Inventory
             comboTargetsTitle = null;
             levelEditor = null;
             levelTargetName = null;
+            levelTargetLabel = null;
+            levelRequirementLabel = null;
+            levelSummary = null;
+            levelBackText = null;
+            levelBack = null;
+            lastCustomSelection = null;
             levelCondition = null;
             levelMode = null;
             constraintStrength = null;

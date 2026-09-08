@@ -189,6 +189,20 @@ namespace SephiriaEnhancements.Inventory
                 FormatArtifactTarget(rule, artifact, localize, target) + "\n" + current + " · " + state;
         }
 
+        internal static string FormatArtifactGoalSummary(ArtifactOptimizationPreference rule,
+            ArtifactSnapshot artifact, Func<string, string> localize) =>
+            string.Format(localize(rule.Strength == InventoryConstraintStrength.Hard
+                ? HudGoalHardSummary : HudGoalSoftSummary), FormatArtifactTarget(rule, artifact, localize));
+
+        internal const string HudGoalTitle = "SephiriaEnhancements.InventoryHud.GoalTitle";
+        internal const string HudGoalTarget = "SephiriaEnhancements.InventoryHud.GoalTarget";
+        internal const string HudGoalRequirement = "SephiriaEnhancements.InventoryHud.GoalRequirement";
+        internal const string HudGoalSoft = "SephiriaEnhancements.InventoryHud.GoalSoft";
+        internal const string HudGoalHard = "SephiriaEnhancements.InventoryHud.GoalHard";
+        internal const string HudGoalSoftSummary = "SephiriaEnhancements.InventoryHud.GoalSoftSummary";
+        internal const string HudGoalHardSummary = "SephiriaEnhancements.InventoryHud.GoalHardSummary";
+        internal const string HudGoalBack = "SephiriaEnhancements.InventoryHud.GoalBack";
+
         private static readonly string[] Keys =
         {
             Analyzing,
@@ -268,6 +282,15 @@ namespace SephiriaEnhancements.Inventory
             HudCurrentActive,
             HudCurrentInactive,
             HudAvoidGoal,
+            HudGoalTitle,
+            HudGoalTarget,
+            HudGoalRequirement,
+            HudGoalSoft,
+            HudGoalHard,
+            HudGoalSoftSummary,
+            HudGoalHardSummary,
+            HudGoalBack,
+
 };
 
         internal static void Register(Action<string, string, string> addText)

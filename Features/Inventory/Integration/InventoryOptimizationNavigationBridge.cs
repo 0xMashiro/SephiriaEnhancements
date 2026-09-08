@@ -16,7 +16,7 @@ namespace SephiriaEnhancements.Inventory
         private readonly List<(UI_HorayButton Button, bool Right, Selectable Original)> links = new();
 
         internal void Refresh(UI_CharacterStatusPanel panel, RectTransform root,
-            UI_HorayButton entry, UI_HorayButton returnTarget)
+            UI_HorayButton entry, UI_HorayButton returnTarget, bool allowReturnFromEntry = true)
         {
             Clear();
             if (entry == null || !entry.isActiveAndEnabled || !entry.IsInteractable()) return;
@@ -34,7 +34,7 @@ namespace SephiriaEnhancements.Inventory
                 Link(cell, right, entry);
                 if (returnTarget == null) returnTarget = cell;
             }
-            if (returnTarget != null) Link(entry, !right, returnTarget);
+            if (allowReturnFromEntry && returnTarget != null) Link(entry, !right, returnTarget);
         }
 
         private void Link(UI_HorayButton button, bool right, Selectable target)

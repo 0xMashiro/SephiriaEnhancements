@@ -73,6 +73,35 @@ internal static class InventoryOptimizationLocalizationChecks
                 "inventory target editor must localize as one complete feature group");
         Console.WriteLine("InventoryOptimizationTendency: intent-level settings and target-editor localization passed");
         VerifyTargetConditions(inventoryTexts);
+        VerifyArtifactGoalSummaries(inventoryTexts);
+    }
+
+    private static void VerifyArtifactGoalSummaries(Dictionary<string, Dictionary<string, string>> texts)
+    {
+        var artifact = Runtime.Inventory.InventorySnapshotFixture.ArtifactsAtLevels(
+            new[] { 1 }, new[] { 0 }, maxLevel: 4, safeAutomaticLevels: new[] { 2 }).Items[0].Artifact;
+        foreach (var strength in new[] { InventoryConstraintStrength.Soft, InventoryConstraintStrength.Hard })
+            foreach (var mode in new[] { ArtifactLevelTargetMode.Automatic, ArtifactLevelTargetMode.ActiveOnly,
+            ArtifactLevelTargetMode.SpecifiedLevel })
+                foreach (var level in new[] { InventoryPreferenceLevel.Priority, InventoryPreferenceLevel.Avoid })
+                {
+                    var rule = new ArtifactOptimizationPreference(100, 1000, level, 3, 0, mode, strength);
+                    foreach (var entries in texts.Values)
+                    {
+                        string summary = InventoryOptimizationLocalization.FormatArtifactGoalSummary(rule, artifact, key => entries[key]);
+                        string target = InventoryOptimizationLocalization.FormatArtifactTarget(rule, artifact, key => entries[key]);
+                        if (!summary.Contains(target, StringComparison.Ordinal) || summary.Contains("{0}", StringComparison.Ordinal))
+                            throw new InvalidOperationException("artifact summaries must include the resolved target in every language");
+                    }
+                    string chinese = InventoryOptimizationLocalization.FormatArtifactGoalSummary(rule, artifact, key => texts["zh-CN"][key]);
+                    string expectedTarget = level == InventoryPreferenceLevel.Avoid ? "保持不生效"
+                        : mode == ArtifactLevelTargetMode.Automatic ? "自动（控制负面效果）· 至少 2 级"
+                        : mode == ArtifactLevelTargetMode.ActiveOnly ? "只需生效" : "至少 3 级";
+                    string expectedRequirement = strength == InventoryConstraintStrength.Hard
+                        ? "全部「必须满足」的目标都达到，才会整理。" : "无法满足此目标时，仍可整理。";
+                    if (chinese != $"整理时：{expectedTarget}。\n{expectedRequirement}")
+                        throw new InvalidOperationException("artifact summaries must distinguish auto, activation, explicit levels, inactivity and required goals");
+                }
     }
 
     private static void VerifyTargetConditions(Dictionary<string, Dictionary<string, string>> texts)

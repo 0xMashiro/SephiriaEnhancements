@@ -32,6 +32,7 @@ if (args.Contains("--inventory-gpu-only"))
 }
 
 KeyboardPointerOwnershipChecks.Run();
+KeyboardSelectionScrollChecks.Run();
 if (args.Contains("--keyboard-pointer-only")) return;
 
 RewardComboHighlightChecks.Run();

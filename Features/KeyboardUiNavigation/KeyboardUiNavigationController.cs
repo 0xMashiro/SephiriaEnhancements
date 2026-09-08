@@ -51,6 +51,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         private void LateUpdate()
         {
+            QuestBoardKeyboardScroll.Update();
             // Navigation and scroll/layout updates can run after a picker's Update.
             // Resolve its final position again before rendering the same frame.
             if (KeyboardUiPointer.SelectedTarget() != null)

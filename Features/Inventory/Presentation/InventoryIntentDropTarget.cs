@@ -7,7 +7,7 @@ namespace SephiriaEnhancements.Inventory
 {
     internal sealed class InventoryIntentDropTarget : MonoBehaviour,
         IDropHandler, IPointerClickHandler, IBeginDragHandler, IDragHandler,
-        IEndDragHandler
+        IEndDragHandler, ISelectHandler
     {
         private InventoryIntentInteractionState interaction;
         private Action<UI_NewInventoryIcon> inventoryDropped;
@@ -15,6 +15,7 @@ namespace SephiriaEnhancements.Inventory
         private Action beginDrag;
         private Action endDrag;
         private Action removed;
+        private Action selected;
 
         internal void Configure(InventoryIntentInteractionState state,
             Action<UI_NewInventoryIcon> onInventoryDropped, Action onIntentDropped,
@@ -27,6 +28,10 @@ namespace SephiriaEnhancements.Inventory
             endDrag = onEndDrag;
             removed = onRemoved;
         }
+
+        internal void ConfigureSelection(Action onSelected) => selected = onSelected;
+
+        public void OnSelect(BaseEventData eventData) => selected?.Invoke();
 
         public void OnDrop(PointerEventData eventData)
         {

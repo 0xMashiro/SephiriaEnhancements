@@ -15,6 +15,7 @@ namespace SephiriaEnhancements.Inventory
 {
     internal sealed partial class InventoryOptimizationController : MonoBehaviour
     {
+        internal static InventoryOptimizationController Current { get; private set; }
         private const float RequestCooldown = 1.5f;
         private const float ApplyTimeout = 20f;
         private readonly InventoryOptimizationHud hud =
@@ -42,6 +43,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal void Initialize(RuntimeKernel kernel)
         {
+            Current = this;
             runtimeKernel = kernel;
             gpuOptimizer = new Integration.Gpu.GpuInventoryLayoutOptimizer();
             InventoryOptimizerRegistry.Register(gpuOptimizer);
@@ -54,6 +56,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal void ResetExploration()
         {
+            undo = null;
             intentFeedback = null;
             EndPriorityMarking();
             hud.CancelArtifactPickup();
@@ -62,6 +65,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal void ResetGameplayContext()
         {
+            undo = null;
             rewardComboHighlights.Clear();
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             ResetOptimizationFrameMetrics();
@@ -78,6 +82,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal void Shutdown()
         {
+            undo = null;
             rewardComboHighlights.Clear();
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             ResetOptimizationFrameMetrics();
@@ -99,7 +104,23 @@ namespace SephiriaEnhancements.Inventory
             compatible = false;
             runtimeKernel = null;
             enabled = false;
+            if (Current == this)
+            {
+                Current = null;
+            }
         }
+
+        internal static bool TryHandleKeyboardTab() =>
+            Current?.hud.TryHandleKeyboardTab() == true;
+
+        internal static bool OwnsSelection(UIBase panel, GameObject candidate) =>
+            Current != null && Current.hud.OwnsSelection(panel, candidate);
+
+        internal static bool TryCancelPanel(UIBase panel) =>
+            Current != null && Current.hud.TryCancelPanel(panel);
+
+        internal static void PositionTooltip(UI_BaseTooltip tooltip) =>
+            Current?.hud.PositionTooltip(tooltip);
 
         private bool Busy => search != null || application != null;
 
@@ -122,11 +143,13 @@ namespace SephiriaEnhancements.Inventory
                 out RuntimeStateSnapshot _);
             rewardComboHighlights.Update(EnhancementsSettings.Enabled, hudSnapshot);
             MaintainPriorityMarking();
+            MaintainArrangementHistory();
             RefreshPriorityMarkVisuals();
             InventoryOptimizationPreferences explorationIntent =
                 ExplorationInventoryIntentStore.Capture();
             if (intentFeedback?.IsCurrent(runtimeKernel?.State, explorationIntent) != true)
                 intentFeedback = null;
+            hud.ConfigureArrangementActions(RequestUndo, CanUndo);
             hud.Update(EnhancementsSettings.Enabled && compatible,
                 HudPhase, hudSnapshot, RequestOptimization,
                 ReplacePreferences, prioritySelectionView.IsVisible,
@@ -240,6 +263,7 @@ namespace SephiriaEnhancements.Inventory
                         ExplorationInventoryIntentStore.Capture(),
                         item.InstanceID, item.EntityID);
                 ExplorationInventoryIntentStore.Replace(updated);
+                hud.PreviewArtifact(new InventoryItemKey(item.EntityID, item.InstanceID));
                 prioritySelectionView.Refresh();
                 RefreshPriorityMarkVisuals(force: true);
             }
@@ -254,9 +278,10 @@ namespace SephiriaEnhancements.Inventory
 
         private void TogglePriorityMarking()
         {
-            if (prioritySelectionView.IsVisible)
+            bool wasMarkingPriorities = prioritySelectionView.IsVisible;
+            EndPriorityMarking();
+            if (wasMarkingPriorities)
             {
-                EndPriorityMarking();
                 return;
             }
             if (Busy)
@@ -528,6 +553,7 @@ namespace SephiriaEnhancements.Inventory
             DeveloperLogger.RecordInventoryOptimization(result, applicationPlan,
                 runtimeKernel?.State);
 
+            undo = null;
             application = new InventoryLayoutApplication(sourceSnapshot, sourceRuntime, result,
                 applicationPlan, expectedSettlement, Time.unscaledTime + ApplyTimeout);
             applyingInventory = inventory;
@@ -642,19 +668,20 @@ namespace SephiriaEnhancements.Inventory
                         application.SourceRuntime.GameplayContextEpoch ||
                     actualRuntime.PlayerNetId != application.SourceRuntime.PlayerNetId ||
                     !InventoryApplicationConfirmation.MatchesTarget(
-                        actualSnapshot, application.SourceSnapshot, application.Proposal.Layout))
+                        actualSnapshot, application.SourceSnapshot, application.TargetLayout))
                 {
                     return;
                 }
 
                 bool layoutMatched = MatchesLayout(current, application.SourceSnapshot,
-                    application.Proposal.Layout);
+                    application.TargetLayout);
                 InventorySettlementDifferentialReport differential =
                     InventorySettlementDifferentialVerifier.Compare(
-                        application.SourceSnapshot, application.Proposal.Layout, application.ExpectedSettlement,
+                        application.SourceSnapshot, application.TargetLayout, application.ExpectedSettlement,
                         actualSnapshot);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
-                InventoryReproductionReason reason = reproductionCase.ApplicationReason(layoutMatched, differential.Matched);
+                InventoryReproductionReason reason = reproductionCase?.ApplicationReason(layoutMatched, differential.Matched)
+                    ?? InventoryReproductionReason.None;
                 if (reason != InventoryReproductionReason.None)
                     RecordReproduction(reason, actualSnapshot, differential);
 #endif
@@ -677,8 +704,15 @@ namespace SephiriaEnhancements.Inventory
                     ShowMessage(InventoryOptimizationLocalization.
                         VerificationFailed);
                 }
+                else if (application.IsUndo)
+                {
+                    LastAppliedOutcome = null;
+                    intentFeedback = null;
+                    ShowMessage(InventoryArrangementLocalization.Undone);
+                }
                 else
                 {
+                    undo = new InventoryArrangementUndo(application.SourceSnapshot, actualRuntime);
                     LastAppliedOutcome = application.Proposal.Outcome;
                     intentFeedback = new InventoryIntentResultFeedback(actualSnapshot, application.Proposal.Policy,
                         ExplorationInventoryIntentStore.Capture(), actualRuntime);

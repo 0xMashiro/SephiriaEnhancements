@@ -57,7 +57,8 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             bool navigationPressed = UIInputModule.currentModule?.move?.action?
                 .WasPressedThisFrame() == true;
             bool tabPressed = Keyboard.current?.tabKey.wasPressedThisFrame == true;
-            Ownership.Update(available, navigationPressed || tabPressed,
+            bool submitPressed = UIInputModule.currentModule?.submit?.action?.WasPressedThisFrame() == true;
+            Ownership.Update(available, navigationPressed || submitPressed || tabPressed,
                 pointerAction, mouse != null, position.x, position.y);
             if (keyboardOwnedFocus && !Ownership.KeyboardOwnsFocus)
                 RestorePointerHover(position);

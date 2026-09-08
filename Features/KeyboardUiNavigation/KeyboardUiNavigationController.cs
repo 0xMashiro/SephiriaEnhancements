@@ -42,7 +42,9 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                 KeyboardUiSelection.IsInControlStack(EventSystem.current?.currentSelectedGameObject))
                 ClearPendingSelection();
             InitializePendingSelection();
-            if (!OptionsKeyboardNavigation.SwitchTab())
+            if (!OptionsKeyboardNavigation.SwitchTab() &&
+                !SephiriaEnhancements.Inventory.InventoryOptimizationController.
+                    TryHandleKeyboardTab())
                 SwitchCombinedPanelWithTab();
             RestoreMissingKeyboardSelection();
         }

@@ -63,12 +63,17 @@ namespace SephiriaEnhancements.Inventory
             {
                 return false;
             }
+            var displaced = preferences.ArtifactPreferences.FirstOrDefault(rule => rule.Level == level &&
+                rule.IntentSlotIndex == index && rule.ItemKey != Pickup.ItemKey);
+            bool continueSwap = !IsDragging && displaced != null;
             updated = level == InventoryPreferenceLevel.Priority
                 ? InventoryArtifactIntentEditor.PlacePriority(preferences,
                     Pickup.InstanceId, Pickup.EntityId, index)
                 : InventoryArtifactIntentEditor.PlaceAvoid(preferences,
                     Pickup.InstanceId, Pickup.EntityId, index);
             CancelPickup();
+            if (continueSwap)
+                TryPickup(updated.ArtifactPreferences.First(rule => rule.ItemKey == displaced.ItemKey), dragging: false);
             return true;
         }
 

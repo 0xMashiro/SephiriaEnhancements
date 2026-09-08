@@ -15,10 +15,25 @@ namespace SephiriaEnhancements.Inventory
         internal InventoryLayoutApplication(InventorySnapshot source, RuntimeStateSnapshot runtime,
             InventoryOptimizationProposal proposal, InventoryApplicationPlan plan,
             ProjectedInventorySettlement expectedSettlement, float deadline)
+            : this(source, runtime, proposal.Layout, proposal, plan, expectedSettlement, deadline)
+        {
+        }
+
+        internal InventoryLayoutApplication(InventorySnapshot source, RuntimeStateSnapshot runtime,
+            InventoryLayoutProjection undoLayout, InventoryApplicationPlan plan,
+            ProjectedInventorySettlement expectedSettlement, float deadline)
+            : this(source, runtime, undoLayout, null, plan, expectedSettlement, deadline)
+        {
+        }
+
+        private InventoryLayoutApplication(InventorySnapshot source, RuntimeStateSnapshot runtime,
+            InventoryLayoutProjection targetLayout, InventoryOptimizationProposal proposal,
+            InventoryApplicationPlan plan, ProjectedInventorySettlement expectedSettlement, float deadline)
         {
             SourceSnapshot = source;
             SourceRuntime = runtime;
             Proposal = proposal;
+            TargetLayout = targetLayout;
             Plan = plan;
             ExpectedSettlement = expectedSettlement;
             Deadline = deadline;
@@ -29,6 +44,8 @@ namespace SephiriaEnhancements.Inventory
         internal InventorySnapshot SourceSnapshot { get; }
         internal RuntimeStateSnapshot SourceRuntime { get; }
         internal InventoryOptimizationProposal Proposal { get; }
+        internal InventoryLayoutProjection TargetLayout { get; }
+        internal bool IsUndo => Proposal == null;
         internal InventoryApplicationPlan Plan { get; }
         internal ProjectedInventorySettlement ExpectedSettlement { get; }
         internal float Deadline { get; }

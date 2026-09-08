@@ -136,6 +136,7 @@ namespace SephiriaEnhancements.MapEnhancements
             navigator = new MapNavigator(panel, map, geometry, textTemplate, details);
             RefreshIfDue();
             panel.defaultSelectable = navigator.DefaultSelection;
+            navigator.FocusCurrentRoom();
         }
 
         internal void RefreshIfDue()

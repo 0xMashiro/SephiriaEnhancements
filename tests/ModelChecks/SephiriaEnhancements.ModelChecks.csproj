@@ -119,6 +119,9 @@
     <Compile Include="..\..\Features\Inventory\Core\InventoryLayoutPlanner.cs" Link="Inventory\InventoryLayoutPlanner.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryApplicationConfirmation.cs" Link="Inventory\InventoryApplicationConfirmation.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryLayoutApplication.cs" Link="Inventory\InventoryLayoutApplication.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryArrangementUndo.cs" Link="Inventory\InventoryArrangementUndo.cs" />
+    <Compile Include="..\..\Features\Inventory\Core\InventoryPickupPlacement.cs" Link="Inventory\InventoryPickupPlacement.cs" />
+    <Compile Include="..\..\Features\Inventory\Presentation\InventoryArrangementLocalization.cs" Link="Inventory\InventoryArrangementLocalization.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationSearch.cs" Link="Inventory\InventoryOptimizationSearch.cs" />
     <Compile Include="..\..\Runtime\Inventory\InventorySettlementDifferentialVerifier.cs" Link="Runtime\Inventory\InventorySettlementDifferentialVerifier.cs" />
     <Compile Include="..\..\Runtime\Contracts\RuntimeStateSnapshot.cs" Link="Runtime\RuntimeStateSnapshot.cs" />

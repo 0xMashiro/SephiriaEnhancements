@@ -280,9 +280,8 @@ namespace SephiriaEnhancements.MapEnhancements
                 return panel.defaultSelectable;
             }
 
-            PlayerAvatar player = CombatManager.Instance?.CurrentPlayer ??
-                GameCamera.Instance?.Observer;
-            if (player == null)
+            PlayerAvatar player = LocalPlayerResolver.Resolve();
+            if (player == null || player.currentFloorGuid != floorGuid)
             {
                 return panel.defaultSelectable;
             }
@@ -398,9 +397,8 @@ namespace SephiriaEnhancements.MapEnhancements
                 return false;
             }
 
-            PlayerAvatar player = CombatManager.Instance?.CurrentPlayer ??
-                GameCamera.Instance?.Observer;
-            if (player == null || !LocalPlayerResolver.IsLocal(player))
+            PlayerAvatar player = LocalPlayerResolver.Resolve();
+            if (player == null)
             {
                 return false;
             }
@@ -441,19 +439,25 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void RefreshCurrentFloorMapOverlay()
         {
-            if (nativeMapPanelOpen || UIManager.Instance == null)
+            if (nativeMapPanelOpen)
             {
                 return;
             }
 
-            PlayerAvatar player = CombatManager.Instance?.CurrentPlayer ??
-                GameCamera.Instance?.Observer;
+            if (UIManager.Instance == null)
+            {
+                RestoreCurrentFloorMapOverlay();
+                return;
+            }
+
+            PlayerAvatar player = LocalPlayerResolver.Resolve();
             UI_MapPanel panel = UIManager.Instance.GetElement<UI_MapPanel>();
             if (player == null || panel == null ||
                 string.IsNullOrEmpty(player.currentFloorGuid) ||
                 !panel.maps.TryGetValue(player.currentFloorGuid, out UI_Map map) ||
                 map == null)
             {
+                RestoreCurrentFloorMapOverlay();
                 return;
             }
 

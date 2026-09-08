@@ -57,12 +57,13 @@ namespace SephiriaEnhancements.Inventory
             if (visible)
             {
                 EnsureVisual();
-                bool avoided = intent.Level == InventoryPreferenceLevel.Avoid;
-                label.text = avoided
+                bool avoided = intent?.Level == InventoryPreferenceLevel.Avoid;
+                label.text = intent == null ? "" : avoided
                     ? "×"
-                    : "↑" + (intent.PriorityOrder + 1);
-                if (intent.Strength == InventoryConstraintStrength.Hard) label.text += "!";
+                    : (intent.PriorityOrder + 1).ToString();
+                if (intent?.Strength == InventoryConstraintStrength.Hard) label.text += "!";
                 label.color = avoided ? AvoidColor : PriorityColor;
+                NativeLocalizedText.MatchFontSize(label, owner.powerText);
             }
             badgeRoot?.SetActive(visible);
             badgeRoot?.transform.SetAsLastSibling();
@@ -74,21 +75,19 @@ namespace SephiriaEnhancements.Inventory
             {
                 return;
             }
-            badgeRoot = new GameObject("TemporaryInventoryIntent",
-                typeof(RectTransform), typeof(TextMeshProUGUI));
-            RectTransform rect = badgeRoot.GetComponent<RectTransform>();
-            rect.SetParent(owner.transform, false);
-            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one;
-            rect.anchoredPosition = new Vector2(-4f, -4f);
-            rect.sizeDelta = new Vector2(24f, 18f);
-
-            label = badgeRoot.GetComponent<TextMeshProUGUI>();
-            label.font = owner.quantityText?.font;
-            label.fontSharedMaterial = owner.quantityText?.fontSharedMaterial;
-            label.fontStyle = FontStyles.Bold;
-            label.alignment = TextAlignmentOptions.TopRight;
-            NativeLocalizedText.SetShrinkOnlySize(label,
-                Mathf.Max(12f, owner.quantityText?.fontSize ?? 12f), 8f);
+            // Mirror the native level label vertically, retaining its font,
+            // material, scale, text area and inset in the same parent canvas.
+            TextMeshProUGUI template = owner.powerText;
+            label = Instantiate(template, template.transform.parent, false);
+            badgeRoot = label.gameObject;
+            badgeRoot.name = "TemporaryInventoryIntent";
+            RectTransform source = template.rectTransform;
+            RectTransform rect = label.rectTransform;
+            rect.anchorMin = new Vector2(source.anchorMin.x, 1f - source.anchorMax.y);
+            rect.anchorMax = new Vector2(source.anchorMax.x, 1f - source.anchorMin.y);
+            rect.pivot = new Vector2(source.pivot.x, 1f - source.pivot.y);
+            rect.anchoredPosition = new Vector2(source.anchoredPosition.x, -source.anchoredPosition.y);
+            label.alignment = TextAlignmentOptions.BottomLeft;
             label.raycastTarget = false;
         }
     }

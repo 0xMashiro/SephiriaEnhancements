@@ -88,8 +88,8 @@ namespace SephiriaEnhancements.Inventory
         internal const string HudEditGoalsShortcut = "SephiriaEnhancements.InventoryHud.EditGoalsShortcut";
         internal const string HudConstraintHelp = "SephiriaEnhancements.InventoryHud.ConstraintHelp";
         internal const string HudComboPersistence = "SephiriaEnhancements.InventoryHud.ComboPersistence";
-        internal const string HudControllerBoardHint = "SephiriaEnhancements.InventoryHud.ControllerBoardHint";
-        internal const string HudControllerChooseIntentSlot = "SephiriaEnhancements.InventoryHud.ControllerChooseIntentSlot";
+        internal const string HudNavigationBoardHint = "SephiriaEnhancements.InventoryHud.NavigationBoardHint";
+        internal const string HudNavigationChooseIntentSlot = "SephiriaEnhancements.InventoryHud.NavigationChooseIntentSlot";
         internal const string HudLevelEditUnbound =
             "SephiriaEnhancements.InventoryHud.LevelEditUnbound";
         internal const string HudChooseIntentSlot =
@@ -256,8 +256,8 @@ namespace SephiriaEnhancements.Inventory
             HudEditGoalsShortcut,
             HudConstraintHelp,
             HudComboPersistence,
-            HudControllerBoardHint,
-            HudControllerChooseIntentSlot,
+            HudNavigationBoardHint,
+            HudNavigationChooseIntentSlot,
             HudArtifactAuto,
             HudArtifactSafeAuto,
             HudResultPending,
@@ -272,6 +272,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal static void Register(Action<string, string, string> addText)
         {
+            InventoryArrangementLocalization.Register(addText);
             foreach (string language in Configuration.LocalizationLanguages.All)
             {
                 string[] values = Texts.TryGetValue(language, out string[] translated)

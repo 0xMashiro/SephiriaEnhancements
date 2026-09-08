@@ -10,6 +10,8 @@ internal static class InventoryHudInteractionChecks
     internal static string Run()
     {
         VerifyDisclosureLayout();
+        VerifyBounds(new[] { (20f, 30f), (56f, 32f), (Layout.CompactActionsTop, Layout.ActionsHeight) }, Layout.CompactHeight);
+        VerifyPickupPlacement();
         VerifySelectionLifecycle();
         VerifyPagesAndReordering();
         VerifySlotSwaps();
@@ -17,6 +19,21 @@ internal static class InventoryHudInteractionChecks
         VerifyArtifactGoalEdits();
         VerifyComboGoalEdits();
         return "HUD bounds, click/drag pickup lifecycle, sparse slots, swaps and target preservation passed";
+    }
+
+    private static void VerifyPickupPlacement()
+    {
+        var right = InventoryPickupPlacement.BesideSelection(100, 150, 120, 40, 40, 0, 300, 0, 200);
+        if (right.X - 20 <= 150 || right.Y != 120)
+            throw new InvalidOperationException("pickup must stay beside, not over, the selected slot");
+        var left = InventoryPickupPlacement.BesideSelection(240, 290, 120, 40, 40, 0, 300, 0, 200);
+        if (left.X + 20 >= 240) throw new InvalidOperationException("right edge must flip pickup to the left");
+        foreach (float y in new[] { -20f, 0f, 100f, 200f, 220f })
+        {
+            var point = InventoryPickupPlacement.BesideSelection(100, 150, y, 40, 40, -150, 150, -100, 100);
+            if (point.X - 20 < -150 || point.X + 20 > 150 || point.Y - 20 < -100 || point.Y + 20 > 100)
+                throw new InvalidOperationException("pickup must remain inside canvas bounds with nonzero origin");
+        }
     }
 
     private static void VerifyLevelEditAndPickupAreExclusive()
@@ -211,13 +228,18 @@ internal static class InventoryHudInteractionChecks
             // The target is on another page; both input paths must use the
             // captured artifact and the destination's absolute slot index.
             if (!state.TryPlace(original, InventoryPreferenceLevel.Priority, 8, true, out var swapped) ||
-                state.HasPickup || state.IsDragging)
+                state.HasPickup == dragging || state.IsDragging ||
+                !dragging && state.ItemKey != destination.ItemKey)
             {
-                throw new InvalidOperationException("placing or swapping must finish both click and drag pickups");
+                throw new InvalidOperationException("confirm swaps carry the displaced mark; drag swaps finish on release");
             }
             AssertSlot(swapped, 501, 10, InventoryPreferenceLevel.Priority, 8, 4);
             AssertSlot(swapped, 502, 10, InventoryPreferenceLevel.Priority, 0, 1);
             AssertSlot(original, 501, 10, InventoryPreferenceLevel.Priority, 0, 4);
+            if (!dragging && !state.ValidatePickup(swapped, true))
+                throw new InvalidOperationException("continued pickup must refer to the new preference, not the stale destination");
+            state.CancelPickup();
+            AssertSlot(swapped, 502, 10, InventoryPreferenceLevel.Priority, 0, 1);
 
             state.TryPickup(source, dragging);
             if (!state.TryPlace(original, InventoryPreferenceLevel.Priority, 0, true, out var unchanged) ||

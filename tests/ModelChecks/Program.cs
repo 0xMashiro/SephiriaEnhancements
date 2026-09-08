@@ -22,6 +22,8 @@ using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
 ResourceBarValueChecks.Run();
 if (args.Contains("--resource-bars-only")) return;
+InventoryArrangementChecks.Run();
+if (args.Contains("--inventory-arrangement-only")) return;
 
 if (args.Contains("--inventory-gpu-only"))
 {

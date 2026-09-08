@@ -10,7 +10,37 @@ internal static class InventoryComboTargetEditorChecks
     {
         VerifyChoiceCycle();
         VerifyComboEditing();
-        return "automatic override;priority cycle;enabled-only and bounded values passed";
+        VerifyPresetDisplayOrder();
+        return "automatic override;priority cycle;bounded values;stable active-preset display order passed";
+    }
+
+    private static void VerifyPresetDisplayOrder()
+    {
+        var source = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0 }, new[] { 0 });
+        var categories = new[] { "EARTH", "FIRE", "ICE", "WIND" }.Select(id =>
+            new ComboCategorySnapshot(id, 1, 1, 1, 0, 0, new[] { 2 }, new[] { 3 }, false, 3)).ToArray();
+        var preferences = new InventoryOptimizationPreferences(InventorySearchEffort.Balanced, true,
+            Array.Empty<ArtifactOptimizationPreference>(), new[]
+            {
+                new ComboOptimizationPreference("FIRE", InventoryPreferenceLevel.Avoid, 1, InventoryConstraintStrength.Hard),
+                new ComboOptimizationPreference("MISSING", InventoryPreferenceLevel.Priority, 2, InventoryConstraintStrength.Hard)
+            });
+        InventorySnapshot Board(bool enabled, params string[] favorites) => new(source.Width, source.Storage,
+            source.Cells.ToArray(), source.Items.ToArray(), comboCategories: categories,
+            nativePreset: new NativePresetSnapshot(2, enabled, "test", 0, string.Empty, Array.Empty<int>(), favorites));
+        var related = InventoryComboTargetEditor.BuildTargets(Board(true, "WIND", "FIRE", "FIRE"), preferences);
+        if (!related.Select(target => target.CategoryId).SequenceEqual(new[] { "FIRE", "WIND", "EARTH", "ICE", "MISSING" }))
+            throw new InvalidOperationException("preset-related categories must lead without claiming preset array order is a ranking");
+        var fire = related.First();
+        if (fire.Choice != InventoryPreferenceChoice.Avoid || fire.RequiredValue != 1 || fire.Strength != InventoryConstraintStrength.Hard ||
+            related.Last().CategoryId != "MISSING")
+            throw new InvalidOperationException("display sorting must preserve overrides and unavailable saved targets");
+        foreach (var board in new[] { Board(false, "WIND", "FIRE"), Board(true) })
+            if (!InventoryComboTargetEditor.BuildTargets(board, preferences).Select(target => target.CategoryId)
+                .SequenceEqual(new[] { "EARTH", "FIRE", "ICE", "WIND", "MISSING" }))
+                throw new InvalidOperationException("disabled or empty presets must preserve base display order");
+        if (InventoryComboTargetEditor.BuildTargets(Board(true, "ICE"), preferences).First().CategoryId != "ICE")
+            throw new InvalidOperationException("updated preset observation must change the display group");
     }
 
     private static void VerifyChoiceCycle()

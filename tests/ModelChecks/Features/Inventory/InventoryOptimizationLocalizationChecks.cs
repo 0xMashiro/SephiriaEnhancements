@@ -33,8 +33,8 @@ internal static class InventoryOptimizationLocalizationChecks
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudEditGoalsShortcut) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudConstraintHelp) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudComboPersistence) ||
-                !texts.ContainsKey(InventoryOptimizationLocalization.HudControllerBoardHint) ||
-                !texts.ContainsKey(InventoryOptimizationLocalization.HudControllerChooseIntentSlot) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.HudNavigationBoardHint) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.HudNavigationChooseIntentSlot) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudOptimize) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.
                     HudMarkArtifacts) ||

@@ -22,7 +22,8 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         internal static bool IsInPanel(UIBase panel, GameObject candidate) =>
             IsPanelReady(panel) && IsNavigable(candidate) &&
-            candidate.transform.IsChildOf(panel.transform);
+            (candidate.transform.IsChildOf(panel.transform) ||
+                Inventory.InventoryOptimizationController.OwnsSelection(panel, candidate));
 
         internal static bool IsInControlStack(GameObject candidate)
         {

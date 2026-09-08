@@ -51,9 +51,14 @@ namespace SephiriaEnhancements.Inventory
             var rules = preferences.ComboPreferences.GroupBy(rule => rule.CategoryId, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.Last(), StringComparer.Ordinal);
             var categories = snapshot.ComboCategories.ToDictionary(category => category.CategoryId, StringComparer.Ordinal);
+            // The preset exposes related categories, not a ranked list. Stable
+            // grouping changes presentation only; explicit rules remain untouched.
+            var presetCategories = new HashSet<string>(snapshot.BuildIntent?.NativePresetEnabled == true
+                ? snapshot.BuildIntent.PreferredCategories : Array.Empty<string>(), StringComparer.Ordinal);
             // A saved Hard rule must remain editable even when no item currently
             // supplies its category; otherwise the player cannot clear a conflict.
-            return categories.Keys.Concat(rules.Keys).Distinct(StringComparer.Ordinal).Select(categoryId =>
+            return categories.Keys.Concat(rules.Keys).Distinct(StringComparer.Ordinal)
+                .OrderBy(categoryId => presetCategories.Contains(categoryId) ? 0 : 1).Select(categoryId =>
             {
                 rules.TryGetValue(categoryId, out var rule);
                 categories.TryGetValue(categoryId, out var category);

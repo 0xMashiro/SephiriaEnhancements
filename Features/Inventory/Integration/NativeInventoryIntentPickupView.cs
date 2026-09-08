@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using SephiriaEnhancements.KeyboardUiNavigation;
 
 namespace SephiriaEnhancements.Inventory
 {
@@ -12,6 +13,10 @@ namespace SephiriaEnhancements.Inventory
         private readonly GameObject cover;
         private readonly Image image;
         private readonly Canvas dragCanvas;
+        private readonly Vector3[] corners = new Vector3[4];
+
+        internal static bool UsesSelection => KeyboardUiPointer.OwnsFocus ||
+            ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse == false;
 
         internal NativeInventoryIntentPickupView(Canvas panelCanvas, Canvas pickerCanvas,
             Action cancelPickup, Action<int> changePage)
@@ -52,19 +57,23 @@ namespace SephiriaEnhancements.Inventory
 
         internal void UpdatePosition()
         {
-            // Match the native controller picker: pointer position for mouse,
-            // selected control plus a 20-unit vertical offset for controller.
-            if (ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse != false && Mouse.current != null)
+            if (!UsesSelection && Mouse.current != null)
             {
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     dragCanvas.transform as RectTransform, Mouse.current.position.ReadValue(),
                     dragCanvas.worldCamera, out Vector2 point);
                 image.transform.position = dragCanvas.transform.TransformPoint(point);
             }
-            else if (EventSystem.current?.currentSelectedGameObject != null)
+            else if (EventSystem.current?.currentSelectedGameObject?.transform is RectTransform selected)
             {
-                image.transform.position = EventSystem.current.currentSelectedGameObject.transform.position;
-                image.rectTransform.anchoredPosition += Vector2.up * 20f;
+                var canvas = (RectTransform)dragCanvas.transform;
+                selected.GetWorldCorners(corners);
+                Vector3 first = canvas.InverseTransformPoint(corners[0]);
+                Vector3 last = canvas.InverseTransformPoint(corners[2]);
+                var position = InventoryPickupPlacement.BesideSelection(first.x, last.x, (first.y + last.y) * 0.5f,
+                    image.rectTransform.rect.width, image.rectTransform.rect.height,
+                    canvas.rect.xMin, canvas.rect.xMax, canvas.rect.yMin, canvas.rect.yMax);
+                image.transform.position = canvas.TransformPoint(new Vector3(position.X, position.Y, 0f));
             }
         }
 

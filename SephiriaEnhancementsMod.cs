@@ -263,6 +263,8 @@ namespace SephiriaEnhancements
                 typeof(NativeInventoryItemSelectionModePatch),
                 typeof(InventoryArtifactIntentClickPatch),
                 typeof(InventoryArtifactIntentInputPatch),
+                typeof(InventoryPanelCancelPatch),
+                typeof(InventoryPanelTooltipPlacementPatch),
                 typeof(InventoryArtifactIntentClosedPatch),
                 typeof(InventoryArtifactIntentModePatch),
                 typeof(InventoryTemporaryItemDropPatch),

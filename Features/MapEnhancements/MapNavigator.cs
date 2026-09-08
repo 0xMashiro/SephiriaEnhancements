@@ -40,6 +40,7 @@ namespace SephiriaEnhancements.MapEnhancements
         private readonly List<MapLabelBounds> occupied = new();
         private readonly Dictionary<Transform, Vector3> nativeSymbolScales = new();
         private readonly Dictionary<Selectable, bool> nativeTravelButtons = new();
+        private GameObject localRoomSelection;
         private MapLocationMarkerView selected;
         private MapNavigationMode mode;
         private readonly TextMeshProUGUI modeBindings;
@@ -58,6 +59,18 @@ namespace SephiriaEnhancements.MapEnhancements
         {
             var target = RoomSelection();
             if (target != null) EventSystem.current?.SetSelectedGameObject(target);
+        }
+
+        internal void FocusCurrentRoom()
+        {
+            if (roomNavigation == null) return;
+            roomNavigation.Refresh();
+            GameObject target = RoomSelection();
+            if (target == null) return;
+            localRoomSelection = target;
+            initialRoomFocusPending = false;
+            panel.defaultSelectable = target;
+            EventSystem.current?.SetSelectedGameObject(target);
         }
 
         internal MapNavigator(UI_MapPanel owner, UI_Map shownMap,
@@ -325,6 +338,19 @@ namespace SephiriaEnhancements.MapEnhancements
             var stack = UIManager.Instance?.CurrentControlStack;
             if (stack == null || stack.Count == 0 || stack[stack.Count - 1] != panel) return;
             roomNavigation?.Refresh();
+            if (roomNavigation != null)
+            {
+                GameObject currentRoom = RoomSelection();
+                if (currentRoom != null && currentRoom != localRoomSelection)
+                {
+                    localRoomSelection = currentRoom;
+                    if (mode == MapNavigationMode.Rooms)
+                    {
+                        panel.defaultSelectable = currentRoom;
+                        EventSystem.current?.SetSelectedGameObject(currentRoom);
+                    }
+                }
+            }
             if (initialRoomFocusPending && RoomSelection() != null)
             {
                 initialRoomFocusPending = false;

@@ -41,6 +41,7 @@ foreach ($patch in @(
     'RewardKeyboardInventoryOpenedSelectionPatch', 'RewardKeyboardToggleSelectionPatch',
     'RewardKeyboardClosedSelectionPatch', 'RewardKeyboardCancelSelectionPatch'
     'MapPanelShowPatch', 'MapNavigationUpdatePatch'
+    'InventoryPanelCancelPatch', 'InventoryPanelTooltipPlacementPatch'
 )) {
     if ($patchList.Groups['types'].Value -notmatch ('typeof\(' + $patch + '\)')) {
         throw "Required hook is missing from startup: $patch"

@@ -46,14 +46,20 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
                         ? ResourceBarValueFormatter.RemainingLivesHealth(target.Networkhp,
                             target.MaxHp, ai.CurrentLife, ai.Life) : string.Empty;
                 });
-                // The native life bar is only two pixels high, between the name
-                // and golem bar. Put its value beside it, not over either label.
+                // Follow the life bar's right edge and vertical center, rather
+                // than the bottom-right corner of its parent container.
                 lifeValue.rectTransform.anchorMin = new Vector2(1f, 0f);
                 lifeValue.rectTransform.anchorMax = new Vector2(1f, 0f);
                 lifeValue.rectTransform.pivot = new Vector2(0f, 0.5f);
-                lifeValue.rectTransform.anchoredPosition = new Vector2(3f, -2f);
                 lifeValue.rectTransform.sizeDelta = new Vector2(70f, 8f);
                 lifeValue.alignment = TextAlignmentOptions.Left;
+                view.RefreshLayout = _ =>
+                {
+                    RectTransform bar = owner.barImage.rectTransform;
+                    lifeValue.rectTransform.position = bar.TransformPoint(
+                        new Vector3(bar.rect.xMax + 3f, bar.rect.center.y, 0f));
+                };
+                view.RefreshLayout(true);
                 return;
             }
             AddHealth(view, owner.barImage, owner.nameText, () => Boss(owner));

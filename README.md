@@ -23,7 +23,8 @@ This is a **beta release**. Backpack arrangement is still experimental; feedback
 
 - **Clearer combat:** damage and DPS displays, battle reports, hit streaks, health numbers on ordinary creature, miniboss and boss bars (including separate boss parts), shield and super armor values on creature bars, party members' HP, shield, MP and reserved MP values, and ally/enemy outlines.
 - Resource values follow each displayed character. `(+N)` means shield, and MP shows current / usable maximum with reserved MP listed separately, including on your own MP bar.
-- Creature numbers follow the game's existing bar visibility, including bars shown after taking damage; they do not force hidden bars to appear. Existing health bars on destructible props, including combat totems, also receive numbers.
+- In **Combat and Display**, health and super armor numbers have separate switches for ordinary creatures and minibosses; boss health numbers (including separate parts) and destructible prop health numbers have their own switches. Boss and miniboss numbers default to on; ordinary creature and prop numbers default to off. These settings leave party resource numbers and native bars unchanged.
+- Enabled numbers follow the game's existing bar visibility, including bars shown after taking damage; they do not force hidden bars to appear. Destructible prop numbers include combat totems with existing health bars.
 - **More keyboard control:** navigate menus, choose rewards and manage your backpack without reaching for the mouse.
 - **Targeting help:** automatic targeting and manual target lock, with adjustable controls.
 - **Easier exploration:** town NPC names on the map, a current-floor map overlay and adjustable camera distance.

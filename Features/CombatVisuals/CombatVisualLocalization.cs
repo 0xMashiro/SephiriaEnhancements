@@ -335,15 +335,7 @@ namespace SephiriaEnhancements.CombatVisuals
         internal static void Register(Action<string, string, string> addText,
             IEnumerable<string> languages)
         {
-            foreach (string language in languages)
-            {
-                Dictionary<string, string> texts = Texts.TryGetValue(language, out var translated)
-                    ? translated : English;
-                foreach (KeyValuePair<string, string> text in texts)
-                {
-                    addText(language, text.Key, text.Value);
-                }
-            }
+            Configuration.LocalizationGroup.Register(addText, languages, Texts);
         }
 
         private static Dictionary<string, string> Create(string preset,

@@ -20,6 +20,7 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
             var view = NativeResourceBarValueView.GetOrAdd(owner);
             var text = view.Add(owner.frameImage.rectTransform, template, () =>
             {
+                if (!ResourceBarValueSettings.Get(ResourceBarValueSetting.PropHealthNumbers)) return string.Empty;
                 BreakableProp target = Target(owner);
                 return target != null && owner.valueImage.gameObject.activeInHierarchy
                     ? ResourceBarValueFormatter.Ratio(target.hp, target.MaxHP) : string.Empty;

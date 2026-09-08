@@ -1234,124 +1234,36 @@ namespace SephiriaEnhancements.Configuration
 
         internal static void Register(Action<string, string, string> addText)
         {
-            foreach (KeyValuePair<string, Dictionary<string, string>> language in Texts)
+            string[] languages = LocalizationLanguages.All;
+            foreach (var group in new[] { Texts, SuiteTexts, InsightsTexts, DeveloperConsoleTexts,
+                DeveloperPlayerDamageTexts, DefeatRetryTexts, AdditionalTexts, HelpTexts,
+                HitStreakFeedbackTexts, OutlineTexts })
+                LocalizationGroup.Register(addText, languages, group);
+            LocalizationGroup.Register(addText, languages, RetryFloor, RetryFloorTexts);
+            LocalizationGroup.Register(addText, languages, RetryBossUnavailable, RetryBossUnavailableTexts);
+            LocalizationGroup.Register(addText, languages, RetryBossEncounter, RetryBossEncounterTexts);
+
+            int[] percentages = { 80, 90, 100, 110, 120 };
+            foreach (string language in languages)
             {
-                addText(language.Key, Section, "SEPHIRIA ENHANCEMENTS · by 0xMashiro");
-                addText(language.Key, RetryFloor,
-                    RetryFloorTexts.TryGetValue(language.Key, out var retryFloor)
-                        ? retryFloor : RetryFloorTexts["en-US"]);
-                addText(language.Key, RetryBossUnavailable,
-                    RetryBossUnavailableTexts.TryGetValue(language.Key, out var unavailableBoss)
-                        ? unavailableBoss : RetryBossUnavailableTexts["en-US"]);
-                addText(language.Key, RetryBossEncounter,
-                    RetryBossEncounterTexts.TryGetValue(language.Key,
-                        out var retryBossEncounter)
-                        ? retryBossEncounter : RetryBossEncounterTexts["en-US"]);
-                foreach (KeyValuePair<string, string> text in language.Value)
-                {
-                    addText(language.Key, text.Key, text.Value);
-                }
-
-                Dictionary<string, string> suite = SuiteTexts.TryGetValue(language.Key,
-                    out var localizedSuite)
-                    ? localizedSuite : SuiteTexts["en-US"];
-                foreach (KeyValuePair<string, string> text in suite)
-                {
-                    addText(language.Key, text.Key, text.Value);
-                }
-
-                Dictionary<string, string> insights = InsightsTexts.TryGetValue(language.Key,
-                    out var localizedInsights)
-                    ? localizedInsights : InsightsTexts["en-US"];
-                foreach (KeyValuePair<string, string> text in insights)
-                {
-                    addText(language.Key, text.Key, text.Value);
-                }
-
-                Dictionary<string, string> developerConsole =
-                    DeveloperConsoleTexts.TryGetValue(language.Key,
-                        out var localizedDeveloperConsole)
-                        ? localizedDeveloperConsole
-                        : DeveloperConsoleTexts["en-US"];
-                foreach (KeyValuePair<string, string> text in developerConsole)
-                {
-                    addText(language.Key, text.Key, text.Value);
-                }
-
-                Dictionary<string, string> developerPlayerDamage =
-                    DeveloperPlayerDamageTexts.TryGetValue(language.Key,
-                        out var localizedDeveloperPlayerDamage)
-                        ? localizedDeveloperPlayerDamage
-                        : DeveloperPlayerDamageTexts["en-US"];
-                foreach (KeyValuePair<string, string> text in developerPlayerDamage)
-                {
-                    addText(language.Key, text.Key, text.Value);
-                }
-
-                Dictionary<string, string> defeatRetry =
-                    DefeatRetryTexts.TryGetValue(language.Key,
-                        out var localizedDefeatRetry)
-                        ? localizedDefeatRetry : DefeatRetryTexts["en-US"];
-                foreach (KeyValuePair<string, string> text in defeatRetry)
-                {
-                    addText(language.Key, text.Key, text.Value);
-                }
-            }
-
-            foreach (KeyValuePair<string, Dictionary<string, string>> language in AdditionalTexts)
-            {
-                foreach (KeyValuePair<string, string> text in language.Value)
-                {
-                    addText(language.Key, text.Key, text.Value);
-                }
-
+                addText(language, Section, "SEPHIRIA ENHANCEMENTS · by 0xMashiro");
                 for (int index = 0; index < ScaleKeys.Length; index++)
-                {
-                    int[] percentages = { 80, 90, 100, 110, 120 };
-                    addText(language.Key, ScaleKeys[index], percentages[index] + "%");
-                }
-            }
-
-            foreach (KeyValuePair<string, Dictionary<string, string>> language in HelpTexts)
-            {
-                foreach (KeyValuePair<string, string> text in language.Value)
-                {
-                    addText(language.Key, text.Key, text.Value);
-                }
-            }
-
-            foreach (KeyValuePair<string, Dictionary<string, string>> language in
-                HitStreakFeedbackTexts)
-            {
-                foreach (KeyValuePair<string, string> text in language.Value)
-                {
-                    addText(language.Key, text.Key, text.Value);
-                }
-            }
-
-            foreach (string language in Texts.Keys)
-            {
-                Dictionary<string, string> outline = OutlineTexts.TryGetValue(
-                    language, out var localizedOutline)
-                    ? localizedOutline : OutlineTexts["en-US"];
-                foreach (KeyValuePair<string, string> text in outline)
-                {
-                    addText(language, text.Key, text.Value);
-                }
+                    addText(language, ScaleKeys[index], percentages[index] + "%");
             }
 
             ControlLocalization.Register(addText);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             Diagnostics.InventoryReproductionLocalization.Register(addText);
 #endif
-            MapEnhancements.MapEnhancementsLocalization.Register(addText, Texts.Keys);
-            MapEnhancements.MapNavigationLocalization.Register(addText, Texts.Keys);
-            ModJournal.ModJournalLocalization.Register(addText, Texts.Keys);
-            OptionsCategoryLocalization.Register(addText, Texts.Keys);
-            CombatVisualLocalization.Register(addText, Texts.Keys);
+            MapEnhancements.MapEnhancementsLocalization.Register(addText, languages);
+            MapEnhancements.MapNavigationLocalization.Register(addText, languages);
+            ModJournal.ModJournalLocalization.Register(addText, languages);
+            OptionsCategoryLocalization.Register(addText, languages);
+            CombatVisualLocalization.Register(addText, languages);
+            ResourceBarValues.ResourceBarValueLocalization.Register(addText, languages);
             Inventory.InventoryOptimizationLocalization.Register(addText);
-            MultiplayerRulesLocalization.Register(addText, Texts.Keys);
-            MultiplayerAccessLocalization.Register(addText, Texts.Keys);
+            MultiplayerRulesLocalization.Register(addText, languages);
+            MultiplayerAccessLocalization.Register(addText, languages);
 
         }
 

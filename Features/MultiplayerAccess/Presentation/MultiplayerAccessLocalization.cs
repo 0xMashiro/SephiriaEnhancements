@@ -55,14 +55,8 @@ namespace SephiriaEnhancements.MultiplayerAccess.Presentation
         internal static void Register(Action<string, string, string> addText,
             IEnumerable<string> languages)
         {
-            foreach (string language in languages)
-            {
-                string[] text = Texts.TryGetValue(language,
-                    out string[]? localized) && localized != null
-                    ? localized : Texts["en-US"];
-                addText(language, AllowJoinAndReconnectSetting, text[0]);
-                addText(language, AllowJoinAndReconnectHelp, text[1]);
-            }
+            Configuration.LocalizationGroup.Register(addText, languages,
+                new[] { AllowJoinAndReconnectSetting, AllowJoinAndReconnectHelp }, Texts);
         }
     }
 }

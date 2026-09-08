@@ -17,6 +17,9 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
             RectTransform frame = owner.frameImage.rectTransform;
             var health = view.Add(frame, template, () =>
             {
+                if (!ResourceBarValueSettings.Get(owner is UI_MiniBossHPBar
+                    ? ResourceBarValueSetting.MiniBossHealthNumbers
+                    : ResourceBarValueSetting.CreatureHealthNumbers)) return string.Empty;
                 UnitAvatar target = Target(owner);
                 return target != null && owner.valueImage.gameObject.activeInHierarchy
                     ? ResourceBarValueFormatter.HealthWithShield(target.Networkhp,
@@ -47,6 +50,9 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
 
             var armor = view.Add(frame, template, () =>
             {
+                if (!ResourceBarValueSettings.Get(owner is UI_MiniBossHPBar
+                    ? ResourceBarValueSetting.MiniBossSuperArmorNumbers
+                    : ResourceBarValueSetting.CreatureSuperArmorNumbers)) return string.Empty;
                 UnitAvatar target = Target(owner);
                 if (target == null || target.InitializedMaxSuperArmor <= 0f ||
                     !owner.superArmorValueImage.gameObject.activeInHierarchy) return string.Empty;

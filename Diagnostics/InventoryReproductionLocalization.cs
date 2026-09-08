@@ -18,8 +18,10 @@ namespace SephiriaEnhancements.Diagnostics
 
         internal static void Register(Action<string, string, string> addText)
         {
+            var translations = new Dictionary<string, Dictionary<string, string>>();
             foreach (string language in LocalizationLanguages.All)
-                foreach (var entry in ForLanguage(language)) addText(language, entry.Key, entry.Value);
+                translations.Add(language, ForLanguage(language));
+            LocalizationGroup.Register(addText, LocalizationLanguages.All, translations);
         }
 
         private static Dictionary<string, string> ForLanguage(string language) => language switch

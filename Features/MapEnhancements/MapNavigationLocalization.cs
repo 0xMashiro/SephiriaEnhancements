@@ -44,12 +44,8 @@ namespace SephiriaEnhancements.MapEnhancements
         internal static void Register(Action<string, string, string> add,
             IEnumerable<string> languages)
         {
-            string[] keys = { People, Places, Fit, Travel, Empty, Browse, Guide, PanGuide, Track, Untrack, RoomTravel, RoomGuide, Rooms, SelectRoomGuide };
-            foreach (string language in languages)
-            {
-                string[] values = Texts.TryGetValue(language, out var translated) ? translated : Texts["en-US"];
-                for (int i = 0; i < keys.Length; i++) add(language, keys[i], values[i]);
-            }
+            Configuration.LocalizationGroup.Register(add, languages,
+                new[] { People, Places, Fit, Travel, Empty, Browse, Guide, PanGuide, Track, Untrack, RoomTravel, RoomGuide, Rooms, SelectRoomGuide }, Texts);
         }
     }
 }

@@ -16,20 +16,17 @@ internal static class LocalizationChecks
 {
     internal static void Run()
     {
+        LocalizationGroupChecks.Run();
         var languages = LocalizationLanguages.All.ToHashSet(StringComparer.Ordinal);
         if (languages.Count != 15 || languages.Count != LocalizationLanguages.All.Length)
             throw new InvalidOperationException("localization languages must be unique and cover the game");
 
         // Inspect source tables as well as registered output: English fallback must not
         // be mistaken for a completed translation just because a key was registered.
-        Type[] owners =
-        {
-            typeof(ModLocalization), typeof(ControlLocalization),
-            typeof(OptionsCategoryLocalization), typeof(CombatVisualLocalization),
-            typeof(InventoryOptimizationLocalization), typeof(InventoryArrangementLocalization), typeof(MapEnhancementsLocalization), typeof(MapNavigationLocalization),
-            typeof(MultiplayerAccessLocalization), typeof(MultiplayerRulesLocalization),
-            typeof(ModJournalLocalization)
-        };
+        Type[] owners = typeof(ModLocalization).Assembly.GetTypes()
+            .Where(type => type.Name.EndsWith("Localization", StringComparison.Ordinal) &&
+                type.Namespace != null && type.Namespace.StartsWith("SephiriaEnhancements.", StringComparison.Ordinal) &&
+                !type.Namespace.Contains(".ModelChecks", StringComparison.Ordinal)).ToArray();
         int tableCount = 0;
         foreach (Type owner in owners)
         {
@@ -54,6 +51,23 @@ internal static class LocalizationChecks
             _ => new Dictionary<string, string>(StringComparer.Ordinal));
         ModLocalization.Register((language, key, value) => texts[language].Add(key, value));
         Dictionary<string, string> english = texts["en-US"];
+        foreach (Type owner in owners)
+        {
+#if !SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            // The model project also compiles developer fixtures; the normal Mod excludes this group.
+            if (owner == typeof(SephiriaEnhancements.Diagnostics.InventoryReproductionLocalization)) continue;
+#endif
+            MethodInfo? register = owner.GetMethod("Register", BindingFlags.Static | BindingFlags.NonPublic);
+            if (register == null) continue;
+            Action<string, string, string> checkRegistered = (language, key, value) =>
+            {
+                if (!texts[language].TryGetValue(key, out string? actual) || actual != value)
+                    throw new InvalidOperationException("Localization group is missing from central registration: " + owner.Name + "/" + key);
+            };
+            object[] arguments = register.GetParameters().Length == 1
+                ? new object[] { checkRegistered } : new object[] { checkRegistered, LocalizationLanguages.All };
+            register.Invoke(null, arguments);
+        }
         var journalFallback = new Dictionary<string, string>();
         ModJournalLocalization.Register((_, key, value) => journalFallback.Add(key, value),
             new[] { "unsupported-language" });

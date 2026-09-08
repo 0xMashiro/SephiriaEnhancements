@@ -78,16 +78,8 @@ namespace SephiriaEnhancements.ModJournal
         internal static void Register(Action<string, string, string> addText,
             IEnumerable<string> languages)
         {
-            foreach (string language in languages)
-            {
-                string[] texts = Texts.TryGetValue(language, out var translated)
-                    ? translated : Texts["en-US"];
-                addText(language, About, texts[0]);
-                addText(language, Description, texts[1]);
-                addText(language, Visit, texts[2]);
-                addText(language, Livestream, texts[3]);
-                addText(language, Profile, texts[4]);
-            }
+            Configuration.LocalizationGroup.Register(addText, languages,
+                new[] { About, Description, Visit, Livestream, Profile }, Texts);
         }
     }
 }

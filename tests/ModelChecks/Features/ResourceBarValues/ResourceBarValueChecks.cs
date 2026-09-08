@@ -6,6 +6,17 @@ internal static class ResourceBarValueChecks
 {
     internal static void Run()
     {
+        var english = new Dictionary<string, string>();
+        ResourceBarValueLocalization.Register((_, key, value) => english.Add(key, value), new[] { "en-US" });
+        foreach (string language in new[] { "zh-CN", "zh-TW", "unsupported-language" })
+        {
+            var texts = new Dictionary<string, string>();
+            ResourceBarValueLocalization.Register((_, key, value) => texts.Add(key, value), new[] { language });
+            if (texts.Count != 14 || !texts.Keys.ToHashSet().SetEquals(english.Keys) || texts.Values.Any(string.IsNullOrWhiteSpace))
+                throw new InvalidOperationException("Resource bar settings require six label/help pairs and their own on/off text");
+            if (language == "unsupported-language" && texts.Any(entry => entry.Value != english[entry.Key]))
+                throw new InvalidOperationException("Resource bar settings must fall back as one complete English group");
+        }
         Equal("1 / 200", ResourceBarValueFormatter.Ratio(0.2f, 200f), "Living fractional HP stays visible");
         Equal("0 / 200", ResourceBarValueFormatter.Ratio(-3f, 200f), "Lethal damage cannot display negative HP");
         Equal("240 / 200", ResourceBarValueFormatter.Ratio(240f, 200f), "Temporary HP must not be discarded");

@@ -76,7 +76,8 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
             // Six-unit tracks use a 6.5-unit value beside a ten-unit name. Refresh
             // the native font scale, and render above the shield/lost-HP siblings.
             var text = view.Add(bar.rectTransform.parent as RectTransform, template,
-                () => bar.gameObject.activeInHierarchy ? read() : string.Empty,
+                () => ResourceBarValueSettings.Get(ResourceBarValueSetting.BossHealthNumbers) && bar.gameObject.activeInHierarchy
+                    ? read() : string.Empty,
                 () => template.fontSize * 0.65f, "Resource Bar Values — Boss Health");
             RectTransform source = bar.rectTransform;
             RectTransform rect = text.rectTransform;

@@ -115,16 +115,7 @@ namespace SephiriaEnhancements.Configuration
         internal static void Register(Action<string, string, string> addText,
             IEnumerable<string> languages)
         {
-            foreach (string language in languages)
-            {
-                string[] values = Texts.TryGetValue(language,
-                    out string[]? localized) && localized != null
-                    ? localized : Texts["en-US"];
-                for (int index = 0; index < Keys.Length; index++)
-                {
-                    addText(language, Keys[index], values[index]);
-                }
-            }
+            LocalizationGroup.Register(addText, languages, Keys, Texts);
         }
     }
 }

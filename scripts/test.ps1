@@ -24,6 +24,21 @@ foreach ($directory in @('Configuration', 'Diagnostics', 'Features', 'Integratio
 }
 Write-Host 'Native text sizing boundary passed.'
 
+# New localization groups must participate in automatic coverage checks.
+$modelDirectory = Split-Path -Parent $modelProject
+$modelXml = [xml](Get-Content -LiteralPath $modelProject -Raw)
+$modelSources = @($modelXml.Project.ItemGroup.Compile | ForEach-Object {
+    if ($_.Include) { [System.IO.Path]::GetFullPath((Join-Path $modelDirectory $_.Include)) }
+})
+foreach ($directory in @('Configuration', 'Diagnostics', 'Features')) {
+    foreach ($source in Get-ChildItem -LiteralPath (Join-Path $repoRoot $directory) -Recurse -Filter '*Localization.cs' -File) {
+        if ($source.FullName -notin $modelSources) {
+            throw "Include localization source in ModelChecks: $([System.IO.Path]::GetRelativePath($repoRoot, $source.FullName))"
+        }
+    }
+}
+Write-Host 'Localization source coverage passed.'
+
 # These hooks must be installed by normal startup, not only by a test's PatchAll.
 $startup = Get-Content -Raw (Join-Path $repoRoot 'SephiriaEnhancementsMod.cs')
 $patchList = [regex]::Match($startup, '(?s)foreach \(Type patchType in new\[\]\s*\{(?<types>.*?)\}\)')

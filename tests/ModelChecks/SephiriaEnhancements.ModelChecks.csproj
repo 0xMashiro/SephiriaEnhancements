@@ -19,6 +19,10 @@
     <Compile Include="..\..\Configuration\LocalizationLanguages.cs" Link="Configuration/LocalizationLanguages.cs" />
     <Compile Include="../../Features/ModJournal/ModJournalLocalization.cs" Link="ModJournal/ModJournalLocalization.cs" />
     <Compile Include="../../Features/ResourceBarValues/Core/ResourceBarValueFormatter.cs" Link="ResourceBarValues/ResourceBarValueFormatter.cs" />
+    <Compile Include="../../Features/ResourceBarValues/ResourceBarValueLocalization.cs" Link="ResourceBarValues/ResourceBarValueLocalization.cs" />
+    <Compile Include="../../Features/ResourceBarValues/Core/ResourceBarValueSetting.cs" Link="ResourceBarValues/ResourceBarValueSetting.cs" />
+    <Compile Include="../../Configuration/LocalizationGroup.cs" Link="Configuration/LocalizationGroup.cs" />
+    <Compile Include="../../Configuration/ModLocalization.Fallback.cs" Link="Configuration/ModLocalization.Fallback.cs" />
     <Compile Include="..\..\Configuration\ModLocalization.cs" Link="Configuration/ModLocalization.cs" />
     <Compile Include="..\..\Configuration\ControlLocalization.cs" Link="Configuration/ControlLocalization.cs" />
     <Compile Include="..\..\Features\Inventory\Presentation\InventoryOptimizationLocalization.Texts.cs" Link="Features/Inventory/Presentation/InventoryOptimizationLocalization.Texts.cs" />

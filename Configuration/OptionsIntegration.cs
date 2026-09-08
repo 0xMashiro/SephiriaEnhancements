@@ -19,6 +19,7 @@ using SephiriaEnhancements.MultiplayerAccess;
 using SephiriaEnhancements.MultiplayerAccess.Presentation;
 using SephiriaEnhancements.CombatVisuals;
 using SephiriaEnhancements.MapEnhancements;
+using SephiriaEnhancements.ResourceBarValues;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -130,6 +131,12 @@ namespace SephiriaEnhancements.Configuration
             if (__instance.GetComponentInChildren<HitStreakFeedbackOption>(true) == null)
             {
                 CreateHitStreakFeedbackRow(template, section.transform);
+            }
+
+            if (__instance.GetComponentInChildren<ResourceBarValueOption>(true) == null)
+            {
+                foreach (ResourceBarValueSetting setting in System.Enum.GetValues(typeof(ResourceBarValueSetting)))
+                    CreateResourceBarValueRow(template, section.transform, setting);
             }
 
             if (__instance.GetComponentInChildren<DamageStatisticsScaleOption>(true) == null)
@@ -278,6 +285,12 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_CombatOutlineScope",
                 "Option_SephiriaEnhancements_DisplayPolicy",
                 "Option_SephiriaEnhancements_HitStreakFeedback",
+                "Option_SephiriaEnhancements_CreatureHealthNumbers",
+                "Option_SephiriaEnhancements_CreatureSuperArmorNumbers",
+                "Option_SephiriaEnhancements_MiniBossHealthNumbers",
+                "Option_SephiriaEnhancements_MiniBossSuperArmorNumbers",
+                "Option_SephiriaEnhancements_BossHealthNumbers",
+                "Option_SephiriaEnhancements_PropHealthNumbers",
                 "Option_SephiriaEnhancements_DamageStatisticsScale",
                 "Option_SephiriaEnhancements_TargetingMode",
                 "Option_SephiriaEnhancements_MouseAimAssist",
@@ -557,6 +570,19 @@ namespace SephiriaEnhancements.Configuration
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<HitStreakFeedbackOption>().Configure(box, valueText);
+            MarkCategory(row, OptionsCategory.CombatAndDisplay);
+            row.SetActive(true);
+        }
+
+        private static void CreateResourceBarValueRow(UI_OptionBox_PartyMemberDamage template,
+            Transform section, ResourceBarValueSetting setting)
+        {
+            GameObject row = CloneRow(template, section,
+                "Option_SephiriaEnhancements_" + setting,
+                ResourceBarValueLocalization.Setting(setting),
+                ResourceBarValueLocalization.Help(setting), 8,
+                out UI_HorizontalSelectionBox box, out UI_LocalizationStringText valueText);
+            row.AddComponent<ResourceBarValueOption>().Configure(box, valueText, setting);
             MarkCategory(row, OptionsCategory.CombatAndDisplay);
             row.SetActive(true);
         }

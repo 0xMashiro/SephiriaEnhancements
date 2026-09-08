@@ -305,40 +305,26 @@ namespace SephiriaEnhancements.Configuration
 
         internal static void Register(Action<string, string, string> addText)
         {
-            int[] viewPercentages = { 75, 100, 125, 150, 175, 200 };
-            foreach (KeyValuePair<string, Dictionary<string, string>> language in Texts)
+            string[] languages = LocalizationLanguages.All;
+            LocalizationGroup.Register(addText, languages, Texts);
+            string[] keys = { SwitchLockedTarget, ToggleCurrentFloorMapOverlay, ToggleDamageStatistics,
+                OptimizeInventory, SecondaryUiAction, RotateItem, EngraveTablet, ShortcutsSection };
+            var columns = new[] { SwitchLockedTargetTexts, ToggleCurrentFloorMapOverlayTexts,
+                ToggleDamageStatisticsTexts, OptimizeInventoryTexts, SecondaryUiActionTexts,
+                RotateItemTexts, EngraveTabletTexts, ShortcutSectionTexts };
+            var shortcuts = new Dictionary<string, string[]>();
+            foreach (string language in languages)
             {
-                // Shortcut labels are one localization group. OptimizeInventory is
-                // the completeness gate so a language never gets a mixed row set.
-                string shortcutLanguage = OptimizeInventoryTexts.ContainsKey(language.Key)
-                    ? language.Key : "en-US";
-                addText(language.Key, SwitchLockedTarget,
-                    SwitchLockedTargetTexts[shortcutLanguage]);
-                addText(language.Key, ToggleCurrentFloorMapOverlay,
-                    ToggleCurrentFloorMapOverlayTexts[shortcutLanguage]);
-                addText(language.Key, ToggleDamageStatistics,
-                    ToggleDamageStatisticsTexts[shortcutLanguage]);
-                addText(language.Key, OptimizeInventory,
-                    OptimizeInventoryTexts[shortcutLanguage]);
-                addText(language.Key, SecondaryUiAction,
-                    SecondaryUiActionTexts[shortcutLanguage]);
-                addText(language.Key, RotateItem,
-                    RotateItemTexts[shortcutLanguage]);
-                addText(language.Key, EngraveTablet,
-                    EngraveTabletTexts[shortcutLanguage]);
-                addText(language.Key, ShortcutsSection,
-                    ShortcutSectionTexts[shortcutLanguage]);
-                foreach (KeyValuePair<string, string> text in language.Value)
-                {
-                    addText(language.Key, text.Key, text.Value);
-                }
-
-                for (int index = 0; index < ViewDistanceKeys.Length; index++)
-                {
-                    addText(language.Key, ViewDistanceKeys[index],
-                        viewPercentages[index] + "%");
-                }
+                var values = new string[keys.Length];
+                for (int index = 0; index < keys.Length; index++)
+                    values[index] = columns[index].TryGetValue(language, out var value) ? value : string.Empty;
+                shortcuts.Add(language, values);
             }
+            LocalizationGroup.Register(addText, languages, keys, shortcuts);
+            int[] viewPercentages = { 75, 100, 125, 150, 175, 200 };
+            foreach (string language in languages)
+                for (int index = 0; index < ViewDistanceKeys.Length; index++)
+                    addText(language, ViewDistanceKeys[index], viewPercentages[index] + "%");
         }
 
         private static Dictionary<string, string> Create(string targeting,

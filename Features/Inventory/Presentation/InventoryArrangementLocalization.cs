@@ -32,11 +32,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal static void Register(Action<string, string, string> addText)
         {
-            foreach (string language in Configuration.LocalizationLanguages.All)
-            {
-                var values = Texts.TryGetValue(language, out var translated) ? translated : Texts["en-US"];
-                for (int index = 0; index < Keys.Length; index++) addText(language, Keys[index], values[index]);
-            }
+            Configuration.LocalizationGroup.Register(addText, Configuration.LocalizationLanguages.All, Keys, Texts);
         }
     }
 }

@@ -483,25 +483,31 @@ namespace SephiriaEnhancements.MultiplayerRules.Presentation
         internal static void Register(Action<string, string, string> addText,
             IEnumerable<string> languages)
         {
+            var translations = new Dictionary<string, Dictionary<string, string>>();
+            foreach (var language in CommonTexts)
+            {
+                var texts = new Dictionary<string, string>();
+                for (int index = 0; index < language.Value.Length; index++)
+                    texts.Add(CommonTextKeys[index], language.Value[index]);
+                if (RuleTexts.TryGetValue(language.Key, out var rules))
+                    foreach (MultiplayerRuleDefinition definition in MultiplayerRuleCatalog.All)
+                        if (rules.TryGetValue(definition.Id, out var ruleText) && ruleText.Length == 2)
+                        {
+                            texts.Add(RuleLabelKey(definition.Id), ruleText[0]);
+                            texts.Add(RuleHelpKey(definition.Id), ruleText[1]);
+                        }
+                translations.Add(language.Key, texts);
+            }
+            Configuration.LocalizationGroup.Register(addText, languages, translations);
             foreach (string language in languages)
             {
-                var registeredNumericKeys = new HashSet<string>(
-                    StringComparer.Ordinal);
-                string resolvedLanguage = CommonTexts.ContainsKey(language)
-                    ? language : "en-US";
-                string[] values = CommonTexts[resolvedLanguage];
-                for (int index = 0; index < CommonTextKeys.Length; index++)
-                    addText(language, CommonTextKeys[index], values[index]);
-                for (int participantCount = 1; participantCount <= 4;
-                    participantCount++)
+                var registeredNumericKeys = new HashSet<string>(StringComparer.Ordinal);
+                for (int participantCount = 1; participantCount <= 4; participantCount++)
                     addText(language, ParticipantCountValueKey(participantCount),
                         participantCount.ToString(CultureInfo.InvariantCulture));
 
                 foreach (MultiplayerRuleDefinition definition in MultiplayerRuleCatalog.All)
                 {
-                    string[] ruleText = RuleTexts[resolvedLanguage][definition.Id];
-                    addText(language, RuleLabelKey(definition.Id), ruleText[0]);
-                    addText(language, RuleHelpKey(definition.Id), ruleText[1]);
                     if (definition.Unit == MultiplayerRuleUnit.Toggle) continue;
                     int count = NumericValueCount(definition);
                     for (int stepIndex = 0; stepIndex < count; stepIndex++)

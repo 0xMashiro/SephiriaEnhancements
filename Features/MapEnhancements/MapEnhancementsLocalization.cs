@@ -52,15 +52,8 @@ namespace SephiriaEnhancements.MapEnhancements
         internal static void Register(Action<string, string, string> addText,
             IEnumerable<string> languages)
         {
-            foreach (string language in languages)
-            {
-                string[] texts = Texts.TryGetValue(language, out var translated)
-                    ? translated : Texts["en-US"];
-                addText(language, SettingShowHiddenRooms, texts[0]);
-                addText(language, HelpShowHiddenRooms, texts[1]);
-                addText(language, Off, texts[2]);
-                addText(language, On, texts[3]);
-            }
+            Configuration.LocalizationGroup.Register(addText, languages,
+                new[] { SettingShowHiddenRooms, HelpShowHiddenRooms, Off, On }, Texts);
         }
     }
 }

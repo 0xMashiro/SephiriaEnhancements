@@ -21,6 +21,7 @@
     <Compile Include="../../Features/ModJournal/ModJournalLocalization.cs" Link="ModJournal/ModJournalLocalization.cs" />
     <Compile Include="../../Features/ResourceBarValues/Core/ResourceBarValueFormatter.cs" Link="ResourceBarValues/ResourceBarValueFormatter.cs" />
     <Compile Include="../../Features/ResourceBarValues/ResourceBarValueLocalization.cs" Link="ResourceBarValues/ResourceBarValueLocalization.cs" />
+    <Compile Include="../../Features/DefeatRetry/DefeatRetryAvailabilityLocalization.cs" Link="DefeatRetry/DefeatRetryAvailabilityLocalization.cs" />
     <Compile Include="../../Features/ResourceBarValues/Core/ResourceBarValueSetting.cs" Link="ResourceBarValues/ResourceBarValueSetting.cs" />
     <Compile Include="../../Configuration/LocalizationGroup.cs" Link="Configuration/LocalizationGroup.cs" />
     <Compile Include="../../Configuration/ModLocalization.Fallback.cs" Link="Configuration/ModLocalization.Fallback.cs" />

@@ -306,7 +306,7 @@ namespace SephiriaEnhancements.DefeatRetry
             if (kind == RetryCheckpointKind.BossEncounter)
             {
                 checkpoints.CompleteBossCapture(captured);
-                captured.StatisticsCheckpointId = StatisticsRetryBridge.CaptureBoss(floorGuid);
+                captured.StatisticsCheckpointId = DefeatRetryBridge.CaptureBoss(floorGuid);
             }
             runFileName = captured.CurrentRun.BindedFileName ?? string.Empty;
             FloorData floor = null;
@@ -362,6 +362,7 @@ namespace SephiriaEnhancements.DefeatRetry
             }
 
             checkpoints.Clear();
+            DefeatRetryBridge.ClearArrivals();
             pendingWorldRestore = null;
             BossRetryWorld.ClearRecipes();
             pendingPlacements = null;
@@ -410,6 +411,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 (bool)NativeRestartingField.GetValue(manager);
 
             return panel != null && dungeon != null && manager != null &&
+                DefeatRetryBridge.AllPlayersReady() &&
                 DefeatRetryPolicy.ShouldOffer(EnhancementsSettings.Enabled,
                     DefeatRetrySettings.Enabled, MatchesPlayers(checkpoints.Get(kind)),
                     NetworkServer.active, dungeon.isRunStarted, panel.openType,
@@ -488,21 +490,22 @@ namespace SephiriaEnhancements.DefeatRetry
                     BossRetryWorld.ClearRecipes();
                 }
                 IsRetrying = true;
+                NativeRetryTravel.CancelDefeatedWorldTravel(DungeonManager.Instance);
                 panel.button.interactable = false;
                 panel.Close();
                 SaveManager.Save(saveCurrent: true, saveCurrentRun: true);
-                StatisticsRetryBridge.Publish(kind == RetryCheckpointKind.BossEncounter
+                DefeatRetryBridge.Publish(kind == RetryCheckpointKind.BossEncounter
                     ? StatisticsRetryTransition.RetryBoss : StatisticsRetryTransition.RetryFloor,
                     selected.StatisticsCheckpointId, selected.FloorGuid);
                 (NetworkManager.singleton as HorayNetworkManager)?.RestartGame();
-                SupportLogger.Info("retry_restarted", "[SephiriaEnhancements] Host restarted from the " +
+                SupportLogger.Info("retry_restart_requested", "[SephiriaEnhancements] Host requested restart from the " +
                     (selected.Kind == RetryCheckpointKind.BossEncounter
                         ? "boss encounter" : "floor-entry") + " checkpoint.");
             }
             catch (Exception ex)
             {
                 IsRetrying = false;
-                StatisticsRetryBridge.Publish(StatisticsRetryTransition.Cancel,
+                DefeatRetryBridge.Publish(StatisticsRetryTransition.Cancel,
                     selected.StatisticsCheckpointId, selected.FloorGuid);
                 pendingPlacements = null;
                 pendingWorldRestore = null;
@@ -546,7 +549,7 @@ namespace SephiriaEnhancements.DefeatRetry
             string requestedFloorGuid, ref string spawnPoint,
             ref Vector3? overridePosition)
         {
-            if (avatar == null || avatar.netIdentity == null ||
+            if (avatar == null || avatar != DefeatRetryPlayerRestorePatch.RestoringPlayer || avatar.netIdentity == null ||
                 pendingPlacements == null ||
                 !pendingPlacements.TryGetValue(avatar.netIdentity.netId,
                     out RetryPlacement placement))
@@ -554,7 +557,6 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
 
-            pendingPlacements.Remove(avatar.netIdentity.netId);
             if (DefeatRetryPolicy.ShouldApplyPlacement(true, placement.FloorGuid,
                     requestedFloorGuid))
             {
@@ -563,20 +565,18 @@ namespace SephiriaEnhancements.DefeatRetry
                     spawnPoint = placement.SpawnPoint;
                 }
                 overridePosition = placement.Position;
-                SupportLogger.Info("retry_placement_applied", "[SephiriaEnhancements] Applied retry placement on floor " +
-                    placement.FloorGuid + ".");
+                SupportLogger.Record("retry_placement_requested", "player=" + avatar.netId);
             }
             else
             {
-                SupportLogger.Warning("retry_floor_mismatch", "[SephiriaEnhancements] Retry placement floor " +
-                    placement.FloorGuid + " did not match requested floor " +
-                    requestedFloorGuid + ".");
+                throw new InvalidOperationException("Retry destination does not match the checkpoint.");
             }
+        }
 
-            if (pendingPlacements.Count == 0)
-            {
-                pendingPlacements = null;
-            }
+        internal static void FinishPlayerRestore(PlayerAvatar avatar)
+        {
+            pendingPlacements?.Remove(avatar.netId);
+            if (pendingPlacements?.Count == 0) pendingPlacements = null;
         }
 
         internal static bool PreserveRunFile(string fileName)
@@ -908,7 +908,8 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
 
-            SetRetryButtonText(retryButton, ModLocalization.Get(ModLocalization.RetryFloor));
+            SetRetryButtonText(retryButton, ModLocalization.Get(DefeatRetryBridge.AllPlayersReady()
+                ? ModLocalization.RetryFloor : DefeatRetryAvailabilityLocalization.PlayersNotReady));
             if (bossRetryButton?.text != null)
             {
                 SetRetryButtonText(bossRetryButton, ModLocalization.Get(bossReady

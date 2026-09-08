@@ -10,7 +10,7 @@ namespace SephiriaEnhancements.DefeatRetry
     {
         private static void Postfix(UI_GameOverLabel __instance)
         {
-            if (__instance.openType == 0) StatisticsRetryBridge.ObserveTeamDefeat();
+            if (__instance.openType == 0) DefeatRetryBridge.ObserveTeamDefeat();
             DefeatRetryFeature.AddButton(__instance);
         }
     }
@@ -72,12 +72,22 @@ namespace SephiriaEnhancements.DefeatRetry
         }
     }
 
+    [HarmonyPatch(typeof(DungeonManager), "LocalMoveFloor")]
+    internal static class DefeatRetryTravelRequestPatch
+    {
+        private static bool Prefix(PlayerAvatar avatar)
+        {
+            return avatar == DefeatRetryPlayerRestorePatch.RestoringPlayer ||
+                (!DefeatRetryFeature.IsRetrying && !DefeatRetryBridge.IsAwaitingArrival(avatar));
+        }
+    }
+
     [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.DeleteFile))]
     internal static class PreserveDefeatRetrySaveDeletionPatch
     {
         private static bool Prefix(string fileName)
         {
-            return !DefeatRetryFeature.PreserveRunFile(fileName);
+            return !DefeatRetryClientRestore.PreserveRunFile(fileName) && !DefeatRetryFeature.PreserveRunFile(fileName);
         }
     }
 
@@ -86,7 +96,7 @@ namespace SephiriaEnhancements.DefeatRetry
     {
         private static bool Prefix(string fileName)
         {
-            return !DefeatRetryFeature.PreserveRunCreation(fileName);
+            return !DefeatRetryClientRestore.PreserveRunFile(fileName, creation: true) && !DefeatRetryFeature.PreserveRunCreation(fileName);
         }
     }
 

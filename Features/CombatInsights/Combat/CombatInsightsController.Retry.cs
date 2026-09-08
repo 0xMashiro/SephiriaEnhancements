@@ -32,7 +32,6 @@ namespace SephiriaEnhancements.Combat
 
         private void TickStatisticsRetry()
         {
-            StatisticsRetryBridge.Tick();
             PlayerAvatar local = LocalPlayerResolver.Resolve();
             if (local != null && local.loadingScreenType != -1) retryStatistics.ObserveTravelStarted();
             bool ready = local != null && local.loadingScreenType == -1 &&

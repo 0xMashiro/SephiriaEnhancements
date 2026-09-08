@@ -141,7 +141,8 @@ namespace SephiriaEnhancements
                 controllerObject.AddComponent<CombatRelationOutlinesController>();
             combatInsights = controllerObject.AddComponent<CombatInsightsController>();
             combatInsights.Initialize(runtimeKernel);
-            StatisticsRetryBridge.Initialize(combatInsights);
+            DefeatRetryBridge.Initialize(combatInsights);
+            controllerObject.AddComponent<DefeatRetryRuntime>();
             NativeReportDismissal.SetController(combatInsights);
             NativeStatisticsPauseEntry.SetController(combatInsights);
             combatTargeting = controllerObject.AddComponent<CombatTargetingController>();
@@ -168,6 +169,8 @@ namespace SephiriaEnhancements
                 MidRunAdmissionCompatibilityProbe.Validate();
             string slowestPatchName = string.Empty;
             float slowestPatchMilliseconds = 0f;
+            bool retryCompatibilityAvailable = NativeRetryTravel.IsAvailable &&
+                DefeatRetryClientRestore.IsAvailable && DefeatRetryPlayerRestorePatch.IsAvailable;
             foreach (Type patchType in new[]
             {
                 typeof(DamageFeedbackCapture),
@@ -222,6 +225,8 @@ namespace SephiriaEnhancements
                 typeof(RenderedCombatFloorRetryCheckpointPatch),
                 typeof(ApplyDefeatRetryPlacementPatch),
                 typeof(DefeatRetryPlayerRestorePatch),
+                typeof(DefeatRetryClientNotificationPatch),
+                typeof(DefeatRetryTravelRequestPatch),
                 typeof(BossRetryPropRecipePatch),
                 typeof(BossRetryPreserveFloorPatch),
                 typeof(GameOverDefeatRetryButtonPatch),
@@ -289,6 +294,8 @@ namespace SephiriaEnhancements
                 else
                 {
                     failedPatchCount++;
+                    if (patchType.Namespace == "SephiriaEnhancements.DefeatRetry" ||
+                        patchType == typeof(NativeSaveCapturePatch)) retryCompatibilityAvailable = false;
                     if (patchType.Namespace ==
                         "SephiriaEnhancements.MultiplayerRules.Integration")
                         multiplayerRulesCompatibilityAvailable = false;
@@ -299,6 +306,7 @@ namespace SephiriaEnhancements
                     slowestPatchMilliseconds = patchMilliseconds;
                 }
             }
+            DefeatRetryBridge.SetIntegrationAvailable(retryCompatibilityAvailable);
             if (midRunAdmissionCompatibilityAvailable)
             {
                 foreach (Type patchType in MidRunAdmissionPatchTypes)
@@ -355,7 +363,7 @@ namespace SephiriaEnhancements
             MidRunAdmissionRuntime.SetIntegrationAvailable(false);
             EnemySpawnRoutineContext.SetRuleScopeFactory(null);
             inventoryOptimization?.Shutdown();
-            StatisticsRetryBridge.Shutdown();
+            DefeatRetryBridge.Shutdown();
             combatInsights?.Shutdown();
             NativeReportDismissal.SetController(null);
             NativeStatisticsPauseEntry.SetController(null);
@@ -406,6 +414,7 @@ namespace SephiriaEnhancements
 
         private void OnStartSessionClientside(bool isSavedSession)
         {
+            DefeatRetryClientRestore.ObserveWorldSession(isSavedSession);
             GameLoadProfiler.ObserveClientSessionStarted(isSavedSession);
             MultiplayerRulesLobbySnapshotCoordinator.ReadHostSnapshot();
             inventoryOptimization?.ResetExploration();

@@ -8,21 +8,21 @@ using System.Linq;
 
 namespace SephiriaEnhancements.Inventory
 {
-    internal enum InventoryOptimizationTendency
+    internal enum InventorySearchMode
     {
         Automatic,
-        Stable,
-        Aggressive
+        Quick,
+        Thorough
     }
 
-    internal static class InventoryOptimizationTendencyPolicy
+    internal static class InventorySearchModePolicy
     {
         internal static InventorySearchEffort GetSearchEffort(
-            InventoryOptimizationTendency tendency) => tendency switch
+            InventorySearchMode mode) => mode switch
             {
-                InventoryOptimizationTendency.Stable =>
+                InventorySearchMode.Quick =>
                     InventorySearchEffort.Fast,
-                InventoryOptimizationTendency.Aggressive =>
+                InventorySearchMode.Thorough =>
                     InventorySearchEffort.Thorough,
                 _ => InventorySearchEffort.Balanced
             };

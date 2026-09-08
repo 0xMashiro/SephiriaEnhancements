@@ -21,8 +21,8 @@ internal static class InventoryOptimizationLocalizationChecks
         if (inventoryTexts.Count != 15 ||
             inventoryTexts.Values.Any(texts =>
                 !texts.ContainsKey(InventoryOptimizationLocalization.
-                    SettingOptimizationTendency) ||
-                !InventoryOptimizationLocalization.OptimizationTendencyKeys.All(
+                    SettingSearchMode) ||
+                !InventoryOptimizationLocalization.SearchModeKeys.All(
                     texts.ContainsKey) ||
                 !InventoryOptimizationLocalization.PreferenceChoiceKeys.All(
                     texts.ContainsKey) ||
@@ -68,10 +68,10 @@ internal static class InventoryOptimizationLocalizationChecks
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudNoTargets) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudPage)) ||
             inventoryTexts["en-US"][InventoryOptimizationLocalization.
-                OptimizationTendencyKeys[0]] != "Automatic")
+                SearchModeKeys[0]] != "Automatic")
             throw new InvalidOperationException(
                 "inventory target editor must localize as one complete feature group");
-        Console.WriteLine("InventoryOptimizationTendency: intent-level settings and target-editor localization passed");
+        Console.WriteLine("InventorySearchMode: intent-level settings and target-editor localization passed");
         VerifyTargetConditions(inventoryTexts);
         VerifyArtifactGoalSummaries(inventoryTexts);
     }

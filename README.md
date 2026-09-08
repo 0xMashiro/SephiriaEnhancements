@@ -13,175 +13,83 @@
 
 # Sephiria Enhancements
 
-Spend less time navigating menus and arranging your backpack, and get a clearer view of each fight.
-Sephiria Enhancements adds combat information, keyboard controls, exploration tools and co-op options.
-It uses the game's built-in AddOns system, so you do not need BepInEx.
+Combat information, keyboard controls, backpack arrangement and exploration tools for Sephiria.
+Uses the game's built-in AddOns system; no BepInEx required.
 
-This is a **beta release**. Backpack arrangement is still experimental; feedback is welcome.
+**Beta:** backpack arrangement is experimental.
 
-## What it adds
+## Features
 
-- **Clearer combat:** damage and DPS displays, battle reports, hit streaks, health numbers on ordinary creature, miniboss and boss bars (including separate boss parts), shield and super armor values on creature bars, party members' HP, shield, MP and reserved MP values, and ally/enemy outlines.
-- Resource values follow each displayed character. `(+N)` means shield, and MP shows current / usable maximum with reserved MP listed separately, including on your own MP bar.
-- In **Combat and Display**, health and super armor numbers have separate switches for ordinary creatures and minibosses; boss health numbers (including separate parts) and destructible prop health numbers have their own switches. Boss and miniboss numbers default to on; ordinary creature and prop numbers default to off. These settings leave party resource numbers and native bars unchanged.
-- Enabled numbers follow the game's existing bar visibility, including bars shown after taking damage; they do not force hidden bars to appear. Destructible prop numbers include combat totems with existing health bars.
-- **More keyboard control:** navigate menus, choose rewards and manage your backpack without reaching for the mouse.
-- **Targeting help:** automatic targeting and manual target lock, with adjustable controls.
-- **Easier exploration:** town NPC names on the map, a current-floor map overlay and adjustable camera distance.
-- **Backpack arrangement:** an experimental shortcut to arrange artifacts around your preferences.
-- **Solo and co-op options:** an optional companion, retry after defeat, mid-run joining/reconnect support and 1–4 player rule presets.
+- **Combat:** damage, DPS, battle reports, hit streaks, resource values and ally/enemy outlines.
+- **Controls:** keyboard menu and reward navigation, automatic targeting and manual target lock.
+- **Exploration:** map overlay, People / Places lists, NPC tracking and camera distance from **75% to 200%**.
+- **Backpack:** arrange artifacts around your priorities and highlight rewards matching your preset's favorite combos.
+- **Solo and co-op:** optional combat companion, retry after defeat, mid-run joining/reconnect support and **1–4 player** rule presets.
 
-Most display and control improvements are enabled by default. **Retry after defeat, hidden-room display,
-mouse aim assist and the combat companion are off** until you enable them. Multiplayer rules start at
-**Original**, and camera distance at **100%**. Your saved settings are kept when you re-enable the Mod.
+Most display and control improvements start enabled. Retry after defeat, hidden-room display, mouse aim assist
+and the combat companion start **off**. Multiplayer rules start at **Original**, camera distance at **100%**.
 
 ## Install
 
 1. Exit Sephiria.
-2. Download the ZIP and `SHA256SUMS.txt` from the newest entry on [GitHub Releases](https://github.com/0xMashiro/SephiriaEnhancements/releases), including releases marked **Pre-release**.
-3. Check the ZIP using the [download verification steps](#verify-a-release) below.
-4. Extract it into the folder containing `Sephiria.exe`. Merge the `AddOns` folder if asked.
-5. Start the game and open **Options → Gameplay → SEPHIRIA ENHANCEMENTS · by 0xMashiro** to adjust the features.
+2. Download the ZIP and `SHA256SUMS.txt` from the newest [GitHub Release](https://github.com/0xMashiro/SephiriaEnhancements/releases), including **Pre-release** versions.
+3. [Verify the download](#verify-a-release), then extract the whole package into the folder containing `Sephiria.exe`. Merge `AddOns` if asked.
+4. Launch the game and **load a save file first**, then open **Options → Gameplay → SEPHIRIA ENHANCEMENTS · by 0xMashiro**.
 
-The Mod's files should be directly inside `AddOns\SephiriaEnhancements`, without another nested folder.
-Extract the whole package, including its supporting files.
+The game's current AddOns implementation makes the settings entry available only after loading into a game session.
+**It is expected to be missing from the main menu; load your save to find it.**
+
+Files should sit directly in `AddOns\SephiriaEnhancements`, without an extra nested folder.
 
 ## Controls
 
-Change bindings in the game's keyboard or gamepad settings under **SEPHIRIA ENHANCEMENTS SHORTCUTS**.
-The table shows defaults; on-screen hints follow your current bindings.
+Rebind shortcuts in the game's keyboard or gamepad settings under **SEPHIRIA ENHANCEMENTS SHORTCUTS**.
+These are defaults; in-game hints follow your bindings.
 
-| Action | Default control |
+| Action | Default |
 | --- | --- |
-| Switch locked target | Tap middle mouse button or `L`; hold to release the lock |
-| Show/hide the current-floor map overlay | `M` |
-| View statistics outside combat | Tap `F7`, or choose **View statistics** in the pause menu |
-| Switch a visible battle report | `Q`: This battle; `E`: Current floor (follows the game's previous/next tab bindings) |
-| Hide/restore the damage display | Hold `F7` for half a second; recording continues |
-| Close a visible battle report | `L` or middle mouse button (current target-switch binding), `Esc`, or Start/Menu on gamepad; pressing `Esc` or Start/Menu again opens the pause menu |
-| Arrange your open backpack | `F8`, or click the arrange button |
+| Lock or cycle targets / release lock | Tap / hold `L` or middle mouse button |
+| Toggle the map overlay | `M` |
+| View statistics outside combat | Tap `F7`, or **View statistics** in the pause menu |
+| Hide / restore the damage display | Hold `F7` for half a second; recording continues |
+| Switch battle report pages | `Q` / `E` |
+| Close a report | `L`, middle mouse button, `Esc` or gamepad Start/Menu |
+| Arrange an open backpack | `F8`, or the arrange button |
 | Switch settings tabs | `Tab` / `Shift+Tab` |
 
-If an automatic report is already visible, tapping `F7` closes it first. Gamepad target lock has no
-default binding; assign one in controls. You can also bind the statistics shortcut, or use the pause menu.
+Tapping `F7` closes an existing automatic report first. After closing a report, press `Esc` or Start/Menu again
+to open the pause menu. Gamepad target lock has no default binding.
 
-For keyboard navigation in menus, use the game's navigation and confirm controls. Reward selection starts in the reward area.
-Confirm a reward to pick it up; confirm the same reward again to cancel. While carrying a reward,
-Tab switches to the first empty backpack slot (or the default slot if full). Confirm there to place it.
-Tab back to the rewards to return to the reward you last browsed. While carrying a reward, the game's
-cancel control puts it down and returns focus to its source; cancel again to close the panels as usual.
-Moving the mouse, clicking or scrolling switches back to mouse control.
-Item actions follow the game's current bindings and the hints shown on screen.
+## In-game help
 
-## Using the features
+Hover over or select a Mod setting to read its purpose, controls and limits. Backpack, map and battle-report
+screens show their own controls; hints follow your current bindings. Use the keyboard or gamepad settings
+to rebind Mod shortcuts.
 
-### Combat and statistics
+**Backpack arrangement is experimental. Retry after defeat rolls back items and progress to the selected point.**
+Read the corresponding setting's help before using these features.
 
-Automatic targets use an **amber marker**; manually locked targets use a **red marker**.
-Press the keyboard target-switch binding (default `L`), or attack with a keyboard binding, to enter keyboard combat and hide the pointer, even without enemies. Tap and release the target-switch control to lock or cycle targets; hold to clear the manual lock while staying in keyboard combat.
-Locked melee and ranged attacks aim at the target. Unlocked melee follows movement; ranged attacks and abilities retain nearby visible, unobstructed enemies. Without a target, movement sets the aim direction; stopping preserves it.
-Menus and travel suspend targeting and clear the lock. Keyboard combat resumes for the same player after control returns, unless you used the mouse. Move, click or scroll the mouse to resume mouse control. Mouse target switching does not hide the pointer. Unlocked gamepad aiming works as usual.
+## Feedback
 
-Statistics offer **Recent battle** and **Current floor** pages. Multi-phase BOSS fights produce one combined
-report after the final phase, once menus and cutscenes are out of the way. In **Combat and Display**, change
-**Statistics size** to make the display smaller or larger.
+Report bugs or suggestions through [GitHub Issues](https://github.com/0xMashiro/SephiriaEnhancements/issues).
+English and Chinese are welcome. Include game and Mod versions, steps, expected and actual results,
+solo/host/client status, other mods and relevant settings.
 
-Automatic reports start on **This battle**. Switch to **Current floor** directly on the report;
-changing pages restarts its display timer, with at least eight seconds for floor totals. Both pages keep
-the same panel size and navigation position. A new fight dismisses the report. Floor average DPS uses
-accumulated battle time, excluding time spent moving between fights.
+<details>
+<summary>Attach logs (Windows)</summary>
 
-Hiding the display does not stop recording. Floor totals cover combat recorded on your machine, so co-op
-players may see different numbers, especially after joining late. They are temporary: changing floors,
-reconnecting, reloading the game or turning statistics off can clear them. Browsing statistics follows
-the game's pause rules, including in co-op.
+Logs are generated automatically. Copy them soon after the issue, before another launch replaces older logs.
 
-### Backpack arrangement (experimental)
-
-Open your backpack and press `F8` or click the arrange button. It only runs when you ask it to.
-The shortcut also works while reward or shop panels are open, as long as your backpack allows normal item movement.
-The arrangement HUD only appears when the backpack is open on its own. Finish item selection or place any held item before arranging.
-Start with **Automatic**; you can also choose the game's artifact-level arrangement.
-
-When choosing reward cards beside your backpack, a gold underline marks artifacts whose possible combo categories
-match the favorites in your selected, enabled game preset and have not reached their highest combo tier.
-The marker updates as your inventory or preset changes; it does not guarantee a combo increase after placement.
-
-To guide the Mod's arrangement, put artifacts you want active in the **priority queue**, with the most
-important first. Put artifacts you would rather keep inactive in the **exclusion area**. Click or drag
-marks to reorder them; right-click to remove one. Select an artifact and choose **Edit goals** to set an
-automatic level target, keep it active, or request a minimum level. Combo targets are adjusted separately
-and saved for future runs; artifact marks apply to the current run.
-
-After hard requirements, each artifact's level or activation goal is pursued in priority order,
-followed by its incoming directional damage bonuses, before moving to the next artifact.
-This allows bonuses to move from their previous recipient to a higher-priority artifact; it does not guarantee the highest combat damage.
-
-Goals default to **Try**. Choose **Must** if a goal must be met before any arrangement is applied.
-If no arrangement meeting all Must goals is found, your backpack stays as it was. Green, yellow and red
-marks show met, partly met and unmet level or activation goals, not optimal directional bonuses. If item movement is interrupted, moves already made are not undone.
-
-The Mod may skip upgrades that add
-unwanted costs, or stop when it cannot check an item's effects. Some arrangements remain unsupported,
-including multiple sources of the same-row companion effect. Position-based effects are calculated locally;
-item movement, levels, activation and combo counts are checked against the game's normal synchronization.
-Smart Arrange does not require the host to install this Mod.
-
-### Retry after defeat
-
-Enable this in settings if you want another attempt after the whole party is defeated.
-**Retry floor** returns items and progress to the start of that floor. **Retry BOSS** returns to the first
-recorded start of that BOSS fight, beginning at phase one. **Items gained after the chosen point are rolled back.**
-
-All players must be on the same floor. BOSS retry may be unavailable after players or the surroundings change,
-after leaving the floor, or after defeating the BOSS. Some scripted fights only support retrying the floor;
-availability also depends on the game's save and loading state.
-
-### Maps and co-op
-
-- Room maps always open in **Rooms** mode with the current room selected. The previous/next-tab actions (default Q/E) cycle **Rooms / People / Places**; authored areas without rooms cycle **People / Places**. Directional input stays within the current room or target selection, and confirm travels. Mode switching does not change zoom.
-
-- The map overlay starts hidden; use `M` to show it. Camera distance can be set from **75% to 200%**.
-- Safe authored areas and room maps share linked **People / Places** lists, zoom and NPC tracking. Room maps retain native room visibility and layout; fixed room layouts also display available terrain from the game's minimap. Places use native names for recognized facilities and recognized place-name signs; pickups and interaction prompts are excluded. Map labels avoid crowding while the list retains available targets. Missing authored artwork uses obstacle outlines and available native location symbols.
-- **Select to locate; confirm to travel.** Navigation or hover selects a target; submitting or clicking a list entry or map marker uses the nearest available native teleport point in authored areas, or the target room's native arrival point on room maps. The travel button performs the same action, subject to native restrictions. Without list targets, room maps retain native room selection. The selected target has the same marker shape highlighted by size and shade, plus a leader line and foreground name plate; other labels give it space. List selection only recenters targets near or outside the viewport edges.
-- **Keyboard / controller:** the second tab-action pair (default Z/X) zooms independently of the selected mode. Current bindings appear on screen. Room and list navigation never enters the zoom tools. The controller right stick pans; **Browse map** also provides directional panning, with submit returning to the current selection.
-- **Track an NPC:** select a person in this map menu and use the existing switch-locked-target shortcut (default L) or the tracking button. Repeat on the same person to cancel, or select another person to replace the target. Outside menus, an offscreen target gets an edge arrow using the game's native indicator prefab; the arrow hides when the target enters view. Tracking never moves or teleports the player. Changing floors, losing the target, player death or gameplay-context reset clears tracking; menus, loading and combat temporarily hide the indicator.
-- **Mouse:** hovering list entries locates them; hovering map markers selects them. Scroll over the map to zoom and drag to pan. **Fit map** restores the full view.
-- **Show hidden rooms** reveals undiscovered secret locations on supported maps. It is off by default;
-  turning it off keeps rooms you have already discovered visible.
-- Mid-run joining/reconnect support is on by default and controlled by the host. New arrivals use new
-  characters; they do not take over disconnected characters or receive missed-route rewards.
-- Multiplayer rule presets cover **1–4 players**. By default, the Mod does not combine its rules with
-  detected multiplayer extensions, and leaves unsupported player counts to the game or extension.
-
-## Reporting problems and logs
-
-Use [GitHub Issues](https://github.com/0xMashiro/SephiriaEnhancements/issues) for bugs and suggestions.
-Search for an existing report first, then [open an issue](https://github.com/0xMashiro/SephiriaEnhancements/issues/new/choose)
-if needed. **English and Chinese are both welcome.**
-
-For a bug, tell us your game and Mod versions, what you did, what you expected and what happened instead.
-Mention whether you were playing solo, hosting or joining someone else's game, plus any other mods and
-relevant settings. A screenshot or short video helps. For a suggestion, describe what you would like to improve.
-
-### Find and attach logs (Windows)
-
-Support logs are created automatically. You do not need a development build or extra launch options.
-
-| What to send | Where to find it |
+| Files | Location |
 | --- | --- |
-| All available `support*.log` files | Your system **Documents** folder → `Saved Games\Sephiria\Mods\SephiriaEnhancements\Logs\Support` |
-| `Player.log`, for loading failures, crashes or when requested | `%USERPROFILE%\AppData\LocalLow\TEAMHORAY\Sephiria` |
-| `Player-prev.log`, if you restarted after the problem and the file exists | Same folder as `Player.log` |
+| All `support*.log` files | System **Documents** → `Saved Games\Sephiria\Mods\SephiriaEnhancements\Logs\Support` |
+| `Player.log` for loading failures or crashes; `Player-prev.log` if you restarted | `%USERPROFILE%\AppData\LocalLow\TEAMHORAY\Sephiria` |
 
-Press **Win+R** and enter `shell:Personal` to open Documents, even if it has moved to OneDrive.
-For game logs, paste the path in the table into File Explorer's address bar. Logs are separate from the game installation.
+Use **Win+R → `shell:Personal`** to open Documents, including redirected OneDrive folders.
+Review logs for private information, ZIP them and attach them to the issue. Logs are not uploaded automatically.
+No save folder or game files are needed. **You can still report a problem without logs.**
 
-Copy them soon after the problem, before starting the game again, because older logs can be replaced.
-Review the files, ZIP them and attach the ZIP to your issue. Logs stay on your computer unless you upload them;
-remove private information before sharing publicly. There is no need to send the whole save folder or game files.
-
-**Can't find the logs? Report the problem anyway.** If the Mod did not load, send `Player.log` instead.
+</details>
 
 ## Verify a release
 

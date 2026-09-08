@@ -104,6 +104,8 @@ internal static class LocalizationChecks
 
         if (texts["zh-CN"][InventoryOptimizationLocalization.HudComboTargets] != "连招目标" ||
             texts["zh-TW"][InventoryOptimizationLocalization.HudComboTargets] != "連招目標" ||
+            texts["zh-CN"][InventoryArrangementLocalization.ComboPriorities] != "连招优先级" ||
+            texts["zh-TW"][InventoryArrangementLocalization.ComboPriorities] != "連招優先順序" ||
             texts["zh-CN"][ModLocalization.SettingHitStreakFeedback] != "连续命中提示")
             throw new InvalidOperationException("artifact combos and consecutive hits must remain distinct concepts");
 
@@ -147,7 +149,6 @@ internal static class LocalizationChecks
         _ when key == CombatVisualLocalization.PresetKeys[2] => language is "de-DE" or "fr-FR",
         _ when key == CombatVisualLocalization.TransparencyKeys[0] => language is "de-DE" or "es-ES" or "fr-FR" or
             "pt-BR" or "sv-SE" or "tr-TR",
-        _ when key == InventoryOptimizationLocalization.OptimizationTendencyKeys[1] => language == "fr-FR",
         _ => false
     };
 

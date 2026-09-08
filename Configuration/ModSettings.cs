@@ -21,8 +21,8 @@ namespace SephiriaEnhancements.Configuration
         internal const string DamageStatisticsScaleIndexKey =
             "SephiriaEnhancements.CombatInsights.DamageStatisticsScaleIndex";
         internal const string DisplayPolicyKey = "SephiriaEnhancements.CombatInsights.DisplayPolicy";
-        internal const string InventoryOptimizationTendencyKey =
-            "SephiriaEnhancements.Inventory.OptimizationTendency";
+        internal const string InventorySearchModeKey =
+            "SephiriaEnhancements.Inventory.SearchMode";
         internal const string InventoryTargetPreferencesKey =
             "SephiriaEnhancements.Inventory.TargetPreferences";
 
@@ -41,19 +41,19 @@ namespace SephiriaEnhancements.Configuration
                 Mathf.Clamp((int)value, 0, 3));
         }
 
-        internal static InventoryOptimizationTendency InventoryOptimizationTendency
+        internal static InventorySearchMode InventorySearchMode
         {
-            get => (InventoryOptimizationTendency)Mathf.Clamp(
+            get => (InventorySearchMode)Mathf.Clamp(
                 OptionsBinding.Instance?.DeviceOptions?.GetInt(
-                    InventoryOptimizationTendencyKey,
-                    (int)Inventory.InventoryOptimizationTendency.Automatic) ??
-                (int)Inventory.InventoryOptimizationTendency.Automatic,
-                (int)Inventory.InventoryOptimizationTendency.Automatic,
-                (int)Inventory.InventoryOptimizationTendency.Aggressive);
+                    InventorySearchModeKey,
+                    (int)Inventory.InventorySearchMode.Automatic) ??
+                (int)Inventory.InventorySearchMode.Automatic,
+                (int)Inventory.InventorySearchMode.Automatic,
+                (int)Inventory.InventorySearchMode.Thorough);
             set => OptionsBinding.Instance?.DeviceOptions?.SetInt(
-                InventoryOptimizationTendencyKey, Mathf.Clamp((int)value,
-                    (int)Inventory.InventoryOptimizationTendency.Automatic,
-                    (int)Inventory.InventoryOptimizationTendency.Aggressive));
+                InventorySearchModeKey, Mathf.Clamp((int)value,
+                    (int)Inventory.InventorySearchMode.Automatic,
+                    (int)Inventory.InventorySearchMode.Thorough));
         }
 
         internal static int DamageStatisticsScaleIndex

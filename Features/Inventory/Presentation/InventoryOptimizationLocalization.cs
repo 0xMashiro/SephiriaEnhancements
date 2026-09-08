@@ -52,15 +52,15 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.Inventory.MovingItemInterrupted";
         internal const string DisabledForGameplayContext =
             "SephiriaEnhancements.Inventory.DisabledForGameplayContext";
-        internal const string SettingOptimizationTendency =
-            "SephiriaEnhancements.Setting.InventoryOptimizationTendency";
-        internal const string HelpOptimizationTendency =
-            "SephiriaEnhancements.Help.InventoryOptimizationTendency";
-        internal static readonly string[] OptimizationTendencyKeys =
+        internal const string SettingSearchMode =
+            "SephiriaEnhancements.Setting.InventorySearchMode";
+        internal const string HelpSearchMode =
+            "SephiriaEnhancements.Help.InventorySearchMode";
+        internal static readonly string[] SearchModeKeys =
         {
-            "SephiriaEnhancements.InventoryOptimizationTendency.Automatic",
-            "SephiriaEnhancements.InventoryOptimizationTendency.Stable",
-            "SephiriaEnhancements.InventoryOptimizationTendency.Aggressive"
+            "SephiriaEnhancements.InventorySearchMode.Automatic",
+            "SephiriaEnhancements.InventorySearchMode.Quick",
+            "SephiriaEnhancements.InventorySearchMode.Thorough"
         };
         internal const string HudTitle =
             "SephiriaEnhancements.InventoryHud.Title";
@@ -225,11 +225,11 @@ namespace SephiriaEnhancements.Inventory
             FinishMovingItem,
             MovingItemInterrupted,
             DisabledForGameplayContext,
-            SettingOptimizationTendency,
-            HelpOptimizationTendency,
-            OptimizationTendencyKeys[0],
-            OptimizationTendencyKeys[1],
-            OptimizationTendencyKeys[2],
+            SettingSearchMode,
+            HelpSearchMode,
+            SearchModeKeys[0],
+            SearchModeKeys[1],
+            SearchModeKeys[2],
             HudTitle,
             HudComboTargets,
             HudOptimize,

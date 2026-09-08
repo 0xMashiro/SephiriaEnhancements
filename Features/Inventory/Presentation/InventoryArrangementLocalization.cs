@@ -14,8 +14,8 @@ namespace SephiriaEnhancements.Inventory
         private static readonly Dictionary<string, string[]> Texts = new()
         {
             ["en-US"] = new[] { "Artifact priorities", "Back to arrangement", "Undo arrangement", "Arrangement undone.", "Combo priorities" },
-            ["zh-CN"] = new[] { "神器优先级", "返回整理", "撤销整理", "已撤销整理。", "连击优先级" },
-            ["zh-TW"] = new[] { "神器優先順序", "返回整理", "復原整理", "已復原整理。", "連擊優先順序" },
+            ["zh-CN"] = new[] { "神器优先级", "返回整理", "撤销整理", "已撤销整理。", "连招优先级" },
+            ["zh-TW"] = new[] { "神器優先順序", "返回整理", "復原整理", "已復原整理。", "連招優先順序" },
             ["ko-KR"] = new[] { "아티팩트 우선순위", "정리로 돌아가기", "정리 되돌리기", "정리를 되돌렸습니다.", "콤보 우선순위" },
             ["ja-JP"] = new[] { "アーティファクト優先順位", "整理に戻る", "整理を元に戻す", "整理を元に戻しました。", "コンボ優先順位" },
             ["de-DE"] = new[] { "Artefaktprioritäten", "Zurück zur Sortierung", "Sortierung rückgängig", "Sortierung rückgängig gemacht.", "Komboprioritäten" },

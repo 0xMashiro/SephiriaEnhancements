@@ -69,7 +69,7 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
 
-            InventorySearchEffort effort = InventoryOptimizationTendencyPolicy.GetSearchEffort(ModSettings.InventoryOptimizationTendency);
+            InventorySearchEffort effort = InventorySearchModePolicy.GetSearchEffort(ModSettings.InventorySearchMode);
             var preferences = InventoryOptimizationPreferenceComposer.Compose(
                 PersistentInventoryOptimizationPolicyStore.Capture(), ExplorationInventoryIntentStore.Capture(),
                 effort, InventoryOptimizationPreferences.Default.AllowStoneTabletRotation);
@@ -82,7 +82,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void RecordRejectedReproduction(InventorySnapshot snapshot)
         {
-            InventorySearchEffort effort = InventoryOptimizationTendencyPolicy.GetSearchEffort(ModSettings.InventoryOptimizationTendency);
+            InventorySearchEffort effort = InventorySearchModePolicy.GetSearchEffort(ModSettings.InventorySearchMode);
             InventoryOptimizationPreferences preferences = InventoryOptimizationPreferenceComposer.Compose(
                 PersistentInventoryOptimizationPolicyStore.Capture(), ExplorationInventoryIntentStore.Capture(),
                 effort, InventoryOptimizationPreferences.Default.AllowStoneTabletRotation);

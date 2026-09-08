@@ -424,8 +424,8 @@ namespace SephiriaEnhancements.Inventory
             intentFeedback = null;
             LastAppliedOutcome = null;
             InventorySearchEffort searchEffort =
-                InventoryOptimizationTendencyPolicy.GetSearchEffort(
-                    ModSettings.InventoryOptimizationTendency);
+                InventorySearchModePolicy.GetSearchEffort(
+                    ModSettings.InventorySearchMode);
             InventoryOptimizationPreferences preferences =
                 InventoryOptimizationPreferenceComposer.Compose(
                     PersistentInventoryOptimizationPolicyStore.Capture(),

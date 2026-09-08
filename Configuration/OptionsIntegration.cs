@@ -164,10 +164,10 @@ namespace SephiriaEnhancements.Configuration
                 CreateDeveloperConsoleRow(template, section.transform);
             }
 
-            if (__instance.GetComponentInChildren<InventoryOptimizationTendencyOption>(
+            if (__instance.GetComponentInChildren<InventorySearchModeOption>(
                     true) == null)
             {
-                CreateInventoryOptimizationTendencyRow(template,
+                CreateInventorySearchModeRow(template,
                     section.transform);
             }
 
@@ -295,7 +295,7 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_TargetingMode",
                 "Option_SephiriaEnhancements_MouseAimAssist",
                 "Option_SephiriaEnhancements_ViewDistance",
-                "Option_SephiriaEnhancements_InventoryOptimizationTendency"
+                "Option_SephiriaEnhancements_InventorySearchMode"
             };
             foreach (string rowName in mainRows)
             {
@@ -695,16 +695,16 @@ namespace SephiriaEnhancements.Configuration
             row.SetActive(true);
         }
 
-        private static void CreateInventoryOptimizationTendencyRow(
+        private static void CreateInventorySearchModeRow(
             UI_OptionBox_PartyMemberDamage template, Transform section)
         {
             GameObject row = CloneRow(template, section,
-                "Option_SephiriaEnhancements_InventoryOptimizationTendency",
-                InventoryOptimizationLocalization.SettingOptimizationTendency,
-                InventoryOptimizationLocalization.HelpOptimizationTendency, 14,
+                "Option_SephiriaEnhancements_InventorySearchMode",
+                InventoryOptimizationLocalization.SettingSearchMode,
+                InventoryOptimizationLocalization.HelpSearchMode, 14,
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
-            row.AddComponent<InventoryOptimizationTendencyOption>().Configure(
+            row.AddComponent<InventorySearchModeOption>().Configure(
                 box, valueText);
             MarkCategory(row, OptionsCategory.InventoryArrangement);
             row.SetActive(true);
@@ -2026,7 +2026,7 @@ namespace SephiriaEnhancements.Configuration
         }
     }
 
-    internal sealed class InventoryOptimizationTendencyOption : MonoBehaviour
+    internal sealed class InventorySearchModeOption : MonoBehaviour
     {
         private UI_HorizontalSelectionBox box;
         private UI_LocalizationStringText valueText;
@@ -2048,13 +2048,13 @@ namespace SephiriaEnhancements.Configuration
             }
 
             box.numberOfElements = InventoryOptimizationLocalization.
-                OptimizationTendencyKeys.Length;
+                SearchModeKeys.Length;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
-            int value = (int)ModSettings.InventoryOptimizationTendency;
+            int value = (int)ModSettings.InventorySearchMode;
             box.ChangeValueWithoutNotify(value);
             valueText?.UpdateKey(InventoryOptimizationLocalization.
-                OptimizationTendencyKeys[value]);
+                SearchModeKeys[value]);
         }
 
         private void OnDisable()
@@ -2067,11 +2067,11 @@ namespace SephiriaEnhancements.Configuration
 
         private void Changed(int value)
         {
-            ModSettings.InventoryOptimizationTendency =
-                (InventoryOptimizationTendency)value;
+            ModSettings.InventorySearchMode =
+                (InventorySearchMode)value;
             ModSettings.Save();
             valueText?.UpdateKey(InventoryOptimizationLocalization.
-                OptimizationTendencyKeys[value]);
+                SearchModeKeys[value]);
         }
     }
 

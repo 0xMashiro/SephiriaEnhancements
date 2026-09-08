@@ -113,8 +113,8 @@ namespace SephiriaEnhancements.Inventory
             InventoryOptimizationProposal proposal = null)
         {
             if (reproductionCase != null)
-                reproductionLog?.Record(reproductionCase.Record(reason, proposal ?? application?.Proposal, actual, differential, exception,
-                    application?.NextSwap ?? 0, application?.NextRotation ?? 0));
+                reproductionLog?.Record(reproductionCase.Record(reason, proposal ?? application?.State.Proposal, actual, differential, exception,
+                    application?.State.NextSwap ?? 0, application?.State.NextRotation ?? 0));
         }
     }
 }

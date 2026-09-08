@@ -1,3 +1,4 @@
+using static SephiriaEnhancements.Inventory.NativeInventoryHudControls;
 #nullable disable
 using SephiriaEnhancements.Runtime.Inventory;
 using SephiriaEnhancements.Integration;
@@ -35,12 +36,9 @@ namespace SephiriaEnhancements.Inventory
             new(0.055f, 0.05f, 0.075f, 0.96f);
         private static readonly Color TitleColor =
             new(0.98f, 0.78f, 0.18f, 1f);
-        private static readonly Color PrimaryText =
-            new(0.92f, 0.94f, 0.98f, 1f);
+
         private static readonly Color SecondaryText =
             new(0.58f, 0.76f, 0.78f, 1f);
-        private static readonly Color ButtonColor =
-            new(0.16f, 0.17f, 0.24f, 0.98f);
 
         private readonly Vector3[] inventoryWorldCorners = new Vector3[4];
         private readonly List<TargetRow> rows = new();
@@ -48,6 +46,8 @@ namespace SephiriaEnhancements.Inventory
         private readonly List<IntentSlot> avoidSlots = new();
         private readonly InventoryOptimizationNavigationBridge navigationBridge =
             new InventoryOptimizationNavigationBridge();
+        private NativeInventoryHudControls controls;
+        private NativeInventoryArtifactGoalEditor goalEditor;
         private GameObject root;
         private RectTransform attachedInventoryZone;
         private UI_CharacterStatusPanel attachedPanel;
@@ -73,20 +73,9 @@ namespace SephiriaEnhancements.Inventory
         private TextMeshProUGUI avoidZoneTitle;
         private TextMeshProUGUI boardHint;
         private TextMeshProUGUI comboTargetsTitle;
-        private GameObject levelEditor;
-        private TextMeshProUGUI levelTargetName;
-        private TextMeshProUGUI levelTargetLabel;
-        private TextMeshProUGUI levelRequirementLabel;
-        private TextMeshProUGUI levelSummary;
-        private TextMeshProUGUI levelBackText;
-        private Button levelBack;
+
         private GameObject lastCustomSelection;
-        private TextMeshProUGUI levelCondition;
-        private Button levelMode;
-        private Button constraintStrength;
-        private TextMeshProUGUI constraintStrengthText;
-        private Button decreaseLevel;
-        private Button increaseLevel;
+
         private InventorySnapshot currentSnapshot;
         private InventoryIntentResultFeedback resultFeedback;
         private int page;
@@ -105,7 +94,7 @@ namespace SephiriaEnhancements.Inventory
         private readonly InventoryIntentInteractionState interaction = new();
         private NativeInventoryIntentPickupView pickupView;
         private NativeInventoryIntentDropFilter nativeDropFilter;
-        private GameObject pickupFocus;
+
         private GameObject lastInventorySelection;
 
         internal bool HasArtifactPickup => interaction.HasPickup;
@@ -237,6 +226,7 @@ namespace SephiriaEnhancements.Inventory
             detailsExpanded = false;
             intentPage = 0;
             nativeTemplates = context.ViewTemplates;
+            controls = new NativeInventoryHudControls(nativeTemplates, ClearArtifactPickup, ChangePage);
             attachedInventoryZone = inventoryZone;
             attachedPanel = context.Panel;
             lastInventorySelection = null;
@@ -310,12 +300,12 @@ namespace SephiriaEnhancements.Inventory
             launcher = CreateNativeLauncher(rect, template, OpenPanel,
                 out TextMeshProUGUI launcherText, out launcherIcon);
             launcherText.gameObject.SetActive(false);
-            editGoals = CreateButton("EditGoals", rect, template,
+            editGoals = controls.CreateButton("EditGoals", rect, template,
                 new Vector2(24f, -InventoryOptimizationHudLayout.DetailsTop),
                 new Vector2(148f, InventoryOptimizationHudLayout.DetailsHeight),
                 EditPreviewedGoals, out editGoalsText);
             editGoals.interactable = false;
-            close = CreateButton("Close", rect, template,
+            close = controls.CreateButton("Close", rect, template,
                 new Vector2(308f, -20f), new Vector2(28f, 28f),
                 ClosePanel, out closeText);
             closeText.text = "×";
@@ -324,18 +314,18 @@ namespace SephiriaEnhancements.Inventory
                 new Vector2(24f, -102f), new Vector2(144f, 32f), TextAlignmentOptions.MidlineLeft);
             NativeLocalizedText.SetShrinkOnlySize(comboTargetsTitle,
                 comboTargetsTitle.fontSize, comboTargetsTitle.fontSize * 0.75f);
-            CreateLevelEditor(rect, template);
+            goalEditor = new NativeInventoryArtifactGoalEditor(rect, template, nativeTemplates, controls, EditArtifactGoal, CloseLevelEditor);
 
             for (int index = 0; index < RowsPerPage; index++)
             {
                 rows.Add(CreateTargetRow(rect, template, index));
             }
 
-            previousPage = CreateButton("PreviousPage", rect, template,
+            previousPage = controls.CreateButton("PreviousPage", rect, template,
                 new Vector2(24f, -InventoryOptimizationHudLayout.BoardPagingTop),
                 new Vector2(48f, InventoryOptimizationHudLayout.PagingHeight),
                 () => ChangePage(-1), out previousPageText);
-            nextPage = CreateButton("NextPage", rect, template,
+            nextPage = controls.CreateButton("NextPage", rect, template,
                 new Vector2(288f, -InventoryOptimizationHudLayout.BoardPagingTop),
                 new Vector2(48f, InventoryOptimizationHudLayout.PagingHeight),
                 () => ChangePage(1), out nextPageText);
@@ -346,12 +336,12 @@ namespace SephiriaEnhancements.Inventory
             status.color = SecondaryText;
             NativeLocalizedText.SetShrinkOnlySize(status, status.fontSize, status.fontSize * 0.75f);
 
-            markPriorities = CreateButton("MarkPriorities", rect, template,
+            markPriorities = controls.CreateButton("MarkPriorities", rect, template,
                 new Vector2(24f, -InventoryOptimizationHudLayout.ActionsTop),
                 new Vector2(148f, InventoryOptimizationHudLayout.ActionsHeight),
                 () => togglePriorityMarking?.Invoke(),
                 out markPrioritiesText);
-            optimize = CreateButton("Optimize", rect, template,
+            optimize = controls.CreateButton("Optimize", rect, template,
                 new Vector2(188f, -InventoryOptimizationHudLayout.ActionsTop),
                 new Vector2(148f, InventoryOptimizationHudLayout.ActionsHeight),
                 () => requestOptimization?.Invoke(), out optimizeText);
@@ -456,44 +446,6 @@ namespace SephiriaEnhancements.Inventory
             return slot;
         }
 
-        private void CreateLevelEditor(RectTransform parent, TextMeshProUGUI template)
-        {
-            levelEditor = new GameObject("ArtifactLevelEditor", typeof(RectTransform));
-            var rect = levelEditor.GetComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            SetTopRect(rect, new Vector2(24f, -104f), new Vector2(312f, 324f));
-            // Use the native content-button text for controls and body text,
-            // preserving the inventory canvas's two design units per native unit.
-            template = (nativeTemplates.ContentButton as UI_HorayButton)?.text ?? template;
-            levelTargetName = CreateText("ArtifactName", rect, template,
-                Vector2.zero, new Vector2(312f, 40f), TextAlignmentOptions.MidlineLeft);
-            NativeLocalizedText.SetShrinkOnlySize(levelTargetName, levelTargetName.fontSize, levelTargetName.fontSize * 0.75f);
-            levelTargetLabel = CreateText("TargetLabel", rect, template,
-                new Vector2(0f, -48f), new Vector2(312f, 24f), TextAlignmentOptions.MidlineLeft);
-            levelMode = CreateButton("TargetMode", rect, template,
-                new Vector2(0f, -76f), new Vector2(228f, 36f),
-                () => EditArtifactGoal(InventoryArtifactGoalEdit.CycleTargetMode), out levelCondition);
-            decreaseLevel = CreateButton("DecreaseLevel", rect, template,
-                new Vector2(236f, -76f), new Vector2(30f, 36f),
-                () => EditArtifactGoal(InventoryArtifactGoalEdit.DecreaseLevel), out var decreaseText);
-            increaseLevel = CreateButton("IncreaseLevel", rect, template,
-                new Vector2(282f, -76f), new Vector2(30f, 36f),
-                () => EditArtifactGoal(InventoryArtifactGoalEdit.IncreaseLevel), out var increaseText);
-            levelRequirementLabel = CreateText("RequirementLabel", rect, template,
-                new Vector2(0f, -124f), new Vector2(312f, 24f), TextAlignmentOptions.MidlineLeft);
-            constraintStrength = CreateButton("ConstraintStrength", rect, template,
-                new Vector2(0f, -152f), new Vector2(312f, 36f),
-                () => EditArtifactGoal(InventoryArtifactGoalEdit.ToggleStrength), out constraintStrengthText);
-            levelSummary = CreateText("GoalSummary", rect, template,
-                new Vector2(0f, -200f), new Vector2(312f, 76f), TextAlignmentOptions.TopLeft);
-            levelSummary.textWrappingMode = TextWrappingModes.Normal;
-            NativeLocalizedText.SetShrinkOnlySize(levelSummary, levelSummary.fontSize, levelSummary.fontSize * 0.75f);
-            levelBack = CreateButton("BackToArtifacts", rect, template,
-                new Vector2(0f, -288f), new Vector2(312f, 32f), CloseLevelEditor, out levelBackText);
-            decreaseText.text = "−";
-            increaseText.text = "+";
-        }
-
         private void HandleLevelEditShortcut()
         {
             if (!panelOpen || !preferencesExpanded || detailsExpanded || !interaction.Editable || interaction.HasPickup ||
@@ -545,8 +497,8 @@ namespace SephiriaEnhancements.Inventory
             if (selectEditor && interaction.LevelTarget.HasValue)
             {
                 ProjectLevelEditor(preferences);
-                if (levelEditor.activeSelf)
-                    EventSystem.current?.SetSelectedGameObject(levelMode.IsInteractable() ? levelMode.gameObject : constraintStrength.gameObject);
+                if (goalEditor.Visible)
+                    goalEditor.SelectEntry();
             }
             nextProjectionAt = 0f;
         }
@@ -559,7 +511,7 @@ namespace SephiriaEnhancements.Inventory
             bool show = interaction.Editable && !interaction.HasPickup && !NativeInventoryIntentDrop.HasHeldItem &&
                 rule != null && item?.Artifact != null && HasInventoryArtifact(rule.InstanceId, rule.EntityId);
             if (!show) interaction.CancelLevelEdit();
-            levelEditor.SetActive(show);
+            goalEditor.SetVisible(show);
             foreach (var slot in prioritySlots.Concat(avoidSlots)) slot.Root.SetActive(!show);
             priorityQueueTitle.gameObject.SetActive(!show);
             avoidZoneTitle.gameObject.SetActive(!show);
@@ -570,39 +522,7 @@ namespace SephiriaEnhancements.Inventory
             boardHint.gameObject.SetActive(!show);
             editGoals.gameObject.SetActive(!show && editGoals.interactable);
             if (!show) return;
-            var nativeText = (nativeTemplates.ContentButton as UI_HorayButton)?.text;
-            if (nativeText != null)
-            {
-                float designSize = nativeText.fontSize * InventoryOptimizationHudLayout.NativeUnitScale;
-                foreach (var text in new[] { levelTargetName, levelTargetLabel, levelRequirementLabel,
-                    levelCondition, constraintStrengthText, levelSummary, levelBackText })
-                    NativeLocalizedText.SetShrinkOnlySize(text, designSize, designSize * 0.75f);
-            }
-            levelTargetName.text = string.Format(Loc._(InventoryOptimizationLocalization.HudGoalTitle), item.Name);
-            levelTargetLabel.text = Loc._(InventoryOptimizationLocalization.HudGoalTarget);
-            levelRequirementLabel.text = Loc._(InventoryOptimizationLocalization.HudGoalRequirement);
-            levelBackText.text = Loc._(InventoryOptimizationLocalization.HudGoalBack);
-            constraintStrengthText.text = Loc._(rule.Strength == InventoryConstraintStrength.Hard
-                ? InventoryOptimizationLocalization.HudGoalHard : InventoryOptimizationLocalization.HudGoalSoft);
-            constraintStrength.interactable = interaction.Editable;
-            levelCondition.text = InventoryOptimizationLocalization.FormatArtifactTarget(rule, item.Artifact, key => Loc._(key), allowAdditionalMagicCost: preferences.AllowAdditionalMagicCost);
-            levelSummary.text = InventoryOptimizationLocalization.FormatArtifactGoalSummary(rule, item.Artifact, key => Loc._(key), preferences.AllowAdditionalMagicCost);
-            levelMode.interactable = interaction.Editable && rule.Level == InventoryPreferenceLevel.Priority;
-            bool specified = rule.Level == InventoryPreferenceLevel.Priority && rule.TargetMode == ArtifactLevelTargetMode.SpecifiedLevel;
-            // Move focus before disabling the selected control. Native selection
-            // recovery must never mistake an exhausted adjustment for leaving the editor.
-            GameObject selected = EventSystem.current?.currentSelectedGameObject;
-            bool canDecrease = specified && rule.MinimumEffectiveLevel > 1;
-            bool canIncrease = specified && rule.MinimumEffectiveLevel < item.Artifact.MaxLevel;
-            if (selected == decreaseLevel.gameObject && !canDecrease ||
-                selected == increaseLevel.gameObject && !canIncrease)
-                EventSystem.current?.SetSelectedGameObject(levelMode.IsInteractable() ? levelMode.gameObject : constraintStrength.gameObject);
-            decreaseLevel.interactable = canDecrease;
-            increaseLevel.interactable = canIncrease;
-            decreaseLevel.gameObject.SetActive(specified);
-            increaseLevel.gameObject.SetActive(specified);
-            SetTopRect((RectTransform)levelMode.transform, new Vector2(0f, -76f), new Vector2(specified ? 228f : 312f, 36f));
-            ConfigureLevelEditorNavigation();
+            goalEditor.Render(rule, item, interaction.Editable, preferences.AllowAdditionalMagicCost);
         }
 
         private void EditArtifactGoal(InventoryArtifactGoalEdit edit)
@@ -629,7 +549,7 @@ namespace SephiriaEnhancements.Inventory
             rect.SetParent(parent, false);
             SetTopRect(rect, new Vector2(8f, -InventoryOptimizationHudLayout.TargetRowsTop),
                 new Vector2(344f, InventoryOptimizationHudLayout.TargetRowHeight(false)));
-            row.Select = CreateButton("Name", rect, template,
+            row.Select = controls.CreateButton("Name", rect, template,
                 new Vector2(16f, 0f), new Vector2(190f, 26f),
                 () => ToggleComboEditor(row), out row.Name);
             row.Name.alignment = TextAlignmentOptions.MidlineLeft;
@@ -639,20 +559,20 @@ namespace SephiriaEnhancements.Inventory
             nameColors.highlightedColor = nameColors.selectedColor = new Color(1f, 1f, 1f, 0.12f);
             nameColors.pressedColor = new Color(1f, 1f, 1f, 0.2f);
             row.Select.colors = nameColors;
-            row.Choice = CreateButton("Choice", rect, template,
+            row.Choice = controls.CreateButton("Choice", rect, template,
                 new Vector2(208f, 0f), new Vector2(120f, 26f),
                 () => EditComboGoal(row, InventoryComboGoalEdit.CycleChoice), out row.ChoiceText);
-            row.Decrease = CreateButton("Decrease", rect, template,
+            row.Decrease = controls.CreateButton("Decrease", rect, template,
                 new Vector2(260f, -28f), new Vector2(30f, 24f),
                 () => EditComboGoal(row, InventoryComboGoalEdit.DecreaseCount), out row.DecreaseText);
             row.Value = CreateText("Value", rect, template,
                 new Vector2(128f, -28f), new Vector2(124f, 24f),
                 TextAlignmentOptions.MidlineLeft);
-            row.Strength = CreateButton("ConstraintStrength", rect, template,
+            row.Strength = controls.CreateButton("ConstraintStrength", rect, template,
                 new Vector2(16f, -28f), new Vector2(106f, 24f), () => EditComboGoal(row, InventoryComboGoalEdit.ToggleStrength), out row.StrengthText);
             row.Value.color = SecondaryText;
             row.Value.fontSize *= 0.8f;
-            row.Increase = CreateButton("Increase", rect, template,
+            row.Increase = controls.CreateButton("Increase", rect, template,
                 new Vector2(298f, -28f), new Vector2(30f, 24f),
                 () => EditComboGoal(row, InventoryComboGoalEdit.IncreaseCount), out row.IncreaseText);
             row.DecreaseText.text = "−";
@@ -831,7 +751,7 @@ namespace SephiriaEnhancements.Inventory
             bool canEdit = false;
             string hint = null;
             if (!interaction.HasPickup && !NativeInventoryIntentDrop.HasHeldItem &&
-                !levelEditor.activeSelf)
+                !goalEditor.Visible)
             {
                 var slots = prioritySlots.Concat(avoidSlots);
                 IntentSlot hovered = null;
@@ -946,13 +866,12 @@ namespace SephiriaEnhancements.Inventory
             {
                 return;
             }
-            pickupFocus = slot.Root;
             endPriorityMarking?.Invoke();
             foreach (IntentSlot candidate in prioritySlots.Concat(avoidSlots))
             {
                 candidate.Tooltip.Hide();
             }
-            pickupView.Show(slot.Icon.sprite);
+            pickupView.Show(slot.Icon.sprite, slot.Root);
             RefreshPickupControls();
         }
 
@@ -973,8 +892,7 @@ namespace SephiriaEnhancements.Inventory
             }
             if (interaction.HasPickup && interaction.ItemKey != held.ItemKey)
             {
-                pickupFocus = slot.Root;
-                pickupView.Show(displacedSprite);
+                pickupView.Show(displacedSprite, slot.Root);
                 RefreshPickupControls();
                 return;
             }
@@ -1005,21 +923,7 @@ namespace SephiriaEnhancements.Inventory
                 ClearArtifactPickup();
                 return;
             }
-            KeepPickupFocusInPanel();
-            pickupView?.UpdatePosition();
-        }
-
-        private void KeepPickupFocusInPanel()
-        {
-            GameObject selected = EventSystem.current?.currentSelectedGameObject;
-            if (selected != null && selected.transform.IsChildOf(root.transform))
-            {
-                pickupFocus = selected;
-            }
-            else if (NativeInventoryIntentPickupView.UsesSelection && pickupFocus != null && pickupFocus.activeInHierarchy)
-            {
-                EventSystem.current.SetSelectedGameObject(pickupFocus);
-            }
+            pickupView?.UpdateWithinPanel(root.transform);
         }
 
         internal void PrepareNativeInventoryInput(UI_CharacterStatusPanel panel)
@@ -1084,11 +988,10 @@ namespace SephiriaEnhancements.Inventory
 
         private void ClearArtifactPickup()
         {
-            if (interaction.LevelTarget.HasValue && levelEditor?.activeSelf == true) CloseLevelEditor();
+            if (interaction.LevelTarget.HasValue && goalEditor?.Visible == true) CloseLevelEditor();
             interaction.CancelPickup();
             interaction.CancelLevelEdit();
             pickupView?.Hide();
-            pickupFocus = null;
             RefreshPickupControls();
         }
 
@@ -1267,7 +1170,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void ChangePage(int delta)
         {
-            if (!interaction.Editable || !preferencesExpanded || levelEditor.activeSelf)
+            if (!interaction.Editable || !preferencesExpanded || goalEditor.Visible)
             {
                 return;
             }
@@ -1354,7 +1257,7 @@ namespace SephiriaEnhancements.Inventory
             priorityQueueTitle?.gameObject.SetActive(showBoard);
             avoidZoneTitle?.gameObject.SetActive(showBoard);
             boardHint?.gameObject.SetActive(showBoard);
-            levelEditor?.SetActive(false);
+            goalEditor?.SetVisible(false);
             foreach (IntentSlot slot in prioritySlots)
             {
                 slot.Root.SetActive(showBoard);
@@ -1506,103 +1409,6 @@ namespace SephiriaEnhancements.Inventory
             return button;
         }
 
-        private Button CreateButton(string name, RectTransform parent,
-            TextMeshProUGUI template, Vector2 position, Vector2 size,
-            Action onClick, out TextMeshProUGUI label)
-        {
-            GameObject buttonObject = new(name, typeof(RectTransform),
-                typeof(Image));
-            RectTransform rect = buttonObject.GetComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            SetTopRect(rect, position, size);
-            Image image = buttonObject.GetComponent<Image>();
-            Button button = NativeInventoryOptimizationControls.AddButton(
-                buttonObject, nativeTemplates.ContentButton);
-            ApplyImageStyle(image, nativeTemplates.Slot.bgImage, ButtonColor);
-            image.sprite = nativeTemplates.Slot.defaultBGSprite;
-            image.color = Color.white;
-            button.targetGraphic = image;
-            button.onClick.AddListener(() => onClick?.Invoke());
-            buttonObject.AddComponent<InventoryIntentPanelDropTarget>().Configure(
-                ClearArtifactPickup, ChangePage, cancelOnLeft: false);
-            label = CreateText("Label", rect, template, Vector2.zero, size,
-                TextAlignmentOptions.Center,
-                childCoordinates: true);
-            label.color = PrimaryText;
-            NativeLocalizedText.SetShrinkOnlySize(label, label.fontSize, label.fontSize * 0.75f);
-            NativeInventoryOptimizationControls.SetLabel(button, label);
-            return button;
-        }
-
-        private static void ApplyImageStyle(Image destination,
-            Image source, Color fallbackColor)
-        {
-            if (source == null)
-            {
-                destination.color = fallbackColor;
-                return;
-            }
-            destination.sprite = source.sprite;
-            destination.type = source.type;
-            destination.preserveAspect = source.preserveAspect;
-            destination.fillCenter = source.fillCenter;
-            destination.fillMethod = source.fillMethod;
-            destination.fillAmount = source.fillAmount;
-            destination.fillClockwise = source.fillClockwise;
-            destination.fillOrigin = source.fillOrigin;
-            destination.pixelsPerUnitMultiplier =
-                source.pixelsPerUnitMultiplier / InventoryOptimizationHudLayout.NativeUnitScale;
-            destination.material = null;
-            destination.color = source.color;
-        }
-
-        private static TextMeshProUGUI CreateText(string name,
-            RectTransform parent, TextMeshProUGUI template, Vector2 position,
-            Vector2 size, TextAlignmentOptions alignment,
-            bool childCoordinates = false)
-        {
-            GameObject textObject = new(name, typeof(RectTransform),
-                typeof(TextMeshProUGUI));
-            RectTransform rect = textObject.GetComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            if (childCoordinates)
-            {
-                rect.anchorMin = Vector2.zero;
-                rect.anchorMax = Vector2.one;
-                rect.offsetMin = Vector2.zero;
-                rect.offsetMax = Vector2.zero;
-            }
-            else
-            {
-                SetTopRect(rect, position, size);
-            }
-            TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
-            text.font = template.font;
-            text.fontSharedMaterial = template.fontSharedMaterial;
-            text.fontStyle = template.fontStyle;
-            text.fontSize = template.fontSize * InventoryOptimizationHudLayout.NativeUnitScale;
-            text.enableAutoSizing = false;
-            text.characterSpacing = template.characterSpacing;
-            text.wordSpacing = template.wordSpacing;
-            text.lineSpacing = template.lineSpacing;
-            text.isOrthographic = template.isOrthographic;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.overflowMode = TextOverflowModes.Ellipsis;
-            text.alignment = alignment;
-            text.raycastTarget = false;
-            SephiriaEnhancements.Integration.NativeLocalizedText.BindFont(text, template);
-            return text;
-        }
-
-        private static void SetTopRect(RectTransform rect, Vector2 position,
-            Vector2 size)
-        {
-            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-        }
-
         private void SetSelected(Button button, bool selected)
         {
             if (button?.targetGraphic is Image image)
@@ -1674,21 +1480,11 @@ namespace SephiriaEnhancements.Inventory
             avoidZoneTitle = null;
             boardHint = null;
             comboTargetsTitle = null;
-            levelEditor = null;
-            levelTargetName = null;
-            levelTargetLabel = null;
-            levelRequirementLabel = null;
-            levelSummary = null;
-            levelBackText = null;
-            levelBack = null;
             lastCustomSelection = null;
-            levelCondition = null;
-            levelMode = null;
-            constraintStrength = null;
-            constraintStrengthText = null;
-            decreaseLevel = null;
-            increaseLevel = null;
             currentSnapshot = null;
+            goalEditor?.Dispose();
+            goalEditor = null;
+            controls = null;
             nativeTemplates = null;
             rows.Clear();
             prioritySlots.Clear();

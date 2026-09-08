@@ -1,6 +1,7 @@
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Runtime.Inventory;
 using UnityEngine;
+using SephiriaEnhancements.Inventory.Integration;
 
 namespace SephiriaEnhancements.Inventory
 {
@@ -37,9 +38,9 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
             hud.SuspendEditing();
-            application = new InventoryLayoutApplication(source, runtime, target, plan, settlement,
-                Time.unscaledTime + ApplyTimeout);
-            applyingInventory = inventory;
+            application = new NativeInventoryLayoutApplication(inventory,
+                new InventoryLayoutApplication(source, runtime, target, plan, settlement,
+                    Time.unscaledTime + ApplyTimeout));
             undo = null;
         }
     }

@@ -1,3 +1,4 @@
+using static SephiriaEnhancements.Inventory.NativeInventoryHudControls;
 using System;
 using System.Linq;
 using SephiriaEnhancements.Integration;
@@ -18,21 +19,21 @@ namespace SephiriaEnhancements.Inventory
 
         private void CreateSpecialEffects(RectTransform parent, TextMeshProUGUI template)
         {
-            specialEffectsEntry = CreateButton("SpecialEffects", parent, template, new Vector2(24f, -96f),
+            specialEffectsEntry = controls.CreateButton("SpecialEffects", parent, template, new Vector2(24f, -96f),
                 new Vector2(312f, 32f), () => SetPreferencesView(true, false, true), out specialEffectsEntryText);
             specialEffectsRoot = new GameObject("SpecialEffectsSettings", typeof(RectTransform));
             var rect = (RectTransform)specialEffectsRoot.transform;
             rect.SetParent(parent, false);
             SetTopRect(rect, new Vector2(24f, -104f), new Vector2(312f, 326f));
-            positionEffectChoice = CreateButton("PositionEffects", rect, template, Vector2.zero,
+            positionEffectChoice = controls.CreateButton("PositionEffects", rect, template, Vector2.zero,
                 new Vector2(312f, 36f), () => EditSpecialEffects(false), out positionEffectChoiceText);
             positionEffectHelp = CreateText("PositionHelp", rect, template, new Vector2(0, -42f),
                 new Vector2(312f, 94f), TextAlignmentOptions.TopLeft);
-            magicCostChoice = CreateButton("AdditionalMagicCost", rect, template, new Vector2(0, -146f),
+            magicCostChoice = controls.CreateButton("AdditionalMagicCost", rect, template, new Vector2(0, -146f),
                 new Vector2(312f, 36f), () => EditSpecialEffects(true), out magicCostChoiceText);
             magicCostHelp = CreateText("MagicCostHelp", rect, template, new Vector2(0, -188f),
                 new Vector2(312f, 94f), TextAlignmentOptions.TopLeft);
-            resetSpecialEffects = CreateButton("ResetSpecialEffects", rect, template, new Vector2(0, -290f),
+            resetSpecialEffects = controls.CreateButton("ResetSpecialEffects", rect, template, new Vector2(0, -290f),
                 new Vector2(312f, 32f), ResetSpecialEffects, out resetSpecialEffectsText);
             foreach (var text in new[] { positionEffectHelp, magicCostHelp })
             {

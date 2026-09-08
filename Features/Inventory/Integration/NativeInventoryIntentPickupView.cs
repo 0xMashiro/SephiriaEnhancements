@@ -14,6 +14,7 @@ namespace SephiriaEnhancements.Inventory
         private readonly Image image;
         private readonly Canvas dragCanvas;
         private readonly Vector3[] corners = new Vector3[4];
+        private GameObject pickupFocus;
 
         internal static bool UsesSelection => KeyboardUiPointer.OwnsFocus ||
             ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse == false;
@@ -45,8 +46,9 @@ namespace SephiriaEnhancements.Inventory
             Hide();
         }
 
-        internal void Show(Sprite sprite)
+        internal void Show(Sprite sprite, GameObject source)
         {
+            pickupFocus = source;
             image.sprite = sprite;
             image.gameObject.SetActive(true);
             image.SetNativeSize();
@@ -55,7 +57,17 @@ namespace SephiriaEnhancements.Inventory
             UpdatePosition();
         }
 
-        internal void UpdatePosition()
+        internal void UpdateWithinPanel(Transform panel)
+        {
+            GameObject selected = EventSystem.current?.currentSelectedGameObject;
+            if (selected != null && selected.transform.IsChildOf(panel))
+                pickupFocus = selected;
+            else if (UsesSelection && pickupFocus != null && pickupFocus.activeInHierarchy)
+                EventSystem.current?.SetSelectedGameObject(pickupFocus);
+            UpdatePosition();
+        }
+
+        private void UpdatePosition()
         {
             if (!UsesSelection && Mouse.current != null)
             {
@@ -79,6 +91,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal void Hide()
         {
+            pickupFocus = null;
             if (image != null)
             {
                 image.gameObject.SetActive(false);

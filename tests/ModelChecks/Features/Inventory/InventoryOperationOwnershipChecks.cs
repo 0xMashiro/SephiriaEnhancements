@@ -11,8 +11,9 @@ internal static class InventoryOperationOwnershipChecks
     {
         VerifySearchCancellation();
         VerifySwapAcknowledgements();
+        VerifyOperationContinuation();
         VerifyRotationAcknowledgements();
-        Console.WriteLine("InventoryOperationOwnership: task isolation, cancellation, stale/duplicate acknowledgements, whole-board rejection and multi-click rotations passed");
+        Console.WriteLine("InventoryOperationOwnership: task isolation, cancellation, continuation/undo gates, stale/duplicate acknowledgements, whole-board rejection and multi-click rotations passed");
     }
 
     private static RuntimeStateSnapshot Runtime(long revision = 1, long epoch = 1, uint player = 1,
@@ -115,6 +116,37 @@ internal static class InventoryOperationOwnershipChecks
             Require(!application.TryObservePendingOperation(InventorySnapshotFixture.Tablets(0, rotation), Runtime(rotation + 2), out _), "duplicate rotation acknowledged");
             if (rotation < 3) application.BeginRotation(rotation + 1, rotation);
         }
+    }
+
+    private static void VerifyOperationContinuation()
+    {
+        var source = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0, 1 }, new[] { 0, 1 });
+        var target = new InventoryLayoutProjection(new[] { 1, 0 }, new int[2]);
+        var application = Application(source, target);
+        Require(application.CanIssueOperation(Runtime()), "initial settled board cannot start");
+        foreach (var changed in new[] { Runtime(0), Runtime(2), Runtime(epoch: 2), Runtime(player: 2),
+            Runtime(consistency: RuntimeConsistencyState.PendingSettlement), null })
+            Require(!application.CanIssueOperation(changed), "changed or unsettled board authorized an operation");
+        var unobserved = new RuntimeStateSnapshot("fixture", 1, 1, 1, 1, 1,
+            RuntimeCapabilities.InventorySnapshot, RuntimeConsistencyState.Consistent, 0, "");
+        Require(!application.CanIssueOperation(unobserved), "missing settled observation authorized an operation");
+
+        application.BeginSwap(1);
+        Require(!application.CanIssueOperation(Runtime()), "pending swap authorized another operation");
+        var observed = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0, 1 }, target.CopyCells());
+        Require(application.TryObservePendingOperation(observed, Runtime(2), out var verified) && verified.Matched,
+            "valid acknowledgement rejected");
+        Require(application.CanIssueOperation(Runtime(2)), "confirmed board cannot continue");
+        Require(!application.CanIssueOperation(Runtime(3)), "unrelated update after acknowledgement authorized a move");
+        Require(!application.CanIssueOperation(Runtime(2, epoch: 2)) &&
+            !application.CanIssueOperation(Runtime(2, player: 2)), "old operation survived context or player replacement");
+
+        var undo = new InventoryLayoutApplication(source, Runtime(), target, application.Plan,
+            application.ExpectedSettlement, 20);
+        Require(undo.IsUndo && undo.CanIssueOperation(Runtime()), "undo uses different initial ownership rules");
+        undo.BeginSwap(1);
+        Require(!undo.CanIssueOperation(Runtime(2)) && !undo.CanObserveAcknowledgement(Runtime(2, epoch: 2)),
+            "undo bypassed pending/context gates");
     }
 
     private static void Require(bool condition, string message)

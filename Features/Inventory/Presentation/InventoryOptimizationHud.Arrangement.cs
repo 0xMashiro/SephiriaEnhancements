@@ -1,3 +1,4 @@
+using static SephiriaEnhancements.Inventory.NativeInventoryHudControls;
 using System;
 using System.Linq;
 using TMPro;
@@ -30,12 +31,12 @@ namespace SephiriaEnhancements.Inventory
 
         private void CreateArrangementActions(RectTransform parent, TextMeshProUGUI template)
         {
-            preferencesToggle = CreateButton("Preferences", parent, template, new Vector2(24f, -56f),
+            preferencesToggle = controls.CreateButton("Preferences", parent, template, new Vector2(24f, -56f),
                 new Vector2(148f, 32f), TogglePreferences, out preferencesToggleText);
-            comboPreferences = CreateButton("ComboPreferences", parent, template, new Vector2(188f, -56f),
+            comboPreferences = controls.CreateButton("ComboPreferences", parent, template, new Vector2(188f, -56f),
                 new Vector2(148f, 32f), () => SetPreferencesView(true, true), out comboPreferencesText);
             CreateSpecialEffects(parent, template);
-            undoArrangement = CreateButton("UndoArrangement", parent, template, new Vector2(24f, -ActionsTop),
+            undoArrangement = controls.CreateButton("UndoArrangement", parent, template, new Vector2(24f, -ActionsTop),
                 new Vector2(148f, 36f), () => requestUndo?.Invoke(), out undoArrangementText);
         }
 

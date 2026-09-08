@@ -63,8 +63,8 @@ namespace SephiriaEnhancements.Inventory
             var entry = FindFirstCustomEntry()?.GetComponent<UI_HorayButton>();
             var returnTarget = FindInventoryEntry()?.GetComponent<UI_HorayButton>();
             navigationBridge.Refresh(attachedPanel, root.transform as RectTransform,
-                entry, returnTarget, allowReturnFromEntry: !levelEditor.activeSelf);
-            if (levelEditor.activeSelf) ConfigureLevelEditorNavigation();
+                entry, returnTarget, allowReturnFromEntry: !goalEditor.Visible);
+            if (goalEditor.Visible) goalEditor.RefreshNavigation();
             if (!preferencesExpanded && undoArrangement != null && undoArrangement.IsInteractable())
             {
                 (optimize as UI_HorayButton)?.SetForceNavLeft(undoArrangement);
@@ -85,7 +85,7 @@ namespace SephiriaEnhancements.Inventory
         {
             if (panel != attachedPanel || !NavigationAvailable) return false;
             if (interaction.HasPickup) ClearArtifactPickup();
-            else if (levelEditor.activeSelf)
+            else if (goalEditor.Visible)
             {
                 CloseLevelEditor();
             }
@@ -138,9 +138,9 @@ namespace SephiriaEnhancements.Inventory
 
         private GameObject FindFirstCustomEntry()
         {
-            if (levelEditor != null && levelEditor.activeInHierarchy)
-                return IsCustomSelection(lastCustomSelection) && lastCustomSelection.transform.IsChildOf(levelEditor.transform)
-                    ? lastCustomSelection : levelMode.IsInteractable() ? levelMode.gameObject : constraintStrength.gameObject;
+            if (goalEditor?.ActiveInHierarchy == true)
+                return IsCustomSelection(lastCustomSelection) && goalEditor.Contains(lastCustomSelection)
+                    ? lastCustomSelection : goalEditor.Entry;
             if (!panelOpen && launcher != null && launcher.gameObject.activeInHierarchy &&
                 launcher.IsInteractable())
             {
@@ -172,9 +172,9 @@ namespace SephiriaEnhancements.Inventory
         {
             var key = interaction.LevelTarget;
             bool editorSelected = EventSystem.current?.currentSelectedGameObject != null &&
-                EventSystem.current.currentSelectedGameObject.transform.IsChildOf(levelEditor.transform);
+                goalEditor.Contains(EventSystem.current.currentSelectedGameObject);
             interaction.CancelLevelEdit();
-            levelEditor.SetActive(false);
+            goalEditor.SetVisible(false);
             ProjectIntentBoard(ExplorationInventoryIntentStore.Capture());
             RefreshPageNavigation();
             if (editorSelected)
@@ -186,30 +186,5 @@ namespace SephiriaEnhancements.Inventory
             nextProjectionAt = 0f;
         }
 
-        private void ConfigureLevelEditorNavigation()
-        {
-            var targets = new[] { levelMode, decreaseLevel, increaseLevel }
-                .Where(button => button.gameObject.activeInHierarchy && button.IsInteractable()).ToArray();
-            for (int index = 0; index < targets.Length; index++)
-                SetEditorNavigation(targets[index], targets[System.Math.Max(0, index - 1)],
-                    targets[System.Math.Min(targets.Length - 1, index + 1)], targets[index], constraintStrength);
-            SetEditorNavigation(constraintStrength, constraintStrength, constraintStrength,
-                targets.FirstOrDefault() ?? constraintStrength, levelBack);
-            SetEditorNavigation(levelBack, levelBack, levelBack, constraintStrength, levelBack);
-        }
-
-        private static void SetEditorNavigation(Button button, Selectable left, Selectable right,
-            Selectable up, Selectable down)
-        {
-            // Explicit links cover Unity navigation; native forced links also
-            // cover the game's AABB navigation. Self-links stop at editor edges.
-            button.navigation = new Navigation { mode = Navigation.Mode.Explicit,
-                selectOnLeft = left, selectOnRight = right, selectOnUp = up, selectOnDown = down };
-            var native = (UI_HorayButton)button;
-            native.SetForceNavLeft(left);
-            native.SetForceNavRight(right);
-            native.SetForceNavUp(up);
-            native.SetForceNavDown(down);
-        }
     }
 }

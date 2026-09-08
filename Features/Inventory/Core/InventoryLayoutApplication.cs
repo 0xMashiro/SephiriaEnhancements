@@ -70,10 +70,18 @@ namespace SephiriaEnhancements.Inventory
 
         internal void SkipCompletedRotation() => NextRotation++;
 
+        internal bool MatchesGameplayContext(RuntimeStateSnapshot runtime) =>
+            runtime != null && SourceRuntime != null &&
+            runtime.GameplayContextEpoch == SourceRuntime.GameplayContextEpoch &&
+            runtime.PlayerNetId == SourceRuntime.PlayerNetId;
+
+        internal bool CanIssueOperation(RuntimeStateSnapshot runtime) =>
+            PendingOperation == InventoryPendingOperation.None && MatchesGameplayContext(runtime) &&
+            runtime.HasSettledInventoryObservation && runtime.InventoryRevision == ConfirmedRevision;
+
         internal bool CanObserveAcknowledgement(RuntimeStateSnapshot runtime) =>
             PendingOperation != InventoryPendingOperation.None && runtime?.HasSettledInventoryObservation == true &&
-            runtime.GameplayContextEpoch == SourceRuntime.GameplayContextEpoch &&
-            runtime.PlayerNetId == SourceRuntime.PlayerNetId && runtime.InventoryRevision > pendingRevision;
+            MatchesGameplayContext(runtime) && runtime.InventoryRevision > pendingRevision;
 
         // Only a verified complete intermediate layout advances the operation cursor.
         // A rotation can require several native clicks before reaching its target.

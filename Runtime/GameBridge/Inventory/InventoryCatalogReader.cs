@@ -2,6 +2,7 @@ using SephiriaEnhancements.Runtime.Inventory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SephiriaEnhancements.Diagnostics;
 
 namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
 {
@@ -54,8 +55,9 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                     categories.ToArray());
                 return true;
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+                SupportLogger.Failure("inventory_catalog_capture_failed", exception);
                 catalog = null;
                 return false;
             }

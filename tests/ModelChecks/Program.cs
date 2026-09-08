@@ -124,6 +124,7 @@ InventoryDamagePriorityChecks.Run();
 InventoryAutomaticGoalChecks.Run();
 InventoryTargetConsistencyChecks.Run();
 InventoryOperationOwnershipChecks.Run();
+NativeInventoryReadChecks.Run();
 InventoryPreferenceComparisonChecks.Run();
 InventoryHardConstraintChecks.Run();
 Console.WriteLine("InventoryHudInteraction: " +

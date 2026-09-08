@@ -36,6 +36,7 @@
     <Compile Include="..\..\Diagnostics\InventoryReproductionLocalization.cs" Link="Diagnostics\InventoryReproductionLocalization.cs" />
     <Compile Include="..\..\Diagnostics\SupportLog.cs" Link="Diagnostics\SupportLog.cs" />
     <Compile Include="..\..\Runtime\GameBridge\Inventory\NativeInventoryEffectAccess.cs" Link="GameBridge\Inventory\NativeInventoryEffectAccess.cs" />
+    <Compile Include="../../Runtime/GameBridge/Inventory/NativeInventoryRead.cs" Link="GameBridge/Inventory/NativeInventoryRead.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryIntentInteractionState.cs" Link="Inventory\InventoryIntentInteractionState.cs" />
     <Compile Include="..\..\Features\Inventory\Presentation\InventoryOptimizationHudLayout.cs" Link="Inventory\InventoryOptimizationHudLayout.cs" />
     <Compile Include="..\..\Configuration\OptionsCategoryLocalization.cs" Link="Configuration\OptionsCategoryLocalization.cs" />

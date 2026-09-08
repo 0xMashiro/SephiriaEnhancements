@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SephiriaEnhancements.Integration;
+using SephiriaEnhancements.Diagnostics;
 
 namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
 {
@@ -110,20 +111,12 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 suppressDuplicateComboEntities = overlapItemCombo > 0;
             }
 
-            int uniquePairComboMode = 0;
-            int unlimitedComboStatValue = 0;
-            try
-            {
-                uniquePairComboMode = KeywordDatabase.GetConstValue(
-                    "allowUniquePairIncreaseCombo");
-                unlimitedComboStatValue = inventory.UnitAvatar == null
-                    ? 0
-                    : inventory.UnitAvatar.GetCustomStatUnsafe("UNLIMITEDCOMBO");
-            }
-            catch (Exception)
-            {
-                // The keyword database may not be initialized in non-run scenes.
-            }
+            // GetConstValue already returns zero when the native constant is absent.
+            // An exception is a failed observation, not another spelling of that zero.
+            int uniquePairComboMode = NativeInventoryRead.Required("unique_pair_combo",
+                () => KeywordDatabase.GetConstValue("allowUniquePairIncreaseCombo"));
+            int unlimitedComboStatValue = NativeInventoryRead.Required("unlimited_combo",
+                () => inventory.UnitAvatar == null ? 0 : inventory.UnitAvatar.GetCustomStatUnsafe("UNLIMITEDCOMBO"));
 
             snapshot = new InventorySnapshot(width, storage, cells, itemSnapshots,
                 inventory.enableCharmEffects, inventory.globalActiveValue, nativePreset,
@@ -136,22 +129,10 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 evaluationOrder: evaluationOrder,
                 fixedTabletSources: CaptureFixedTabletSources(inventory,
                     tabletProjectionReader),
-                arrangementBonusesEnabled: ReadArrangementBonusEnabled(),
+                arrangementBonusesEnabled: NativeInventoryRead.Required("arrangement_bonus",
+                    GridInventory.ArrangementBonusEnabled),
                 positionEffects: InventoryPositionEffectReader.Capture(inventory));
             return true;
-        }
-
-        private static bool ReadArrangementBonusEnabled()
-        {
-            try
-            {
-                return GridInventory.ArrangementBonusEnabled();
-            }
-            catch (Exception)
-            {
-                // Unknown is treated as enabled so candidate evaluation fails closed.
-                return true;
-            }
         }
 
         private static FixedTabletSourceSnapshot[] CaptureFixedTabletSources(
@@ -181,8 +162,9 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                         tablet.entityID, cell, tablet.rotation, tablet.IsApplied,
                         projection));
                 }
-                catch (Exception)
+                catch (Exception exception)
                 {
+                    SupportLogger.Failure("inventory_fixed_tablet_capture_failed", exception);
                     result.Add(new FixedTabletSourceSnapshot(tablet.instanceID,
                         tablet.entityID, -1, tablet.rotation, tablet.IsApplied,
                         null));
@@ -370,18 +352,11 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
             if (charm is Charm_WhitePaper paper)
             {
                 ItemPosition origin = new ItemPosition(charm.xIdx, charm.yIdx);
-                InventoryOffsetSnapshot[] offsets;
-                try
-                {
-                    offsets = paper.AllPossiblePositions()
+                InventoryOffsetSnapshot[] offsets = NativeInventoryRead.Required("artifact_neighbors",
+                    () => paper.AllPossiblePositions()
                         .Select(position => new InventoryOffsetSnapshot(
                             position.x - origin.x, position.y - origin.y))
-                        .ToArray();
-                }
-                catch (Exception)
-                {
-                    offsets = Array.Empty<InventoryOffsetSnapshot>();
-                }
+                        .ToArray());
                 return new ArtifactCategoryRuleSnapshot(
                     ArtifactCategoryRuleKind.NeighborMatch,
                     neighborOffsets: offsets, match: paper.match);
@@ -467,27 +442,18 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 return null;
             }
 
-            string conditionQuery = string.Empty;
-            string effectQuery = string.Empty;
-            try
-            {
-                conditionQuery = tablet.GetConditionQuery(item.InstanceID);
-                effectQuery = tablet.GetQuery(item.InstanceID);
-            }
-            catch (Exception)
-            {
-                // A custom tablet can exist before DungeonManager has its query data.
-            }
+            var queries = NativeInventoryRead.Required("tablet_queries", () =>
+                (Condition: tablet.GetConditionQuery(item.InstanceID), Effect: tablet.GetQuery(item.InstanceID)));
 
             return new StoneTabletSnapshot(tablet.rotation, tablet.isRotatable,
                 tablet.isCustomTablet, tablet.IsApplied,
                 tablet.includeConditionCriteriaToMinMaxGrid,
-                conditionQuery, effectQuery,
-                tabletProjectionReader?.CaptureAllRotations(conditionQuery,
-                    effectQuery, inventory.Width, inventory.Height,
+                queries.Condition, queries.Effect,
+                tabletProjectionReader?.CaptureAllRotations(queries.Condition,
+                    queries.Effect, inventory.Width, inventory.Height,
                     inventory.CurrentInventoryStorage, position.x, position.y),
-                tabletProjectionReader?.CaptureAllPlacements(conditionQuery,
-                    effectQuery, inventory.Width, inventory.Height,
+                tabletProjectionReader?.CaptureAllPlacements(queries.Condition,
+                    queries.Effect, inventory.Width, inventory.Height,
                     inventory.CurrentInventoryStorage));
         }
 
@@ -672,8 +638,9 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                     ? CriteriaEvaluationState.Satisfied
                     : CriteriaEvaluationState.Unsatisfied;
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+                SupportLogger.Failure("inventory_criteria_capture_failed", exception);
                 return CriteriaEvaluationState.Unknown;
             }
         }

@@ -386,13 +386,17 @@ namespace SephiriaEnhancements.Inventory
                     "consistency=" + runtimeKernel.State?.Consistency + " issues=" +
                     string.Join(",", (latest?.SettlementValidation.Issues ?? Array.Empty<string>())
                         .Select(issue => issue.Split(':')[0]).Distinct()), "WARN");
-                if (latest != null &&
-                    latest.SettlementValidation.HasItemIdentityConflict)
+                if (latest == null)
+                {
+                    ShowMessage(InventoryOptimizationLocalization.RuntimeNotReady);
+                    return;
+                }
+                if (latest.SettlementValidation.HasItemIdentityConflict)
                 {
                     ShowMessage(InventoryOptimizationLocalization.ItemIdentityConflict);
                     return;
                 }
-                if (latest?.SettlementValidation.HasPositionEffectIssue == true)
+                if (latest.SettlementValidation.HasPositionEffectIssue)
                 {
                     ShowMessage(InventoryOptimizationLocalization.PositionEffectsUnavailable);
                     return;

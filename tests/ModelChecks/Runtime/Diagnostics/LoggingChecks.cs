@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using SephiriaEnhancements.Diagnostics;
+using SephiriaEnhancements.Runtime.GameBridge.Inventory;
 
 namespace SephiriaEnhancements.ModelChecks.Runtime.Diagnostics;
 
@@ -15,6 +16,7 @@ internal static class LoggingChecks
             VerifyRotation(directory);
             VerifyOversizedRecords(directory);
             VerifyRepeatedSupportEvents(directory);
+            VerifyNativeReadFailureDetails(directory);
             VerifyIoFailure(directory);
         }
         finally { Directory.Delete(directory, recursive: true); }
@@ -85,6 +87,32 @@ internal static class LoggingChecks
         Require(lines[4].Contains("exception=IOException"), "different failure details must not be merged");
         Require(lines[5].EndsWith("code=Completed extra"), "each support event occupies one line");
         Require(lines[6].EndsWith("repeated=1"), "shutdown flushes the final repeated event");
+    }
+
+    private static void VerifyNativeReadFailureDetails(string directory)
+    {
+        string path = Path.Combine(directory, "native-reads.log");
+        DateTime now = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        using (var log = new SupportLog(path, "build=Development"))
+        {
+            foreach (string operation in new[] { "unique_pair_combo", "unique_pair_combo", "tablet_queries" })
+            {
+                try
+                {
+                    NativeInventoryRead.Required<int>(operation, () => throw new InvalidOperationException("PRIVATE_DETAIL"));
+                }
+                catch (Exception exception)
+                {
+                    log.Record("inventory_capture_failed", NativeInventoryRead.FailureDetails(exception), "ERROR", now);
+                }
+            }
+        }
+        string[] lines = File.ReadAllLines(path);
+        Require(lines.Length == 4 && lines[2].EndsWith("repeated=1"),
+            "repeated read failures must be summarized without merging different operations");
+        Require(lines[1].Contains("operation=unique_pair_combo") && lines[3].Contains("operation=tablet_queries") &&
+            lines[3].Contains("exception=System.InvalidOperationException"), "support logs lost the failed native operation");
+        Require(!string.Join("\n", lines).Contains("PRIVATE_DETAIL"), "support logs copied exception messages");
     }
 
     private static void VerifyIoFailure(string directory)

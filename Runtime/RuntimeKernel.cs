@@ -495,13 +495,13 @@ namespace SephiriaEnhancements.Runtime
                 metrics.RecordCapture(failedElapsedMilliseconds, false);
                 lastCaptureFrame = frame;
                 inventoryStateStore.Clear();
+                string failureDetails = NativeInventoryRead.FailureDetails(exception);
                 stateHub.PublishIssue(
-                    "GridInventory snapshot capture failed: " +
-                    exception.GetType().Name + ".", invalid: false,
+                    "Inventory snapshot capture failed: " +
+                    failureDetails, invalid: false,
                     Time.realtimeSinceStartup);
-                SupportLogger.Warning("inventory_capture_failed",
-                    "[SephiriaEnhancements] Inventory snapshot capture " +
-                    "failed safely: " + exception.GetType().Name);
+                SupportLogger.Record("inventory_capture_failed",
+                    failureDetails, "ERROR");
                 return;
             }
             float elapsedMilliseconds = (float)((Stopwatch.GetTimestamp() - started) *

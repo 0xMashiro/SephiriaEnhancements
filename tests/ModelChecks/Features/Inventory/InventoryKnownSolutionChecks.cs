@@ -18,7 +18,59 @@ internal static class InventoryKnownSolutionChecks
         InventoryPriorityTradeoffChecks.Run();
         foreach (InventoryKnownSolution scenario in CreateCases()) Validate(scenario);
         VerifyCompoundImprovementResumesLocalSearch();
+        VerifyComplexTablets();
         Console.WriteLine("Inventory known solutions: 4 exhaustive priority comparisons, combo maximum/counting checks, 12 planted late-game model fixtures passed");
+    }
+
+    private static void VerifyComplexTablets()
+    {
+        int count = 0, goalsReached = 0, improved = 0, witnessReached = 0;
+        foreach (int storage in new[] { 30, 32, 42 })
+            foreach (string variant in new[] { "NeighborPair", "PlacementAndNeighbors", "SignedEffects" })
+                foreach (int seed in new[] { 17, 83, 419, 2027 })
+                {
+                    var scenario = InventoryKnownSolutionFixture.Create(storage, seed, variant);
+                    Validate(scenario);
+                    var snapshot = scenario.Snapshot;
+                    var policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, scenario.Preferences);
+                    var scorer = new InventoryOptimizationScorer(snapshot, policy);
+                    var witness = scorer.Score(scenario.Witness, InventorySettlementProjector.Evaluate(snapshot, scenario.Witness));
+                    var result = InventoryOptimizer.Solve(snapshot, policy, new InventorySearchBudget(16, 15000, int.MaxValue));
+                    Require(result.Succeeded && result.BestScore.CompareTo(result.CurrentScore) >= 0 &&
+                        result.CandidateEvaluations <= 15000 && result.BestScore.PositionEffectRegressions == 0 &&
+                        InventoryLayoutPlanner.TryCreate(snapshot, result.Layout, out _, out _), scenario,
+                        "complex search must preserve score, protected effects, operation validity and candidate budget");
+                    if (storage == 30 && variant == "PlacementAndNeighbors" && (seed == 17 || seed == 83))
+                        Require(result.BestScore.CappedEffectiveArtifactLevelTotal >= (seed == 17 ? 132 : 123), scenario,
+                            "recipient moves must be considered before deciding whether tablet conditions are satisfied");
+                    bool reached = result.TargetEvaluations.All(target => target.AfterConditionReached);
+                    Require(reached && result.Improved, scenario, "15,000 evaluations must improve the board and reach every planted target");
+                    var finalSettlement = InventorySettlementProjector.Evaluate(snapshot, result.Layout);
+                    Require(scorer.Score(result.Layout, finalSettlement).CompareTo(result.BestScore) == 0,
+                        scenario, "returned score must match a fresh settlement");
+                    foreach (int limit in new[] { 1, 64, 512 })
+                    {
+                        var cutoff = InventoryOptimizer.Solve(snapshot, policy, new InventorySearchBudget(16, limit, int.MaxValue));
+                        Require(cutoff.Succeeded && cutoff.CandidateEvaluations <= limit &&
+                            cutoff.BestScore.CompareTo(cutoff.CurrentScore) >= 0 &&
+                            InventoryLayoutPlanner.TryCreate(snapshot, cutoff.Layout, out _, out _), scenario,
+                            "budget cutoff must retain an admissible incumbent at " + limit);
+                    }
+                    var noRotation = InventoryOptimizationPolicyResolver.Resolve(snapshot,
+                        scenario.Preferences.WithExecutionSettings(InventorySearchEffort.Balanced, false));
+                    var locked = InventoryOptimizer.Solve(snapshot, noRotation, new InventorySearchBudget(8, 5000, int.MaxValue));
+                    Require(locked.Succeeded && locked.BestScore.CompareTo(locked.CurrentScore) >= 0 &&
+                        locked.CandidateEvaluations <= 5000 && locked.Layout.CopyRotations().SequenceEqual(
+                            InventoryLayoutProjection.Current(snapshot).CopyRotations()) &&
+                        InventoryLayoutPlanner.TryCreate(snapshot, locked.Layout, out _, out _), scenario,
+                        "rotation prohibition must survive compound search");
+                    count++;
+                    if (reached) goalsReached++;
+                    if (result.Improved) improved++;
+                    if (result.BestScore.CompareTo(witness) >= 0) witnessReached++;
+                    Console.WriteLine($"ComplexTabletCase: {scenario.Id}/{seed}; goals={reached}; levels={result.BestScore.CappedEffectiveArtifactLevelTotal}; witnessLevels={witness.CappedEffectiveArtifactLevelTotal}; evaluations={result.CandidateEvaluations}");
+                }
+        Console.WriteLine($"Complex tablets: cases={count}; improved={improved}; allGoalsReached={goalsReached}; witnessScoreReached={witnessReached}; rotationLocked=36; budgetCutoffs=108");
     }
 
     private static void VerifyCompoundImprovementResumesLocalSearch()

@@ -34,18 +34,20 @@ namespace SephiriaEnhancements.Inventory
                 new Vector2(148f, 32f), TogglePreferences, out preferencesToggleText);
             comboPreferences = CreateButton("ComboPreferences", parent, template, new Vector2(188f, -56f),
                 new Vector2(148f, 32f), () => SetPreferencesView(true, true), out comboPreferencesText);
+            CreateSpecialEffects(parent, template);
             undoArrangement = CreateButton("UndoArrangement", parent, template, new Vector2(24f, -ActionsTop),
                 new Vector2(148f, 36f), () => requestUndo?.Invoke(), out undoArrangementText);
         }
 
         private void TogglePreferences() => SetPreferencesView(!preferencesExpanded, false);
 
-        private void SetPreferencesView(bool expanded, bool showCombos)
+        private void SetPreferencesView(bool expanded, bool showCombos, bool showSpecialEffects = false)
         {
             ClearArtifactPickup();
             endPriorityMarking?.Invoke();
             preferencesExpanded = expanded;
-            detailsExpanded = showCombos;
+            specialEffectsExpanded = showSpecialEffects;
+            detailsExpanded = showCombos || showSpecialEffects;
             previewItemKey = null;
             page = 0;
             expandedComboCategoryId = null;
@@ -94,9 +96,18 @@ namespace SephiriaEnhancements.Inventory
             (comboPreferences as UI_HorayButton)?.SetForceNavDown(optimize);
             (markPriorities as UI_HorayButton)?.SetForceNavDown(below);
             (markPriorities as UI_HorayButton)?.SetForceNavLeft(preferencesToggle);
-            if (!preferencesExpanded) ((UI_HorayButton)optimize)?.SetForceNavUp(comboPreferences);
+            if (!preferencesExpanded)
+            {
+                toggle.SetForceNavDown(specialEffectsEntry);
+                ((UI_HorayButton)comboPreferences).SetForceNavDown(specialEffectsEntry);
+                ((UI_HorayButton)specialEffectsEntry).SetForceNavUp(preferencesToggle);
+                ((UI_HorayButton)specialEffectsEntry).SetForceNavDown(undoArrangement.interactable ? undoArrangement : optimize);
+                undo.SetForceNavUp(specialEffectsEntry);
+                ((UI_HorayButton)optimize).SetForceNavUp(specialEffectsEntry);
+            }
             else if (detailsExpanded) ((UI_HorayButton)optimize)?.SetForceNavUp(
                 rows.LastOrDefault(row => row.Root.activeInHierarchy)?.Choice ?? preferencesToggle);
+            RefreshSpecialEffects();
         }
     }
 }

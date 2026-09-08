@@ -58,6 +58,8 @@ if (args.FirstOrDefault() == "--inventory-known-solutions-benchmark")
     InventoryKnownSolutionChecks.Benchmark(args[1], args.Contains("--fixed-work"));
     return;
 }
+InventorySpecialEffectPreferenceChecks.Run();
+InventoryMixedMechanismChecks.Run();
 InventoryKnownSolutionChecks.Run();
 if (args.Contains("--inventory-known-solutions-only")) return;
 

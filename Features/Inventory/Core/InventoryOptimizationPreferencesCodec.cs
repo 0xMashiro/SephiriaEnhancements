@@ -10,13 +10,13 @@ namespace SephiriaEnhancements.Inventory
 {
     internal static class InventoryOptimizationPreferencesCodec
     {
-        private const string Version = "v4";
+        private const string Version = "v5";
 
         internal static string Encode(
             InventoryOptimizationPreferences preferences)
         {
             preferences ??= InventoryOptimizationPreferences.Default;
-            var lines = new List<string> { Version };
+            var lines = new List<string> { Version, $"S|{(int)preferences.PositionEffectPreference}|{(preferences.AllowAdditionalMagicCost ? 1 : 0)}" };
             foreach (ComboOptimizationPreference rule in preferences.
                 ComboPreferences.OrderBy(rule => rule.CategoryId,
                     StringComparer.Ordinal))
@@ -51,9 +51,15 @@ namespace SephiriaEnhancements.Inventory
                 return false;
             }
 
+            if (lines.Length < 2) return false;
+            string[] settings = lines[1].Split('|');
+            if (settings.Length != 3 || settings[0] != "S" ||
+                !int.TryParse(settings[1], out int positionValue) ||
+                !Enum.IsDefined(typeof(InventoryPositionEffectPreference), positionValue) ||
+                (settings[2] != "0" && settings[2] != "1")) return false;
             var combos = new Dictionary<string,
                 ComboOptimizationPreference>(StringComparer.Ordinal);
-            for (int index = 1; index < lines.Length; index++)
+            for (int index = 2; index < lines.Length; index++)
             {
                 if (string.IsNullOrWhiteSpace(lines[index]))
                 {
@@ -98,7 +104,8 @@ namespace SephiriaEnhancements.Inventory
 
             preferences = new InventoryOptimizationPreferences(searchEffort,
                 allowStoneTabletRotation, Array.Empty<ArtifactOptimizationPreference>(), combos.Values.OrderBy(rule =>
-                        rule.CategoryId, StringComparer.Ordinal).ToArray());
+                        rule.CategoryId, StringComparer.Ordinal).ToArray(),
+                (InventoryPositionEffectPreference)positionValue, settings[2] == "1");
             return true;
         }
     }

@@ -95,7 +95,7 @@ internal static class InventoryOptimizationLocalizationChecks
                     }
                     string chinese = InventoryOptimizationLocalization.FormatArtifactGoalSummary(rule, artifact, key => texts["zh-CN"][key]);
                     string expectedTarget = level == InventoryPreferenceLevel.Avoid ? "保持不生效"
-                        : mode == ArtifactLevelTargetMode.Automatic ? "自动（控制负面效果）· 至少 2 级"
+                        : mode == ArtifactLevelTargetMode.Automatic ? "自动（谨慎升级） · 至少 2 级"
                         : mode == ArtifactLevelTargetMode.ActiveOnly ? "只需生效" : "至少 3 级";
                     string expectedRequirement = strength == InventoryConstraintStrength.Hard
                         ? "全部「必须满足」的目标都达到，才会整理。" : "无法满足此目标时，仍可整理。";

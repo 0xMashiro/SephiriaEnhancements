@@ -97,6 +97,26 @@ namespace SephiriaEnhancements.Inventory
                         resumeLocalSearchAfterImprovement = scorer.EvaluateTargets(
                             settlement, settlement).All(target => target.AfterConditionReached);
                     }
+                    if (!evaluator.Search(InventorySearchStage.TabletPlacementSetup, round + 1,
+                            InventoryCandidateNeighborhoods.TabletPlacementSetup(snapshot, current, policy.AllowStoneTabletRotation),
+                            resumeLocalSearchAfterImprovement, ref bestLayout, ref bestScore, out terminationReason))
+                    {
+                        searchStopped = true;
+                        break;
+                    }
+                }
+                if (bestScore.CompareTo(currentScore) <= 0)
+                {
+                    if (!evaluator.Search(InventorySearchStage.PositionEffectSetup, round + 1,
+                            InventoryCandidateNeighborhoods.PositionEffectSetup(snapshot, current),
+                            resumeLocalSearchAfterImprovement, ref bestLayout, ref bestScore, out terminationReason))
+                    {
+                        searchStopped = true;
+                        break;
+                    }
+                }
+                if (bestScore.CompareTo(currentScore) <= 0)
+                {
                     if (!evaluator.Search(InventorySearchStage.SwapAndRotation, round + 1, InventoryCandidateNeighborhoods.SwapAndRotation(snapshot, current, policy.AllowStoneTabletRotation),
                             resumeLocalSearchAfterImprovement, ref bestLayout, ref bestScore, out terminationReason))
                     {

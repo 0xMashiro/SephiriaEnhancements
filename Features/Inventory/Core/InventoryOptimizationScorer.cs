@@ -12,6 +12,7 @@ namespace SephiriaEnhancements.Inventory
         private readonly InventorySnapshot snapshot;
         private readonly ResolvedInventoryOptimizationPolicy policy;
         private readonly Dictionary<InventoryItemKey, InventoryItemSnapshot> itemsByKey;
+        private readonly Dictionary<InventoryItemKey, double> positionEffectScales;
         private readonly int orderedPriorityCount;
         private readonly (string Category, int[] Thresholds)[] comboThresholds;
         private readonly (ResolvedArtifactOptimizationRule Rule, string Target)[] instanceTargets;
@@ -31,6 +32,7 @@ namespace SephiriaEnhancements.Inventory
             this.snapshot = snapshot;
             this.policy = policy;
             itemsByKey = snapshot.Items.ToDictionary(item => item.ItemKey);
+            positionEffectScales = snapshot.PositionEffects.Rules.ToDictionary(rule => rule.Source, PositionEffectScale);
             orderedPriorityCount = policy.ArtifactInstanceRules.Values.
                 Where(rule => rule.Level == InventoryPreferenceLevel.Priority &&
                     rule.PriorityOrder >= 0).Select(rule =>
@@ -215,7 +217,60 @@ namespace SephiriaEnhancements.Inventory
                 positionEffectRegressions: CountPositionEffectRegressions(settlement),
                 automaticLevelRegressions: CountAutomaticLevelRegressions(settlement),
                 hardConstraintViolations: hardViolations, hardConstraintCompletionPoints: hardCompletion,
-                orderedPriorityDamageBonuses: orderedDamage);
+                orderedPriorityDamageBonuses: orderedDamage,
+                positionEffectUtilizationPoints: PositionEffectUtilizationPoints(settlement));
+        }
+
+        // Each source contributes in its own units, normalized by a generous capacity.
+        // This is a layout preference, not an estimate of DPS or build strength.
+        private double PositionEffectScale(InventoryPositionEffectRule rule)
+        {
+            double primary = rule.ValuesByLevel.DefaultIfEmpty(0).Max();
+            double secondary = rule.SecondaryValuesByLevel.DefaultIfEmpty(0).Max();
+            int artifacts = snapshot.Items.Count(item => item.Artifact != null);
+            switch (rule.Kind)
+            {
+                case InventoryPositionEffectKind.NeighborArtifactLevelDamage:
+                    return primary * snapshot.Items.Where(item => item.Artifact != null)
+                        .Select(item => Math.Max(0, item.Artifact.MaxLevel)).OrderByDescending(level => level)
+                        .Take(rule.Offsets.Count).Sum();
+                case InventoryPositionEffectKind.AdjacentPlanetEnhancement:
+                    return rule.Offsets.Count;
+                case InventoryPositionEffectKind.SameRowCompanionMode:
+                    return Math.Min(snapshot.Width, snapshot.PositionEffects.Traits.Count(trait => trait.Companion));
+                case InventoryPositionEffectKind.MagicCostReduction:
+                case InventoryPositionEffectKind.MagicCooldownRecovery:
+                    return primary * rule.Offsets.Count;
+                case InventoryPositionEffectKind.FirstSlotsElementDamage:
+                    return primary * Math.Min(rule.Boundary, artifacts) * rule.Channels.Count;
+                case InventoryPositionEffectKind.HalfBoardStats:
+                    return Math.Max(0, primary) + Math.Max(0, secondary);
+                case InventoryPositionEffectKind.HalfBoardWeaponMode:
+                    return 1;
+                case InventoryPositionEffectKind.DependencyDamage:
+                    return Math.Max(0, primary) + (rule.ConditionalDamage ? Math.Max(0, secondary) : 0);
+                case InventoryPositionEffectKind.RowCategoryStats:
+                    return primary;
+                default:
+                    throw new InvalidOperationException("Position effect objective is missing: " + rule.Kind);
+            }
+        }
+
+        private int PositionEffectUtilizationPoints(ProjectedInventorySettlement settlement)
+        {
+            if (policy.PositionEffectPreference == InventoryPositionEffectPreference.Preserve) return 0;
+            double total = 0;
+            foreach (var effect in settlement.PositionEffects)
+            {
+                if (effect.Mode || effect.Value <= 0) continue;
+                if (policy.ArtifactInstanceRules.TryGetValue(effect.Key.Source, out var instanceRule)
+                        ? instanceRule.Level == InventoryPreferenceLevel.Avoid
+                        : policy.ArtifactEntityRules.TryGetValue(effect.Key.Source.EntityId, out var entityRule) &&
+                            entityRule.Level == InventoryPreferenceLevel.Avoid) continue;
+                double scale = positionEffectScales[effect.Key.Source];
+                if (scale > 0) total += effect.Value / scale;
+            }
+            return (int)Math.Round(total * 10000, MidpointRounding.AwayFromZero);
         }
 
         private int CountAutomaticLevelRegressions(ProjectedInventorySettlement settlement)
@@ -224,7 +279,7 @@ namespace SephiriaEnhancements.Inventory
             foreach (var artifact in settlement.Artifacts)
             {
                 var observed = itemsByKey[artifact.ItemKey].Artifact;
-                int limit = observed.SafeAutomaticLevel;
+                int limit = policy.AllowAdditionalMagicCost ? observed.StatPenaltySafeLevel : observed.SafeAutomaticLevel;
                 if (policy.ArtifactInstanceRules.TryGetValue(artifact.ItemKey, out var rule))
                 {
                     if (rule.Level == InventoryPreferenceLevel.Avoid) continue;
@@ -264,6 +319,9 @@ namespace SephiriaEnhancements.Inventory
                 if (key.Kind == InventoryPositionEffectKind.DependencyDamage &&
                     redirectedDamageSources.Contains(key.Source)) return false;
                 double current = after?.Value ?? 0;
+                if (policy.PositionEffectPreference == InventoryPositionEffectPreference.Redistribute &&
+                    !(before?.Mode ?? after?.Mode ?? false))
+                    return current < Math.Min(0, before?.Value ?? 0);
                 return (before?.Mode ?? after?.Mode) == true
                     ? before != null && before.Value >= 0 && (after == null || current != before.Value)
                     : current < (before?.Value ?? 0);

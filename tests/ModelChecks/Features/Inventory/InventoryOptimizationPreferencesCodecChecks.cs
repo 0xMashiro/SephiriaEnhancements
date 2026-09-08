@@ -22,15 +22,15 @@ internal static class InventoryOptimizationPreferencesCodecChecks
             decoded.ComboPreferences.Single(rule => rule.CategoryId == "WARD").Strength != InventoryConstraintStrength.Hard)
             throw new InvalidOperationException("only stable combo targets may persist; artifact queue entries belong to the current exploration");
 
-        string[] invalid = { "", "v2\nC|WARD|1|0", "v3", "v3\nC|WARD|1|0", "v4\nA|101|1|5|0", "v4\nC||1|0|0",
-            "v4\nC|WARD|99|0|0", "v4\nC|WARD|1|-1|0", "v4\nC|WARD|1|0|99" };
+        string[] invalid = { "", "v2\nC|WARD|1|0", "v3", "v3\nC|WARD|1|0", "v5\nS|1|0\nA|101|1|5|0", "v5\nS|1|0\nC||1|0|0",
+            "v5\nS|1|0\nC|WARD|99|0|0", "v5\nS|1|0\nC|WARD|1|-1|0", "v5\nS|1|0\nC|WARD|1|0|99" };
         if (invalid.Any(value => InventoryOptimizationPreferencesCodec.TryDecode(value,
             InventorySearchEffort.Balanced, true, out _)))
             throw new InvalidOperationException("unsupported artifact-type rules and malformed combo payloads must be rejected");
-        if (!InventoryOptimizationPreferencesCodec.TryDecode("v4", InventorySearchEffort.Balanced, true, out var empty) ||
+        if (!InventoryOptimizationPreferencesCodec.TryDecode("v5\nS|1|0", InventorySearchEffort.Balanced, true, out var empty) ||
             empty.ComboPreferences.Count != 0 || empty.ArtifactPreferences.Count != 0)
             throw new InvalidOperationException("empty combo preferences must remain valid");
-        if (!InventoryOptimizationPreferencesCodec.TryDecode("v4\nC|EMBER|0|2|0\nC|EMBER|1|6|0",
+        if (!InventoryOptimizationPreferencesCodec.TryDecode("v5\nS|1|0\nC|EMBER|0|2|0\nC|EMBER|1|6|0",
             InventorySearchEffort.Balanced, true, out var repeated) ||
             repeated.ComboPreferences.Single().Level != InventoryPreferenceLevel.Priority ||
             repeated.ComboPreferences.Single().TargetCount != 6)

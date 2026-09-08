@@ -85,6 +85,14 @@ internal static class InventoryAutomaticGoalChecks
 
     private static void VerifyTradeoffs()
     {
+        Require(ArtifactAutomaticLevelPolicy.SafeLevel(2, 0, null, new[] { 10, 20, 30 }) == 0 &&
+            ArtifactAutomaticLevelPolicy.SafeLevel(2, 1, null, new[] { 10, 20, 30 }) == 1,
+            "automatic leveling must retain the current additional magic cost");
+        Require(ArtifactAutomaticLevelPolicy.SafeLevel(3, 0, null, new[] { 10, 10, 5, 20 }) == 2 &&
+            ArtifactAutomaticLevelPolicy.SafeLevel(3, 0, null, new[] { 10 }) == 3,
+            "equal/decreasing costs and clamped short curves allow safe upgrades");
+        Require(ArtifactAutomaticLevelPolicy.SafeLevel(3, 0, new[] { new[] { -1, -2, -3, -4 } },
+            new[] { 10, 10, 10, 10 }) == 0, "stat penalties and magic costs share the stricter ceiling");
         Require(ArtifactAutomaticLevelPolicy.SafeLevel(6, 1, new[] { new[] { 300, 600, 900, 1200, 1500, 1800, 2100 } }) == 6,
             "Faultfinder Needle's positive critical curve must retain automatic max-level targeting");
         Require(ArtifactAutomaticLevelPolicy.SafeLevel(3, 1, new[] { new[] { 4, 8, 12, 16 }, new[] { -4, -6, -8, -10 } }) == 1,
@@ -94,7 +102,7 @@ internal static class InventoryAutomaticGoalChecks
         Require(ArtifactAutomaticLevelPolicy.SafeLevel(3, 0, new[] { new[] { -4, -4, -4, -5 } }) == 2,
             "safe upgrades with an unchanged penalty should remain available");
         var snapshot = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 1, 3 }, new[] { 0, 1 }, maxLevel: 3,
-            safeAutomaticLevels: new[] { 1, 3 });
+            safeAutomaticLevels: new[] { ArtifactAutomaticLevelPolicy.SafeLevel(3, 1, null, new[] { 0, 25, 50, 75 }), 3 });
         var preferences = AutoQueue(snapshot);
         var policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, preferences);
         var current = InventoryLayoutProjection.Current(snapshot);

@@ -585,8 +585,8 @@ namespace SephiriaEnhancements.Inventory
             constraintStrengthText.text = Loc._(rule.Strength == InventoryConstraintStrength.Hard
                 ? InventoryOptimizationLocalization.HudGoalHard : InventoryOptimizationLocalization.HudGoalSoft);
             constraintStrength.interactable = interaction.Editable;
-            levelCondition.text = InventoryOptimizationLocalization.FormatArtifactTarget(rule, item.Artifact, key => Loc._(key));
-            levelSummary.text = InventoryOptimizationLocalization.FormatArtifactGoalSummary(rule, item.Artifact, key => Loc._(key));
+            levelCondition.text = InventoryOptimizationLocalization.FormatArtifactTarget(rule, item.Artifact, key => Loc._(key), allowAdditionalMagicCost: preferences.AllowAdditionalMagicCost);
+            levelSummary.text = InventoryOptimizationLocalization.FormatArtifactGoalSummary(rule, item.Artifact, key => Loc._(key), preferences.AllowAdditionalMagicCost);
             levelMode.interactable = interaction.Editable && rule.Level == InventoryPreferenceLevel.Priority;
             bool specified = rule.Level == InventoryPreferenceLevel.Priority && rule.TargetMode == ArtifactLevelTargetMode.SpecifiedLevel;
             // Move focus before disabling the selected control. Native selection
@@ -665,6 +665,7 @@ namespace SephiriaEnhancements.Inventory
         {
             RefreshArrangementActions();
             title.text = Loc._(!preferencesExpanded ? InventoryOptimizationLocalization.HudTitle
+                : specialEffectsExpanded ? InventorySpecialEffectLocalization.Title
                 : detailsExpanded ? InventoryArrangementLocalization.ComboPriorities : InventoryArrangementLocalization.ArtifactPriorities);
             InventoryOptimizationPreferences preferences =
                 ExplorationInventoryIntentStore.Capture();
@@ -692,7 +693,7 @@ namespace SephiriaEnhancements.Inventory
                 !NativeInventoryIntentDrop.HasHeldItem;
             previousPageText.text = "‹";
             nextPageText.text = "›";
-            if (!preferencesExpanded || !detailsExpanded)
+            if (!preferencesExpanded || !detailsExpanded || specialEffectsExpanded)
             {
                 return;
             }
@@ -856,7 +857,7 @@ namespace SephiriaEnhancements.Inventory
                 {
                     canEdit = interaction.Editable && HasInventoryArtifact(rule.InstanceId, rule.EntityId);
                     hint = item.Name + "\n" + InventoryOptimizationLocalization.FormatArtifactFeedback(rule, item.Artifact,
-                        resultFeedback?.Find(rule.ItemKey), key => Loc._(key));
+                        resultFeedback?.Find(rule.ItemKey), key => Loc._(key), ExplorationInventoryIntentStore.Capture().AllowAdditionalMagicCost);
                 }
             }
 
@@ -1365,11 +1366,11 @@ namespace SephiriaEnhancements.Inventory
             close?.gameObject.SetActive(panelOpen);
             markPriorities?.gameObject.SetActive(panelOpen && preferencesExpanded && !detailsExpanded);
             optimize?.gameObject.SetActive(panelOpen);
-            bool showTargets = panelOpen && preferencesExpanded && detailsExpanded;
+            bool showTargets = panelOpen && preferencesExpanded && detailsExpanded && !specialEffectsExpanded;
             comboTargetsTitle?.gameObject.SetActive(showTargets);
-            previousPage?.gameObject.SetActive(panelOpen && preferencesExpanded);
-            nextPage?.gameObject.SetActive(panelOpen && preferencesExpanded);
-            status?.gameObject.SetActive(panelOpen && preferencesExpanded);
+            previousPage?.gameObject.SetActive(panelOpen && preferencesExpanded && !specialEffectsExpanded);
+            nextPage?.gameObject.SetActive(panelOpen && preferencesExpanded && !specialEffectsExpanded);
+            status?.gameObject.SetActive(panelOpen && preferencesExpanded && !specialEffectsExpanded);
             float pagingY = -(showTargets
                 ? InventoryOptimizationHudLayout.TargetPagingTop
                 : InventoryOptimizationHudLayout.BoardPagingTop);

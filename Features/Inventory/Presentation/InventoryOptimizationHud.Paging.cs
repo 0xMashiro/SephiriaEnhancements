@@ -10,7 +10,7 @@ namespace SephiriaEnhancements.Inventory
     {
         private void HandlePageShortcut()
         {
-            if (!NavigationAvailable || !panelOpen || !preferencesExpanded ||
+            if (!NavigationAvailable || !panelOpen || !preferencesExpanded || specialEffectsExpanded ||
                 !interaction.Editable || levelEditor.activeSelf || NativeInventoryIntentDrop.HasHeldItem ||
                 !IsCustomSelection(EventSystem.current?.currentSelectedGameObject)) return;
 
@@ -24,7 +24,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void RefreshPageNavigation()
         {
-            if (!panelOpen || !preferencesExpanded || levelEditor.activeSelf) return;
+            if (!panelOpen || !preferencesExpanded || specialEffectsExpanded || levelEditor.activeSelf) return;
             var previous = (UI_HorayButton)previousPage;
             var next = (UI_HorayButton)nextPage;
             Button entry = previous.IsInteractable() ? previous : next.IsInteractable() ? next : null;

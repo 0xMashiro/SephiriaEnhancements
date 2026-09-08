@@ -1262,6 +1262,7 @@ namespace SephiriaEnhancements.Configuration
             CombatVisualLocalization.Register(addText, languages);
             ResourceBarValues.ResourceBarValueLocalization.Register(addText, languages);
             Inventory.InventoryOptimizationLocalization.Register(addText);
+            Inventory.InventorySpecialEffectLocalization.Register(addText);
             MultiplayerRulesLocalization.Register(addText, languages);
             MultiplayerAccessLocalization.Register(addText, languages);
 

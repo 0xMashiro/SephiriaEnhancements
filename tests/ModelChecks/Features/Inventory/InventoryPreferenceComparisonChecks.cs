@@ -18,6 +18,9 @@ internal static class InventoryPreferenceComparisonChecks
 
     private static void ExplicitIntentPrecedesDefaults()
     {
+        Higher(Score(manualTargets: 1), Score(effectUtilization: 10000), "manual targets precede automatic effect utilization");
+        Higher(Score(), Score(positionLosses: 1, effectUtilization: 10000), "effect gains cannot bypass existing protection");
+        Higher(Score(effectUtilization: 1), Score(levels: 100), "active effect utilization precedes surplus aggregate levels");
         Higher(Score(exclusions: 0, positionLosses: 9, penaltyRisks: 9),
             Score(exclusions: 1, queue: new[] { 10000 }), "exclusion overrides defaults and priority");
         Higher(Score(queue: new[] { 1, 0 }, positionLosses: 9, penaltyRisks: 9),
@@ -81,7 +84,7 @@ internal static class InventoryPreferenceComparisonChecks
         var random = new Random(4931);
         var scores = Enumerable.Range(0, 32).Select(_ => Score(exclusions: random.Next(2),
             queue: new[] { random.Next(3), random.Next(3) }, positionLosses: random.Next(3), penaltyRisks: random.Next(2),
-            moves: random.Next(3), rotations: random.Next(2), levels: random.Next(5), manualTargets: random.Next(2))).ToArray();
+            moves: random.Next(3), rotations: random.Next(2), levels: random.Next(5), manualTargets: random.Next(2), effectUtilization: random.Next(10001))).ToArray();
         foreach (var a in scores)
             foreach (var b in scores)
             {
@@ -98,9 +101,9 @@ internal static class InventoryPreferenceComparisonChecks
 
     private static InventoryOptimizationScore Score(int exclusions = 0, int[]? queue = null,
         int positionLosses = 0, int penaltyRisks = 0, int moves = 0, int rotations = 0, int levels = 0,
-        int manualTargets = 0, int manualCompletion = 0, int presetTargets = 0) =>
+        int manualTargets = 0, int manualCompletion = 0, int presetTargets = 0, int effectUtilization = 0) =>
         new(manualTargets, manualCompletion, exclusions, presetTargets, 0, 0, 0, 0, levels, 0, moves, rotations,
-            queue, positionLosses, penaltyRisks);
+            queue, positionLosses, penaltyRisks, positionEffectUtilizationPoints: effectUtilization);
     private static void Higher(InventoryOptimizationScore a, InventoryOptimizationScore b, string message) =>
         Check(a.CompareTo(b) > 0 && b.CompareTo(a) < 0, message);
     private static void Check(bool condition, string message)

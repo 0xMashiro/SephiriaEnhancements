@@ -308,7 +308,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             }
         }
 
-        private static bool EvaluateTabletCondition(InventorySnapshot snapshot,
+        internal static bool EvaluateTabletCondition(InventorySnapshot snapshot,
             TabletRotationProjectionSnapshot projection, int origin,
             int[] itemAtCell)
         {

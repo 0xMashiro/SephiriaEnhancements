@@ -10,7 +10,9 @@ internal static class InventoryHudInteractionChecks
     internal static string Run()
     {
         VerifyDisclosureLayout();
-        VerifyBounds(new[] { (20f, 30f), (56f, 32f), (Layout.CompactActionsTop, Layout.ActionsHeight) }, Layout.CompactHeight);
+        VerifyBounds(new[] { (20f, 30f), (56f, 32f), (96f, 32f), (Layout.CompactActionsTop, Layout.ActionsHeight) }, Layout.CompactHeight);
+        VerifyBounds(new[] { (104f, 36f), (146f, 94f), (250f, 36f), (292f, 94f), (394f, 32f),
+            (Layout.ActionsTop, Layout.ActionsHeight) }, Layout.Height);
         VerifyPickupPlacement();
         VerifySelectionLifecycle();
         VerifyPagesAndReordering();

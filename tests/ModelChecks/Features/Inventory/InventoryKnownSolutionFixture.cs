@@ -10,7 +10,7 @@ internal static class InventoryKnownSolutionFixture
 {
     // Controlled model fixtures, not real items or observed saves. Initial settlement
     // and the planted layout are computed here without calling the production projector.
-    internal static InventoryKnownSolution Create(int storage, int seed)
+    internal static InventoryKnownSolution Create(int storage, int seed, string variant = "Neighbor")
     {
         int rows = storage / 6;
         int artifacts = 6 + (rows - 1) * 4;
@@ -31,7 +31,7 @@ internal static class InventoryKnownSolutionFixture
             ArtifactActivationConditionKind.BothSidesArtifacts };
         var artifactCells = positions.Take(artifacts).ToHashSet();
         var stoneTablets = Enumerable.Range(0, tablets).Select(t => Tablet(storage, t, positions[artifacts + t],
-            rotations[artifacts + t], artifactCells)).ToArray();
+            rotations[artifacts + t], artifactCells, positions.ToHashSet(), variant)).ToArray();
         int[] levels = new int[storage], multipliers = new int[storage], disables = new int[storage], bypasses = new int[storage];
         for (int t = 0; t < tablets; t++)
         {
@@ -110,7 +110,7 @@ internal static class InventoryKnownSolutionFixture
             goals.Select((i, rank) => new ArtifactOptimizationPreference(i, 10000 + i, InventoryPreferenceLevel.Priority, 6, rank)).ToArray(),
             new[] { new ComboOptimizationPreference("FIRE", InventoryPreferenceLevel.Priority, 10),
                 new ComboOptimizationPreference("ICE", InventoryPreferenceLevel.Priority, 10) });
-        return new InventoryKnownSolution("Planted-" + storage, seed, snapshot, preferences,
+        return new InventoryKnownSolution("Planted-" + storage + "-" + variant, seed, snapshot, preferences,
             new InventoryLayoutProjection(witnessCells, witnessRotations));
     }
 
@@ -130,7 +130,7 @@ internal static class InventoryKnownSolutionFixture
         new(x, y, "synthetic", x >= 0 && x < 6 && y >= 0 && y * 6 + x < storage,
             false, false, false, false, false, false, effectKind: kind, levelParameter: value);
 
-    private static StoneTabletSnapshot Tablet(int storage, int index, int origin, int rotation, HashSet<int> artifacts)
+    private static StoneTabletSnapshot Tablet(int storage, int index, int origin, int rotation, HashSet<int> artifacts, HashSet<int> occupied, string variant)
     {
         bool primary = index % 2 == 0;
         var placements = Enumerable.Range(0, storage).Select(cell => new TabletPlacementProjectionSnapshot(cell, cell % 6, cell / 6,
@@ -141,12 +141,33 @@ internal static class InventoryKnownSolutionFixture
                 { 0 => TabletEffectKind.MultiplyLevel, 1 => TabletEffectKind.Disable, 2 => TabletEffectKind.IgnoreCriteria, _ => TabletEffectKind.IncreaseLevel };
                 var effects = Enumerable.Range(1, primary ? 4 : 1).Select(distance => Addition(cell % 6 + direction.Item1 * distance,
                     cell / 6 + direction.Item2 * distance, storage, kind, primary ? 4 : 2)).ToArray();
-                var criteria = primary ? new[] { new TabletAdditionSnapshot(effects[0].X, effects[0].Y, "artifact", effects[0].ValidCell,
-                    false, false, false, false, false, false, criteriaKind: TabletCriteriaKind.Artifact) } : Array.Empty<TabletAdditionSnapshot>();
-                return new TabletRotationProjectionSnapshot(r, criteria, effects, true);
+                var criteria = new List<TabletAdditionSnapshot>();
+                if (primary)
+                {
+                    foreach (var effect in effects.Take(variant == "Neighbor" ? 1 : 2))
+                        criteria.Add(new TabletAdditionSnapshot(effect.X, effect.Y, "CHARM", effect.ValidCell,
+                            false, false, false, false, false, false, TabletCriteriaKind.Artifact));
+                    if (variant == "PlacementAndNeighbors")
+                        for (int row = 0; row * 6 + 4 < storage; row++)
+                            criteria.Add(new TabletAdditionSnapshot(4, row, "PLACED", true,
+                                true, true, false, false, false, false, TabletCriteriaKind.Placed));
+                    if (variant == "SignedEffects")
+                    {
+                        var behind = Addition(cell % 6 - direction.Item1, cell / 6 - direction.Item2,
+                            storage, TabletEffectKind.IncreaseLevel, -1);
+                        criteria.Add(new TabletAdditionSnapshot(behind.X, behind.Y, "ITEM", behind.ValidCell,
+                            false, false, false, false, false, false, TabletCriteriaKind.AnyItem));
+                        effects = effects.Append(behind).ToArray();
+                    }
+                }
+                return new TabletRotationProjectionSnapshot(r, criteria.ToArray(), effects, true);
             }).ToArray())).ToArray();
         var current = placements[origin].FindRotation(rotation);
-        bool applied = current.Criteria.All(criterion => criterion.ValidCell && artifacts.Contains(criterion.Y * 6 + criterion.X));
+        bool applied = current.Criteria.Where(c => c.CriteriaKind != TabletCriteriaKind.Placed).All(c =>
+            c.ValidCell && (c.CriteriaKind == TabletCriteriaKind.AnyItem
+                ? occupied.Contains(c.Y * 6 + c.X) : artifacts.Contains(c.Y * 6 + c.X))) &&
+            (!current.Criteria.Any(c => c.CriteriaKind == TabletCriteriaKind.Placed) ||
+                current.Criteria.Any(c => c.CriteriaKind == TabletCriteriaKind.Placed && c.Y * 6 + c.X == origin));
         return new StoneTabletSnapshot(rotation, true, false, applied, false, "synthetic", "synthetic",
             placements[origin].Rotations.ToArray(), placements);
     }

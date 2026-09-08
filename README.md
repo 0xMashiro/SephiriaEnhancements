@@ -16,7 +16,11 @@
 Combat information, keyboard controls, backpack arrangement and exploration tools for Sephiria.
 Uses the game's built-in AddOns system; no BepInEx required.
 
-**Beta:** backpack arrangement is experimental.
+**Beta:** backpack arrangement is experimental. It also seeks better use of supported
+position-dependent artifact effects, such as adjacent magic modifiers and same-row companion effects.
+Your explicit priorities take precedence. By default, existing bonuses are preserved and additional MP costs are limited.
+Under **Special effects**, choose whether to redistribute bonuses or allow upgrades that cost more MP.
+Search is bounded and does not guarantee an optimal layout or maximum combat damage.
 
 ## Features
 

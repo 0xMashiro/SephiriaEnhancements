@@ -10,6 +10,13 @@ internal static class InventoryRowCategoryStatChecks
 
     internal static void Run()
     {
+        var proactive = Board(2, new[] { 0, 0, 1, 1, 2, 2 });
+        var policy = InventoryOptimizationPolicyResolver.Resolve(proactive, InventoryOptimizationPreferences.Default);
+        var optimized = InventoryOptimizer.Solve(proactive, policy, new InventorySearchBudget(4, 100, int.MaxValue));
+        Check(optimized.Improved && optimized.Layout.GetCell(0) >= 4 &&
+            optimized.BestScore.PositionEffectUtilizationPoints > optimized.CurrentScore.PositionEffectUtilizationPoints &&
+            optimized.BestScore.PositionEffectRegressions == 0,
+            "row effect must improve within its original channel by default");
         RowAndActivationProjection();
         PreserveStatChannelAndRespectAvoid();
         RejectIncompleteOrStaleState();

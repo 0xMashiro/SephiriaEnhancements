@@ -10,8 +10,8 @@ namespace SephiriaEnhancements.Inventory
         internal const float NativeUnitScale = 2f;
         internal const float Width = 360f;
         internal const float Height = 496f;
-        internal const float CompactHeight = 164f;
-        internal const float CompactActionsTop = 112f;
+        internal const float CompactHeight = 204f;
+        internal const float CompactActionsTop = 152f;
         internal const float PrioritySlotsTop = 128f;
         internal const float AvoidSlotsTop = 216f;
         internal const float SlotSize = 48f;

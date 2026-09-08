@@ -128,7 +128,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
     internal static class ArtifactAutomaticLevelPolicy
     {
-        internal static int SafeLevel(int maximum, int current, IEnumerable<int[]> statCurves)
+        internal static int SafeLevel(int maximum, int current, IEnumerable<int[]> statCurves,
+            int[] additionalMagicCostPercentByLevel = null)
         {
             int baseline = Math.Max(0, Math.Min(maximum, current));
             int limit = Math.Max(0, maximum);
@@ -139,6 +140,16 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 for (int level = baseline + 1; level <= limit; level++)
                 {
                     if (curve[Math.Min(level, curve.Length - 1)] >= penalty) continue;
+                    limit = level - 1;
+                    break;
+                }
+            }
+            if (additionalMagicCostPercentByLevel != null && additionalMagicCostPercentByLevel.Length > 0)
+            {
+                int cost = additionalMagicCostPercentByLevel[Math.Min(baseline, additionalMagicCostPercentByLevel.Length - 1)];
+                for (int level = baseline + 1; level <= limit; level++)
+                {
+                    if (additionalMagicCostPercentByLevel[Math.Min(level, additionalMagicCostPercentByLevel.Length - 1)] <= cost) continue;
                     limit = level - 1;
                     break;
                 }
@@ -158,7 +169,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             string[] possibleCategories, bool attackable,
             MagicSnapshot magic,
             ArtifactCategoryRuleSnapshot categoryRule = null,
-            int? safeAutomaticLevel = null)
+            int? safeAutomaticLevel = null, int? statPenaltySafeLevel = null)
         {
             DisplayedLevel = displayedLevel;
             MaxLevel = maxLevel;
@@ -184,6 +195,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             Magic = magic;
             CategoryRule = categoryRule ?? ArtifactCategoryRuleSnapshot.Static;
             SafeAutomaticLevel = Math.Max(0, Math.Min(maxLevel, safeAutomaticLevel ?? maxLevel));
+            StatPenaltySafeLevel = Math.Max(SafeAutomaticLevel, Math.Min(maxLevel, statPenaltySafeLevel ?? SafeAutomaticLevel));
         }
 
         internal int DisplayedLevel { get; }
@@ -205,7 +217,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
         internal bool Attackable { get; }
         internal MagicSnapshot Magic { get; }
         internal ArtifactCategoryRuleSnapshot CategoryRule { get; }
-        // A conservative ceiling for upgrades that would worsen a direct stat penalty.
+        internal int StatPenaltySafeLevel { get; }
+        // Includes both direct stat penalties and captured additional magic cost.
         internal int SafeAutomaticLevel { get; }
     }
 

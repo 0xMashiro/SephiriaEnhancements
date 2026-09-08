@@ -344,6 +344,10 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 CaptureCategoryRule(charm),
                 ArtifactAutomaticLevelPolicy.SafeLevel(charm.maxLevel,
                     charm.IsEffectEnabled ? charm.limitedEffectEnabledLevel : 0,
+                    (charm as Charm_StatusInstance)?.stats?.Select(stat => stat?.valuesByLevel),
+                    (charm as Charm_BoltMagicMultiShot)?.additionalCostPercent),
+                ArtifactAutomaticLevelPolicy.SafeLevel(charm.maxLevel,
+                    charm.IsEffectEnabled ? charm.limitedEffectEnabledLevel : 0,
                     (charm as Charm_StatusInstance)?.stats?.Select(stat => stat?.valuesByLevel)));
         }
 

@@ -26,6 +26,8 @@ namespace SephiriaEnhancements.Inventory
 
     internal enum InventorySearchStage
     {
+        TabletPlacementSetup,
+        PositionEffectSetup,
         Simple,
         SwapAndRotation,
         TwoSwaps,
@@ -88,7 +90,7 @@ namespace SephiriaEnhancements.Inventory
         IComparable<InventoryOptimizationScore>
     {
         // Identifies the preference comparator, independently of game mechanisms.
-        internal const string ObjectiveId = "hard-feasible-ordered-damage-v3";
+        internal const string ObjectiveId = "hard-feasible-special-effects-v5";
         internal InventoryOptimizationScore(int priorityTargetsSatisfied,
             int priorityTargetCompletionPoints, int avoidedTargetsActive,
             int presetTargetsSatisfied,
@@ -101,8 +103,9 @@ namespace SephiriaEnhancements.Inventory
             int[] orderedPriorityCompletionPoints = null,
             int positionEffectRegressions = 0, int automaticLevelRegressions = 0,
             int hardConstraintViolations = 0, int hardConstraintCompletionPoints = 0,
-            double[] orderedPriorityDamageBonuses = null)
+            double[] orderedPriorityDamageBonuses = null, int positionEffectUtilizationPoints = 0)
         {
+            PositionEffectUtilizationPoints = positionEffectUtilizationPoints;
             HardConstraintViolations = hardConstraintViolations;
             HardConstraintCompletionPoints = hardConstraintCompletionPoints;
             PriorityTargetsSatisfied = priorityTargetsSatisfied;
@@ -130,6 +133,7 @@ namespace SephiriaEnhancements.Inventory
                 ? Array.Empty<double>() : (double[])orderedPriorityDamageBonuses.Clone());
         }
 
+        internal int PositionEffectUtilizationPoints { get; }
         internal int PriorityTargetsSatisfied { get; }
         internal int HardConstraintViolations { get; }
         internal int HardConstraintCompletionPoints { get; }
@@ -184,6 +188,8 @@ namespace SephiriaEnhancements.Inventory
             if (comparison != 0) return comparison;
             comparison = ComboBreakpointValue.CompareTo(
                 other.ComboBreakpointValue);
+            if (comparison != 0) return comparison;
+            comparison = PositionEffectUtilizationPoints.CompareTo(other.PositionEffectUtilizationPoints);
             if (comparison != 0) return comparison;
             comparison = CappedEffectiveArtifactLevelTotal.CompareTo(
                 other.CappedEffectiveArtifactLevelTotal);

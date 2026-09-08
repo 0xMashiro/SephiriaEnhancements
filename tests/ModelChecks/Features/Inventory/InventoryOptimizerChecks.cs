@@ -8,6 +8,7 @@ internal static class InventoryOptimizerChecks
 {
     internal static void Run()
     {
+        VerifyTabletActivationSetup();
         InventorySnapshot rowSnapshot = InventorySnapshotFixture.RowDependentArtifact();
         ResolvedInventoryOptimizationPolicy defaultPolicy =
             InventoryOptimizationPolicyResolver.Resolve(rowSnapshot,
@@ -132,5 +133,29 @@ internal static class InventoryOptimizerChecks
                 "hybrid solver must prove small spaces and budget larger spaces with neighborhood search");
         }
         Console.WriteLine("InventoryOptimizerSelector: exact-small and bounded-neighborhood selection passed");
+    }
+    private static void VerifyTabletActivationSetup()
+    {
+        foreach (bool recipientCondition in new[] { false, true })
+        {
+            var snapshot = InventoryNeighborhoodFixture.StoneTabletMoveAndRotation(activationSetup: true, recipientCondition: recipientCondition);
+            var policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, InventoryOptimizationPreferences.Default);
+            var current = InventoryLayoutProjection.Current(snapshot);
+            var scorer = new InventoryOptimizationScorer(snapshot, policy);
+            var baseline = scorer.Score(current, InventorySettlementProjector.Evaluate(snapshot, current));
+            foreach (var candidate in InventoryCandidateNeighborhoods.Simple(snapshot, current, false))
+                if (scorer.Score(candidate, InventorySettlementProjector.Evaluate(snapshot, candidate)).CompareTo(baseline) > 0)
+                    throw new InvalidOperationException("activation fixture must require a companion move");
+            var candidates = InventoryCandidateNeighborhoods.TabletPlacementSetup(snapshot, current, false).ToArray();
+            if (!candidates.Any(layout => layout.GetCell(1) == 4 && layout.GetCell(0) == 5) ||
+                candidates.Any(layout => layout.GetCell(1) != 4 || layout.GetRotation(1) != 0))
+                throw new InvalidOperationException("tablet setup must satisfy projected placement and rotation restrictions");
+            var result = InventoryOptimizer.Solve(snapshot, policy,
+                new InventorySearchBudget(4, 100, 1000));
+            if (!result.Improved || result.BestScore.CappedEffectiveArtifactLevelTotal != 1 ||
+                result.BestScore.EnabledArtifactCount != baseline.EnabledArtifactCount ||
+                !result.SearchStages.Any(stage => stage.Stage == InventorySearchStage.TabletPlacementSetup && stage.Improvements > 0))
+                throw new InvalidOperationException("condition and beneficiary placement must be found within a small budget");
+        }
     }
 }

@@ -15,7 +15,7 @@ internal static class InventoryNeighborhoodFixture
             }, new[] { 2, 0, 4 });
     }
 
-    internal static InventorySnapshot StoneTabletMoveAndRotation()
+    internal static InventorySnapshot StoneTabletMoveAndRotation(bool activationSetup = false, bool recipientCondition = false)
     {
         const int storage = 6;
         var cells = new InventoryCellSnapshot[storage];
@@ -60,10 +60,10 @@ internal static class InventoryNeighborhoodFixture
             var rotations = new TabletRotationProjectionSnapshot[4];
             for (int rotation = 0; rotation < rotations.Length; rotation++)
             {
-                TabletAdditionSnapshot[] effects = cell == 4 && rotation == 1
+                TabletAdditionSnapshot[] effects = cell == 4 && rotation == (activationSetup ? 0 : 1)
                     ? new[]
                     {
-                        new TabletAdditionSnapshot(2, 0, "+1",
+                        new TabletAdditionSnapshot(activationSetup ? 5 : 2, 0, "+1",
                             validCell: true, xWorldPosition: false,
                             yWorldPosition: false, borderTop: false,
                             borderRight: false, borderBottom: false,
@@ -73,14 +73,20 @@ internal static class InventoryNeighborhoodFixture
                     }
                     : Array.Empty<TabletAdditionSnapshot>();
                 rotations[rotation] = new TabletRotationProjectionSnapshot(
-                    rotation, Array.Empty<TabletAdditionSnapshot>(), effects,
+                    rotation, activationSetup ? new[] {
+                        new TabletAdditionSnapshot(4, 0, "PLACED", true, true, false,
+                            false, false, false, false, TabletCriteriaKind.Placed)
+                    }.Concat(recipientCondition ? new[] {
+                        new TabletAdditionSnapshot(5, 0, "CHARM", true, true, false,
+                            false, false, false, false, TabletCriteriaKind.Artifact)
+                    } : Array.Empty<TabletAdditionSnapshot>()).ToArray() : Array.Empty<TabletAdditionSnapshot>(), effects,
                     parseSucceeded: true);
             }
             placements[cell] = new TabletPlacementProjectionSnapshot(cell,
                 x: cell, y: 0, rotations);
         }
         var stoneTablet = new StoneTabletSnapshot(rotation: 0,
-            rotatable: true, custom: false, applied: true,
+            rotatable: !activationSetup, custom: false, applied: !activationSetup,
             includesCriteriaInMinMaxGrid: false,
             conditionQuery: string.Empty, effectQuery: string.Empty,
             placementProjections: placements);

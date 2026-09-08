@@ -160,20 +160,20 @@ namespace SephiriaEnhancements.Inventory
             level == 0 ? localize(HudEnabled) : string.Format(localize(HudMinimumLevel), level);
 
         internal static string FormatArtifactTarget(ArtifactOptimizationPreference rule,
-            ArtifactSnapshot artifact, Func<string, string> localize, int? targetLevel = null)
+            ArtifactSnapshot artifact, Func<string, string> localize, int? targetLevel = null, bool allowAdditionalMagicCost = false)
         {
             if (rule.Level == InventoryPreferenceLevel.Avoid) return localize(HudAvoidGoal);
-            int target = targetLevel ?? rule.ResolveTargetLevel(artifact);
+            int target = targetLevel ?? rule.ResolveTargetLevel(artifact, allowAdditionalMagicCost);
             string condition = FormatArtifactMinimumLevel(target, localize);
             return rule.TargetMode != ArtifactLevelTargetMode.Automatic ? condition
-                : string.Format(localize(artifact.SafeAutomaticLevel < artifact.MaxLevel
+                : string.Format(localize(target < artifact.MaxLevel
                     ? HudArtifactSafeAuto : HudArtifactAuto), condition);
         }
 
         internal static string FormatArtifactFeedback(ArtifactOptimizationPreference rule,
-            ArtifactSnapshot artifact, InventoryArtifactGoalFeedback feedback, Func<string, string> localize)
+            ArtifactSnapshot artifact, InventoryArtifactGoalFeedback feedback, Func<string, string> localize, bool allowAdditionalMagicCost = false)
         {
-            int target = feedback?.TargetLevel ?? rule.ResolveTargetLevel(artifact);
+            int target = feedback?.TargetLevel ?? rule.ResolveTargetLevel(artifact, allowAdditionalMagicCost);
             bool active = feedback?.Active ?? artifact.EffectEnabled;
             string current = !active ? localize(HudCurrentInactive)
                 : target == 0 || rule.Level == InventoryPreferenceLevel.Avoid ? localize(HudCurrentActive)
@@ -190,9 +190,9 @@ namespace SephiriaEnhancements.Inventory
         }
 
         internal static string FormatArtifactGoalSummary(ArtifactOptimizationPreference rule,
-            ArtifactSnapshot artifact, Func<string, string> localize) =>
+            ArtifactSnapshot artifact, Func<string, string> localize, bool allowAdditionalMagicCost = false) =>
             string.Format(localize(rule.Strength == InventoryConstraintStrength.Hard
-                ? HudGoalHardSummary : HudGoalSoftSummary), FormatArtifactTarget(rule, artifact, localize));
+                ? HudGoalHardSummary : HudGoalSoftSummary), FormatArtifactTarget(rule, artifact, localize, allowAdditionalMagicCost: allowAdditionalMagicCost));
 
         internal const string HudGoalTitle = "SephiriaEnhancements.InventoryHud.GoalTitle";
         internal const string HudGoalTarget = "SephiriaEnhancements.InventoryHud.GoalTarget";

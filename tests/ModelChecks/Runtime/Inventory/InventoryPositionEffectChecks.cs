@@ -7,6 +7,7 @@ internal static class InventoryPositionEffectChecks
 {
     internal static string Run()
     {
+        ProactiveEffectObjectives();
         NeighborDamageAndOptimization();
         AdjacentTargets();
         CompanionRow();
@@ -18,6 +19,53 @@ internal static class InventoryPositionEffectChecks
         ClientProjectionWithoutObservations();
         MixedSearchBudget();
         return "9 effect kinds; runtime parameters; native-state mismatch; client prediction without private observations; benefit preservation; inactive targets; dependency chains and cycles passed";
+    }
+
+    private static void ProactiveEffectObjectives()
+    {
+        var compoundRule = new InventoryPositionEffectRule(Key(0), InventoryPositionEffectKind.MagicCooldownRecovery,
+            new[] { 3.0 }, offsets: new[] { new InventoryOffsetSnapshot(0, 1) });
+        var compound = Board(3, new[] { 1, 1, -1, -1, 1, 1 }, new[] { 0, 5 }, new[] { compoundRule },
+            Array.Empty<InventoryPositionEffectValue>(), observationsAvailable: false);
+        var compoundPolicy = InventoryOptimizationPolicyResolver.Resolve(compound, InventoryOptimizationPreferences.Default);
+        var combined = InventoryOptimizer.Solve(compound, compoundPolicy, new InventorySearchBudget(4, 100, int.MaxValue));
+        Check(combined.Improved && combined.BestScore.PositionEffectUtilizationPoints == 10000 &&
+            combined.SearchStages.Any(stage => stage.Stage == InventorySearchStage.PositionEffectSetup && stage.Improvements > 0),
+            "source and recipient must move together without losing active artifacts");
+        var kinds = Enum.GetValues<InventoryPositionEffectKind>().Where(kind => kind != InventoryPositionEffectKind.RowCategoryStats);
+        int cases = 0, improvements = 0;
+        foreach (var kind in kinds)
+            foreach (int seed in new[] { 11, 29, 71, 103, 419, 2027 })
+            {
+                int[] positions = Enumerable.Range(0, 6).ToArray();
+                new Random(seed).Shuffle(positions);
+                var rule = new InventoryPositionEffectRule(Key(0), kind, new[] { 2.0, 4.0, 6.0, 8.0 },
+                    new[] { 1.0, 2.0, 3.0, 4.0 }, new[] { new InventoryOffsetSnapshot(1, 0) },
+                    boundary: 1, channels: new[] { "A", "B" }, targetCategory: "TestPlanet", conditionalDamage: true, maximumRarity: 3);
+                var snapshot = Board(3, Enumerable.Repeat(1, 6).ToArray(), positions.Take(3).ToArray(),
+                    new[] { rule }, Array.Empty<InventoryPositionEffectValue>(), observationsAvailable: false);
+                RequireReady(snapshot);
+                var policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, InventoryOptimizationPreferences.Default);
+                var exact = InventoryExhaustiveSearchOracle.Solve(snapshot, policy,
+                    new InventoryExhaustiveSearchLimits(1000, 5000));
+                var result = InventoryOptimizer.Solve(snapshot, policy, new InventorySearchBudget(16, 1000, int.MaxValue));
+                Check(exact.ProvenOptimal && result.Succeeded && result.BestScore.CompareTo(exact.BestScore) == 0 &&
+                    result.CandidateEvaluations <= 1000, "effect objective exhaustive comparison: " + kind + "/" + seed);
+                if (result.Improved) improvements++;
+                cases++;
+            }
+        Check(improvements > 0, "default search must actively improve position effects at constant artifact levels");
+        foreach (double units in new[] { 0.01, 1.0, 1000.0 })
+        {
+            var rule = new InventoryPositionEffectRule(Key(0), InventoryPositionEffectKind.MagicCooldownRecovery,
+                new[] { units, units * 2 }, offsets: new[] { new InventoryOffsetSnapshot(1, 0) });
+            var snapshot = Board(3, new int[6], new[] { 0, 1 }, new[] { rule },
+                Array.Empty<InventoryPositionEffectValue>(), observationsAvailable: false);
+            var current = InventoryLayoutProjection.Current(snapshot);
+            Equal(5000, Scorer(snapshot).Score(current, InventorySettlementProjector.Evaluate(snapshot, current))
+                .PositionEffectUtilizationPoints, "objective must not mix raw damage and percentage units");
+        }
+        Console.WriteLine($"Position effect objectives: {cases} exact comparisons; {improvements} improved without level gains; unit scaling passed");
     }
 
     private static void NeighborDamageAndOptimization()
@@ -319,7 +367,7 @@ internal static class InventoryPositionEffectChecks
     private static InventoryPositionTargetTraits[] Traits(int count) => Enumerable.Range(0, count)
         .Select(index => new InventoryPositionTargetTraits(Key(index), index > 0, index > 0, true, index, index > 0)).ToArray();
 
-    private static InventorySnapshot Board(int width, int[] levels, int[] positions,
+    internal static InventorySnapshot Board(int width, int[] levels, int[] positions,
         InventoryPositionEffectRule[] rules, InventoryPositionEffectValue[] observed,
         InventoryPositionTargetTraits[]? traits = null, string[]? issues = null, bool observationsAvailable = true)
     {

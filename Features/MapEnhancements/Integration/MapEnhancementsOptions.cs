@@ -8,6 +8,17 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
     {
         internal static void Inject(UI_OptionsPanel panel, UI_OptionBox_PartyMemberDamage template, Transform section)
         {
+            if (panel.GetComponentInChildren<MapEnabledOption>(true) == null)
+            {
+                GameObject row = CloneRow(template, section,
+                    "Option_SephiriaEnhancements_MapEnabled",
+                    MapEnhancementsLocalization.SettingEnabled,
+                    MapEnhancementsLocalization.HelpEnabled, 5,
+                    out UI_HorizontalSelectionBox box, out UI_LocalizationStringText text);
+                row.AddComponent<MapEnabledOption>().Configure(box, text);
+                MarkCategory(row, OptionsCategory.General);
+                row.SetActive(true);
+            }
             if (panel.GetComponentInChildren<ShowHiddenRoomsOption>(true) == null)
             {
                 CreateShowHiddenRoomsRow(template, section);
@@ -27,6 +38,44 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
             MarkCategory(row, OptionsCategory.General);
             row.SetActive(true);
         }
+    }
+
+    internal sealed class MapEnabledOption : MonoBehaviour
+    {
+        private UI_HorizontalSelectionBox box;
+        private UI_LocalizationStringText valueText;
+
+        internal void Configure(UI_HorizontalSelectionBox selectionBox, UI_LocalizationStringText text)
+        {
+            box = selectionBox;
+            valueText = text;
+        }
+
+        private void OnEnable()
+        {
+            if (box == null) return;
+            box.numberOfElements = 2;
+            box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
+            box.OnValueChanged += Changed;
+            box.ChangeValueWithoutNotify(MapEnhancementsSettings.Enabled ? 1 : 0);
+            RefreshText();
+        }
+
+        private void OnDisable()
+        {
+            if (box != null) box.OnValueChanged -= Changed;
+        }
+
+        private void Changed(int value)
+        {
+            MapEnhancementsSettings.Enabled = value == 1;
+            EnhancementsSettings.Save();
+            MapEnhancementsController.ApplySettings();
+            RefreshText();
+        }
+
+        private void RefreshText() => valueText?.UpdateKey(MapEnhancementsSettings.Enabled
+            ? MapEnhancementsLocalization.On : MapEnhancementsLocalization.Off);
     }
 
     internal sealed class ShowHiddenRoomsOption : MonoBehaviour
@@ -59,6 +108,15 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
         private void OnDisable()
         {
             if (box != null) box.OnValueChanged -= Changed;
+        }
+
+        private void Update()
+        {
+            if (box == null || box.interactable == MapEnhancementsSettings.IsActive) return;
+            box.interactable = MapEnhancementsSettings.IsActive;
+            UI_OptionsPanel panel = GetComponentInParent<UI_OptionsPanel>();
+            var template = panel?.GetComponentInChildren<UI_OptionBox_PartyMemberDamage>(true);
+            if (template != null) OptionsPanelPatch.WireNavigation(panel, template);
         }
 
         private void Changed(int value)

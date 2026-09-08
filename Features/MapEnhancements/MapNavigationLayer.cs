@@ -6,6 +6,7 @@ using SephiriaEnhancements.MapEnhancements.Core;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using SephiriaEnhancements.MapEnhancements.Integration;
 
 namespace SephiriaEnhancements.MapEnhancements
 {
@@ -21,12 +22,14 @@ namespace SephiriaEnhancements.MapEnhancements
             AccessTools.FieldRefAccess<UnitAI_NewBasic, GameObject>("destinyQuestMarker");
         private static readonly AccessTools.FieldRef<UI_MapPanel, Dictionary<PlayerSpawner, RectTransform>> NativePlayers =
             AccessTools.FieldRefAccess<UI_MapPanel, Dictionary<PlayerSpawner, RectTransform>>("viewedPlayerIcons");
+        private static readonly AccessTools.FieldRef<UI_MapPanel, UI_Map> NativeCurrentMap =
+            AccessTools.FieldRefAccess<UI_MapPanel, UI_Map>("currentMap");
 
         private readonly Dictionary<Transform, MapLocationMarkerView> labels = new();
         private readonly HashSet<Transform> visible = new();
         private readonly List<Transform> removed = new();
         private readonly Dictionary<UI_MinimapElement, (Vector2 Position, Vector3 Scale)> iconPositions = new();
-        private readonly Dictionary<RectTransform, Vector2> playerPositions = new();
+        private readonly Dictionary<RectTransform, (Vector2 Position, bool Active)> playerPositions = new();
         private UI_MapPanel panel;
         private UI_Map map;
         private FloorGenerator floor;
@@ -143,7 +146,7 @@ namespace SephiriaEnhancements.MapEnhancements
         {
             if (root == null) return;
             PlayerAvatar player = LocalPlayerResolver.Resolve();
-            if (!EnhancementsSettings.Enabled || floor == null || player == null ||
+            if (!MapEnhancementsSettings.IsActive || floor == null || player == null ||
                 player.currentFloorGuid != floor.guid)
             {
                 Clear();
@@ -159,8 +162,8 @@ namespace SephiriaEnhancements.MapEnhancements
                 foreach (var symbol in landmarkSymbols) symbol.localScale = Vector3.one / navigator.Scale;
                 navigator.Tick();
             }
-            PositionNativePlayers();
             PositionNativeIcons();
+            PositionNativePlayers();
             if (Time.unscaledTime < nextRefreshAt) return;
             nextRefreshAt = Time.unscaledTime + 0.2f;
             visible.Clear();
@@ -215,24 +218,49 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void PositionNativeIcons()
         {
+            var roomIcons = new Dictionary<UI_Map_Room, List<UI_MinimapElement>>();
             foreach (var pair in NativeIcons(panel))
             {
                 if (pair.Key == null || pair.Value == null) continue;
                 if (!iconPositions.ContainsKey(pair.Value))
                     iconPositions.Add(pair.Value, (pair.Value.rectTransform.anchoredPosition,
                         pair.Value.rectTransform.localScale));
-                float size = Mathf.Max(pair.Value.rectTransform.sizeDelta.x,
-                    pair.Value.rectTransform.sizeDelta.y);
-                pair.Value.rectTransform.localScale = Vector3.one * (size > 0 ? Mathf.Min(1f, 12f / size) : 1f);
-                Vector2 point = new Vector2(-9999f, -9999f);
+                pair.Value.rectTransform.anchoredPosition = new Vector2(-9999f, -9999f);
                 if (pair.Key.gameObject.activeInHierarchy && Contains(pair.Key.position))
                 {
-                    Vector3 worldPoint = map.contentsChild.TransformPoint(Project(pair.Key.position));
-                    point = panel.contentsParent.InverseTransformPoint(worldPoint);
+                    if (geometry.Designed != null)
+                        PositionIcon(pair.Value, Project(pair.Key.position), 12f);
+                    else
+                    {
+                        UI_Map_Room room = geometry.RoomAt(pair.Key.position);
+                        if (!roomIcons.TryGetValue(room, out var list))
+                            roomIcons.Add(room, list = new List<UI_MinimapElement>());
+                        list.Add(pair.Value);
+                    }
                 }
-                pair.Value.rectTransform.anchoredPosition = point;
-                pair.Value.rectTransform.SetAsLastSibling();
             }
+            foreach (var pair in roomIcons)
+            {
+                // Keep native room grouping; leave an inset around passage connections.
+                Vector2 size = pair.Key.GetRoomIconSize();
+                for (int i = 0; i < pair.Value.Count; i++)
+                {
+                    var placement = RoomMapIconLayout.Place(size.x, size.y, pair.Value.Count, i);
+                    PositionIcon(pair.Value[i], pair.Key.GetIconCenterAnchoredPosition() +
+                        new Vector2(placement.X, placement.Y), placement.Size);
+                }
+            }
+        }
+
+        private void PositionIcon(UI_MinimapElement icon, Vector2 point, float size)
+        {
+            RectTransform rect = icon.rectTransform;
+            float dimension = Mathf.Max(rect.rect.width, rect.rect.height);
+            float scale = navigator.Scale;
+            rect.localScale = Vector3.one * (dimension > 0 ? Mathf.Min(1f, size / dimension) : 1f) * scale;
+            // AddIcon preserves the sprite's authored pivot; center its visible rectangle.
+            rect.position = map.contentsChild.TransformPoint(point) - rect.TransformVector(rect.rect.center);
+            rect.SetAsLastSibling();
         }
 
         private void PositionNativePlayers()
@@ -241,13 +269,10 @@ namespace SephiriaEnhancements.MapEnhancements
             {
                 if (pair.Key == null || pair.Value == null) continue;
                 if (!playerPositions.ContainsKey(pair.Value))
-                    playerPositions.Add(pair.Value, pair.Value.anchoredPosition);
-                Vector3 position = pair.Key.transform.position;
-                pair.Value.anchoredPosition = Contains(position)
-                    ? (Vector2)panel.contentsParent.InverseTransformPoint(map.contentsChild.TransformPoint(Project(position)))
-                    : new Vector2(-9999, -9999);
-                pair.Value.SetAsLastSibling();
+                    playerPositions.Add(pair.Value, (pair.Value.anchoredPosition, originalCursor));
             }
+            NativeMapPlayers.Refresh(panel, geometry, panel.contentsParent,
+                NativePlayers(panel), originalCursor || geometry.Designed != null);
         }
 
         private void HideUnavailableTravelGuide()
@@ -336,7 +361,11 @@ namespace SephiriaEnhancements.MapEnhancements
                 }
             iconPositions.Clear();
             foreach (var pair in playerPositions)
-                if (pair.Key != null) pair.Key.anchoredPosition = pair.Value;
+                if (pair.Key != null)
+                {
+                    pair.Key.anchoredPosition = pair.Value.Position;
+                    pair.Key.gameObject.SetActive(pair.Value.Active);
+                }
             playerPositions.Clear();
             labels.Clear();
             visible.Clear();
@@ -358,6 +387,10 @@ namespace SephiriaEnhancements.MapEnhancements
                     if (panel != null &&
                         panel.maps.TryGetValue(mapFloorGuid, out UI_Map registered) && registered == map)
                         panel.maps.Remove(mapFloorGuid);
+                    // Show's missing-map branch does not clear the native currentMap field.
+                    if (panel != null && NativeCurrentMap(panel) == map)
+                        NativeCurrentMap(panel) = null;
+                    map.gameObject.SetActive(false);
                     Object.Destroy(map.gameObject);
                 }
             }

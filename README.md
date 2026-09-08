@@ -70,6 +70,10 @@ Hover over or select a Mod setting to read its purpose, controls and limits. Bac
 screens show their own controls; hints follow your current bindings. Use the keyboard or gamepad settings
 to rebind Mod shortcuts.
 
+In the Mod's **General** settings, **Map enhancements** controls the map tools, current-floor overlay,
+NPC tracking and hidden-room option. Turn it off to use the original map. It defaults to on;
+your hidden-room preference is retained while disabled.
+
 **Backpack arrangement is experimental. Retry after defeat rolls back items and progress to the selected point.**
 Read the corresponding setting's help before using these features.
 

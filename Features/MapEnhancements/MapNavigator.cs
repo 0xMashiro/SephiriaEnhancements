@@ -26,6 +26,9 @@ namespace SephiriaEnhancements.MapEnhancements
         private readonly Vector2 originalContentPosition;
         private readonly Vector3 originalScale;
         private readonly float originalSensitivity;
+        private readonly ScrollRect.MovementType originalMovementType;
+        private Vector2 fittedViewportSize;
+        private GameObject centeredRoomSelection;
         private readonly MapZoomWheel wheel;
         private readonly UI_ClickToTeleport travel;
         private readonly UI_HorayButton peopleButton, placesButton, fitButton, travelButton, minusButton, plusButton, browseButton, trackButton;
@@ -70,7 +73,9 @@ namespace SephiriaEnhancements.MapEnhancements
             localRoomSelection = target;
             initialRoomFocusPending = false;
             panel.defaultSelectable = target;
-            EventSystem.current?.SetSelectedGameObject(target);
+            var stack = UIManager.Instance?.CurrentControlStack;
+            if (stack != null && stack.Count > 0 && stack[stack.Count - 1] == panel)
+                EventSystem.current?.SetSelectedGameObject(target);
         }
 
         internal MapNavigator(UI_MapPanel owner, UI_Map shownMap,
@@ -89,6 +94,9 @@ namespace SephiriaEnhancements.MapEnhancements
             originalContentPosition = panel.contentsParent.anchoredPosition;
             originalScale = map.rectTransform.localScale;
             originalSensitivity = nativeScroll.scrollSensitivity;
+            originalMovementType = nativeScroll.movementType;
+            nativeScroll.movementType = ScrollRect.MovementType.Unrestricted;
+            nativeScroll.StopMovement();
             if (geometry.Designed != null)
             foreach (var nativeTravel in map.GetComponentsInChildren<UI_ClickToTeleport>(true))
             {
@@ -300,8 +308,10 @@ namespace SephiriaEnhancements.MapEnhancements
 
         internal void Fit()
         {
-            Vector2 size = map.rectTransform.sizeDelta;
-            fitScale = Mathf.Min(viewport.rect.width / Mathf.Max(1, size.x), viewport.rect.height / Mathf.Max(1, size.y)) * .9f;
+            Canvas.ForceUpdateCanvases();
+            Vector2 size = map.rectTransform.rect.size;
+            fittedViewportSize = viewport.rect.size;
+            fitScale = Mathf.Min(1f, Mathf.Min(viewport.rect.width / Mathf.Max(1, size.x), viewport.rect.height / Mathf.Max(1, size.y)) * .9f);
             zoom = 1; ApplyScale();
             Center(map.rectTransform.TransformPoint(map.rectTransform.rect.center));
         }
@@ -337,6 +347,7 @@ namespace SephiriaEnhancements.MapEnhancements
         {
             var stack = UIManager.Instance?.CurrentControlStack;
             if (stack == null || stack.Count == 0 || stack[stack.Count - 1] != panel) return;
+            if (viewport.rect.size != fittedViewportSize) Fit();
             roomNavigation?.Refresh();
             if (roomNavigation != null)
             {
@@ -356,14 +367,17 @@ namespace SephiriaEnhancements.MapEnhancements
                 initialRoomFocusPending = false;
                 FocusRooms();
             }
-            // Native room focus centers without accounting for our zoom/viewport.
-            if (geometry.Designed == null && !ControlsChangeHandler.Current.IsUsingKeyboardAndMouse)
+            // Center on navigation changes, allowing subsequent panning and Fit to persist.
+            GameObject roomSelection = EventSystem.current?.currentSelectedGameObject;
+            if (geometry.Designed == null && roomSelection != centeredRoomSelection &&
+                ControlsChangeHandler.Current != null && !ControlsChangeHandler.Current.IsUsingKeyboardAndMouse)
                 foreach (var room in map.rooms)
-                    if (room != null && room.GetSelectable() == EventSystem.current?.currentSelectedGameObject)
+                    if (room != null && room.GetSelectable() == roomSelection)
                     {
                         Center(map.contentsChild.TransformPoint(room.GetIconCenterAnchoredPosition()));
                         break;
                     }
+            centeredRoomSelection = roomSelection;
             UIInputModule input = UIInputModule.current;
             InputAction trackAction = NativeInputActions.FindShortcut(PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.SwitchLockedTarget);
             if (trackAction?.WasPressedThisFrame() == true) ToggleTracking();
@@ -576,7 +590,7 @@ namespace SephiriaEnhancements.MapEnhancements
         internal void Clear()
         {
             roomNavigation?.Clear();
-            if (nativeScroll != null) { nativeScroll.StopMovement(); nativeScroll.scrollSensitivity = originalSensitivity; }
+            if (nativeScroll != null) { nativeScroll.StopMovement(); nativeScroll.scrollSensitivity = originalSensitivity; nativeScroll.movementType = originalMovementType; }
             if (scrollFrame != null) { scrollFrame.offsetMin = originalMin; scrollFrame.offsetMax = originalMax; }
             if (map != null) map.rectTransform.localScale = originalScale;
             foreach (var symbol in nativeSymbolScales)

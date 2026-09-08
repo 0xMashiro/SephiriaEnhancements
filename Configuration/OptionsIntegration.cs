@@ -139,6 +139,7 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_Category",
                 "Option_SephiriaEnhancements_NativeCompanion",
                 "Option_SephiriaEnhancements_DefeatRetry",
+                "Option_SephiriaEnhancements_MapEnabled",
                 "Option_SephiriaEnhancements_ShowHiddenRooms",
                 "Option_SephiriaEnhancements_DeveloperConsole",
                 "Option_SephiriaEnhancements_DeveloperPlayerDamage",
@@ -272,7 +273,7 @@ namespace SephiriaEnhancements.Configuration
                 .CompareTo(right.transform.GetSiblingIndex()));
             foreach (ModOptionsNavigationEntry entry in entries)
             {
-                if (entry.Box != null && entry.gameObject.activeInHierarchy)
+                if (entry.Box != null && entry.gameObject.activeInHierarchy && entry.Box.IsInteractable())
                 {
                     chain.Add(entry.Box);
                 }

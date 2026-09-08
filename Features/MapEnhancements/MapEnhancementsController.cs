@@ -1,4 +1,5 @@
 using SephiriaEnhancements.Diagnostics;
+using SephiriaEnhancements.MapEnhancements.Integration;
 using HarmonyLib;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
@@ -24,9 +25,13 @@ namespace SephiriaEnhancements.MapEnhancements
             typeof(LibraryFloorGenerator), "hiddenRoomInstances");
 
         private static MapEnhancementsController current;
+        internal static bool HasMapNavigation => current != null && current.mapNavigation.IsActive;
         private readonly NpcTracking npcTracking = new();
         internal static Transform TrackedNpc => current?.npcTracking.Target;
-        internal static void ToggleNpcTracking(Transform target) => current?.npcTracking.Toggle(target);
+        internal static void ToggleNpcTracking(Transform target)
+        {
+            if (MapEnhancementsSettings.IsActive) current?.npcTracking.Toggle(target);
+        }
 
         private readonly List<HiddenRoomMapMarker> markers =
             new List<HiddenRoomMapMarker>();
@@ -39,7 +44,7 @@ namespace SephiriaEnhancements.MapEnhancements
         private bool currentFloorMapOverlayVisible;
         private RectTransform currentFloorMapOverlayRoot;
         private UI_Map currentFloorMap;
-        private UI_MapPanelPlayerIcon currentFloorMapPlayerIcon;
+        private readonly Dictionary<PlayerSpawner, RectTransform> currentFloorMapPlayerIcons = new();
         private Transform currentFloorMapOriginalParent;
         private int currentFloorMapOriginalSiblingIndex;
         private Vector2 currentFloorMapOriginalAnchorMin;
@@ -61,19 +66,10 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void Update()
         {
-            bool enabled = EnhancementsSettings.Enabled;
+            RefreshEnabledState();
+            bool enabled = MapEnhancementsSettings.IsActive;
             if (!enabled)
             {
-                if (wasEnabled)
-                {
-                    ClearMarkers();
-                    mapNavigation.Clear();
-                    npcTracking.Clear();
-                    currentFloorMapOverlayVisible = false;
-                    RestoreCurrentFloorMapOverlay();
-                }
-                wasEnabled = false;
-                hiddenRoomsShown = false;
                 return;
             }
             wasEnabled = true;
@@ -149,6 +145,29 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void OnDisable() => npcTracking.Clear();
 
+        internal static void ApplySettings() => current?.RefreshEnabledState();
+
+        private void RefreshEnabledState()
+        {
+            bool enabled = MapEnhancementsSettings.IsActive;
+            if (wasEnabled == enabled) return;
+            wasEnabled = enabled;
+            if (!enabled)
+            {
+                ClearMarkers();
+                mapNavigation.Clear();
+                npcTracking.Clear();
+                currentFloorMapOverlayVisible = false;
+                RestoreCurrentFloorMapOverlay();
+                hiddenRoomsShown = false;
+            }
+            UI_MapPanel panel = UIManager.Instance?.GetElement<UI_MapPanel>();
+            PlayerAvatar player = LocalPlayerResolver.Resolve();
+            if (panel != null && panel.IsOpened && player != null &&
+                !string.IsNullOrEmpty(player.currentFloorGuid))
+                panel.Show(player.currentFloorGuid);
+        }
+
         private void OnDestroy()
         {
             npcTracking.Clear();
@@ -168,7 +187,7 @@ namespace SephiriaEnhancements.MapEnhancements
             mapNavigation.Clear();
             RestoreCurrentFloorMapOverlay();
             ClearMarkers();
-            wasEnabled = EnhancementsSettings.Enabled;
+            wasEnabled = MapEnhancementsSettings.IsActive;
         }
 
         private void ClearMarkers()
@@ -188,7 +207,7 @@ namespace SephiriaEnhancements.MapEnhancements
         internal static void ShowHiddenRooms(UI_MapPanel panel, string floorGuid)
         {
             if (current == null || !current.hiddenRoomMapCompatible ||
-                !EnhancementsSettings.Enabled || !MapEnhancementsSettings.ShowHiddenRooms ||
+                !MapEnhancementsSettings.IsActive || !MapEnhancementsSettings.ShowHiddenRooms ||
                 panel == null ||
                 string.IsNullOrEmpty(floorGuid))
             {
@@ -210,10 +229,13 @@ namespace SephiriaEnhancements.MapEnhancements
         internal static void InitializeKeyboardRoomNavigation(UI_MapPanel panel,
             string floorGuid)
         {
-            if (current == null || !EnhancementsSettings.Enabled || panel == null)
+            if (current == null || !MapEnhancementsSettings.IsActive || panel == null)
             {
                 return;
             }
+
+            var stack = UIManager.Instance?.CurrentControlStack;
+            if (stack == null || stack.Count == 0 || stack[stack.Count - 1] != panel) return;
 
             // UI_MapPanel.Open enables the control stack before Show assigns the
             // current room to defaultSelectable. Let that frame finish before
@@ -226,7 +248,7 @@ namespace SephiriaEnhancements.MapEnhancements
         internal static void PrepareMapNavigation(UI_MapPanel panel, string floorGuid)
         {
             if (current == null || !current.mapNavigationCompatible ||
-                !EnhancementsSettings.Enabled) return;
+                !MapEnhancementsSettings.IsActive) return;
             try { current.mapNavigation.Prepare(panel, floorGuid); }
             catch (Exception ex)
             {
@@ -252,7 +274,7 @@ namespace SephiriaEnhancements.MapEnhancements
             string floorGuid)
         {
             if (current == null || !current.mapNavigationCompatible ||
-                !EnhancementsSettings.Enabled || panel == null)
+                !MapEnhancementsSettings.IsActive || panel == null)
             {
                 current?.mapNavigation.Clear();
                 return;
@@ -371,7 +393,7 @@ namespace SephiriaEnhancements.MapEnhancements
 
             current.nativeMapPanelOpen = false;
             current.mapNavigation.Clear();
-            if (EnhancementsSettings.Enabled &&
+            if (MapEnhancementsSettings.IsActive &&
                 current.currentFloorMapOverlayVisible)
             {
                 current.TryRefreshCurrentFloorMapOverlay();
@@ -465,14 +487,26 @@ namespace SephiriaEnhancements.MapEnhancements
             {
                 RestoreCurrentFloorMapOverlay();
                 CreateCurrentFloorMapOverlayRoot(panel);
-                AttachCurrentFloorMap(map, panel);
+                AttachCurrentFloorMap(map);
                 ShowHiddenRooms(panel, player.currentFloorGuid);
             }
 
             SyncCurrentFloorMapOverlayRoot();
 
             RevealDiscoveredRooms(map, player.currentFloorGuid);
-            PositionCurrentFloorMapPlayer(map, player);
+            FloorGenerator floor = FindGenerator(player.currentFloorGuid);
+            if (floor != null)
+                NativeMapPlayers.Refresh(panel, new NativeMapGeometry(floor, map),
+                    map.rectTransform, currentFloorMapPlayerIcons, map.showPlayerCursor);
+            foreach (RectTransform icon in currentFloorMapPlayerIcons.Values)
+            {
+                CanvasGroup group = icon.GetComponent<CanvasGroup>();
+                if (group == null) group = icon.gameObject.AddComponent<CanvasGroup>();
+                group.alpha = 1f;
+                group.ignoreParentGroups = true;
+                group.interactable = false;
+                group.blocksRaycasts = false;
+            }
             FitCurrentFloorMap(map);
         }
 
@@ -522,7 +556,7 @@ namespace SephiriaEnhancements.MapEnhancements
             currentFloorMapOverlayRoot.localRotation = Quaternion.identity;
         }
 
-        private void AttachCurrentFloorMap(UI_Map map, UI_MapPanel panel)
+        private void AttachCurrentFloorMap(UI_Map map)
         {
             RectTransform mapTransform = map.rectTransform;
             currentFloorMap = map;
@@ -544,31 +578,6 @@ namespace SephiriaEnhancements.MapEnhancements
             mapTransform.anchoredPosition = Vector2.zero;
             mapTransform.localRotation = Quaternion.identity;
             map.gameObject.SetActive(true);
-
-            if (map.showPlayerCursor && panel.playerIconPrefab != null)
-            {
-                currentFloorMapPlayerIcon = Instantiate(panel.playerIconPrefab, mapTransform);
-                currentFloorMapPlayerIcon.gameObject.SetActive(true);
-                currentFloorMapPlayerIcon.rectTransform.SetAsLastSibling();
-                CanvasGroup playerIconCanvasGroup =
-                    currentFloorMapPlayerIcon.gameObject.GetComponent<CanvasGroup>() ??
-                    currentFloorMapPlayerIcon.gameObject.AddComponent<CanvasGroup>();
-                playerIconCanvasGroup.alpha = 1f;
-                playerIconCanvasGroup.ignoreParentGroups = true;
-                playerIconCanvasGroup.interactable = false;
-                playerIconCanvasGroup.blocksRaycasts = false;
-                if (PlayerSpawner.MultiplayerList.Count > 1)
-                {
-                    foreach (PlayerSpawner spawner in PlayerSpawner.MultiplayerList)
-                    {
-                        if (spawner != null && spawner.isOwned)
-                        {
-                            currentFloorMapPlayerIcon.SetPlayerIdx(spawner.currentPlayerIdx);
-                            break;
-                        }
-                    }
-                }
-            }
         }
 
         private static void RevealDiscoveredRooms(UI_Map map, string floorGuid)
@@ -598,30 +607,6 @@ namespace SephiriaEnhancements.MapEnhancements
             }
         }
 
-        private void PositionCurrentFloorMapPlayer(UI_Map map, PlayerAvatar player)
-        {
-            if (currentFloorMapPlayerIcon == null)
-            {
-                return;
-            }
-
-            currentFloorMapPlayerIcon.gameObject.SetActive(false);
-            Vector3 position = player.transform.position;
-            foreach (UI_Map_Room room in map.rooms)
-            {
-                if (room != null && position.x >= room.bottomLeft.x &&
-                    position.x <= room.topRight.x && position.y >= room.bottomLeft.y &&
-                    position.y <= room.topRight.y)
-                {
-                    currentFloorMapPlayerIcon.rectTransform.anchoredPosition =
-                        map.contentsChild.anchoredPosition +
-                        room.GetIconCenterAnchoredPosition();
-                    currentFloorMapPlayerIcon.gameObject.SetActive(true);
-                    break;
-                }
-            }
-        }
-
         private void FitCurrentFloorMap(UI_Map map)
         {
             if (currentFloorMapOverlayRoot == null)
@@ -642,8 +627,8 @@ namespace SephiriaEnhancements.MapEnhancements
                 return;
             }
 
-            float scale = Mathf.Min(available.x / mapSize.x,
-                available.y / mapSize.y);
+            float scale = Mathf.Min(1f, Mathf.Min(available.x / mapSize.x,
+                available.y / mapSize.y));
             RectTransform mapTransform = map.rectTransform;
             mapTransform.localScale = new Vector3(scale, scale, 1f);
             Vector2 contentCenter = map.contentsChild.anchoredPosition +
@@ -682,11 +667,9 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void RestoreCurrentFloorMapOverlay()
         {
-            if (currentFloorMapPlayerIcon != null)
-            {
-                Destroy(currentFloorMapPlayerIcon.gameObject);
-                currentFloorMapPlayerIcon = null;
-            }
+            foreach (var icon in currentFloorMapPlayerIcons.Values)
+                if (icon != null) Destroy(icon.gameObject);
+            currentFloorMapPlayerIcons.Clear();
 
             if (currentFloorMap != null && currentFloorMapOriginalParent != null)
             {

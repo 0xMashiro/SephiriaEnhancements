@@ -1,5 +1,6 @@
 using HarmonyLib;
 using SephiriaEnhancements.KeyboardUiNavigation;
+using UnityEngine;
 
 namespace SephiriaEnhancements.MapEnhancements
 {
@@ -21,7 +22,19 @@ namespace SephiriaEnhancements.MapEnhancements
     [HarmonyPatch(typeof(UI_MapPanel), "Update")]
     internal static class MapNavigationUpdatePatch
     {
-        private static void Postfix() => MapEnhancementsController.RefreshMapNavigation();
+        private static void Prefix(UI_MapPanel __instance, out Vector2? __state)
+        {
+            // Native controller centering assumes an unscaled map and full viewport.
+            __state = MapEnhancementsController.HasMapNavigation
+                ? __instance.contentsParent.anchoredPosition : (Vector2?)null;
+        }
+
+        private static void Postfix(UI_MapPanel __instance, Vector2? __state)
+        {
+            if (__state.HasValue && MapEnhancementsController.HasMapNavigation)
+                __instance.contentsParent.anchoredPosition = __state.Value;
+            MapEnhancementsController.RefreshMapNavigation();
+        }
     }
 
     [HarmonyPatch(typeof(UI_MapPanel), nameof(UI_MapPanel.OnOpened))]

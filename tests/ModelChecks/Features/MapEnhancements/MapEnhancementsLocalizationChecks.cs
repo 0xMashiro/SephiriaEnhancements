@@ -15,7 +15,9 @@ internal static class MapEnhancementsLocalizationChecks
             MapEnhancementsLocalization.SettingShowHiddenRooms,
             MapEnhancementsLocalization.HelpShowHiddenRooms,
             MapEnhancementsLocalization.Off,
-            MapEnhancementsLocalization.On
+            MapEnhancementsLocalization.On,
+            MapEnhancementsLocalization.SettingEnabled,
+            MapEnhancementsLocalization.HelpEnabled
         };
         foreach (string key in keys)
         {
@@ -25,7 +27,7 @@ internal static class MapEnhancementsLocalizationChecks
                 throw new InvalidOperationException(
                     "hidden-room settings must use a complete localized group or English fallback");
         }
-        if (texts.Count != 16 ||
+        if (texts.Count != 24 ||
             texts[("zh-CN", MapEnhancementsLocalization.SettingShowHiddenRooms)] != "显示隐藏房间" ||
             !texts[("zh-CN", MapEnhancementsLocalization.HelpShowHiddenRooms)].Contains("尚未发现") ||
             !texts[("zh-CN", MapEnhancementsLocalization.HelpShowHiddenRooms)].Contains("默认关闭"))

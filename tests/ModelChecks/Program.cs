@@ -141,6 +141,7 @@ Console.WriteLine("NativeUiActionCatalog: " +
     NativeUiActionCatalogChecks.Run());
 
 FixedFloorMapProjectionChecks.Run();
+RoomMapIconLayoutChecks.Run();
 MapLabelLayoutChecks.Run();
 MapEnhancementsLocalizationChecks.Run();
 DeveloperPlayerDamagePolicyChecks.Run();

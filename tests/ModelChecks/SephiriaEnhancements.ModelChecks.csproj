@@ -143,4 +143,5 @@
     <Compile Include="..\..\Runtime\State\InventoryStateStore.cs" Link="Runtime\InventoryStateStore.cs" />
     <Compile Include="..\..\Runtime\Diagnostics\RuntimeMetrics.cs" Link="Runtime\RuntimeMetrics.cs" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../../Features/MapEnhancements/Core/RoomMapIconLayout.cs" Link="RoomMapIconLayout.cs" /></ItemGroup>
 </Project>

@@ -44,6 +44,7 @@ namespace SephiriaEnhancements.Configuration
 
         private static void Inject(UI_OptionsPanel __instance)
         {
+            NativeOptionsLifetime.Track(__instance);
             try
             {
                 NativeControlOptionsIntegration.Inject(__instance);
@@ -225,6 +226,7 @@ namespace SephiriaEnhancements.Configuration
             }
 
             GameObject header = Object.Instantiate(source.gameObject, parent);
+            NativeOptionsLifetime.Track(header);
             header.name = "Section_SephiriaEnhancements";
             header.SetActive(false);
             UI_LocalizationStringText[] labels =
@@ -264,7 +266,7 @@ namespace SephiriaEnhancements.Configuration
             if (state == null)
             {
                 state = panel.gameObject.AddComponent<OptionsNavigationState>();
-                state.OriginalDown = template.box.forceNavDown;
+                state.Capture(template.box);
             }
 
             var chain = new List<UI_HorizontalSelectionBox> { template.box };
@@ -325,6 +327,7 @@ namespace SephiriaEnhancements.Configuration
         {
             GameObject header = Object.Instantiate(source.gameObject,
                 source.transform.parent);
+            NativeOptionsLifetime.Track(header);
             header.name = "Section_MultiplayerRules";
             header.SetActive(false);
             OptionsSectionMarker copiedMarker = header.GetComponent<OptionsSectionMarker>();
@@ -588,8 +591,4 @@ namespace SephiriaEnhancements.Configuration
         }
     }
 
-    internal sealed class OptionsNavigationState : MonoBehaviour
-    {
-        internal Selectable OriginalDown { get; set; }
-    }
 }

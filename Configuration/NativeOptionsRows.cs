@@ -9,6 +9,7 @@ namespace SephiriaEnhancements.Configuration
             out UI_HorizontalSelectionBox box, out UI_LocalizationStringText valueText)
         {
             GameObject row = Object.Instantiate(template.gameObject, template.transform.parent);
+            NativeOptionsLifetime.Track(row);
             row.name = name;
             row.SetActive(false);
 

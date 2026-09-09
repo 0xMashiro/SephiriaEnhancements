@@ -35,6 +35,7 @@ namespace SephiriaEnhancements
     public sealed class SephiriaEnhancementsMod : HorayModBase
     {
         private const string HarmonyId = "io.github.0xmashiro.sephiria-enhancements";
+        private static SephiriaEnhancementsMod activeInstance;
         private static readonly Type[] MultiplayerRuleBehaviorPatchTypes =
         {
             typeof(EnemySpawnRoutineOriginPatch),
@@ -93,8 +94,11 @@ namespace SephiriaEnhancements
 
         protected override void OnModLoaded()
         {
+            // The native loader can load again without unloading its previous instance.
+            activeInstance?.OnModUnloaded();
+            activeInstance = this;
             SupportLogger.Initialize();
-            Application.quitting += SupportLogger.Shutdown;
+            Application.quitting += OnModUnloaded;
             StartupProfiler.Begin();
             GameLoadProfiler.Reset();
             long loadStartedAt = Stopwatch.GetTimestamp();
@@ -203,6 +207,7 @@ namespace SephiriaEnhancements
                 typeof(NativePlayerBarValuesPatch),
                 typeof(NativeManaBarValuesPatch),
                 typeof(SephiriaEnhancements.Configuration.OptionsPanelPatch),
+                typeof(ModLanguageLoadPatch),
                 typeof(SephiriaEnhancements.Configuration.NativeControlOptionsClosedPatch),
                 typeof(CombatVisualOptionReadPatch),
                 typeof(CompanionBodyTransparencyPatch),
@@ -369,6 +374,9 @@ namespace SephiriaEnhancements
 
         protected override void OnModUnloaded()
         {
+            if (activeInstance != this) return;
+            activeInstance = null;
+            NativeOptionsLifetime.DisposeAll();
             multiplayerRules?.Shutdown();
             MidRunAdmissionRuntime.SetIntegrationAvailable(false);
             EnemySpawnRoutineContext.SetRuleScopeFactory(null);
@@ -406,11 +414,14 @@ namespace SephiriaEnhancements
 
             if (controllerObject != null)
             {
-                UnityEngine.Object.Destroy(controllerObject);
+                // Finish old controller callbacks before a replacement installs
+                // its static observers and event subscriptions.
+                UnityEngine.Object.DestroyImmediate(controllerObject);
                 controllerObject = null;
             }
 
             combatInsights = null;
+            autoCasting = null;
             combatRelationOutlines = null;
             combatTargeting = null;
             nativeCompanion = null;
@@ -419,7 +430,7 @@ namespace SephiriaEnhancements
             inventoryOptimization = null;
             multiplayerRules = null;
             runtimeKernel = null;
-            Application.quitting -= SupportLogger.Shutdown;
+            Application.quitting -= OnModUnloaded;
             SupportLogger.Shutdown();
         }
 

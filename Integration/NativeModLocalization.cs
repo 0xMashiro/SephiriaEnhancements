@@ -1,3 +1,5 @@
+using HarmonyLib;
+
 namespace SephiriaEnhancements.Configuration
 {
     // Keep game localization APIs at the integration boundary.
@@ -31,5 +33,16 @@ namespace SephiriaEnhancements.Configuration
             return manager.GetText(manager.CurrentLanguage, key);
         }
 
+    }
+
+    // Initialize also calls LoadLanguage. Register before its notification so
+    // existing native labels never refresh against a table without Mod text.
+    [HarmonyPatch(typeof(LocalizationManager), nameof(LocalizationManager.LoadLanguage))]
+    internal static class ModLanguageLoadPatch
+    {
+        private static void Prefix(LocalizationManager __instance)
+        {
+            ModLocalization.Register(__instance.AddModText);
+        }
     }
 }

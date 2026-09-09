@@ -120,6 +120,7 @@ namespace SephiriaEnhancements.Configuration
             string group, string sectionKey, int insertionIndex)
         {
             GameObject header = UnityEngine.Object.Instantiate(source.gameObject, parent);
+            NativeOptionsLifetime.Track(header);
             header.name = "Section_SephiriaEnhancements_Shortcuts_" + group;
             header.SetActive(false);
             UI_LocalizationStringText[] labels =
@@ -156,6 +157,7 @@ namespace SephiriaEnhancements.Configuration
 
             GameObject row = UnityEngine.Object.Instantiate(
                 sourceRow.gameObject, sourceRow.parent);
+            NativeOptionsLifetime.Track(row);
             row.name = "Control_SephiriaEnhancements_" + action.name + "_" + group;
             row.SetActive(false);
 

@@ -31,21 +31,25 @@ namespace SephiriaEnhancements.AutoCasting.Integration
                 Button reset = null;
                 foreach (Button candidate in row.GetComponentsInChildren<Button>(true))
                     if (candidate.GetComponent<RebindActionUI>() == null &&
-                        candidate.GetComponentInChildren<RebindActionUI>(true) == null &&
-                        candidate.GetComponentInChildren<TextMeshProUGUI>(true) != null)
+                        candidate.GetComponentInChildren<RebindActionUI>(true) == null)
                     { reset = candidate; break; }
                 if (labelText == null || reset == null) continue;
                 GameObject root = Object.Instantiate(reset.gameObject, label.transform);
                 root.name = "AutoCastingOption";
                 root.SetActive(false);
-                foreach (UI_LocalizationStringText original in root.GetComponentsInChildren<UI_LocalizationStringText>(true))
-                    Object.DestroyImmediate(original);
                 var option = root.AddComponent<NativeAutoCastingOptions>();
                 option.slot = slot;
                 option.template = labelText;
                 option.previousMargin = labelText.margin;
                 option.button = root.GetComponent<Button>();
-                option.text = root.GetComponentInChildren<TextMeshProUGUI>(true);
+                // RESET is drawn into its sprite. Use the native binding button's blank frame.
+                root.GetComponent<Image>().sprite = binding.GetComponent<Image>().sprite;
+                option.text = NativeAutoCastingUi.CreateText(root.transform, labelText, "AutoCastingOptionText");
+                option.text.alignment = TextAlignmentOptions.Center;
+                option.text.rectTransform.anchorMin = Vector2.zero;
+                option.text.rectTransform.anchorMax = Vector2.one;
+                option.text.rectTransform.offsetMin = new Vector2(2f, 0f);
+                option.text.rectTransform.offsetMax = new Vector2(-2f, 0f);
                 option.button.onClick = new Button.ButtonClickedEvent();
                 option.button.onClick.AddListener(() =>
                 {

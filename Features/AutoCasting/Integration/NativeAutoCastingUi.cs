@@ -31,7 +31,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
         {
             if (textTemplate == null)
             {
-                UI_NewInventoryIcon reference = panel.GetComponentInChildren<UI_NewInventoryIcon>(true);
+                UI_NewInventoryIcon reference = panel.itemIconPrefab.icon;
                 if (reference == null || reference.quantityText == null) return;
                 textTemplate = reference.quantityText;
             }
@@ -156,8 +156,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             if (!sideControl) { if (focus != null) focus.gameObject.SetActive(false); return; }
             if (focus == null)
             {
-                UI_NewInventoryIcon reference = panel.GetComponentInChildren<UI_NewInventoryIcon>();
-                Animator2D_UI template = reference?.selectedImage;
+                Animator2D_UI template = panel.itemIconPrefab.icon.selectedImage;
                 if (template == null) return;
                 Animator2D_UI selection = Instantiate(template, panel.transform);
                 selection.name = "InventorySideSelection";
@@ -194,6 +193,8 @@ namespace SephiriaEnhancements.AutoCasting.Integration
 
         private void OnDestroy()
         {
+            NativeSkillNavigationMemory memory = GetComponent<NativeSkillNavigationMemory>();
+            if (memory != null) Destroy(memory);
             if (focus != null) Destroy(focus.gameObject);
             if (hint != null) Destroy(hint.gameObject);
             foreach (AutoCastingMarker marker in markers) if (marker != null) Destroy(marker);

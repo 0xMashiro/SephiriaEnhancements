@@ -161,15 +161,14 @@ namespace SephiriaEnhancements.AutoCasting.Integration
                 if (template == null) return;
                 Animator2D_UI selection = Instantiate(template, panel.transform);
                 selection.name = "InventorySideSelection";
+                selection.frameMoveType = EAnimator2DFrameMoveType.UNSCALED;
                 focus = selection.image;
                 focus.color = Color.white;
                 focus.raycastTarget = false;
+                // Side controls lay out their children; the focus frame is an overlay.
+                focus.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
             }
-            UI_SetEffectElement combo = selected.GetComponent<UI_SetEffectElement>();
-            Transform focusTarget = combo != null ? combo.iconBGImage.transform :
-                selected == panel.showWeaponToggle.gameObject ? panel.showWeaponToggle.targetGraphic.transform :
-                selected.transform;
-            focus.transform.SetParent(focusTarget, false);
+            focus.transform.SetParent(selected.transform, false);
             focus.transform.SetAsLastSibling();
             focus.rectTransform.anchorMin = Vector2.zero;
             focus.rectTransform.anchorMax = Vector2.one;

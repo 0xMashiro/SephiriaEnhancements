@@ -16,8 +16,8 @@ namespace SephiriaEnhancements.Presentation
     {
         private const float LiveBaseScale = 0.7f;
         private const float PulseWidth = 112f;
-        private const float PartyLedgerWidth = 198f;
-        private const float BossLedgerWidth = 236f;
+        private const float PartyLedgerWidth = 148f;
+        private const float BossLedgerWidth = 164f;
         private static readonly Color SoftInk =
             new Color(0.055f, 0.05f, 0.062f, 0.70f);
         private static readonly Color ReportInk =
@@ -340,7 +340,7 @@ namespace SephiriaEnhancements.Presentation
                 liveRows[index].Show(state.Name, damage, maximum,
                     value, state.IsLocal, index == 0 && damage > 0f);
             }
-            ResizeLive(count, BossLedgerWidth, 112f);
+            ResizeLive(count, BossLedgerWidth);
         }
 
         private void ProjectParty(CombatInsightsController model)
@@ -364,7 +364,7 @@ namespace SephiriaEnhancements.Presentation
                     maximum, DpsFormatter.Compact(state.RollingDps),
                     state.IsLocal, false);
             }
-            ResizeLive(count, PartyLedgerWidth, 72f);
+            ResizeLive(count, PartyLedgerWidth);
         }
 
         private void ProjectNavigation(CombatInsightsController model)
@@ -465,16 +465,33 @@ namespace SephiriaEnhancements.Presentation
             return count;
         }
 
-        private void ResizeLive(int count, float width, float valueWidth)
+        private void ResizeLive(int count, float width)
         {
             float height = 25f + count * 16f;
             ledgerRect.sizeDelta = new Vector2(width, height);
-            SetTopRect(liveKicker.rectTransform, 7f, width * 0.48f,
-                2f, 17f);
-            SetTopRect(liveTotal.rectTransform, width * 0.42f, 7f,
-                2f, 17f);
+            float totalWidth = Mathf.Clamp(RefreshLiveText(liveTotal, fontTemplate, 0.57f),
+                36f, width - 64f);
+            RefreshLiveText(liveKicker, fontTemplate, 0.57f);
+            SetTopRect(liveKicker.rectTransform, 7f, totalWidth + 13f, 2f, 17f);
+            SetTopRect(liveTotal.rectTransform, width - 7f - totalWidth, 7f, 2f, 17f);
+            float valueWidth = 36f;
+            for (int index = 0; index < count; index++)
+                valueWidth = Mathf.Max(valueWidth, liveRows[index].RefreshText(fontTemplate));
+            // Keep a readable name column even when damage or duration grows unusually large.
+            valueWidth = Mathf.Min(valueWidth, width - 78f);
             for (int index = 0; index < count; index++)
                 liveRows[index].SetLayout(width - 8f, valueWidth, index);
+        }
+
+        private static float RefreshLiveText(TextMeshProUGUI text,
+            TextMeshProUGUI template, float ratio)
+        {
+            float size = Mathf.Max(8f, template.fontSize * ratio);
+            text.enableAutoSizing = false;
+            text.fontSize = size;
+            float preferredWidth = Mathf.Ceil(text.GetPreferredValues(text.text).x) + 2f;
+            NativeLocalizedText.SetShrinkOnlySize(text, size, Mathf.Max(8f, size * 0.82f));
+            return preferredWidth;
         }
 
         private void ResizeReport(int count, bool showFinalBlows, EncounterReportLayout layout)
@@ -529,6 +546,11 @@ namespace SephiriaEnhancements.Presentation
 
         private void PresentLive(bool targetVisible)
         {
+            Rect canvas = ((RectTransform)ledgerRect.parent).rect;
+            float scale = Mathf.Min(ModSettings.DamageStatisticsScale * LiveBaseScale,
+                Mathf.Max(0.01f, Mathf.Min((canvas.width - 36f) / ledgerRect.sizeDelta.x,
+                    (canvas.height - 36f) / ledgerRect.sizeDelta.y)));
+            ledgerRect.localScale = new Vector3(scale, scale, 1f);
             pulseGroup.alpha = ledgerGroup.alpha = liveReveal;
             if (!targetVisible && liveReveal <= 0.001f)
             {
@@ -710,6 +732,7 @@ namespace SephiriaEnhancements.Presentation
             text.overflowMode = TextOverflowModes.Ellipsis;
             text.alignment = alignment;
             text.richText = false;
+            text.parseCtrlCharacters = false;
             text.raycastTarget = false;
             SephiriaEnhancements.Integration.NativeLocalizedText.BindFont(text, template);
             return text;
@@ -790,6 +813,13 @@ namespace SephiriaEnhancements.Presentation
                     0f, 14f);
             }
 
+            internal float RefreshText(TextMeshProUGUI template)
+            {
+                marker.fontSize = Mathf.Max(8f, template.fontSize * 0.49f);
+                name.fontSize = Mathf.Max(8f, template.fontSize * 0.54f);
+                return RefreshLiveText(value, template, 0.54f) + 2f;
+            }
+
             internal void Show(string player, float amount, float maximum,
                 string display, bool local, bool mvp)
             {
@@ -799,14 +829,12 @@ namespace SephiriaEnhancements.Presentation
                 name.color = local ? Paper : Muted;
                 value.text = display;
                 value.color = amount > 0f ? Paper : Muted;
-                RectTransform root = Root.transform as RectTransform;
-                float width = Mathf.Max(0f, root.rect.width - 4f);
-                bar.rectTransform.anchorMin =
-                    bar.rectTransform.anchorMax = Vector2.zero;
+                float fraction = Mathf.Clamp01(amount / maximum);
+                bar.rectTransform.anchorMin = Vector2.zero;
+                bar.rectTransform.anchorMax = new Vector2(fraction, 0f);
                 bar.rectTransform.pivot = Vector2.zero;
                 bar.rectTransform.anchoredPosition = new Vector2(2f, 0f);
-                bar.rectTransform.sizeDelta = new Vector2(width *
-                    Mathf.Clamp01(amount / maximum), 1f);
+                bar.rectTransform.sizeDelta = new Vector2(-4f * fraction, 1f);
                 bar.color = local ? Moss : Brass;
             }
         }

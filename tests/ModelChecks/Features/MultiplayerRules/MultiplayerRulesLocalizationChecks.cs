@@ -26,7 +26,7 @@ internal static class MultiplayerRulesLocalizationChecks
                 "Optimized" ||
             multiplayerRulesTexts[("zh-CN",
                 MultiplayerRulesLocalization.CopyParticipantValuesSetting)] !=
-                "复制当前人数参数" ||
+                "复制设置到其他人数" ||
             multiplayerRulesTexts[("zh-CN",
                 MultiplayerRulesLocalization.ExternalRuleStackingSetting)] !=
                 "与联机扩展叠加规则" ||

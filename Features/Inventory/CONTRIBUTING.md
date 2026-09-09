@@ -99,7 +99,7 @@ Before submitting, run the existing portable gate:
 ./scripts/test.ps1
 ```
 
-Portable checks use the SDK selected by `global.json` and require no private game
+Portable checks use an installed .NET 10 SDK and require no private game
 assemblies. The mod itself still targets `netstandard2.1`; do not introduce APIs
 available only in the test runner's newer runtime. Use the README's build command
 and a local game installation to verify the complete mod. Never contribute game

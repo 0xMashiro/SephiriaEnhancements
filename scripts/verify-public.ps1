@@ -7,7 +7,6 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $requiredFiles = @(
     '.gitattributes'
     '.gitignore'
-    'global.json'
     'LICENSE'
     'packages.lock.json'
     'README.md'
@@ -42,7 +41,6 @@ $excludedDirectories = @('.git', 'artifacts', 'bin', 'obj', 'package', 'TestResu
 $allowedRootFiles = @(
     '.gitattributes'
     '.gitignore'
-    'global.json'
     'LICENSE'
     'packages.lock.json'
     'README.md'

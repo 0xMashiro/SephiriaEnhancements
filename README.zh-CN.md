@@ -126,7 +126,7 @@ Get-Content -LiteralPath .\SHA256SUMS.txt
 <details>
 <summary>供代码贡献者使用，安装游玩无需这些步骤</summary>
 
-需要 PowerShell 7、`global.json` 指定的 .NET SDK，以及合法安装的 Sephiria。
+需要 PowerShell 7、.NET 10 SDK，以及合法安装的 Sephiria。不要求特定的 SDK 补丁版本。
 在仓库根目录运行以下命令，并把示例游戏目录换成你自己的目录。
 
 运行检查：

@@ -131,7 +131,7 @@ it does not guarantee code safety.
 <details>
 <summary>For contributors — not needed to install or play</summary>
 
-You need PowerShell 7, the .NET SDK listed in `global.json`, and a legally installed copy of Sephiria.
+You need PowerShell 7, a .NET 10 SDK, and a legally installed copy of Sephiria. No specific SDK patch version is required.
 Run these commands from the repository root, replacing the example game directory with your own.
 
 Run the checks:

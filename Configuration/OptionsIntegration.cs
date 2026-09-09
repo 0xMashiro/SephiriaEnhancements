@@ -139,6 +139,7 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_Category",
                 "Option_SephiriaEnhancements_NativeCompanion",
                 "Option_SephiriaEnhancements_DefeatRetry",
+                "Option_SephiriaEnhancements_DefeatRetryCutscenes",
                 "Option_SephiriaEnhancements_MapEnabled",
                 "Option_SephiriaEnhancements_ShowHiddenRooms",
                 "Option_SephiriaEnhancements_DeveloperConsole",

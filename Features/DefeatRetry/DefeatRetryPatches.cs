@@ -18,11 +18,14 @@ namespace SephiriaEnhancements.DefeatRetry
     [HarmonyPatch(typeof(BossSpawner), nameof(BossSpawner.StartBattle))]
     internal static class BossEncounterRetryCheckpointPatch
     {
-        private static void Prefix(BossSpawner __instance, PlayerAvatar player,
+        private static bool Prefix(BossSpawner __instance, PlayerAvatar player,
             Vector3 position, string name)
         {
+            if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.HasPendingArrivals)
+                return false;
             DefeatRetryFeature.CaptureBossEncounterSnapshot(__instance, player,
                 position, name);
+            return true;
         }
     }
 

@@ -155,6 +155,7 @@ namespace SephiriaEnhancements.Integration
             player != null && player.connectionToClient != null && awaitingArrival.Contains(player.connectionToClient);
 
         internal static void ClearArrivals() => awaitingArrival.Clear();
+        internal static bool HasPendingArrivals => awaitingArrival.Count != 0;
 
         internal static void ReportArrival(long id, bool success = true)
         {
@@ -170,9 +171,15 @@ namespace SephiriaEnhancements.Integration
         {
             if (message.Transition == StatisticsRetryTransition.RetryFloor ||
                 message.Transition == StatisticsRetryTransition.RetryBoss)
+            {
+                NativeRetryBoss.Begin(message.FloorGuid);
                 DefeatRetryClientRestore.Begin(message.FloorGuid, message.RetryId);
+            }
             else if (message.Transition == StatisticsRetryTransition.Cancel)
+            {
+                NativeRetryBoss.Clear();
                 DefeatRetryClientRestore.Clear();
+            }
             try { controller?.ObserveStatisticsRetry(message.Transition, message.CheckpointId, message.FloorGuid); }
             catch (Exception exception) { SupportLogger.Failure("retry_statistics_failed", exception); }
         }
@@ -196,6 +203,7 @@ namespace SephiriaEnhancements.Integration
             serverRegistered = clientRegistered = false;
             registeredConnection = null;
             DefeatRetryClientRestore.Clear();
+            NativeRetryBoss.Clear();
             integrationAvailable = false;
         }
     }

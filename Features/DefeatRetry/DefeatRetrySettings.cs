@@ -13,6 +13,12 @@ namespace SephiriaEnhancements.DefeatRetry
             set => OptionsBinding.Instance?.DeviceOptions?.SetBool(EnabledKey, value);
         }
 
+        internal static bool SkipCutscenes
+        {
+            get => OptionsBinding.Instance?.DeviceOptions?.GetBool("SephiriaEnhancements.DefeatRetry.SkipCutscenes", true) ?? true;
+            set => OptionsBinding.Instance?.DeviceOptions?.SetBool("SephiriaEnhancements.DefeatRetry.SkipCutscenes", value);
+        }
+
         internal static void Save()
         {
             OptionsBinding.Instance?.DeviceOptions?.Save();

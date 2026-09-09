@@ -43,7 +43,7 @@ Write-Host 'Localization source coverage passed.'
 $startup = Get-Content -Raw (Join-Path $repoRoot 'SephiriaEnhancementsMod.cs')
 $patchList = [regex]::Match($startup, '(?s)foreach \(Type patchType in new\[\]\s*\{(?<types>.*?)\}\)')
 foreach ($patch in @(
-    'DefeatRetryPlayerRestorePatch', 'DefeatRetryClientNotificationPatch', 'DefeatRetryTravelRequestPatch', 'RenderedCombatFloorRetryCheckpointPatch',
+    'DefeatRetryPlayerRestorePatch', 'DefeatRetryClientNotificationPatch', 'DefeatRetryCutscenePatch', 'DefeatRetryTravelRequestPatch', 'RenderedCombatFloorRetryCheckpointPatch',
     'BossRetryPropRecipePatch', 'BossRetryPreserveFloorPatch',
     'BossEncounterRetryCheckpointPatch', 'SeedBossEncounterRetryCheckpointPatch',
     'NativeBossEncounterCompletedPatch', 'NativeBossEncounterPausedPatch',

@@ -54,6 +54,7 @@ namespace SephiriaEnhancements.DefeatRetry
             internal Dictionary<uint, RetryPlacement> Placements { get; }
             internal BossRetryWorld World { get; }
             internal long StatisticsCheckpointId { get; set; }
+            internal bool RebuildBossFloor { get; set; }
         }
 
         private static readonly FieldInfo CurrentField =
@@ -208,6 +209,9 @@ namespace SephiriaEnhancements.DefeatRetry
                     currentRun, bossName, floorGuid,
                     CaptureCurrentPlacements(floorGuid, encounterPosition),
                     "boss_spawner", BossRetryWorld.Capture(boss));
+                // The library encounter creates sibling golem/hand objects. Restore
+                // its serialized floor instead of retaining the later-phase world.
+                checkpoints.BossEncounter.RebuildBossFloor = NativeRetryBoss.RequiresFloorRebuild(boss);
             }
             catch (Exception ex)
             {
@@ -447,6 +451,8 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             try
             {
+                if (checkpoints.BossEncounter?.RebuildBossFloor == true)
+                    return NativeRetryBoss.CanRebuildLibraryFloor(checkpoints.BossEncounter.FloorGuid);
                 return checkpoints.BossEncounter?.World?.CanRestore() == true;
             }
             catch (Exception ex)
@@ -484,6 +490,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 pendingPlacements = new Dictionary<uint, RetryPlacement>(
                     selected.Placements);
                 pendingWorldRestore = selected.World;
+                if (selected.RebuildBossFloor) BossRetryWorld.ClearRecipes();
                 if (kind == RetryCheckpointKind.FloorEntry)
                 {
                     checkpoints.RestartFloor();
@@ -612,33 +619,19 @@ namespace SephiriaEnhancements.DefeatRetry
 
     internal sealed class DefeatRetryButton : MonoBehaviour
     {
-        private struct LayoutElementState
-        {
-            internal float MinWidth;
-            internal float MinHeight;
-            internal float PreferredWidth;
-            internal float PreferredHeight;
-            internal float FlexibleWidth;
-            internal float FlexibleHeight;
-            internal int LayoutPriority;
-            internal bool IgnoreLayout;
-        }
-
         private UI_GameOverLabel panel;
         private UI_HorayButton originalButton;
         private UI_HorayButton retryButton;
         private UI_HorayButton bossRetryButton;
         private Transform originalParent;
-        private int originalSiblingIndex;
         private RectTransform originalRect;
-        private Vector2 originalPosition;
-        private Vector2 originalSize;
         private Navigation originalNavigation;
+        private Selectable nativeLeft, nativeRight, nativeDown;
         private GameObject actionGroup;
-        private LayoutElement originalLayoutElement;
-        private LayoutElementState originalLayoutState;
-        private bool addedOriginalLayoutElement;
-        private bool manuallyPositioned;
+        private bool stacked;
+        private readonly List<RectTransform> resultRoots = new List<RectTransform>();
+        private readonly Dictionary<RectTransform, Vector2> resultPositions = new Dictionary<RectTransform, Vector2>();
+        private readonly Vector3[] corners = new Vector3[4];
         private bool selectedRetry;
         private bool eligible;
         private bool bossEligible;
@@ -665,19 +658,18 @@ namespace SephiriaEnhancements.DefeatRetry
 
             originalButton = panel.button;
             originalParent = originalButton.transform.parent;
-            originalSiblingIndex = originalButton.transform.GetSiblingIndex();
             originalRect = originalButton.transform as RectTransform;
-            originalPosition = originalRect != null
-                ? originalRect.anchoredPosition : Vector2.zero;
-            originalSize = originalRect != null
-                ? originalRect.sizeDelta : Vector2.zero;
             originalNavigation = originalButton.navigation;
+            nativeLeft = originalButton.FindSelectableOnLeft();
+            nativeRight = originalButton.FindSelectableOnRight();
+            nativeDown = originalButton.FindSelectableOnDown();
 
             GameObject clone = UnityEngine.Object.Instantiate(
                 originalButton.gameObject, originalParent,
                 worldPositionStays: false);
             clone.name = "SephiriaEnhancements_RetryCheckpoint";
             retryButton = clone.GetComponent<UI_HorayButton>();
+            NativeRetryBoss.RestoreButtonColor(retryButton, originalButton);
             retryButton.onClick.RemoveAllListeners();
             retryButton.onClick.AddListener(OnRetryClicked);
             if (bossEligible)
@@ -686,20 +678,13 @@ namespace SephiriaEnhancements.DefeatRetry
                     originalButton.gameObject, originalParent, worldPositionStays: false);
                 bossClone.name = "SephiriaEnhancements_RetryBossEncounter";
                 bossRetryButton = bossClone.GetComponent<UI_HorayButton>();
+                NativeRetryBoss.RestoreButtonColor(bossRetryButton, originalButton);
                 bossRetryButton.onClick.RemoveAllListeners();
                 bossRetryButton.onClick.AddListener(OnBossRetryClicked);
             }
             SetLocalizedText();
 
-            LayoutGroup parentLayout = originalParent.GetComponent<LayoutGroup>();
-            if (parentLayout != null && originalRect != null)
-            {
-                CreateActionGroup();
-            }
-            else
-            {
-                SplitOriginalSlotManually();
-            }
+            CreateActionGroup();
 
             ConfigureNavigation();
             retryButton.gameObject.SetActive(false);
@@ -708,145 +693,148 @@ namespace SephiriaEnhancements.DefeatRetry
 
         private void CreateActionGroup()
         {
-            actionGroup = new GameObject("Sephiria Enhancements — Retry Actions",
-                typeof(RectTransform), typeof(HorizontalLayoutGroup),
-                typeof(LayoutElement));
-            RectTransform groupRect = actionGroup.GetComponent<RectTransform>();
-            groupRect.SetParent(originalParent, false);
-            groupRect.SetSiblingIndex(originalSiblingIndex);
-            groupRect.anchorMin = originalRect.anchorMin;
-            groupRect.anchorMax = originalRect.anchorMax;
-            groupRect.pivot = originalRect.pivot;
-            groupRect.anchoredPosition = originalPosition;
-            groupRect.sizeDelta = originalSize;
-
-            LayoutElement sourceLayout = originalButton.GetComponent<LayoutElement>();
-            LayoutElement groupElement = actionGroup.GetComponent<LayoutElement>();
-            float resolvedWidth = Mathf.Max(0f, originalRect.rect.width);
-            float resolvedHeight = Mathf.Max(0f, originalRect.rect.height);
-            groupElement.minWidth = sourceLayout != null && sourceLayout.minWidth >= 0f
-                ? sourceLayout.minWidth : 0f;
-            groupElement.minHeight = sourceLayout != null && sourceLayout.minHeight >= 0f
-                ? sourceLayout.minHeight : 0f;
-            groupElement.preferredWidth = sourceLayout != null &&
-                sourceLayout.preferredWidth >= 0f
-                ? sourceLayout.preferredWidth : resolvedWidth;
-            groupElement.preferredHeight = sourceLayout != null &&
-                sourceLayout.preferredHeight >= 0f
-                ? sourceLayout.preferredHeight : resolvedHeight;
-            groupElement.flexibleWidth = sourceLayout?.flexibleWidth ?? -1f;
-            groupElement.flexibleHeight = sourceLayout?.flexibleHeight ?? -1f;
-            groupElement.layoutPriority = sourceLayout?.layoutPriority ?? 1;
-
-            HorizontalLayoutGroup layout =
-                actionGroup.GetComponent<HorizontalLayoutGroup>();
-            layout.spacing = 12f;
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = true;
-
+            actionGroup = new GameObject("SephiriaEnhancements_RetryActions",
+                typeof(RectTransform), typeof(LayoutElement));
+            actionGroup.transform.SetParent(panel.transform, false);
+            actionGroup.GetComponent<LayoutElement>().ignoreLayout = true;
             retryButton.transform.SetParent(actionGroup.transform, false);
-            if (bossRetryButton != null)
-            {
-                bossRetryButton.transform.SetParent(actionGroup.transform, false);
-                ConfigureChildLayout(bossRetryButton.gameObject, preserveState: false);
-            }
-            originalButton.transform.SetParent(actionGroup.transform, false);
-            ConfigureChildLayout(retryButton.gameObject, preserveState: false);
-            ConfigureChildLayout(originalButton.gameObject, preserveState: true);
+            bossRetryButton?.transform.SetParent(actionGroup.transform, false);
+            AddResultRoot(panel.timeText?.rectTransform);
+            AddResultRoot(panel.placeNameText?.rectTransform);
+            AddResultRoot(panel.levelText?.rectTransform);
+            AddResultRoot(panel.hardModeInfo?.transform as RectTransform);
+            AddResultRoot(panel.playerImage?.rectTransform);
+            foreach (RectTransform item in panel.sapphireAnimationEarnedObjects) AddResultRoot(item);
             actionGroup.SetActive(false);
         }
 
-        private void ConfigureChildLayout(GameObject child, bool preserveState)
+        private void AddResultRoot(RectTransform item)
         {
-            LayoutElement element = child.GetComponent<LayoutElement>();
-            if (preserveState)
-            {
-                originalLayoutElement = element;
-                addedOriginalLayoutElement = element == null;
-                if (element != null)
-                {
-                    originalLayoutState = CaptureLayoutState(element);
-                }
-            }
-            if (element == null)
-            {
-                element = child.AddComponent<LayoutElement>();
-                if (preserveState)
-                {
-                    originalLayoutElement = element;
-                }
-            }
-
-            element.minWidth = 0f;
-            element.preferredWidth = 0f;
-            element.flexibleWidth = 1f;
-            element.ignoreLayout = false;
+            if (item == null) return;
+            // Move a complete native result row, including its label, while keeping
+            // the title and original action row in their native positions.
+            while (item.parent is RectTransform parent && parent != panel.transform &&
+                !originalParent.IsChildOf(parent) &&
+                !(panel.titleLabel_Defeat != null && panel.titleLabel_Defeat.IsChildOf(parent)))
+                item = parent;
+            foreach (RectTransform existing in resultRoots)
+                if (item == existing || item.IsChildOf(existing)) return;
+            resultRoots.RemoveAll(existing => existing.IsChildOf(item));
+            resultRoots.Add(item);
         }
 
-        private static LayoutElementState CaptureLayoutState(LayoutElement element)
+        private Rect BoundsInPanel(RectTransform rect)
         {
-            return new LayoutElementState
+            rect.GetWorldCorners(corners);
+            Vector2 min = panel.transform.InverseTransformPoint(corners[0]);
+            Vector2 max = min;
+            for (int i = 1; i < 4; i++)
             {
-                MinWidth = element.minWidth,
-                MinHeight = element.minHeight,
-                PreferredWidth = element.preferredWidth,
-                PreferredHeight = element.preferredHeight,
-                FlexibleWidth = element.flexibleWidth,
-                FlexibleHeight = element.flexibleHeight,
-                LayoutPriority = element.layoutPriority,
-                IgnoreLayout = element.ignoreLayout
-            };
+                Vector2 point = panel.transform.InverseTransformPoint(corners[i]);
+                min = Vector2.Min(min, point);
+                max = Vector2.Max(max, point);
+            }
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
-        private void SplitOriginalSlotManually()
+        private void LateUpdate()
         {
-            RectTransform retryRect = retryButton.transform as RectTransform;
-            if (originalRect == null || retryRect == null)
-            {
-                return;
-            }
+            if (actionGroup == null || !actionGroup.activeSelf || originalRect == null) return;
+            RectTransform panelRect = (RectTransform)panel.transform;
+            Rect row = BoundsInPanel((RectTransform)originalParent);
+            Rect source = BoundsInPanel(originalRect);
+            float height = source.height;
+            float gap = height * 0.2f;
+            float available = Mathf.Max(height, Mathf.Min(row.width, panelRect.rect.width - gap * 2f));
+            float padding = height * 0.6f;
+            float width = Mathf.Max(height * 2.5f, PreferredWidth(retryButton) + padding);
+            if (bossRetryButton != null) width = Mathf.Max(width, PreferredWidth(bossRetryButton) + padding);
+            stacked = bossRetryButton != null && width * 2f + gap > available;
+            width = Mathf.Min(width, available);
+            height = Mathf.Max(height, PreferredHeight(retryButton, width - padding) / 0.8f);
+            if (bossRetryButton != null) height = Mathf.Max(height, PreferredHeight(bossRetryButton, width - padding) / 0.8f);
+            float groupWidth = bossRetryButton != null && !stacked ? width * 2f + gap : width;
+            float groupHeight = bossRetryButton != null && stacked ? height * 2f + gap : height;
+            RectTransform group = (RectTransform)actionGroup.transform;
+            group.anchorMin = group.anchorMax = new Vector2(0.5f, 0.5f);
+            group.pivot = new Vector2(0.5f, 0f);
+            group.sizeDelta = new Vector2(groupWidth, groupHeight);
+            group.anchoredPosition = new Vector2(row.center.x, row.yMax + gap) - panelRect.rect.center;
+            Place(retryButton, width, height, padding, bossRetryButton == null ? Vector2.zero :
+                stacked ? new Vector2(0f, (height + gap) * 0.5f) : new Vector2(-(width + gap) * 0.5f, 0f));
+            if (bossRetryButton != null) Place(bossRetryButton, width, height, padding,
+                stacked ? new Vector2(0f, -(height + gap) * 0.5f) : new Vector2((width + gap) * 0.5f, 0f));
 
-            float width = Mathf.Max(originalRect.rect.width, originalSize.x);
-            int count = bossRetryButton != null ? 3 : 2;
-            float childWidth = Mathf.Max(40f, (width - 12f * (count - 1)) / count);
-            float offset = (childWidth + 12f) * (count - 1) * 0.5f;
-            originalRect.sizeDelta = new Vector2(childWidth, originalSize.y);
-            retryRect.sizeDelta = new Vector2(childWidth, originalSize.y);
-            retryRect.anchoredPosition = originalPosition + Vector2.left * offset;
-            originalRect.anchoredPosition = originalPosition + Vector2.right * offset;
-            if (bossRetryButton != null)
+            float bottom = float.PositiveInfinity;
+            foreach (RectTransform item in resultRoots)
             {
-                RectTransform bossRect = bossRetryButton.transform as RectTransform;
-                bossRect.sizeDelta = new Vector2(childWidth, originalSize.y);
-                bossRect.anchoredPosition = originalPosition;
+                if (item == null) continue;
+                if (!resultPositions.ContainsKey(item)) resultPositions.Add(item, item.anchoredPosition);
+                Vector3 shift = panel.transform.InverseTransformVector(item.parent.TransformVector(
+                    (Vector3)(item.anchoredPosition - resultPositions[item])));
+                bottom = Mathf.Min(bottom, BoundsInPanel(item).yMin - shift.y);
             }
-            retryButton.transform.SetSiblingIndex(originalSiblingIndex);
-            manuallyPositioned = true;
+            MoveResults(Mathf.Max(0f, row.yMax + gap * 2f + groupHeight - bottom));
+            ConfigureNavigation();
+        }
+
+        private float PreferredWidth(UI_HorayButton button)
+        {
+            // Measure at the native design size, never at last frame's shrunken size.
+            button.text.fontSize = originalButton.text.fontSize;
+            return button.text.GetPreferredValues(button.text.text, Mathf.Infinity, Mathf.Infinity).x *
+                button.text.transform.lossyScale.x / panel.transform.lossyScale.x;
+        }
+
+        private float PreferredHeight(UI_HorayButton button, float width) =>
+            button.text.GetPreferredValues(button.text.text,
+                width * panel.transform.lossyScale.x / button.text.transform.lossyScale.x, Mathf.Infinity).y *
+                button.text.transform.lossyScale.y / panel.transform.lossyScale.y;
+
+        private static void Place(UI_HorayButton button, float width, float height, float padding, Vector2 position)
+        {
+            RectTransform rect = (RectTransform)button.transform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(width, height);
+            rect.anchoredPosition = position;
+            RectTransform text = button.text.rectTransform;
+            text.anchorMin = Vector2.zero;
+            text.anchorMax = Vector2.one;
+            text.offsetMin = new Vector2(padding * 0.5f, height * 0.1f);
+            text.offsetMax = -text.offsetMin;
+            button.text.margin = Vector4.zero;
+        }
+
+        private void MoveResults(float offset)
+        {
+            if (resultPositions.Count == 0) return;
+            Vector3 delta = panel.transform.TransformVector(Vector3.up * offset);
+            foreach (KeyValuePair<RectTransform, Vector2> item in resultPositions)
+                if (item.Key != null) item.Key.anchoredPosition = item.Value +
+                    (Vector2)item.Key.parent.InverseTransformVector(delta);
         }
 
         private void ConfigureNavigation()
         {
-            Navigation retryNavigation = originalNavigation;
-            retryNavigation.mode = Navigation.Mode.Explicit;
-            retryNavigation.selectOnRight = bossRetryButton != null && bossReady
-                ? bossRetryButton : originalButton;
-            retryButton.navigation = retryNavigation;
-
-            Navigation returnNavigation = originalNavigation;
-            returnNavigation.mode = Navigation.Mode.Explicit;
-            returnNavigation.selectOnLeft = bossRetryButton != null && bossReady
-                ? bossRetryButton : retryButton;
-            originalButton.navigation = returnNavigation;
+            bool bossEnabled = bossRetryButton != null && bossRetryButton.interactable;
+            Navigation retry = new Navigation { mode = Navigation.Mode.Explicit };
+            retry.selectOnDown = stacked && bossEnabled ? bossRetryButton : originalButton;
+            retry.selectOnRight = !stacked && bossEnabled ? bossRetryButton : null;
+            retryButton.navigation = retry;
+            Navigation back = originalNavigation;
+            back.mode = Navigation.Mode.Explicit;
+            back.selectOnLeft = nativeLeft;
+            back.selectOnRight = nativeRight;
+            back.selectOnDown = nativeDown;
+            back.selectOnUp = stacked && bossEnabled ? bossRetryButton : retryButton.interactable ? retryButton : null;
+            originalButton.navigation = back;
             if (bossRetryButton != null)
             {
-                Navigation bossNavigation = originalNavigation;
-                bossNavigation.mode = Navigation.Mode.Explicit;
-                bossNavigation.selectOnLeft = retryButton;
-                bossNavigation.selectOnRight = originalButton;
-                bossRetryButton.navigation = bossNavigation;
+                Navigation boss = new Navigation { mode = Navigation.Mode.Explicit };
+                boss.selectOnDown = originalButton;
+                boss.selectOnUp = stacked && retryButton.interactable ? retryButton : null;
+                boss.selectOnLeft = !stacked && retryButton.interactable ? retryButton : null;
+                bossRetryButton.navigation = boss;
             }
         }
 
@@ -867,6 +855,7 @@ namespace SephiriaEnhancements.DefeatRetry
             bossRetryButton?.gameObject.SetActive(visible && bossEligible);
             if (!visible)
             {
+                MoveResults(0f);
                 selectedRetry = false;
                 return;
             }
@@ -928,74 +917,20 @@ namespace SephiriaEnhancements.DefeatRetry
             if (panel != null &&
                 ((retryButton != null && panel.defaultSelectable == retryButton.gameObject) ||
                  (bossRetryButton != null && panel.defaultSelectable == bossRetryButton.gameObject)))
-            {
                 panel.defaultSelectable = originalButton?.gameObject;
-            }
-
-            if (originalButton != null)
+            if (originalButton != null) originalButton.navigation = originalNavigation;
+            MoveResults(0f);
+            resultRoots.Clear();
+            resultPositions.Clear();
+            if (actionGroup != null)
             {
-                originalButton.navigation = originalNavigation;
-            }
-
-            if (actionGroup != null && originalButton != null && originalParent != null)
-            {
-                originalButton.transform.SetParent(originalParent, false);
-                originalButton.transform.SetSiblingIndex(originalSiblingIndex);
-                if (originalRect != null)
-                {
-                    originalRect.anchoredPosition = originalPosition;
-                    originalRect.sizeDelta = originalSize;
-                }
-                RestoreOriginalLayoutElement();
+                actionGroup.SetActive(false);
                 UnityEngine.Object.Destroy(actionGroup);
-                actionGroup = null;
-                retryButton = null;
-                bossRetryButton = null;
             }
-            else
-            {
-                if (bossRetryButton != null)
-                {
-                    UnityEngine.Object.Destroy(bossRetryButton.gameObject);
-                    bossRetryButton = null;
-                }
-                if (retryButton != null)
-                {
-                    UnityEngine.Object.Destroy(retryButton.gameObject);
-                    retryButton = null;
-                }
-                if (manuallyPositioned && originalRect != null)
-                {
-                    originalRect.anchoredPosition = originalPosition;
-                    originalRect.sizeDelta = originalSize;
-                }
-            }
-
-            manuallyPositioned = false;
+            actionGroup = null;
+            retryButton = null;
+            bossRetryButton = null;
             selectedRetry = false;
-        }
-
-        private void RestoreOriginalLayoutElement()
-        {
-            if (originalLayoutElement == null)
-            {
-                return;
-            }
-            if (addedOriginalLayoutElement)
-            {
-                UnityEngine.Object.Destroy(originalLayoutElement);
-                originalLayoutElement = null;
-                return;
-            }
-
-            originalLayoutElement.minWidth = originalLayoutState.MinWidth;
-            originalLayoutElement.minHeight = originalLayoutState.MinHeight;
-            originalLayoutElement.preferredWidth = originalLayoutState.PreferredWidth;
-            originalLayoutElement.preferredHeight = originalLayoutState.PreferredHeight;
-            originalLayoutElement.flexibleWidth = originalLayoutState.FlexibleWidth;
-            originalLayoutElement.flexibleHeight = originalLayoutState.FlexibleHeight;
-            originalLayoutElement.layoutPriority = originalLayoutState.LayoutPriority;
-            originalLayoutElement.ignoreLayout = originalLayoutState.IgnoreLayout;
         }
 
         private void OnDestroy()

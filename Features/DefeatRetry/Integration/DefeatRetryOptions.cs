@@ -11,6 +11,13 @@ namespace SephiriaEnhancements.DefeatRetry.Integration
             if (panel.GetComponentInChildren<DefeatRetryOption>(true) == null)
             {
                 CreateDefeatRetryRow(template, section);
+                GameObject row = CloneRow(template, section,
+                    "Option_SephiriaEnhancements_DefeatRetryCutscenes",
+                    DefeatRetryCutsceneLocalization.Name, DefeatRetryCutsceneLocalization.Help, 5,
+                    out UI_HorizontalSelectionBox box, out UI_LocalizationStringText valueText);
+                row.AddComponent<DefeatRetryOption>().Configure(box, valueText, cutscenes: true);
+                MarkCategory(row, OptionsCategory.General);
+                row.SetActive(true);
             }
         }
 
@@ -33,14 +40,16 @@ namespace SephiriaEnhancements.DefeatRetry.Integration
     {
         private UI_HorizontalSelectionBox box;
         private UI_LocalizationStringText valueText;
+        private bool cutscenes;
 
         internal UI_HorizontalSelectionBox Box => box;
 
         internal void Configure(UI_HorizontalSelectionBox selectionBox,
-            UI_LocalizationStringText text)
+            UI_LocalizationStringText text, bool cutscenes = false)
         {
             box = selectionBox;
             valueText = text;
+            this.cutscenes = cutscenes;
         }
 
         private void OnEnable()
@@ -49,11 +58,9 @@ namespace SephiriaEnhancements.DefeatRetry.Integration
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
-            int value = DefeatRetrySettings.Enabled ? 1 : 0;
+            int value = (cutscenes ? DefeatRetrySettings.SkipCutscenes : DefeatRetrySettings.Enabled) ? 1 : 0;
             box.ChangeValueWithoutNotify(value);
-            valueText?.UpdateKey(value == 1
-                ? ModLocalization.DefeatRetryOn
-                : ModLocalization.DefeatRetryOff);
+            UpdateText(value);
         }
 
         private void OnDisable()
@@ -63,8 +70,19 @@ namespace SephiriaEnhancements.DefeatRetry.Integration
 
         private void Changed(int value)
         {
-            DefeatRetrySettings.Enabled = value == 1;
+            if (cutscenes) DefeatRetrySettings.SkipCutscenes = value == 1;
+            else DefeatRetrySettings.Enabled = value == 1;
             DefeatRetrySettings.Save();
+            UpdateText(value);
+        }
+
+        private void UpdateText(int value)
+        {
+            if (cutscenes)
+            {
+                valueText?.UpdateKey(value == 1 ? DefeatRetryCutsceneLocalization.On : DefeatRetryCutsceneLocalization.Off);
+                return;
+            }
             valueText?.UpdateKey(value == 1
                 ? ModLocalization.DefeatRetryOn
                 : ModLocalization.DefeatRetryOff);

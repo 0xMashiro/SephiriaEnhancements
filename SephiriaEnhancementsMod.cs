@@ -172,7 +172,7 @@ namespace SephiriaEnhancements
                 MidRunAdmissionCompatibilityProbe.Validate();
             string slowestPatchName = string.Empty;
             float slowestPatchMilliseconds = 0f;
-            bool retryCompatibilityAvailable = NativeRetryTravel.IsAvailable &&
+            bool retryCompatibilityAvailable = NativeRetryTravel.IsAvailable && NativeRetryBoss.IsAvailable &&
                 DefeatRetryClientRestore.IsAvailable && DefeatRetryPlayerRestorePatch.IsAvailable;
             foreach (Type patchType in new[]
             {
@@ -229,6 +229,7 @@ namespace SephiriaEnhancements
                 typeof(ApplyDefeatRetryPlacementPatch),
                 typeof(DefeatRetryPlayerRestorePatch),
                 typeof(DefeatRetryClientNotificationPatch),
+                typeof(DefeatRetryCutscenePatch),
                 typeof(DefeatRetryTravelRequestPatch),
                 typeof(BossRetryPropRecipePatch),
                 typeof(BossRetryPreserveFloorPatch),
@@ -424,6 +425,7 @@ namespace SephiriaEnhancements
 
         private void OnStartSessionClientside(bool isSavedSession)
         {
+            NativeRetryBoss.ObserveWorldSession(isSavedSession);
             autoCasting?.ResetWorld();
             DefeatRetryClientRestore.ObserveWorldSession(isSavedSession);
             GameLoadProfiler.ObserveClientSessionStarted(isSavedSession);

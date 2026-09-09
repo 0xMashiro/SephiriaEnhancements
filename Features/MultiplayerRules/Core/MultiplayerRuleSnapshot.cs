@@ -106,7 +106,7 @@ namespace SephiriaEnhancements.MultiplayerRules
             {
                 Rule(MultiplayerRuleId.RandomEncounterHealthMultiplier,
                     FourParticipantsOnly(1.3f)),
-                Rule(MultiplayerRuleId.SeedEncounterBossHealthMultiplier,
+                Rule(MultiplayerRuleId.KrazBossHealthMultiplier,
                     new ParticipantCountRule<float>(
                         MultiplayerRuleValue<float>.UseGameBehavior(),
                         MultiplayerRuleValue<float>.Override(1.9f),

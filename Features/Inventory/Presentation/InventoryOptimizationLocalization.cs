@@ -52,6 +52,13 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.Inventory.MovingItemInterrupted";
         internal const string DisabledForGameplayContext =
             "SephiriaEnhancements.Inventory.DisabledForGameplayContext";
+        internal const string OperationStopped = "SephiriaEnhancements.Inventory.OperationStopped";
+        internal const string ApplicationMayHaveChanged = "SephiriaEnhancements.Inventory.ApplicationMayHaveChanged";
+
+        internal static string FormatOperationMessage(string reasonKey, bool hasIssuedOperation,
+            Func<string, string> localize) => hasIssuedOperation
+                ? string.Format(localize(ApplicationMayHaveChanged), localize(reasonKey))
+                : localize(reasonKey);
         internal const string SettingSearchMode =
             "SephiriaEnhancements.Setting.InventorySearchMode";
         internal const string HelpSearchMode =
@@ -290,6 +297,8 @@ namespace SephiriaEnhancements.Inventory
             HudGoalSoftSummary,
             HudGoalHardSummary,
             HudGoalBack,
+            OperationStopped,
+            ApplicationMayHaveChanged,
 
 };
 

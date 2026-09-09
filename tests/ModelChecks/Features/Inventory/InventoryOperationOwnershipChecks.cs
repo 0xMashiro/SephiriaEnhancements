@@ -72,10 +72,13 @@ internal static class InventoryOperationOwnershipChecks
         var source = InventorySnapshotFixture.ArtifactsAtLevels(levels, new[] { 0, 1, 2, 3 });
         var target = new InventoryLayoutProjection(new[] { 1, 0, 3, 2 }, new int[4]);
         var application = Application(source, target);
+        Require(!application.HasIssuedOperation, "planning alone must not imply a move was requested");
         var first = application.Plan.Swaps[0];
         var intermediate = application.ConfirmedLayout.WithCellsSwapped(first.FirstCell, first.SecondCell);
         var observed = InventorySnapshotFixture.ArtifactsAtLevels(levels, intermediate.CopyCells());
         application.BeginSwap(1);
+        Require(application.HasIssuedOperation && application.NextSwap == 0,
+            "unconfirmed server request can already have moved items");
         foreach (var stale in new[] { Runtime(), Runtime(0), Runtime(2, epoch: 2), Runtime(2, player: 2),
             Runtime(2, consistency: RuntimeConsistencyState.PendingSettlement) })
             Require(!application.TryObservePendingOperation(observed, stale, out _) && application.NextSwap == 0, "stale acknowledgement advanced cursor");
@@ -96,7 +99,7 @@ internal static class InventoryOperationOwnershipChecks
         Require(application.TryObservePendingOperation(unrelatedMove, Runtime(3), out accepted) && accepted.Matched &&
             application.NextSwap == application.Plan.Swaps.Count && application.ConfirmedLayout.ContentEquals(target), "second swap did not complete");
         var replacement = Application(source, target);
-        Require(replacement.NextSwap == 0 && replacement.ConfirmedRevision == 1 &&
+        Require(!replacement.HasIssuedOperation && replacement.NextSwap == 0 && replacement.ConfirmedRevision == 1 &&
             replacement.PendingOperation == InventoryPendingOperation.None, "application state leaked into replacement");
     }
 
@@ -106,6 +109,7 @@ internal static class InventoryOperationOwnershipChecks
         var target = new InventoryLayoutProjection(new[] { 0, 1 }, new[] { 0, 3 });
         var application = Application(source, target);
         application.BeginRotation(1, 0);
+        Require(application.HasIssuedOperation, "rotation request can change inventory before acknowledgement");
         Require(!application.TryObservePendingOperation(InventorySnapshotFixture.Tablets(1, 0), Runtime(2), out _), "wrong tablet acknowledged rotation");
         for (int rotation = 1; rotation <= 3; rotation++)
         {
@@ -113,6 +117,7 @@ internal static class InventoryOperationOwnershipChecks
                 report.Matched && application.NextRotation == (rotation == 3 ? 1 : 0) &&
                 application.PendingOperation == InventoryPendingOperation.None &&
                 application.ConfirmedLayout.GetRotation(1) == rotation, "rotation click advanced incorrectly");
+            Require(application.HasIssuedOperation, "acknowledgement must not erase possible partial movement");
             Require(!application.TryObservePendingOperation(InventorySnapshotFixture.Tablets(0, rotation), Runtime(rotation + 2), out _), "duplicate rotation acknowledged");
             if (rotation < 3) application.BeginRotation(rotation + 1, rotation);
         }

@@ -60,14 +60,14 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                     participantCount, out _)) return true;
             if (merchant == EProceduralMerchantType.Vendor)
                 return MultiplayerRulesController.TryGetActiveOverride(
-                        MultiplayerRuleId.WanderingMerchantCharmCandidateBonus,
+                        MultiplayerRuleId.WanderingMerchantArtifactCandidateBonus,
                         participantCount, out _) ||
                     MultiplayerRulesController.TryGetActiveOverride(
                         MultiplayerRuleId.WanderingMerchantTabletCandidateCount,
                         participantCount, out _);
             if (merchant == EProceduralMerchantType.MerchantUnionVendor)
                 return MultiplayerRulesController.TryGetActiveOverride(
-                        MultiplayerRuleId.MerchantGuildCharmCandidateBonus,
+                        MultiplayerRuleId.MerchantGuildArtifactCandidateBonus,
                         participantCount, out _) ||
                     MultiplayerRulesController.TryGetActiveOverride(
                         MultiplayerRuleId.MerchantGuildTabletCandidateCount,
@@ -108,7 +108,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             if (merchant == EProceduralMerchantType.Vendor)
             {
                 if (MultiplayerRulesController.TryGetActiveOverride(
-                        MultiplayerRuleId.WanderingMerchantCharmCandidateBonus,
+                        MultiplayerRuleId.WanderingMerchantArtifactCandidateBonus,
                         participantCount,
                         out float charmBonus))
                     charms += Mathf.RoundToInt(charmBonus) - nativeParticipantBonus;
@@ -121,7 +121,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             else if (merchant == EProceduralMerchantType.MerchantUnionVendor)
             {
                 if (MultiplayerRulesController.TryGetActiveOverride(
-                        MultiplayerRuleId.MerchantGuildCharmCandidateBonus,
+                        MultiplayerRuleId.MerchantGuildArtifactCandidateBonus,
                         participantCount, out float charmBonus))
                     charms += Mathf.RoundToInt(charmBonus) - nativeParticipantBonus;
                 if (MultiplayerRulesController.TryGetActiveOverride(

@@ -41,6 +41,18 @@ internal static class MultiplayerRulesSessionChecks
         if (multiplayerRulesSession.TryGetActive(out _))
             throw new InvalidOperationException(
                 "multiplayer rules must release exploration-owned state when exploration ends");
+        var krazRules = new ActiveExplorationMultiplayerRules(MultiplayerRulesPreset.Custom,
+            MultiplayerRuleSnapshot.Create((id, count) => id == MultiplayerRuleId.KrazBossHealthMultiplier
+                ? MultiplayerRuleValue<float>.Override(count)
+                : MultiplayerRuleValue<float>.UseGameBehavior()), EnemyHealthModifierCombination.ParticipantRuleOnly);
+        for (int count = 1; count <= 4; count++)
+        {
+            if (!EnemyHealthRuleResolver.TryResolveMultiplier(krazRules, EnemySpawnOrigin.KrazBoss,
+                    EnemyHealthCategory.Elite, count, 0, out float multiplier) || multiplier != count ||
+                EnemyHealthRuleResolver.TryResolveMultiplier(krazRules, EnemySpawnOrigin.StandardBoss,
+                    EnemyHealthCategory.Elite, count, 0, out _))
+                throw new InvalidOperationException("Kraz's rule must not change other boss encounters");
+        }
         Console.WriteLine("MultiplayerRulesSession: freeze, sparse resolution and release passed");
     }
 }

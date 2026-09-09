@@ -4,12 +4,12 @@ using HarmonyLib;
 namespace SephiriaEnhancements.MultiplayerRules.Integration
 {
     [HarmonyPatch(typeof(SeedBossSpawner), "SpawnBoss", new Type[] { })]
-    internal static class SeedEncounterBossSpawnOriginPatch
+    internal static class KrazBossSpawnOriginPatch
     {
         private static void Prefix(SeedBossSpawner __instance, out IDisposable __state)
         {
-            // SpawnBoss is a private native integration contract.
-            __state = EnemySpawnRoutineContext.Enter(EnemySpawnOrigin.SeedEncounterBoss,
+            // SeedBossSpawner is the native spawner for Kraz; retain its API name here.
+            __state = EnemySpawnRoutineContext.Enter(EnemySpawnOrigin.KrazBoss,
                 __instance);
         }
 

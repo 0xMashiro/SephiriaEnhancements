@@ -124,7 +124,18 @@ internal static class LocalizationChecks
             };
             if (inventoryFailures.Select(key => entries[key]).Distinct().Count() != inventoryFailures.Length)
                 throw new InvalidOperationException("inventory failure reasons must remain distinguishable: " + language);
+            foreach (string reason in inventoryFailures.Append(InventoryOptimizationLocalization.OperationStopped))
+            {
+                string beforeRequest = InventoryOptimizationLocalization.FormatOperationMessage(reason, false, key => entries[key]);
+                string afterRequest = InventoryOptimizationLocalization.FormatOperationMessage(reason, true, key => entries[key]);
+                if (beforeRequest != entries[reason] || afterRequest == beforeRequest ||
+                    !afterRequest.Contains(beforeRequest, StringComparison.Ordinal) || afterRequest.Contains("{0}"))
+                    throw new InvalidOperationException("issued-operation feedback must retain its reason and add localized consequences: " + language);
+            }
         }
+        if (texts["en-US"][InventoryOptimizationLocalization.DisabledForGameplayContext].Contains("floor", StringComparison.OrdinalIgnoreCase) ||
+            texts["zh-CN"][InventoryOptimizationLocalization.DisabledForGameplayContext].Contains("本层"))
+            throw new InvalidOperationException("context-scoped failure must not promise floor-scoped recovery");
         Console.WriteLine($"Localization: {languages.Count} languages, {tableCount} complete source tables, " +
             $"{english.Count} keys each; placeholders, terminology and distinct failure messages passed");
     }

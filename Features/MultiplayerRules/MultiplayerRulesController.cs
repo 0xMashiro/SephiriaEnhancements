@@ -166,7 +166,7 @@ namespace SephiriaEnhancements.MultiplayerRules
                 MultiplayerRuleId.EliteEnemyDamageBonus,
                 MultiplayerRuleId.RandomEncounterHealthMultiplier,
                 MultiplayerRuleId.RandomEncounterDamageBonus,
-                MultiplayerRuleId.SeedEncounterBossHealthMultiplier,
+                MultiplayerRuleId.KrazBossHealthMultiplier,
                 MultiplayerRuleId.BossEncounterDamageBonus,
                 MultiplayerRuleId.MindEaterRootSummonHealthMultiplier,
                 MultiplayerRuleId.MindEaterRootSummonDamageBonus);

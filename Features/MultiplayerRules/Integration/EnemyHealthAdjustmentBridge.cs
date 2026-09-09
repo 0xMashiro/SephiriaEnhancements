@@ -96,7 +96,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                     ruleId = MultiplayerRuleId.MindEaterRootSummonDamageBonus;
                     break;
                 case EnemySpawnOrigin.StandardBoss:
-                case EnemySpawnOrigin.SeedEncounterBoss:
+                case EnemySpawnOrigin.KrazBoss:
                     ruleId = MultiplayerRuleId.BossEncounterDamageBonus;
                     break;
                 default:
@@ -120,7 +120,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                     FerociousClawsEnvironment, out hardModeBonus);
             }
             int currentBonus = unit.GetCustomStat(ECustomStat.AllDamageBonus);
-            int sourceDamageBonus = captured.Origin == EnemySpawnOrigin.SeedEncounterBoss &&
+            int sourceDamageBonus = captured.Origin == EnemySpawnOrigin.KrazBoss &&
                 EnemySpawnRoutineContext.CurrentFrame?.Source is SeedBossSpawner seedBoss
                     ? Mathf.RoundToInt(seedBoss.damageBonusPercent) : 0;
             int nativeParticipantBonus = currentBonus - captured.InitialDamageBonus -

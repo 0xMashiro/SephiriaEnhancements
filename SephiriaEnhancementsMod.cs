@@ -42,7 +42,7 @@ namespace SephiriaEnhancements
             typeof(AvatarSpawnOriginCapturePatch),
             typeof(NetworkSpawnOriginCapturePatch),
             typeof(EnemyHealthInitializationPatch),
-            typeof(SeedEncounterBossSpawnOriginPatch),
+            typeof(KrazBossSpawnOriginPatch),
             typeof(MindEaterRootSummonOriginPatch),
             typeof(MonsterSpawnEntryMultiplierPatch),
             typeof(TargetedExperienceOrbDivisorPatch),

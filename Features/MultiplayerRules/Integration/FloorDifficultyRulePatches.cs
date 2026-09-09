@@ -38,7 +38,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             FloorGenerationContext.Frame frame = FloorGenerationContext.CurrentFrame;
             int participantCount = ServerParticipantCountReader.Read();
             if (!MultiplayerRulesController.TryGetActiveOverride(
-                    MultiplayerRuleId.LifeSupplyOnPositiveProgressFloor,
+                    MultiplayerRuleId.ExplorationFloorHealingSupply,
                     participantCount, out float enabled))
                 return true;
             var hpBreakables = HpBreakablesField?.GetValue(null) as List<PropEntity>;
@@ -53,6 +53,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         internal static void Complete(FloorGenerationContext.Frame frame)
         {
+            // Native nodeProgress is a route position: entrances are 0, hidden floors -1.
+            // LibraryFloorGenerator also owns desert layouts; it is not a biome name.
             if (frame == null || frame.LifeSupplyCreated ||
                 !(frame.Generator is EnhancedProceduralFloorGenerator) &&
                 !(frame.Generator is LibraryFloorGenerator) ||
@@ -61,7 +63,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                     frame.Generator.guid, out FloorData floor) ||
                 floor.nodeProgress <= 0 ||
                 !MultiplayerRulesController.TryGetActiveOverride(
-                    MultiplayerRuleId.LifeSupplyOnPositiveProgressFloor,
+                    MultiplayerRuleId.ExplorationFloorHealingSupply,
                     ServerParticipantCountReader.Read(), out float enabled) ||
                 enabled <= 0f)
                 return;
@@ -126,7 +128,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                     MultiplayerRuleId.EnemyGroupDifficultyOffset, participantCount,
                     out _) ||
                 MultiplayerRulesController.TryGetActiveOverride(
-                    MultiplayerRuleId.LifeSupplyOnPositiveProgressFloor,
+                    MultiplayerRuleId.ExplorationFloorHealingSupply,
                     participantCount, out _);
             if (required && __result != null)
                 __result = FloorGenerationContext.Wrap(__result, __instance);

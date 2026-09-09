@@ -65,6 +65,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal void ResetGameplayContext()
         {
+            if (Busy) ShowOperationMessage(InventoryOptimizationLocalization.GameplayContextChanged);
             undo = null;
             rewardComboHighlights.Clear();
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
@@ -160,6 +161,7 @@ namespace SephiriaEnhancements.Inventory
                 EndPriorityMarking();
                 if (Busy)
                 {
+                    ShowOperationMessage(InventoryOptimizationLocalization.OperationStopped);
                     ResetOperationState();
                 }
                 return;
@@ -592,7 +594,7 @@ namespace SephiriaEnhancements.Inventory
                         SupportLogger.Record("inventory_application_step_rejected",
                             "mismatches=" + application.Verification.Mismatches.Count, "WARN");
                     }
-                    ShowMessage(progress switch
+                    ShowOperationMessage(progress switch
                     {
                         InventoryApplicationProgress.MovingItemInterrupted => InventoryOptimizationLocalization.MovingItemInterrupted,
                         InventoryApplicationProgress.TimedOut => InventoryOptimizationLocalization.ApplyTimedOut,
@@ -635,12 +637,12 @@ namespace SephiriaEnhancements.Inventory
                 layoutMatched && differential.Matched ? "INFO" : "WARN");
             if (!layoutMatched)
             {
-                ShowMessage(InventoryOptimizationLocalization.Changed);
+                ShowOperationMessage(InventoryOptimizationLocalization.Changed);
             }
             else if (!differential.Matched)
             {
                 LastAppliedOutcome = null;
-                ShowMessage(InventoryOptimizationLocalization.
+                ShowOperationMessage(InventoryOptimizationLocalization.
                     VerificationFailed);
             }
             else if (application.State.IsUndo)
@@ -742,7 +744,7 @@ namespace SephiriaEnhancements.Inventory
             SupportLogger.Warning("inventory_context_disabled", "[SephiriaEnhancements] Inventory optimization " +
                 "disabled for the current gameplay context: " +
                 (exception?.Message ?? "unknown failure"));
-            ShowMessage(InventoryOptimizationLocalization.
+            ShowOperationMessage(InventoryOptimizationLocalization.
                 DisabledForGameplayContext);
             ResetOperationState();
         }
@@ -760,6 +762,16 @@ namespace SephiriaEnhancements.Inventory
         private void OnDestroy()
         {
             Shutdown();
+        }
+
+        private void ShowOperationMessage(string key)
+        {
+            bool hasIssuedOperation = application?.State.HasIssuedOperation == true;
+            SupportLogger.Record("inventory_operation_stopped", "code=" + key +
+                " operationIssued=" + hasIssuedOperation);
+            string text = InventoryOptimizationLocalization.FormatOperationMessage(
+                key, hasIssuedOperation, ModLocalization.Get);
+            UIManager.Instance?.GetElement<UI_SystemMessage>()?.Open(text, hasIssuedOperation ? 4f : 2f);
         }
 
         private static void ShowMessage(string key)

@@ -46,8 +46,8 @@ namespace SephiriaEnhancements.MultiplayerRules
                     return MultiplayerRuleId.RandomEncounterHealthMultiplier;
                 case EnemySpawnOrigin.StandardBoss:
                     return MultiplayerRuleId.StandardBossHealthMultiplier;
-                case EnemySpawnOrigin.SeedEncounterBoss:
-                    return MultiplayerRuleId.SeedEncounterBossHealthMultiplier;
+                case EnemySpawnOrigin.KrazBoss:
+                    return MultiplayerRuleId.KrazBossHealthMultiplier;
                 case EnemySpawnOrigin.MindEaterRootSummon:
                     return MultiplayerRuleId.MindEaterRootSummonHealthMultiplier;
                 default:

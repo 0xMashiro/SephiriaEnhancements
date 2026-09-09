@@ -19,7 +19,7 @@ namespace SephiriaEnhancements.MultiplayerRules
         RegularEncounter,
         RandomEncounter,
         StandardBoss,
-        SeedEncounterBoss,
+        KrazBoss,
         MindEaterRootSummon
     }
 

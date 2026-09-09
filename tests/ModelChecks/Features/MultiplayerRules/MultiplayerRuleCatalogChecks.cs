@@ -16,7 +16,7 @@ internal static class MultiplayerRuleCatalogChecks
                 MultiplayerRuleId.QliphothFinalBattleEntryAttackTracksParticipant)
                 .IsValidOverride(1f) ||
             MultiplayerRuleCatalog.Get(
-                MultiplayerRuleId.LifeSupplyOnPositiveProgressFloor)
+                MultiplayerRuleId.ExplorationFloorHealingSupply)
                 .IsValidOverride(0.5f) ||
             MultiplayerRuleCatalog.Get(MultiplayerRuleId.TargetedExperienceOrbDivisor)
                 .IsValidOverride(0f))
@@ -48,7 +48,7 @@ internal static class MultiplayerRuleCatalogChecks
                 MultiplayerRuleValueSource.UseGameBehavior ||
             !optimizedRuleSnapshot.HasAnyOverride(
                 MultiplayerRuleId.RandomEncounterHealthMultiplier,
-                MultiplayerRuleId.SeedEncounterBossHealthMultiplier,
+                MultiplayerRuleId.KrazBossHealthMultiplier,
                 MultiplayerRuleId.MindEaterRootSummonHealthMultiplier) ||
             optimizedRuleSnapshot.HasAnyOverride(
                 MultiplayerRuleId.TargetedExperienceOrbDivisor,

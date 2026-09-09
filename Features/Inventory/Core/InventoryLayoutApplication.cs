@@ -54,15 +54,18 @@ namespace SephiriaEnhancements.Inventory
         internal int NextSwap { get; private set; }
         internal int NextRotation { get; private set; }
         internal InventoryPendingOperation PendingOperation { get; private set; }
+        internal bool HasIssuedOperation { get; private set; }
 
         internal void BeginSwap(long revision)
         {
+            HasIssuedOperation = true;
             pendingRevision = revision;
             PendingOperation = InventoryPendingOperation.Swap;
         }
 
         internal void BeginRotation(long revision, int rotation)
         {
+            HasIssuedOperation = true;
             pendingRevision = revision;
             pendingRotation = rotation;
             PendingOperation = InventoryPendingOperation.Rotation;

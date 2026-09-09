@@ -486,7 +486,7 @@ namespace SephiriaEnhancements.Inventory
                 NativeInventoryIntentDrop.HasHeldItem || slot?.Root.activeInHierarchy != true ||
                 slot.Preference == null) return;
             // Resolve the current rule by native item identity, never by a stale page index.
-            var preferences = ExplorationInventoryIntentStore.Capture();
+            var preferences = WorldSessionInventoryIntentStore.Capture();
             var rule = preferences.ArtifactPreferences.FirstOrDefault(candidate =>
                 candidate.ItemKey == slot.Preference.ItemKey);
             if (rule == null || !HasInventoryArtifact(rule.InstanceId, rule.EntityId) ||
@@ -530,7 +530,7 @@ namespace SephiriaEnhancements.Inventory
             if (NativeInventoryIntentDrop.HasHeldItem || !interaction.LevelTarget.HasValue) return;
             var key = interaction.LevelTarget.Value;
             if (!HasInventoryArtifact(key.NativeInstanceId, key.EntityId)) return;
-            if (!interaction.TryEditArtifactGoal(ExplorationInventoryIntentStore.Capture(),
+            if (!interaction.TryEditArtifactGoal(WorldSessionInventoryIntentStore.Capture(),
                     currentSnapshot, edit, out var preferences)) return;
             ReplacePreferences(preferences);
             ProjectLevelEditor(preferences);
@@ -588,7 +588,7 @@ namespace SephiriaEnhancements.Inventory
                 : specialEffectsExpanded ? InventorySpecialEffectLocalization.Title
                 : detailsExpanded ? InventoryArrangementLocalization.ComboPriorities : InventoryArrangementLocalization.ArtifactPriorities);
             InventoryOptimizationPreferences preferences =
-                ExplorationInventoryIntentStore.Capture();
+                WorldSessionInventoryIntentStore.Capture();
             if (panelOpen && preferencesExpanded && !detailsExpanded)
             {
                 ProjectIntentBoard(preferences);
@@ -777,7 +777,7 @@ namespace SephiriaEnhancements.Inventory
                 {
                     canEdit = interaction.Editable && HasInventoryArtifact(rule.InstanceId, rule.EntityId);
                     hint = item.Name + "\n" + InventoryOptimizationLocalization.FormatArtifactFeedback(rule, item.Artifact,
-                        resultFeedback?.Find(rule.ItemKey), key => Loc._(key), ExplorationInventoryIntentStore.Capture().AllowAdditionalMagicCost);
+                        resultFeedback?.Find(rule.ItemKey), key => Loc._(key), WorldSessionInventoryIntentStore.Capture().AllowAdditionalMagicCost);
                 }
             }
 
@@ -883,7 +883,7 @@ namespace SephiriaEnhancements.Inventory
             }
             ArtifactOptimizationPreference held = interaction.Pickup;
             Sprite displacedSprite = slot.Icon.sprite;
-            if (interaction.TryPlace(ExplorationInventoryIntentStore.Capture(),
+            if (interaction.TryPlace(WorldSessionInventoryIntentStore.Capture(),
                 slot.PriorityQueue ? InventoryPreferenceLevel.Priority : InventoryPreferenceLevel.Avoid,
                 slot.Index, HasInventoryArtifact(held.InstanceId, held.EntityId), out var updated))
             {
@@ -917,7 +917,7 @@ namespace SephiriaEnhancements.Inventory
             }
             ArtifactOptimizationPreference held = interaction.Pickup;
             if (NativeInventoryIntentDrop.HasHeldItem ||
-                !interaction.ValidatePickup(ExplorationInventoryIntentStore.Capture(),
+                !interaction.ValidatePickup(WorldSessionInventoryIntentStore.Capture(),
                     HasInventoryArtifact(held.InstanceId, held.EntityId)))
             {
                 ClearArtifactPickup();
@@ -1070,7 +1070,7 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
             InventoryOptimizationPreferences current =
-                ExplorationInventoryIntentStore.Capture();
+                WorldSessionInventoryIntentStore.Capture();
             InventoryOptimizationPreferences updated = slot.PriorityQueue
                 ? InventoryArtifactIntentEditor.PlacePriority(current,
                     instanceId, entityId, slot.Index)
@@ -1112,7 +1112,7 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
             ReplacePreferences(InventoryArtifactIntentEditor.Remove(
-                ExplorationInventoryIntentStore.Capture(),
+                WorldSessionInventoryIntentStore.Capture(),
                 slot.Preference.ItemKey));
             ClearArtifactPickup();
             nextProjectionAt = 0f;
@@ -1146,7 +1146,7 @@ namespace SephiriaEnhancements.Inventory
         private void EditComboGoal(TargetRow row, InventoryComboGoalEdit edit)
         {
             string categoryId = row?.Target?.CategoryId;
-            if (!interaction.TryEditComboGoal(ExplorationInventoryIntentStore.Capture(),
+            if (!interaction.TryEditComboGoal(WorldSessionInventoryIntentStore.Capture(),
                     currentSnapshot, categoryId, edit, out var preferences)) return;
             ReplacePreferences(preferences);
             if (edit == InventoryComboGoalEdit.CycleChoice)
@@ -1164,7 +1164,7 @@ namespace SephiriaEnhancements.Inventory
             }
             else
             {
-                ExplorationInventoryIntentStore.Replace(preferences);
+                WorldSessionInventoryIntentStore.Replace(preferences);
             }
         }
 
@@ -1184,7 +1184,7 @@ namespace SephiriaEnhancements.Inventory
             else
             {
                 intentPage = Math.Max(0, intentPage + delta);
-                ProjectIntentBoard(ExplorationInventoryIntentStore.Capture());
+                ProjectIntentBoard(WorldSessionInventoryIntentStore.Capture());
             }
             nextProjectionAt = 0f;
         }

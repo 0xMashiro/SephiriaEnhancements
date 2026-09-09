@@ -71,7 +71,7 @@ namespace SephiriaEnhancements.Inventory
 
             InventorySearchEffort effort = InventorySearchModePolicy.GetSearchEffort(ModSettings.InventorySearchMode);
             var preferences = InventoryOptimizationPreferenceComposer.Compose(
-                PersistentInventoryOptimizationPolicyStore.Capture(), ExplorationInventoryIntentStore.Capture(),
+                PersistentInventoryOptimizationPolicyStore.Capture(), WorldSessionInventoryIntentStore.Capture(),
                 effort, InventoryOptimizationPreferences.Default.AllowStoneTabletRotation);
             var policy = snapshot.SettlementValidation.LayoutProjectionReady
                 ? InventoryOptimizationPolicyResolver.Resolve(snapshot, preferences) : null;
@@ -84,7 +84,7 @@ namespace SephiriaEnhancements.Inventory
         {
             InventorySearchEffort effort = InventorySearchModePolicy.GetSearchEffort(ModSettings.InventorySearchMode);
             InventoryOptimizationPreferences preferences = InventoryOptimizationPreferenceComposer.Compose(
-                PersistentInventoryOptimizationPolicyStore.Capture(), ExplorationInventoryIntentStore.Capture(),
+                PersistentInventoryOptimizationPolicyStore.Capture(), WorldSessionInventoryIntentStore.Capture(),
                 effort, InventoryOptimizationPreferences.Default.AllowStoneTabletRotation);
             var rejected = new InventoryReproductionCase(snapshot, preferences, null, InventorySearchBudget.ForEffort(effort));
             reproductionLog?.Record(rejected.Record(InventoryReproductionReason.InputRejected));

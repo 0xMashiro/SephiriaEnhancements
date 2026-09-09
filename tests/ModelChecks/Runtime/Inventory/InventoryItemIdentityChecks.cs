@@ -181,9 +181,9 @@ internal static class InventoryItemIdentityChecks
         Require(interaction.ItemKey == CompanionKeys[1], "zero-ID pickups must remain distinct");
         interaction.SetEditable(false);
         Require(interaction.ItemKey == null, "suspending editing must discard pickup identity");
-        ExplorationInventoryIntentStore.Replace(composed);
-        ExplorationInventoryIntentStore.Clear();
-        Require(ExplorationInventoryIntentStore.Capture().ArtifactPreferences.Count == 0 &&
+        WorldSessionInventoryIntentStore.Replace(composed);
+        WorldSessionInventoryIntentStore.Clear();
+        Require(WorldSessionInventoryIntentStore.Capture().ArtifactPreferences.Count == 0 &&
             InventoryOptimizationPreferencesCodec.Encode(composed) ==
                 InventoryOptimizationPreferencesCodec.Encode(InventoryOptimizationPreferences.Default),
             "instance intent must reset with exploration and stay out of persistent settings");

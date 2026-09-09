@@ -45,7 +45,7 @@ namespace SephiriaEnhancements.Inventory
         private void EditSpecialEffects(bool cost)
         {
             if (!interaction.Editable || interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem) return;
-            var preferences = ExplorationInventoryIntentStore.Capture();
+            var preferences = WorldSessionInventoryIntentStore.Capture();
             ReplacePreferences(preferences.WithSpecialEffects(cost ? preferences.PositionEffectPreference :
                 (InventoryPositionEffectPreference)(((int)preferences.PositionEffectPreference + 1) % 3),
                 cost ? !preferences.AllowAdditionalMagicCost : preferences.AllowAdditionalMagicCost));
@@ -55,7 +55,7 @@ namespace SephiriaEnhancements.Inventory
         private void ResetSpecialEffects()
         {
             if (!interaction.Editable || interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem) return;
-            ReplacePreferences(ExplorationInventoryIntentStore.Capture().WithSpecialEffects(
+            ReplacePreferences(WorldSessionInventoryIntentStore.Capture().WithSpecialEffects(
                 InventoryPositionEffectPreference.Improve, false));
             nextProjectionAt = 0;
         }
@@ -69,7 +69,7 @@ namespace SephiriaEnhancements.Inventory
             bool visible = panelOpen && preferencesExpanded && specialEffectsExpanded;
             specialEffectsRoot.SetActive(visible);
             if (!visible) return;
-            var preferences = ExplorationInventoryIntentStore.Capture();
+            var preferences = WorldSessionInventoryIntentStore.Capture();
             title.text = Loc._(InventorySpecialEffectLocalization.Title);
             bool positionAvailable = currentSnapshot?.PositionEffects.Rules.Count > 0;
             bool costAvailable = currentSnapshot?.Items.Any(item => item.Artifact != null &&

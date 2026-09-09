@@ -21,7 +21,7 @@ namespace SephiriaEnhancements.DefeatRetry
         private static bool Prefix(BossSpawner __instance, PlayerAvatar player,
             Vector3 position, string name)
         {
-            if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.HasPendingArrivals)
+            if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.BlocksBossBattle)
                 return false;
             DefeatRetryFeature.CaptureBossEncounterSnapshot(__instance, player,
                 position, name);
@@ -38,9 +38,11 @@ namespace SephiriaEnhancements.DefeatRetry
                 "UserCode_CmdSpawnBoss__PlayerAvatar");
         }
 
-        private static void Prefix(SeedBossSpawner __instance, PlayerAvatar player)
+        private static bool Prefix(SeedBossSpawner __instance, PlayerAvatar player)
         {
+            if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.BlocksBossBattle) return false;
             DefeatRetryFeature.CaptureSeedBossEncounterSnapshot(__instance, player);
+            return true;
         }
     }
 

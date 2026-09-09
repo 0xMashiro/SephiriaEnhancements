@@ -67,14 +67,14 @@ internal static class InventoryOptimizationArchitectureChecks
                 new ArtifactOptimizationPreference(503, 30,
                     InventoryPreferenceLevel.Priority, 1)
             }, Array.Empty<ComboOptimizationPreference>());
-        ExplorationInventoryIntentStore.Replace(intent);
-        if (!ReferenceEquals(ExplorationInventoryIntentStore.Capture(), intent))
+        WorldSessionInventoryIntentStore.Replace(intent);
+        if (!ReferenceEquals(WorldSessionInventoryIntentStore.Capture(), intent))
         {
             throw new InvalidOperationException(
                 "exploration intent store must retain the active exploration value");
         }
-        ExplorationInventoryIntentStore.Clear();
-        if (ExplorationInventoryIntentStore.Capture().ArtifactPreferences.Count !=
+        WorldSessionInventoryIntentStore.Clear();
+        if (WorldSessionInventoryIntentStore.Capture().ArtifactPreferences.Count !=
             0)
         {
             throw new InvalidOperationException(

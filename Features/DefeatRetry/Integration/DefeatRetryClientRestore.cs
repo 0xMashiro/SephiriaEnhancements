@@ -13,7 +13,7 @@ namespace SephiriaEnhancements.DefeatRetry
         private void Update()
         {
             DefeatRetryBridge.Tick();
-            try { DefeatRetryClientRestore.Tick(); }
+            try { DefeatRetryClientRestore.Tick(); NativeRetryFailure.Tick(); }
             catch (Exception exception)
             {
                 SupportLogger.Failure("retry_client_restore_failed", exception);
@@ -33,11 +33,18 @@ namespace SephiriaEnhancements.DefeatRetry
         private static string runFile;
         private static long retryId;
         private static bool notified, traveled, worldLoaded;
+        private static Vector3 destination;
+        private static double deadline;
+        private static FloorGenerator requestedCameraFloor;
+        private static GameCamera requestedCamera;
         internal static bool PreserveClientRun { get; private set; }
 
-        internal static void Begin(string floorGuid, long id)
+        internal static void Begin(string floorGuid, long id, Vector3 position)
         {
             Clear();
+            NativeRetryFailure.Clear();
+            destination = position;
+            deadline = Time.realtimeSinceStartupAsDouble + DefeatRetryBridge.RecoveryTimeout;
             player = LocalPlayerResolver.Resolve();
             if (player == null) return;
             connection = NetworkClient.connection;
@@ -93,13 +100,31 @@ namespace SephiriaEnhancements.DefeatRetry
                 Clear();
                 return;
             }
-            if (!notified || !traveled || player.loadingScreenType != -1 || player.currentFloorGuid != floor) return;
+            if (Time.realtimeSinceStartupAsDouble >= deadline)
+            {
+                RecordFailureContext();
+                ReportFailure();
+                NativeRetryFailure.Show(RetryRecoveryFailure.TimedOut);
+                Clear();
+                return;
+            }
+            if (!notified || !traveled || !NativeRetryArrival.IsAtDestination(player, floor, destination)) return;
             FloorGenerator generator = FloorGenerator.FindByGuid(floor);
             GameCamera camera = GameCamera.Instance;
             if (generator == null || !generator.GenerateSuccess || camera == null) return;
             // Same GUID does not mean the same Unity object after world reconstruction.
             if (camera.Observer != player) camera.SetObserver(player, true);
-            if (camera.CurrentSeeingFloor != generator) BindFloor.Invoke(camera, new object[] { floor });
+            if (camera.CurrentSeeingFloor != generator)
+            {
+                if (requestedCameraFloor != generator || requestedCamera != camera)
+                {
+                    requestedCamera = camera;
+                    requestedCameraFloor = generator;
+                    BindFloor.Invoke(camera, new object[] { floor });
+                }
+                return;
+            }
+            if (camera.Observer != player) return;
             SupportLogger.Record("retry_client_arrived", "player=" + player.netId);
             DefeatRetryBridge.ReportArrival(retryId);
             Clear();
@@ -107,13 +132,23 @@ namespace SephiriaEnhancements.DefeatRetry
 
         internal static void ReportFailure() { if (player != null) DefeatRetryBridge.ReportArrival(retryId, success: false); }
 
+        internal static void RecordFailureContext()
+        {
+            if (player == null) return;
+            SupportLogger.Record("retry_client_incomplete", "retry=" + retryId + " " +
+                NativeRetryArrival.Describe(player, floor, destination) + " notified=" + notified +
+                " traveled=" + traveled + " cameraMatches=" + (GameCamera.Instance != null && GameCamera.Instance.CurrentSeeingFloor != null && GameCamera.Instance.CurrentSeeingFloor == FloorGenerator.FindByGuid(floor)));
+        }
+
         internal static void Clear()
         {
-            if (player != null) player.OnTravelPreparedClientside -= OnTravelPrepared;
+            if (!ReferenceEquals(player, null)) player.OnTravelPreparedClientside -= OnTravelPrepared;
             player = null;
             connection = null;
             floor = null;
             runFile = null;
+            requestedCamera = null;
+            requestedCameraFloor = null;
             notified = traveled = worldLoaded = PreserveClientRun = false;
         }
     }

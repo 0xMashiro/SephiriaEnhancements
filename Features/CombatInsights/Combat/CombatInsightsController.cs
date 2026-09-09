@@ -976,13 +976,14 @@ namespace SephiriaEnhancements.Combat
             if (target == null || target is PlayerAvatar || target.monsterType == EMonsterType.Dummy)
                 return false;
             if (target.NetworkLeader is PlayerAvatar) return false;
-            PlayerAvatar localAvatar = FindLocal()?.Avatar ??
+            // Faction classification is presentation-relative; this fallback does not grant ownership.
+            PlayerAvatar relationPlayer = FindLocal()?.Avatar ??
                 CombatManager.Instance?.CurrentPlayer ?? GameCamera.Instance?.Observer;
-            if (localAvatar == null) return false;
+            if (relationPlayer == null) return false;
             try
             {
                 return CombatManager.ContainsAttackableFaction(
-                    target.GetHostileFactionLayers(EDamageFromType.None), localAvatar.faction);
+                    target.GetHostileFactionLayers(EDamageFromType.None), relationPlayer.faction);
             }
             catch { return false; }
         }

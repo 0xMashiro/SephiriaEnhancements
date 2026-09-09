@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using SephiriaEnhancements.Integration;
 
 namespace SephiriaEnhancements.MapEnhancements.Integration
 {
@@ -45,7 +46,7 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
                 icon.SetAsLastSibling();
             }
             foreach (var pair in icons)
-                if (pair.Key != null && pair.Key.isOwned && pair.Value != null)
+                if (pair.Key != null && LocalPlayerResolver.IsLocal(pair.Key.PlayerAvatar) && pair.Value != null)
                     pair.Value.SetAsLastSibling();
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using Mirror;
+using SephiriaEnhancements.Integration;
 using SephiriaEnhancements.Configuration;
 
 namespace SephiriaEnhancements.CombatVisuals
@@ -39,7 +40,7 @@ namespace SephiriaEnhancements.CombatVisuals
 
         private static bool IsLocal(PlayerAvatar player)
         {
-            return player.isLocalPlayer || player.isOwned;
+            return LocalPlayerResolver.IsLocal(player);
         }
 
         internal static UnitAvatar FindSource(uint netId)
@@ -106,7 +107,7 @@ namespace SephiriaEnhancements.CombatVisuals
 
         internal static void RefreshCompanionBodies()
         {
-            PlayerAvatar player = CombatManager.Instance?.CurrentPlayer;
+            PlayerAvatar player = LocalPlayerResolver.Resolve();
             if (player?.followers == null)
             {
                 return;

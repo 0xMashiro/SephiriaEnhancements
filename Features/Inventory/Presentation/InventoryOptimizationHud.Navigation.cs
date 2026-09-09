@@ -175,7 +175,7 @@ namespace SephiriaEnhancements.Inventory
                 goalEditor.Contains(EventSystem.current.currentSelectedGameObject);
             interaction.CancelLevelEdit();
             goalEditor.SetVisible(false);
-            ProjectIntentBoard(ExplorationInventoryIntentStore.Capture());
+            ProjectIntentBoard(WorldSessionInventoryIntentStore.Capture());
             RefreshPageNavigation();
             if (editorSelected)
             {

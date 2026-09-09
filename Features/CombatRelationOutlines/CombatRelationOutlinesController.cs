@@ -53,11 +53,12 @@ namespace SephiriaEnhancements.CombatRelationOutlines
         private void Refresh()
         {
             CombatManager manager = CombatManager.Instance;
-            PlayerAvatar localPlayer = manager?.CurrentPlayer ?? GameCamera.Instance?.Observer;
+            // Relation outlines can follow the observed player when no controlled player is bound.
+            PlayerAvatar referencePlayer = manager?.CurrentPlayer ?? GameCamera.Instance?.Observer;
             IReadOnlyList<PlayerSpawner> players = PlayerSpawner.MultiplayerList;
             int multiplayerCount = players?.Count ?? 0;
             bool featureActive = EnhancementsSettings.Enabled &&
-                CombatRelationOutlinesSettings.Enabled && localPlayer != null;
+                CombatRelationOutlinesSettings.Enabled && referencePlayer != null;
 
             if (!featureActive || manager?.AllCreatures == null)
             {
@@ -91,7 +92,7 @@ namespace SephiriaEnhancements.CombatRelationOutlines
                 ERelationBehaviour relation = RuntimeFactionManager.Instance == null
                     ? ERelationBehaviour.Neutral
                     : RuntimeFactionManager.Instance.GetRelationBehaviour(
-                        avatar.faction, localPlayer.faction, avatar.attackableTargetSelector);
+                        avatar.faction, referencePlayer.faction, avatar.attackableTargetSelector);
                 bool isFriendly = relation == ERelationBehaviour.Friendly;
                 bool isHostile = relation == ERelationBehaviour.Hostile;
                 bool hasCombatRelation = isFriendly || isHostile;
@@ -101,8 +102,8 @@ namespace SephiriaEnhancements.CombatRelationOutlines
                 bool visible = CombatRelationOutlinePolicy.ShouldShow(
                     suiteEnabled: true,
                     featureEnabled: true,
-                    hasLocalPlayer: true,
-                    isLocalPlayer: avatar == localPlayer,
+                    hasReferencePlayer: true,
+                    isReferencePlayer: avatar == referencePlayer,
                     relationAllowed,
                     isAlive: !avatar.IsDead,
                     isTargetable: avatar.canBeTarget > 0,

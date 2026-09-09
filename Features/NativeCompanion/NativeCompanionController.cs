@@ -77,7 +77,7 @@ namespace SephiriaEnhancements.NativeCompanion
             }
 
             nextPollAt = Time.unscaledTime + PollInterval;
-            PlayerAvatar player = CombatManager.Instance?.CurrentPlayer;
+            PlayerAvatar player = SephiriaEnhancements.Integration.LocalPlayerResolver.Resolve();
             if (companion == null && companionWasSpawned)
             {
                 companionWasSpawned = false;

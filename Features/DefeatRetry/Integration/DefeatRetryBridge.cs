@@ -5,6 +5,7 @@ using SephiriaEnhancements.Core;
 using SephiriaEnhancements.DefeatRetry;
 using SephiriaEnhancements.Diagnostics;
 using System;
+using UnityEngine;
 
 namespace SephiriaEnhancements.Integration
 {
@@ -20,7 +21,14 @@ namespace SephiriaEnhancements.Integration
         private static long nextCheckpointId;
         private static bool integrationAvailable;
         private static long retryId;
-        private static readonly HashSet<NetworkConnectionToClient> awaitingArrival = new HashSet<NetworkConnectionToClient>();
+        private static readonly RetryRecovery<NetworkConnectionToClient> recovery = new RetryRecovery<NetworkConnectionToClient>();
+        private static readonly Dictionary<NetworkConnectionToClient, Vector3> destinations = new Dictionary<NetworkConnectionToClient, Vector3>();
+        private static readonly HashSet<NetworkConnectionToClient> receipts = new HashSet<NetworkConnectionToClient>();
+        private static string recoveryFloor;
+        private static RetryRecoveryStatus publishedStatus;
+        private static long receivedRetryId;
+        private static NetworkConnectionToServer receivedConnection;
+        internal const float RecoveryTimeout = 90f;
 
         internal static void SetIntegrationAvailable(bool available) => integrationAvailable = available;
 
@@ -28,10 +36,12 @@ namespace SephiriaEnhancements.Integration
         private struct Arrival : NetworkMessage { internal long RetryId; internal bool Success; }
         private struct Notification : NetworkMessage
         {
-            internal StatisticsRetryTransition Transition;
+            internal RetryTransition Transition;
             internal long CheckpointId;
             internal string FloorGuid;
             internal long RetryId;
+            internal Vector3 Position;
+            internal RetryRecoveryFailure Failure;
         }
 
         internal static void Initialize(CombatInsightsController value)
@@ -47,11 +57,14 @@ namespace SephiriaEnhancements.Integration
                 writer.WriteLong(message.CheckpointId);
                 writer.WriteString(message.FloorGuid);
                 writer.WriteLong(message.RetryId);
+                writer.WriteVector3(message.Position);
+                writer.WriteByte((byte)message.Failure);
             };
             Reader<Notification>.read = reader => new Notification
             {
-                Transition = (StatisticsRetryTransition)reader.ReadByte(),
-                CheckpointId = reader.ReadLong(), FloorGuid = reader.ReadString(), RetryId = reader.ReadLong()
+                Transition = (RetryTransition)reader.ReadByte(),
+                CheckpointId = reader.ReadLong(), FloorGuid = reader.ReadString(), RetryId = reader.ReadLong(), Position = reader.ReadVector3(),
+                Failure = (RetryRecoveryFailure)reader.ReadByte()
             };
             Tick();
         }
@@ -64,26 +77,32 @@ namespace SephiriaEnhancements.Integration
                 {
                     NetworkServer.RegisterHandler<Hello>((connection, message) =>
                     {
-                        if (message.Version == 1) peers.Add(connection);
+                        if (message.Version == 2) peers.Add(connection);
                     });
                     NetworkServer.RegisterHandler<Arrival>((connection, message) =>
                     {
-                        if (message.RetryId == retryId && awaitingArrival.Remove(connection))
-                            SupportLogger.Record("retry_remote_arrival", "connection=" + connection.connectionId +
-                                " success=" + message.Success, message.Success ? "INFO" : "ERROR");
+                        AcceptReceipt(connection, message.RetryId, message.Success);
                     });
                     serverRegistered = true;
                 }
                 if (integrationAvailable && DungeonManager.Instance != null)
-                    DungeonManager.Instance.constValueDictionary[ProtocolKey] = 1;
+                    DungeonManager.Instance.constValueDictionary[ProtocolKey] = 2;
                 peers.RemoveWhere(peer => !NetworkServer.connections.TryGetValue(peer.connectionId, out var current) || current != peer);
-                awaitingArrival.RemoveWhere(peer => !NetworkServer.connections.TryGetValue(peer.connectionId, out var current) || current != peer);
+                if (recovery.Status == RetryRecoveryStatus.Waiting)
+                {
+                    foreach (var peer in destinations.Keys)
+                        if (!NetworkServer.connections.TryGetValue(peer.connectionId, out var current) || current != peer)
+                            recovery.Fail(RetryRecoveryFailure.Disconnected);
+                    recovery.CheckDeadline(Time.realtimeSinceStartupAsDouble);
+                    ConfirmDestinations();
+                }
+                PublishRecoveryResult();
             }
             else
             {
                 serverRegistered = false;
                 peers.Clear();
-                awaitingArrival.Clear();
+                ClearArrivals();
             }
             if (!NetworkClient.active)
             {
@@ -95,16 +114,16 @@ namespace SephiriaEnhancements.Integration
             {
                 NetworkClient.RegisterHandler<Notification>(message =>
                 {
-                    if (!NetworkServer.active && message.Transition <= StatisticsRetryTransition.Cancel)
+                    if (!NetworkServer.active && message.Transition <= RetryTransition.RecoveryCompleted)
                         Receive(message);
                 });
                 clientRegistered = true;
             }
             if (integrationAvailable && !NetworkServer.active && NetworkClient.ready && NetworkClient.connection != null &&
                 registeredConnection != NetworkClient.connection && DungeonManager.Instance != null &&
-                DungeonManager.Instance.constValueDictionary.TryGetValue(ProtocolKey, out int version) && version == 1)
+                DungeonManager.Instance.constValueDictionary.TryGetValue(ProtocolKey, out int version) && version == 2)
             {
-                NetworkClient.Send(new Hello { Version = 1 });
+                NetworkClient.Send(new Hello { Version = 2 });
                 registeredConnection = NetworkClient.connection;
             }
         }
@@ -112,30 +131,44 @@ namespace SephiriaEnhancements.Integration
         internal static long CaptureBoss(string floorGuid)
         {
             long id = ++nextCheckpointId;
-            Publish(StatisticsRetryTransition.CaptureBoss, id, floorGuid);
+            Publish(RetryTransition.CaptureBoss, id, floorGuid);
             return id;
         }
 
-        internal static void Publish(StatisticsRetryTransition transition, long id, string floorGuid)
+        internal static void Publish(RetryTransition transition, long id, string floorGuid)
         {
             if (!NetworkServer.active) return;
             Tick();
-            if (transition == StatisticsRetryTransition.RetryFloor || transition == StatisticsRetryTransition.RetryBoss)
+            if (transition == RetryTransition.RetryFloor || transition == RetryTransition.RetryBoss)
             {
                 retryId++;
-                awaitingArrival.Clear();
-                foreach (var peer in NetworkServer.connections.Values) awaitingArrival.Add(peer);
+                destinations.Clear();
+                receipts.Clear();
+                recoveryFloor = floorGuid;
+                foreach (var peer in NetworkServer.connections.Values)
+                {
+                    PlayerAvatar avatar = peer.identity?.GetComponent<PlayerAvatar>();
+                    if (DefeatRetryFeature.TryGetPendingDestination(avatar, out Vector3 position)) destinations.Add(peer, position);
+                }
+                recovery.Begin(retryId, destinations.Keys, Time.realtimeSinceStartupAsDouble + RecoveryTimeout);
+                if (destinations.Count != NetworkServer.connections.Count) recovery.Fail(RetryRecoveryFailure.RestoreFailed);
+                publishedStatus = RetryRecoveryStatus.Waiting;
             }
-            if (transition == StatisticsRetryTransition.Cancel) awaitingArrival.Clear();
+            if (transition == RetryTransition.Cancel) ClearArrivals();
             var message = new Notification { Transition = transition, CheckpointId = id, FloorGuid = floorGuid, RetryId = retryId };
+            destinations.TryGetValue(NetworkServer.localConnection, out message.Position);
             Receive(message);
             foreach (var peer in peers)
-                if (peer.isReady && peer != NetworkServer.localConnection) peer.Send(message);
+                if (peer.isReady && peer != NetworkServer.localConnection)
+                {
+                    destinations.TryGetValue(peer, out message.Position);
+                    peer.Send(message);
+                }
         }
 
         internal static bool AllPlayersReady()
         {
-            if (!integrationAvailable || awaitingArrival.Count != 0) return false;
+            if (!integrationAvailable || recovery.BlocksBattle) return false;
             foreach (var connection in NetworkServer.connections.Values)
                 if (connection != NetworkServer.localConnection &&
                     (connection == null || !connection.isReady || !peers.Contains(connection))) return false;
@@ -144,43 +177,116 @@ namespace SephiriaEnhancements.Integration
 
         internal static void CancelPlayer(PlayerAvatar player)
         {
-            awaitingArrival.Remove(player.connectionToClient);
-            var message = new Notification { Transition = StatisticsRetryTransition.Cancel };
-            if (LocalPlayerResolver.IsLocal(player)) Receive(message);
-            else if (player.connectionToClient != null && peers.Contains(player.connectionToClient))
-                player.connectionToClient.Send(message);
+            if (player != null && recovery.IsWaiting(player.connectionToClient))
+                recovery.Fail(RetryRecoveryFailure.RestoreFailed);
         }
 
         internal static bool IsAwaitingArrival(PlayerAvatar player) =>
-            player != null && player.connectionToClient != null && awaitingArrival.Contains(player.connectionToClient);
+            recovery.BlocksBattle && player != null && player.connectionToClient != null && destinations.ContainsKey(player.connectionToClient);
 
-        internal static void ClearArrivals() => awaitingArrival.Clear();
-        internal static bool HasPendingArrivals => awaitingArrival.Count != 0;
+        internal static void ClearArrivals()
+        {
+            recovery.Cancel();
+            destinations.Clear();
+            receipts.Clear();
+            publishedStatus = RetryRecoveryStatus.Cancelled;
+        }
+        internal static bool BlocksBossBattle => recovery.BlocksBattle;
+        internal static long CurrentRecoveryId => retryId;
+        internal static bool HasRecoveryFailed(long id) => id == retryId && recovery.Status == RetryRecoveryStatus.Failed;
+        internal static void FailRecovery()
+        {
+            if (recovery.Status != RetryRecoveryStatus.Waiting)
+                recovery.Begin(++retryId, NetworkServer.connections.Values, Time.realtimeSinceStartupAsDouble);
+            recovery.Fail(RetryRecoveryFailure.RestoreFailed);
+            receivedRetryId = retryId;
+            publishedStatus = RetryRecoveryStatus.Waiting;
+        }
 
         internal static void ReportArrival(long id, bool success = true)
         {
-            if (NetworkServer.active)
-            {
-                if (id == retryId) awaitingArrival.Remove(NetworkServer.localConnection);
-            }
+            if (NetworkServer.active) AcceptReceipt(NetworkServer.localConnection, id, success);
             else if (NetworkClient.active && NetworkClient.connection != null)
                 NetworkClient.Send(new Arrival { RetryId = id, Success = success });
         }
 
+        private static void AcceptReceipt(NetworkConnectionToClient peer, long id, bool success)
+        {
+            if (id != retryId || !recovery.IsWaiting(peer)) return;
+            if (success) receipts.Add(peer);
+            else recovery.Report(id, peer, false);
+            SupportLogger.Record("retry_client_receipt", "connection=" + peer.connectionId + " success=" + success,
+                success ? "INFO" : "ERROR");
+        }
+
+        private static void ConfirmDestinations()
+        {
+            foreach (var pair in destinations)
+                if (receipts.Contains(pair.Key) && recovery.IsWaiting(pair.Key) &&
+                    NativeRetryArrival.IsAtDestination(pair.Key.identity?.GetComponent<PlayerAvatar>(), recoveryFloor, pair.Value))
+                    recovery.Report(retryId, pair.Key, true);
+        }
+
+        private static void PublishRecoveryResult()
+        {
+            if (recovery.Status == publishedStatus) return;
+            publishedStatus = recovery.Status;
+            if (publishedStatus != RetryRecoveryStatus.Failed && publishedStatus != RetryRecoveryStatus.Completed) return;
+            if (publishedStatus == RetryRecoveryStatus.Failed)
+            {
+                foreach (var pair in destinations)
+                    SupportLogger.Record("retry_server_incomplete", "retry=" + retryId + " receipt=" + receipts.Contains(pair.Key) +
+                        " " + NativeRetryArrival.Describe(pair.Key.identity?.GetComponent<PlayerAvatar>(), recoveryFloor, pair.Value));
+                DefeatRetryFeature.AbortRecovery();
+            }
+            var message = new Notification { RetryId = retryId, Failure = recovery.Failure,
+                Transition = publishedStatus == RetryRecoveryStatus.Failed ? RetryTransition.RecoveryFailed : RetryTransition.RecoveryCompleted };
+            Receive(message);
+            foreach (var peer in peers)
+                if (peer.isReady && peer != NetworkServer.localConnection) peer.Send(message);
+            SupportLogger.Record("retry_recovery_finished", "retry=" + retryId + " status=" + publishedStatus + " reason=" + recovery.Failure);
+        }
+
         private static void Receive(Notification message)
         {
-            if (message.Transition == StatisticsRetryTransition.RetryFloor ||
-                message.Transition == StatisticsRetryTransition.RetryBoss)
+            if (receivedConnection != NetworkClient.connection)
             {
-                NativeRetryBoss.Begin(message.FloorGuid);
-                DefeatRetryClientRestore.Begin(message.FloorGuid, message.RetryId);
+                receivedConnection = NetworkClient.connection;
+                receivedRetryId = 0;
             }
-            else if (message.Transition == StatisticsRetryTransition.Cancel)
+            if (message.Transition == RetryTransition.RecoveryFailed || message.Transition == RetryTransition.RecoveryCompleted)
+                if (message.RetryId != receivedRetryId) return;
+            if (message.Transition == RetryTransition.RetryFloor ||
+                message.Transition == RetryTransition.RetryBoss)
+            {
+                receivedRetryId = message.RetryId;
+                NativeRetryBoss.Begin(message.FloorGuid);
+                DefeatRetryClientRestore.Begin(message.FloorGuid, message.RetryId, message.Position);
+            }
+            else if (message.Transition == RetryTransition.Cancel)
             {
                 NativeRetryBoss.Clear();
                 DefeatRetryClientRestore.Clear();
             }
-            try { controller?.ObserveStatisticsRetry(message.Transition, message.CheckpointId, message.FloorGuid); }
+            else if (message.Transition == RetryTransition.RecoveryFailed)
+            {
+                NativeRetryBoss.Clear();
+                DefeatRetryClientRestore.RecordFailureContext();
+                DefeatRetryClientRestore.Clear();
+                NativeRetryFailure.Show(message.Failure);
+            }
+            // Explicit mapping keeps statistics separate from recovery completion.
+            StatisticsRetryTransition statistics;
+            switch (message.Transition)
+            {
+                case RetryTransition.CaptureBoss: statistics = StatisticsRetryTransition.CaptureBoss; break;
+                case RetryTransition.RetryBoss: statistics = StatisticsRetryTransition.RetryBoss; break;
+                case RetryTransition.RetryFloor: statistics = StatisticsRetryTransition.RetryFloor; break;
+                case RetryTransition.Cancel:
+                case RetryTransition.RecoveryFailed: statistics = StatisticsRetryTransition.Cancel; break;
+                default: return;
+            }
+            try { controller?.ObserveStatisticsRetry(statistics, message.CheckpointId, message.FloorGuid); }
             catch (Exception exception) { SupportLogger.Failure("retry_statistics_failed", exception); }
         }
 
@@ -199,12 +305,13 @@ namespace SephiriaEnhancements.Integration
             NetworkClient.UnregisterHandler<Notification>();
             controller = null;
             peers.Clear();
-            awaitingArrival.Clear();
+            ClearArrivals();
             serverRegistered = clientRegistered = false;
             registeredConnection = null;
             DefeatRetryClientRestore.Clear();
             NativeRetryBoss.Clear();
             integrationAvailable = false;
+            NativeRetryFailure.Clear();
         }
     }
 }

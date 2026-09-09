@@ -192,7 +192,7 @@ namespace SephiriaEnhancements.Inventory
         }
     }
 
-    internal static class ExplorationInventoryIntentStore
+    internal static class WorldSessionInventoryIntentStore
     {
         private static InventoryOptimizationPreferences current =
             InventoryOptimizationPreferences.Default;
@@ -224,19 +224,19 @@ namespace SephiriaEnhancements.Inventory
     {
         internal static InventoryOptimizationPreferences Compose(
             InventoryOptimizationPreferences persistentPolicy,
-            InventoryOptimizationPreferences explorationIntent,
+            InventoryOptimizationPreferences worldSessionIntent,
             InventorySearchEffort searchEffort,
             bool allowStoneTabletRotation)
         {
             persistentPolicy ??= InventoryOptimizationPreferences.Default;
-            explorationIntent ??= InventoryOptimizationPreferences.Default;
+            worldSessionIntent ??= InventoryOptimizationPreferences.Default;
 
             ComboOptimizationPreference[] combos = persistentPolicy.
-                ComboPreferences.Concat(explorationIntent.ComboPreferences).
+                ComboPreferences.Concat(worldSessionIntent.ComboPreferences).
                 GroupBy(rule => rule.CategoryId, StringComparer.Ordinal).
                 Select(group => group.Last()).ToArray();
             return new InventoryOptimizationPreferences(searchEffort,
-                allowStoneTabletRotation, explorationIntent.ArtifactPreferences.ToArray(), combos,
+                allowStoneTabletRotation, worldSessionIntent.ArtifactPreferences.ToArray(), combos,
                 persistentPolicy.PositionEffectPreference, persistentPolicy.AllowAdditionalMagicCost);
         }
 

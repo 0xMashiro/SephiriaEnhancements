@@ -149,4 +149,8 @@
     <Compile Include="..\..\Runtime\Diagnostics\RuntimeMetrics.cs" Link="Runtime\RuntimeMetrics.cs" />
   </ItemGroup>
   <ItemGroup><Compile Include="../../Features/MapEnhancements/Core/RoomMapIconLayout.cs" Link="RoomMapIconLayout.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../Features/DefeatRetry/Core/RetryRecovery.cs" Link="DefeatRetry/RetryRecovery.cs" />
+    <Compile Include="../../Features/DefeatRetry/RetryRecoveryLocalization.cs" Link="DefeatRetry/RetryRecoveryLocalization.cs" />
+  </ItemGroup>
 </Project>

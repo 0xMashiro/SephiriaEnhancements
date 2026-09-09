@@ -19,7 +19,8 @@ namespace SephiriaEnhancements.Integration
                 FindShortcut(asset, ModShortcuts.ToggleCurrentFloorMapOverlay) != null &&
                 FindShortcut(asset,
                     ModShortcuts.ToggleDamageStatistics) != null &&
-                FindShortcut(asset, ModShortcuts.OptimizeInventory) != null;
+                FindShortcut(asset, ModShortcuts.OptimizeInventory) != null &&
+                FindShortcut(asset, ModShortcuts.ToggleAutoCastingPause) != null;
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             complete &= FindShortcut(asset, ModShortcuts.CaptureInventoryReproduction) != null;
 #endif

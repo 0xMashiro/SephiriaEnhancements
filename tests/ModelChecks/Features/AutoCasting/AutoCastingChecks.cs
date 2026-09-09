@@ -48,7 +48,20 @@ internal static class AutoCastingChecks
         Expect(rotation.Take(2, 11, _ => false, 0.35) == -1, "Unready skills cannot enter a queue");
         Expect(rotation.Take(3, 11, i => i == 4, 2) == 4, "Readiness is re-evaluated after a menu");
         Expect(rotation.Take(4, 11, _ => true, 2) == -1, "Network pacing is respected");
+        rotation.TogglePause();
+        Expect(rotation.IsPaused, "Pause is independent of skill readiness");
+        Expect(rotation.Take(10, 11, _ => throw new InvalidOperationException("Paused rotation checked a skill"), 0.35) == -1,
+            "Paused auto casting cannot evaluate or request skills");
+        selection.Toggle(17);
+        rotation.YieldToManualInput(10);
+        Expect(rotation.IsPaused && selection.Contains(17), "Local travel and manual input preserve pause and selection");
+        rotation.TogglePause();
+        Expect(!rotation.IsPaused && selection.Contains(17), "Resume preserves selected artifacts");
+        Expect(rotation.Take(10.1, 11, _ => true, 0.35) == -1, "Resume preserves manual input pacing");
+        Expect(rotation.Take(11, 11, i => i == 1, 0.35) == 1, "Resume requests ready magic again");
+        rotation.TogglePause();
         rotation.Reset();
+        Expect(!rotation.IsPaused, "World reload and character replacement reset pause");
         Expect(rotation.Take(0, 11, i => i == 1, 0.35) == 1, "A new world does not inherit the old timer");
         Console.WriteLine("Auto casting: artifact ownership, replacement, rotation, readiness and manual priority passed");
     }

@@ -26,6 +26,9 @@ namespace SephiriaEnhancements.Configuration
                 ModShortcuts.ToggleDamageStatistics,
                 ControlLocalization.ToggleDamageStatistics),
             new NativeRebindDefinition(
+                ModShortcuts.ToggleAutoCastingPause,
+                AutoCasting.AutoCastingLocalization.TogglePause),
+            new NativeRebindDefinition(
                 ModShortcuts.OptimizeInventory,
                 ControlLocalization.OptimizeInventory),
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
@@ -49,6 +52,9 @@ namespace SephiriaEnhancements.Configuration
             new NativeRebindDefinition(
                 ModShortcuts.ToggleDamageStatistics,
                 ControlLocalization.ToggleDamageStatistics),
+            new NativeRebindDefinition(
+                ModShortcuts.ToggleAutoCastingPause,
+                AutoCasting.AutoCastingLocalization.TogglePause),
             new NativeRebindDefinition(
                 ModShortcuts.OptimizeInventory,
                 ControlLocalization.OptimizeInventory),

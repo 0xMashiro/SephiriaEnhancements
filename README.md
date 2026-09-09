@@ -68,6 +68,7 @@ These are defaults; in-game hints follow your bindings.
 | --- | --- |
 | Lock or cycle targets / release lock | Tap / hold `L` or middle mouse button |
 | Toggle auto casting for a skill in the backpack | Middle-click the skill, or select it and press `L`; on gamepad, use Confirm |
+| Pause / resume auto casting for selected magic | `F6`; gamepad binding optional |
 | Toggle the map overlay | `M` |
 | View statistics outside combat | Tap `F7`, or **View statistics** in the pause menu |
 | Hide / restore the damage display | Hold `F7` for half a second; recording continues |
@@ -79,8 +80,10 @@ These are defaults; in-game hints follow your bindings.
 Tapping `F7` closes an existing automatic report first. After closing a report, press `Esc` or Start/Menu again
 to open the pause menu. Gamepad target lock has no default binding.
 
-Auto casting starts off for every artifact. An **A** in the skill icon marks selected magic;
+Auto casting starts off for every artifact. An **A** in the skill icon marks selected magic; **Ⅱ** means paused;
 the corresponding keyboard/gamepad binding row also has an auto-casting switch.
+While exploring, the shortcut above pauses / resumes all selected magic without clearing selections.
+Pause survives floor changes and resets when the character changes or the world reloads.
 It uses normal mana, charges and your current aim, including when there are no enemies, and pauses in menus.
 Selections follow the same artifact when rebound and clear when it is lost, the character changes or the world reloads.
 Only bound, single-cast magic is supported; weapon attacks and active combo abilities are excluded.

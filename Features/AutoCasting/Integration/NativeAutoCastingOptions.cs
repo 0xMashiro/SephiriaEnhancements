@@ -71,8 +71,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             Charm_Magic magic = controller?.MagicAt(slot);
             bool supported = EnhancementsSettings.Enabled && controller?.CanSelect(magic) == true;
             button.interactable = supported;
-            text.text = supported ? "A: " + ModLocalization.Get(controller.IsSelected(magic) ?
-                AutoCastingLocalization.On : AutoCastingLocalization.Off) : "—";
+            text.text = supported ? "A: " + ModLocalization.Get(controller.SelectionStateKey(magic)) : "—";
             NativeLocalizedText.MatchFontSize(text, template);
             RectTransform rect = (RectTransform)transform;
             float width = Mathf.Min(64f, template.rectTransform.rect.width * 0.4f);

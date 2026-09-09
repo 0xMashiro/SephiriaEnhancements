@@ -25,6 +25,9 @@ namespace SephiriaEnhancements.AutoCasting.Integration
         private SkillController skills;
         private WeaponControllerSimple weapon;
         private bool requesting;
+        internal bool IsPaused => rotation.IsPaused;
+        internal string SelectionStateKey(Charm_Magic magic) => !IsSelected(magic) ? AutoCastingLocalization.Off :
+            IsPaused ? AutoCastingLocalization.Paused : AutoCastingLocalization.On;
 
         private void Awake() => Current = this;
         private void OnDestroy() { if (Current == this) Current = null; }
@@ -109,9 +112,27 @@ namespace SephiriaEnhancements.AutoCasting.Integration
                 input.BlockAvatarInput || !InputReady(input) || !Application.isFocused ||
                 UIManager.Instance == null || UIManager.Instance.CurrentControlStack != null ||
                 DungeonManager.Instance == null || !DungeonManager.Instance.isRunStarted ||
-                player.IsDead || !player.CanMove || !skills.CanCast || skills.IsInGlobalCooldown ||
+                player.IsDead || Time.timeScale <= 0f) return;
+
+            if (NativeInputActions.WasPressed(input.playerInput?.actions, ModShortcuts.ToggleAutoCastingPause))
+            {
+                bool hasSelection = false;
+                for (int slot = 0; slot < 11; slot++)
+                    if (IsSelected(MagicAt(slot))) { hasSelection = true; break; }
+                string message = AutoCastingLocalization.SelectFirst;
+                if (hasSelection)
+                {
+                    rotation.TogglePause();
+                    message = IsPaused ? AutoCastingLocalization.PausedMessage : AutoCastingLocalization.ResumedMessage;
+                }
+                UIManager.Instance.GetElement<UI_SystemMessage>()?.Open(ModLocalization.Get(message), 2f);
+                // A toggle never sends a cast in the same frame.
+                return;
+            }
+
+            if (IsPaused || !player.CanMove || !skills.CanCast || skills.IsInGlobalCooldown ||
                 weapon.IsCastAnimationRunning || !weapon.DoCastValidation() ||
-                player.GetCustomStatUnsafe("BLOCKCASTMAGIC") > 0 || Time.timeScale <= 0f) return;
+                player.GetCustomStatUnsafe("BLOCKCASTMAGIC") > 0) return;
 
             // Space requests by the native global interval and the measured round trip.
             // Failed native requests may be silent; no requests are queued for later execution.

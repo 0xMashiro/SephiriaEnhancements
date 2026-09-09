@@ -117,10 +117,9 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             bool supported = selected != null && NativeAutoCasting.Current?.CanSelect(selected.Magic) == true;
             hint.gameObject.SetActive(supported);
             if (!supported) return;
-            bool on = NativeAutoCasting.Current.IsSelected(selected.Magic);
             string binding = BindingLabel();
             hint.text = ModLocalization.Get(AutoCastingLocalization.Title) + ": " +
-                ModLocalization.Get(on ? AutoCastingLocalization.On : AutoCastingLocalization.Off) +
+                ModLocalization.Get(NativeAutoCasting.Current.SelectionStateKey(selected.Magic)) +
                 "\n" + string.Format(ModLocalization.Get(AutoCastingLocalization.Hint), binding);
             NativeLocalizedText.SetShrinkOnlySize(hint, textTemplate.fontSize, textTemplate.fontSize * 0.75f);
         }
@@ -240,6 +239,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             NativeAutoCasting controller = NativeAutoCasting.Current;
             int index = slot == null ? -1 : slot.buttonIndex >= 100 ? slot.buttonIndex - 100 + 8 : slot.buttonIndex;
             Charm_Magic magic = icon != null ? icon.Magic : controller?.MagicAt(index);
+            text.text = controller?.IsPaused == true ? "Ⅱ" : "A";
             text.gameObject.SetActive(EnhancementsSettings.Enabled && controller?.IsSelected(magic) == true);
         }
         private void OnDestroy() { if (text != null) Destroy(text.gameObject); }

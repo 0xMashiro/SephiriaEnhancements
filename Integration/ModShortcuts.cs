@@ -13,6 +13,7 @@ namespace SephiriaEnhancements.Integration
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
         internal const string CaptureInventoryReproduction = "CaptureInventoryReproduction";
 #endif
+        internal const string ToggleAutoCastingPause = "ToggleAutoCastingPause";
         internal const string KeyboardScheme = "Keyboard&Mouse";
         internal const string GamepadScheme = "Gamepad";
 
@@ -22,6 +23,7 @@ namespace SephiriaEnhancements.Integration
             ToggleCurrentFloorMapOverlay,
             ToggleDamageStatistics,
             OptimizeInventory,
+            ToggleAutoCastingPause,
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             CaptureInventoryReproduction
 #endif
@@ -32,6 +34,7 @@ namespace SephiriaEnhancements.Integration
             "{\"name\":\"SwitchLockedTarget\",\"type\":\"Button\",\"id\":\"2f42ed30-0d71-43a1-b530-c4cf3ab2fc70\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
             "{\"name\":\"ToggleCurrentFloorMapOverlay\",\"type\":\"Button\",\"id\":\"e3c17d5b-7329-48c9-bd82-7679810fba5e\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
             "{\"name\":\"ToggleDamageStatistics\",\"type\":\"Button\",\"id\":\"4463886d-62fd-434b-b63e-51a9ddd09b59\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
+            "{\"name\":\"ToggleAutoCastingPause\",\"type\":\"Button\",\"id\":\"29c34155-847e-4e44-8bdc-eb8ecfb0c9cc\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
             "{\"name\":\"OptimizeInventory\",\"type\":\"Button\",\"id\":\"bc18d113-80d2-4bd4-bdee-ddf6b50d3fa7\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}" +
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             ",{\"name\":\"CaptureInventoryReproduction\",\"type\":\"Button\",\"id\":\"95f0dd11-e4b5-442d-93ce-3b7d7f3e0b20\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}" +
@@ -51,6 +54,9 @@ namespace SephiriaEnhancements.Integration
             "{\"name\":\"\",\"id\":\"bc1de948-ef6d-420f-bc51-72494d767771\",\"path\":\"<Keyboard>/f7\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"ToggleDamageStatistics\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"bf1e0bf9-1adc-4722-b7b1-714a842b8ca4\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"ToggleDamageStatistics\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"735b4a89-af78-43b1-a5df-9ed1698a87b6\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Gamepad\",\"action\":\"ToggleDamageStatistics\",\"isComposite\":false,\"isPartOfComposite\":false}," +
+            "{\"name\":\"\",\"id\":\"170f470a-c125-45b9-8920-5a91b8601cb4\",\"path\":\"<Keyboard>/f6\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"ToggleAutoCastingPause\",\"isComposite\":false,\"isPartOfComposite\":false}," +
+            "{\"name\":\"\",\"id\":\"6b7656ec-96c7-43c9-8805-aa8220e06b46\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"ToggleAutoCastingPause\",\"isComposite\":false,\"isPartOfComposite\":false}," +
+            "{\"name\":\"\",\"id\":\"729320ad-1f39-4442-8147-051f2ad5c33a\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Gamepad\",\"action\":\"ToggleAutoCastingPause\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"508c62f2-2b21-4699-8713-7690e1261aa5\",\"path\":\"<Keyboard>/f8\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"OptimizeInventory\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"7ed721d2-bdf0-467a-9922-7d37926eed5a\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"OptimizeInventory\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"2f3c14d6-52aa-4f30-aa54-57d0ebf85c36\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Gamepad\",\"action\":\"OptimizeInventory\",\"isComposite\":false,\"isPartOfComposite\":false}]}]}";

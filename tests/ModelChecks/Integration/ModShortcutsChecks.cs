@@ -53,6 +53,16 @@ internal static class ModShortcutsChecks
                 throw new InvalidOperationException(
                     "current-floor map overlay default binding failed");
 
+            var autoCastingBindings = bindings.EnumerateArray().Where(binding =>
+                binding.GetProperty("action").GetString() == ModShortcuts.ToggleAutoCastingPause).ToArray();
+            if (autoCastingBindings.Length != 3 ||
+                autoCastingBindings.Count(binding => binding.GetProperty("groups").GetString() == ModShortcuts.KeyboardScheme) != 2 ||
+                autoCastingBindings.Single(binding => binding.GetProperty("path").GetString() != string.Empty)
+                    .GetProperty("path").GetString() != "<Keyboard>/f6" ||
+                autoCastingBindings.Single(binding => binding.GetProperty("groups").GetString() == ModShortcuts.GamepadScheme)
+                    .GetProperty("path").GetString() != string.Empty)
+                throw new InvalidOperationException("auto casting must default to F6 and allow unassigned secondary and gamepad bindings");
+
             JsonElement optimizeBinding = bindings.EnumerateArray().Single(binding =>
                 binding.GetProperty("action").GetString() ==
                     ModShortcuts.OptimizeInventory &&

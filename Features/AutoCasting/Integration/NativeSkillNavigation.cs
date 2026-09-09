@@ -17,39 +17,51 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             if (!EnhancementsSettings.Enabled || keyboard == null || !keyboard.tabKey.wasPressedThisFrame ||
                 stack == null || stack.Count != 1 || !(stack[0] is UI_CharacterStatusPanel panel) ||
                 !NativeAutoCastingUi.IsEditable(panel)) return false;
-            var entries = new List<Selectable>();
-            UI_NewInventoryIcon inventory = panel.GetComponentInChildren<UI_NewInventoryIcon>();
-            if (inventory != null) Add(entries, inventory.GetComponent<Selectable>());
-            Add(entries, First(panel.setEffectZone));
-            Add(entries, First(panel.skillIconZone));
-            Add(entries, panel.showWeaponToggle);
-            if (entries.Count == 0) return false;
-            Transform selected = EventSystem.current?.currentSelectedGameObject?.transform;
+            var regions = new List<List<Selectable>>();
+            var inventory = new List<Selectable>();
+            foreach (UI_InventoryIconMergedData cell in panel.inventoryZone.GetComponentsInChildren<UI_InventoryIconMergedData>())
+                Add(inventory, cell.icon.GetComponent<Selectable>());
+            regions.Add(inventory);
+            var potions = new List<Selectable>();
+            foreach (UI_NewInventoryIcon potion in panel.potionIcons) Add(potions, potion.GetComponent<Selectable>());
+            regions.Add(potions);
+            regions.Add(Controls(panel.subBagZone));
+            regions.Add(Controls(panel.setEffectZone));
+            regions.Add(Controls(panel.skillIconZone));
+            var weaponInput = new List<Selectable>();
+            Add(weaponInput, panel.showWeaponToggle);
+            regions.Add(weaponInput);
+            var memory = panel.GetComponent<NativeSkillNavigationMemory>() ??
+                panel.gameObject.AddComponent<NativeSkillNavigationMemory>();
+            Selectable selected = EventSystem.current?.currentSelectedGameObject?.GetComponent<Selectable>();
             int current = -1;
-            for (int i = 0; i < entries.Count; i++)
-            {
-                Transform entry = entries[i].transform;
-                if (selected == entry || (selected != null &&
-                    ((entry.IsChildOf(panel.setEffectZone) && selected.IsChildOf(panel.setEffectZone)) ||
-                     (entry.IsChildOf(panel.skillIconZone) && selected.IsChildOf(panel.skillIconZone)) ||
-                     (entry.GetComponent<UI_NewInventoryIcon>() != null && selected.GetComponent<UI_NewInventoryIcon>() != null))))
-                    current = i;
-            }
+            for (int i = 0; i < regions.Count; i++)
+                if (regions[i].Contains(selected)) current = i;
+            if (current >= 0) memory.Selected[current] = selected;
             int direction = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed ? -1 : 1;
-            EventSystem.current.SetSelectedGameObject(entries[(current + direction + entries.Count) % entries.Count].gameObject);
-            return true;
+            int next = current < 0 ? (direction > 0 ? -1 : 0) : current;
+            for (int step = 0; step < regions.Count; step++)
+            {
+                next = (next + direction + regions.Count) % regions.Count;
+                if (regions[next].Count == 0) continue;
+                Selectable target = regions[next].Contains(memory.Selected[next]) ?
+                    memory.Selected[next] : regions[next][0];
+                EventSystem.current.SetSelectedGameObject(target.gameObject);
+                return true;
+            }
+            return false;
         }
 
         private static void Add(List<Selectable> entries, Selectable entry)
         {
             if (entry != null && entry.IsActive() && entry.IsInteractable()) entries.Add(entry);
         }
-        private static Selectable First(Transform group)
+        private static List<Selectable> Controls(Transform group)
         {
-            if (group == null) return null;
-            foreach (Selectable entry in group.GetComponentsInChildren<Selectable>())
-                if (entry.IsActive() && entry.IsInteractable()) return entry;
-            return null;
+            var controls = new List<Selectable>();
+            if (group != null)
+                foreach (Selectable entry in group.GetComponentsInChildren<Selectable>()) Add(controls, entry);
+            return controls;
         }
 
         internal static bool Move(Selectable source, AxisEventData data)
@@ -66,21 +78,6 @@ namespace SephiriaEnhancements.AutoCasting.Integration
                 target = Closest(source, panel.skillIconZone, direction);
                 if (target == null && data.moveDir == MoveDirection.Down && skill) target = panel.showWeaponToggle;
                 if (target == null && data.moveDir == MoveDirection.Up) target = Closest(source, panel.setEffectZone, Vector3.up);
-            }
-            else if (data.moveDir == MoveDirection.Right)
-            {
-                target = Closest(source, panel.skillIconZone, Vector3.right);
-                if (target == null)
-                {
-                    float best = float.PositiveInfinity;
-                    foreach (UI_NewInventoryIcon icon in panel.GetComponentsInChildren<UI_NewInventoryIcon>())
-                    {
-                        Selectable candidate = icon.GetComponent<Selectable>();
-                        if (candidate == null || !candidate.IsActive() || !candidate.IsInteractable()) continue;
-                        float distance = (candidate.transform.position - source.transform.position).sqrMagnitude;
-                        if (distance < best) { best = distance; target = candidate; }
-                    }
-                }
             }
             else return true;
             if (target == null) return true;
@@ -106,6 +103,12 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             }
             return best;
         }
+    }
+
+    internal sealed class NativeSkillNavigationMemory : MonoBehaviour
+    {
+        internal readonly Selectable[] Selected = new Selectable[6];
+        internal void OnDisable() => System.Array.Clear(Selected, 0, Selected.Length);
     }
 
     [HarmonyPatch(typeof(Selectable), nameof(Selectable.OnMove))]

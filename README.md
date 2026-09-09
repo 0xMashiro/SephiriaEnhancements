@@ -16,6 +16,20 @@
 Combat information, keyboard controls, backpack arrangement and exploration tools for Sephiria.
 Uses the game's built-in AddOns system; no BepInEx required.
 
+> [!TIP]
+> **Your feedback and sharing make a difference**
+>
+> Most of my time goes into developing and maintaining this Mod, leaving little for promotion.
+> If it makes your time with Sephiria more enjoyable, consider recommending it to friends or sharing your experience
+> in community posts, articles or videos. **Even a quick recommendation or a screenshot helps.**
+>
+> I mostly play solo, so I especially rely on community feedback to discover multiplayer bugs and issues with other mods.
+> If something goes wrong, please [report it on GitHub Issues](https://github.com/0xMashiro/SephiriaEnhancements/issues).
+> You don't need a complete bug report to get started—just describe what happened. See [Feedback](#feedback) for useful details to include.
+>
+> **Knowing the Mod helps you—and hearing what needs work—is a big part of what keeps me motivated to maintain it.**
+> Thank you for playing, sharing and helping make it better.
+
 **Beta:** backpack arrangement is experimental. It also seeks better use of supported
 position-dependent artifact effects, such as adjacent magic modifiers and same-row companion effects.
 Your explicit priorities take precedence. By default, existing bonuses are preserved and additional MP costs are limited.
@@ -88,8 +102,9 @@ Read the corresponding setting's help before using these features.
 ## Feedback
 
 Report bugs or suggestions through [GitHub Issues](https://github.com/0xMashiro/SephiriaEnhancements/issues).
-English and Chinese are welcome. Include game and Mod versions, steps, expected and actual results,
+English and Chinese are welcome. When possible, include game and Mod versions, steps, expected and actual results,
 solo/host/client status, other mods and relevant settings.
+Missing some details? You're still welcome to describe what happened.
 
 <details>
 <summary>Attach logs (Windows)</summary>

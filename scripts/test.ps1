@@ -56,6 +56,8 @@ foreach ($patch in @(
     'RewardKeyboardInventoryOpenedSelectionPatch', 'RewardKeyboardToggleSelectionPatch',
     'RewardKeyboardClosedSelectionPatch', 'RewardKeyboardCancelSelectionPatch'
     'MapPanelShowPatch', 'MapNavigationUpdatePatch'
+    'AutoCastingManualInputPatch', 'AutoCastingPanelPatch', 'AutoCastingSubmitPatch',
+    'AutoCastingOptionsPatch', 'SkillNavigationMovePatch', 'SkillNavigationTogglePatch'
     'InventoryPanelCancelPatch', 'InventoryPanelTooltipPlacementPatch'
 )) {
     if ($patchList.Groups['types'].Value -notmatch ('typeof\(' + $patch + '\)')) {

@@ -264,7 +264,7 @@ namespace SephiriaEnhancements.Configuration
             return matches;
         }
 
-        private static Transform FindRowRoot(RebindActionUI binding, Transform panel)
+        internal static Transform FindRowRoot(RebindActionUI binding, Transform panel)
         {
             Transform current = binding.transform;
             Transform fallback = current.parent;

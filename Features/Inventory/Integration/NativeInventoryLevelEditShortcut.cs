@@ -14,6 +14,9 @@ namespace SephiriaEnhancements.Inventory
             // Combat target switching yields whenever a menu owns the controls.
             if (UIManager.Instance?.CurrentControlStack?.Contains(panel) != true) return null;
             var action = Action;
+            if (action?.activeControl?.device is not Mouse &&
+                UnityEngine.EventSystems.EventSystem.current?.currentSelectedGameObject?
+                    .GetComponent<UI_PlayerSkillIcon>() != null) return null;
             return action?.WasPressedThisFrame() == true ? action : null;
         }
 

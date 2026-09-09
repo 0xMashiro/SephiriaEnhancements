@@ -44,7 +44,8 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             InitializePendingSelection();
             if (!OptionsKeyboardNavigation.SwitchTab() &&
                 !SephiriaEnhancements.Inventory.InventoryOptimizationController.
-                    TryHandleKeyboardTab())
+                    TryHandleKeyboardTab() &&
+                !SephiriaEnhancements.AutoCasting.Integration.NativeSkillNavigation.TrySwitchRegion())
                 SwitchCombinedPanelWithTab();
             RestoreMissingKeyboardSelection();
         }

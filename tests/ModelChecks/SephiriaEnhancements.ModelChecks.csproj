@@ -8,6 +8,9 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Features/AutoCasting/AutoCastingLocalization.cs" Link="AutoCasting/AutoCastingLocalization.cs" />
+    <Compile Include="../../Features/AutoCasting/Core/*.cs" Link="AutoCasting/%(Filename)%(Extension)" />
+    <Compile Include="../../Features/AutoCasting/Integration/NativeAutoCastingBindings.cs" Link="AutoCasting/NativeAutoCastingBindings.cs" />
     <Compile Include="../../Features/Inventory/Presentation/InventorySpecialEffectLocalization.cs" Link="Inventory/InventorySpecialEffectLocalization.cs" />
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
   </ItemGroup>

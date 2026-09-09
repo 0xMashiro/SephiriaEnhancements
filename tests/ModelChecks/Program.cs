@@ -20,6 +20,8 @@ using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
+SephiriaEnhancements.ModelChecks.Features.AutoCasting.AutoCastingChecks.Run();
+if (args.Contains("--auto-casting-only")) return;
 ResourceBarValueChecks.Run();
 if (args.Contains("--resource-bars-only")) return;
 InventoryArrangementChecks.Run();

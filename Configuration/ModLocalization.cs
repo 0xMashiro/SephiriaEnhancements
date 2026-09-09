@@ -1261,6 +1261,7 @@ namespace SephiriaEnhancements.Configuration
             OptionsCategoryLocalization.Register(addText, languages);
             CombatVisualLocalization.Register(addText, languages);
             ResourceBarValues.ResourceBarValueLocalization.Register(addText, languages);
+            AutoCasting.AutoCastingLocalization.Register(addText, languages);
             DefeatRetry.DefeatRetryAvailabilityLocalization.Register(addText, languages);
             Inventory.InventoryOptimizationLocalization.Register(addText);
             Inventory.InventorySpecialEffectLocalization.Register(addText);

@@ -22,6 +22,7 @@ using SephiriaEnhancements.MultiplayerAccess;
 using SephiriaEnhancements.MultiplayerAccess.Integration;
 using SephiriaEnhancements.CombatVisuals;
 using SephiriaEnhancements.KeyboardUiNavigation;
+using SephiriaEnhancements.AutoCasting.Integration;
 using SephiriaEnhancements.Runtime.GameBridge;
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
 using SephiriaEnhancements.DeveloperTools;
@@ -80,6 +81,7 @@ namespace SephiriaEnhancements
         private CombatTargetingController combatTargeting;
         private NativeCompanionController nativeCompanion;
         private KeyboardUiNavigationController keyboardUiNavigation;
+        private NativeAutoCasting autoCasting;
         private MapEnhancementsController mapEnhancements;
         private RuntimeKernel runtimeKernel;
         private InventoryOptimizationController inventoryOptimization;
@@ -146,6 +148,7 @@ namespace SephiriaEnhancements
             NativeReportDismissal.SetController(combatInsights);
             NativeStatisticsPauseEntry.SetController(combatInsights);
             combatTargeting = controllerObject.AddComponent<CombatTargetingController>();
+            autoCasting = controllerObject.AddComponent<NativeAutoCasting>();
             nativeCompanion = controllerObject.AddComponent<NativeCompanionController>();
             keyboardUiNavigation =
                 controllerObject.AddComponent<KeyboardUiNavigationController>();
@@ -236,6 +239,12 @@ namespace SephiriaEnhancements
                 typeof(PreserveDefeatRetryRejoinStatePatch),
                 typeof(DefeatRetryNewGamePatch),
                 typeof(CombatTargetingInputPatch),
+                typeof(AutoCastingManualInputPatch),
+                typeof(AutoCastingPanelPatch),
+                typeof(AutoCastingOptionsPatch),
+                typeof(AutoCastingSubmitPatch),
+                typeof(SkillNavigationMovePatch),
+                typeof(SkillNavigationTogglePatch),
                 typeof(CombatTargetingCastPatch),
                 typeof(CombatTargetingReleasePatch),
                 typeof(CombatTargetingDashPatch),
@@ -386,6 +395,7 @@ namespace SephiriaEnhancements
             UnitDeathCapture.SetController(null);
             LocalFinalBlowCapture.SetController(null);
             NativeResourceBarValueView.DisposeAll();
+            NativeAutoCastingUi.DisposeAll();
             harmony?.UnpatchAll(HarmonyId);
             NativeModJournal.DisposeAll();
             harmony = null;
@@ -414,6 +424,7 @@ namespace SephiriaEnhancements
 
         private void OnStartSessionClientside(bool isSavedSession)
         {
+            autoCasting?.ResetWorld();
             DefeatRetryClientRestore.ObserveWorldSession(isSavedSession);
             GameLoadProfiler.ObserveClientSessionStarted(isSavedSession);
             MultiplayerRulesLobbySnapshotCoordinator.ReadHostSnapshot();
@@ -430,6 +441,7 @@ namespace SephiriaEnhancements
 
         private void OnLocalGameplayContextChanged(LocalGameplayContextChange change)
         {
+            autoCasting?.ResetGameplayContext();
             inventoryOptimization?.ResetGameplayContext();
             combatRelationOutlines?.ResetGameplayContext();
             combatTargeting?.ResetGameplayContext();

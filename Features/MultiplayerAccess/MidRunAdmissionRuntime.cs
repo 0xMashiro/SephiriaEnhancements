@@ -35,16 +35,16 @@ namespace SephiriaEnhancements.MultiplayerAccess
         {
             return MidRunAdmissionPolicy.CanEnableNativeReconnect(
                 EnhancementsSettings.Enabled,
-                MidRunAdmissionSettings.AllowJoinAndReconnect,
+                MidRunAdmissionSettings.ReconnectSupport,
                 integrationAvailable,
                 MultiplayerExtensionDiscovery.HasDetectedExtension);
         }
 
-        internal static bool CanAdvertiseMidRunJoin()
+        internal static bool CanKeepRoomOpenForPlayers()
         {
             return MidRunAdmissionPolicy.CanOwnAdmission(
                 EnhancementsSettings.Enabled,
-                MidRunAdmissionSettings.AllowJoinAndReconnect,
+                MidRunAdmissionSettings.AllowMidRunJoin || MidRunAdmissionSettings.ReconnectSupport,
                 integrationAvailable, NetworkServer.active,
                 HorayNetworkAuthenticator.AccessDeny_InDungeon,
                 SaveManager.CurrentRun != null && SaveManager.SaveVersion != 0,
@@ -61,7 +61,7 @@ namespace SephiriaEnhancements.MultiplayerAccess
                 SaveManager.SaveVersion != 0;
             if (!MidRunAdmissionPolicy.CanOwnAdmission(
                     EnhancementsSettings.Enabled,
-                    MidRunAdmissionSettings.AllowJoinAndReconnect,
+                    MidRunAdmissionSettings.AllowMidRunJoin,
                     integrationAvailable, NetworkServer.active,
                     HorayNetworkAuthenticator.AccessDeny_InDungeon,
                     hasPerPlayerRunSave,

@@ -17,7 +17,8 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
             TextMeshProUGUI template = owner.pingText;
             var text = view.Add(frame, template, () =>
             {
-                if (player == null || player.MaxHp <= 0f) return string.Empty;
+                if (!ResourceBarValueSettings.Get(ResourceBarValueSetting.TeammateResourceNumbers) ||
+                    player == null || player.MaxHp <= 0f) return string.Empty;
                 string health = ResourceBarValueFormatter.HealthWithShield(
                     player.IsDead ? 0f : player.Networkhp, player.MaxHp, player.Shield);
                 string mana = ResourceBarValueFormatter.Mana(player.mp, player.MaxMp,

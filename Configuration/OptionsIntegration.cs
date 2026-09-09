@@ -155,6 +155,10 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_CombatOutlineScope",
                 "Option_SephiriaEnhancements_DisplayPolicy",
                 "Option_SephiriaEnhancements_HitStreakFeedback",
+                "Option_SephiriaEnhancements_DisableAllNumbers",
+                "Option_SephiriaEnhancements_ManaReservationNumbers",
+                "Option_SephiriaEnhancements_TeammateResourceNumbers",
+                "Option_SephiriaEnhancements_CompanionHealthNumbers",
                 "Option_SephiriaEnhancements_CreatureHealthNumbers",
                 "Option_SephiriaEnhancements_CreatureSuperArmorNumbers",
                 "Option_SephiriaEnhancements_MiniBossHealthNumbers",
@@ -181,6 +185,7 @@ namespace SephiriaEnhancements.Configuration
             string[] multiplayerRows =
             {
                 "Option_SephiriaEnhancements_MidRunAdmission",
+                "Option_SephiriaEnhancements_ReconnectSupport",
                 "Option_SephiriaEnhancements_MultiplayerRulesPreset",
                 "Option_SephiriaEnhancements_MultiplayerRulesExternalStacking",
                 "Option_SephiriaEnhancements_MultiplayerRulesParticipantCount",
@@ -318,6 +323,7 @@ namespace SephiriaEnhancements.Configuration
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<MasterEnabledOption>().Configure(box, valueText);
+            NativeSettingsInteraction.Bind(row, box, valueText, SettingInteractionKind.Master, template.valueText.text);
             // The suite switch owns every category and therefore remains visible.
             row.SetActive(true);
         }
@@ -583,6 +589,11 @@ namespace SephiriaEnhancements.Configuration
 
         private void Changed(int value)
         {
+            if (!NativeSettingsInteraction.CanEdit(SettingInteractionKind.Master))
+            {
+                box.ChangeValueWithoutNotify(EnhancementsSettings.Enabled ? 1 : 0);
+                return;
+            }
             EnhancementsSettings.Enabled = value == 1;
             EnhancementsSettings.Save();
             CombatVisualRuntime.RefreshCompanionBodies();

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace SephiriaEnhancements.Configuration
 {
@@ -38,6 +39,12 @@ namespace SephiriaEnhancements.Configuration
                 box.GetComponentsInChildren<UI_HorizontalSelectionBox_Arrow>(true))
             {
                 arrow.enabled = interactive;
+            }
+            if (!interactive && EventSystem.current != null &&
+                EventSystem.current.currentSelectedGameObject == box.gameObject)
+            {
+                var next = box.FindSelectableOnDown() ?? box.FindSelectableOnUp();
+                if (next != null) EventSystem.current.SetSelectedGameObject(next.gameObject);
             }
         }
     }

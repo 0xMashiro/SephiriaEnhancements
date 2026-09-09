@@ -50,7 +50,7 @@ foreach ($patch in @(
     'NativeBossEncounterCompletedPatch', 'NativeBossEncounterPausedPatch',
     'NativeBossEncounterResumedPatch', 'NativeBossBarValuesPatch',
     'NativeUnitBarValuesPatch', 'NativePropBarValuesPatch',
-    'NativePlayerBarValuesPatch', 'NativeManaBarValuesPatch',
+    'NativePlayerBarValuesPatch', 'NativeCompanionBarValuesPatch', 'NativeManaBarValuesPatch',
     'ModJournalRefreshPatch', 'ModJournalClearPatch',
     'ModJournalCategoryPatch', 'ModJournalTutorialPatch',
     'RewardKeyboardGeneratedSelectionPatch', 'RewardKeyboardControlSelectionPatch',

@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 
@@ -6,57 +5,32 @@ namespace SephiriaEnhancements.MultiplayerAccess.Presentation
 {
     internal static class MultiplayerAccessLocalization
     {
-        internal const string AllowJoinAndReconnectSetting =
-            "SephiriaEnhancements.MultiplayerAccess.AllowMidRunJoinAndReconnect";
-        internal const string AllowJoinAndReconnectHelp =
-            AllowJoinAndReconnectSetting + ".Help";
-
+        internal const string AllowMidRunJoinSetting = "SephiriaEnhancements.MultiplayerAccess.AllowMidRunJoin";
+        internal const string AllowMidRunJoinHelp = "SephiriaEnhancements.MultiplayerAccess.AllowMidRunJoin.Help";
+        internal const string ReconnectSetting = "SephiriaEnhancements.MultiplayerAccess.ReconnectSupport";
+        internal const string ReconnectHelp = "SephiriaEnhancements.MultiplayerAccess.ReconnectSupport.Help";
+        internal const string Off = "SephiriaEnhancements.MultiplayerAccess.Off";
+        internal const string On = "SephiriaEnhancements.MultiplayerAccess.On";
         private static readonly Dictionary<string, string[]> Texts = new()
         {
-            ["en-US"] = new[]
-            {
-                "Mid-run Join and Reconnect",
-                "Host option, applied to the next run. Keeps the Steam room open during exploration, lets new players join with a new character and save slot, and enables the game's reconnect support. Joining players do not need this Mod. Detected multiplayer extensions retain ownership of admission.\nNew arrivals do not take over disconnected characters or receive missed-route rewards."
-            },
-            ["zh-CN"] = new[]
-            {
-                "中途加入与重连",
-                "房主选项，下次探索生效。探索期间保持 Steam 房间开放；新玩家以新角色和新存档槽加入；同时启用游戏的重连支持。加入方无需安装本 MOD。检测到联机扩展时，由该扩展管理玩家加入。\n新加入者不接管掉线角色，也不补发错过路线的奖励。"
-            },
-            ["zh-TW"] = new[]
-            {
-                "中途加入與重連",
-                "房主選項，下次探索生效。探索期間保持 Steam 房間開放；新玩家以新角色和新存檔槽加入；同時啟用遊戲的重新連線支援。加入方不必安裝本 MOD。偵測到連線擴充套件時，由該擴充套件管理玩家加入。\n新加入者不接管斷線角色，也不補發錯過路線的獎勵。"
-            },
-            ["ko-KR"] = new[] { "탐험 중 참가 및 재접속", "호스트 설정이며 다음 탐험부터 적용됩니다. 탐험 중 Steam 방을 열어 두어 새 플레이어가 새 캐릭터와 저장 슬롯으로 참가할 수 있게 하고, 게임의 재접속 기능을 활성화합니다. 참가자는 이 Mod를 설치할 필요가 없습니다. 멀티플레이 확장 기능이 감지되면 참가 관리는 해당 확장 기능에 맡깁니다.\n새로 참가한 플레이어는 접속이 끊긴 캐릭터를 이어받거나 지나간 경로의 보상을 받지 않습니다." },
-            ["ja-JP"] = new[] { "探索途中の参加と再接続", "ホスト用の設定で、次の探索から適用されます。探索中も Steam ルームを開放し、新規プレイヤーが新しいキャラクターとセーブスロットで参加できるようにします。ゲームの再接続機能も有効にします。参加者にこの Mod は不要です。マルチプレイ拡張が検出された場合、参加の管理はその拡張に任せます。\n新規参加者は切断したキャラクターを引き継がず、通過済みの経路の報酬も受け取りません。" },
-            ["de-DE"] = new[] { "Beitritt und Wiederverbindung im Lauf",
-                    "Host-Einstellung für den nächsten Lauf. Hält den Steam-Raum während der Erkundung offen, erlaubt neuen Spielern den Beitritt mit neuem Charakter und Speicherplatz und aktiviert die Wiederverbindungsfunktion des Spiels. Beitretende Spieler benötigen diesen Mod nicht. Erkannte Mehrspieler-Erweiterungen verwalten den Beitritt weiterhin selbst.\nNeue Spieler übernehmen keine getrennten Charaktere und erhalten keine Belohnungen für verpasste Routen." },
-            ["es-ES"] = new[] { "Unirse y reconectar durante la expedición",
-                    "Opción del anfitrión para la próxima expedición. Mantiene abierta la sala de Steam, permite que nuevos jugadores se unan con un personaje y una ranura de guardado nuevos y activa la reconexión del juego. Quienes se unan no necesitan este Mod. Si se detectan extensiones multijugador, estas siguen gestionando el acceso.\nLos nuevos participantes no toman el control de personajes desconectados ni reciben recompensas de rutas que se perdieron." },
-            ["fr-FR"] = new[] { "Rejoindre et se reconnecter en exploration",
-                    "Option de l’hôte, appliquée à la prochaine exploration. Garde le salon Steam ouvert, permet aux nouveaux joueurs de rejoindre avec un nouveau personnage et emplacement de sauvegarde, et active la reconnexion du jeu. Les joueurs qui rejoignent n’ont pas besoin de ce Mod. Les extensions multijoueurs détectées conservent la gestion des accès.\nLes nouveaux arrivants ne reprennent pas les personnages déconnectés et ne reçoivent pas les récompenses des parcours manqués." },
-            ["it-IT"] = new[] { "Ingresso e riconnessione durante l’esplorazione",
-                    "Opzione dell’host, valida dalla prossima esplorazione. Mantiene aperta la stanza Steam, permette ai nuovi giocatori di unirsi con un nuovo personaggio e slot di salvataggio e attiva la riconnessione del gioco. Chi si unisce non deve installare questo Mod. Le estensioni multigiocatore rilevate continuano a gestire gli accessi.\nI nuovi arrivati non prendono il controllo dei personaggi disconnessi e non ricevono ricompense dei percorsi persi." },
-            ["pl-PL"] = new[] { "Dołączanie i ponowne łączenie w trakcie wyprawy",
-                    "Opcja gospodarza obowiązująca od następnej wyprawy. Pozostawia pokój Steam otwarty, pozwala nowym graczom dołączyć z nową postacią i miejscem zapisu oraz włącza ponowne łączenie obsługiwane przez grę. Dołączający nie potrzebują tego moda. Wykryte rozszerzenia wieloosobowe nadal zarządzają dostępem.\nNowi uczestnicy nie przejmują rozłączonych postaci ani nie otrzymują nagród za pominięte trasy." },
-            ["pt-BR"] = new[] { "Entrada e reconexão durante a exploração",
-                    "Opção do anfitrião, aplicada à próxima exploração. Mantém a sala Steam aberta, permite a entrada de novos jogadores com um novo personagem e espaço de salvamento e ativa a reconexão do jogo. Quem entra não precisa deste Mod. Extensões multijogador detectadas continuam gerenciando a entrada.\nNovos participantes não assumem personagens desconectados nem recebem recompensas de rotas perdidas." },
-            ["ru-RU"] = new[] { "Вход и переподключение во время забега",
-                    "Настройка хоста для следующего забега. Оставляет комнату Steam открытой, позволяет новым игрокам войти с новым персонажем и слотом сохранения и включает переподключение средствами игры. Входящим игрокам этот мод не нужен. При обнаружении сетевых расширений управление входом остаётся за ними.\nНовые участники не получают управление отключившимися персонажами и награды за пропущенные маршруты." },
-            ["sv-SE"] = new[] { "Anslut och återanslut under en runda",
-                    "Värdinställning som gäller nästa runda. Håller Steam-rummet öppet under utforskning, låter nya spelare ansluta med en ny figur och sparplats och aktiverar spelets återanslutning. Anslutande spelare behöver inte denna mod. Upptäckta flerspelartillägg fortsätter att styra anslutningar.\nNya deltagare tar inte över frånkopplade figurer och får inga belöningar för missade rutter." },
-            ["th-TH"] = new[] { "เข้าร่วมและเชื่อมต่อใหม่ระหว่างการสำรวจ",
-                    "ตัวเลือกของโฮสต์ มีผลในการสำรวจครั้งถัดไป เปิดห้อง Steam ไว้ระหว่างสำรวจ ให้ผู้เล่นใหม่เข้าร่วมด้วยตัวละครและช่องบันทึกใหม่ และเปิดใช้การเชื่อมต่อใหม่ของเกม ผู้เข้าร่วมไม่ต้องติดตั้ง Mod นี้ หากตรวจพบส่วนเสริมผู้เล่นหลายคน ส่วนเสริมนั้นจะยังจัดการการเข้าร่วมเอง\nผู้เข้าร่วมใหม่จะไม่รับช่วงตัวละครที่หลุดการเชื่อมต่อหรือได้รับรางวัลจากเส้นทางที่พลาดไป" },
-            ["tr-TR"] = new[] { "Keşif sırasında katılma ve yeniden bağlanma",
-                    "Bir sonraki keşifte geçerli olan sunucu sahibi ayarıdır. Keşif sırasında Steam odasını açık tutar, yeni oyuncuların yeni karakter ve kayıt yuvasıyla katılmasını sağlar ve oyunun yeniden bağlanma özelliğini açar. Katılanların bu Modu kurması gerekmez. Algılanan çok oyunculu eklentiler katılımı yönetmeye devam eder.\nYeni katılanlar bağlantısı kesilen karakterleri devralmaz veya kaçırdıkları rotaların ödüllerini almaz." }
+            ["en-US"] = new[] { "New players during exploration", "Host option: choose before exploration. New arrivals use a new character and save slot; they receive no missed-route rewards. This does not control returning players.", "Reconnect support", "Enable the game's reconnect support on this device and keep a hosted Steam room open during exploration. Choose before exploration or joining. Turning this off does not ban returning players or override the game's own reconnect settings.", "Off", "On" },
+            ["zh-CN"] = new[] { "新玩家中途加入", "房主在探索前设置。新加入者使用新角色和新存档槽，不补发错过路线的奖励。此项不控制原玩家重连。", "重连支持", "在本机启用游戏的重连支持，并在担任房主时保持探索中的 Steam 房间开放。请在探索或加入房间前设置。关闭此项不会禁止原玩家重连，也不会覆盖游戏自身的重连设置。", "关闭", "开启" },
+            ["zh-TW"] = new[] { "新玩家中途加入", "房主在探索前設定。新加入者使用新角色與新存檔欄位，不補發錯過路線的獎勵。此項不控制原玩家重連。", "重連支援", "在本機啟用遊戲的重連支援，並在擔任房主時保持探索中的 Steam 房間開放。請在探索或加入房間前設定。關閉此項不會禁止原玩家重連，也不會覆蓋遊戲自身的重連設定。", "關閉", "開啟" },
+            ["ko-KR"] = new[] { "탐험 중 새 플레이어 참가", "호스트가 탐험 전에 설정합니다. 새 참가자는 새 캐릭터와 저장 슬롯을 사용하며 지나친 경로의 보상은 받지 않습니다. 기존 플레이어의 재접속에는 영향을 주지 않습니다.", "재접속 지원", "이 기기에서 게임의 재접속 지원을 켜고, 호스트일 때 탐험 중 Steam 방을 열어 둡니다. 탐험 또는 참가 전에 설정하세요. 꺼도 기존 플레이어의 복귀를 금지하거나 게임 자체 재접속 설정을 덮어쓰지 않습니다.", "꺼짐", "켜짐" },
+            ["ja-JP"] = new[] { "探索中の新規プレイヤー参加", "ホストが探索前に設定します。新規参加者は新しいキャラクターとセーブ枠を使い、通過済みルートの報酬は受け取りません。既存プレイヤーの再接続には影響しません。", "再接続サポート", "この端末でゲームの再接続機能を有効にし、ホスト時は探索中のSteamルームを開放します。探索や参加の前に設定してください。オフにしても既存プレイヤーの復帰は禁止せず、ゲーム側の再接続設定は変更しません。", "オフ", "オン" },
+            ["de-DE"] = new[] { "Neue Spieler während der Erkundung", "Vor der Erkundung vom Host einstellen. Neue Spieler erhalten einen neuen Charakter und Speicherplatz, aber keine verpassten Routenbelohnungen. Gilt nicht für Rückkehrer.", "Unterstützung für Wiederbeitritt", "Aktiviert die Wiederbeitrittsfunktion auf diesem Gerät und hält als Host den Steam-Raum während der Erkundung offen. Vor Erkundung oder Beitritt einstellen. Ausschalten sperrt keine Rückkehrer und überschreibt keine Spieleinstellungen.", "Aus", "An" },
+            ["es-ES"] = new[] { "Nuevos jugadores durante la exploración", "El anfitrión lo configura antes de explorar. Los nuevos usan un personaje y espacio de guardado nuevos, sin premios de rutas omitidas. No controla el regreso de jugadores.", "Soporte de reconexión", "Activa la reconexión del juego en este dispositivo y mantiene abierta la sala Steam al ser anfitrión durante la exploración. Configura antes de explorar o unirte. Desactivarlo no prohíbe regresar ni anula los ajustes del juego.", "Desactivado", "Activado" },
+            ["fr-FR"] = new[] { "Nouveaux joueurs en exploration", "À régler par l’hôte avant l’exploration. Les nouveaux joueurs utilisent un nouveau personnage et emplacement de sauvegarde, sans récompenses des chemins manqués. Ne contrôle pas le retour des joueurs.", "Prise en charge de la reconnexion", "Active la reconnexion du jeu sur cet appareil et garde le salon Steam ouvert pendant l’exploration si vous hébergez. À régler avant d’explorer ou de rejoindre. Désactiver ne bannit pas les joueurs de retour et ne remplace pas les réglages du jeu.", "Désactivé", "Activé" },
+            ["it-IT"] = new[] { "Nuovi giocatori durante l’esplorazione", "L’host imposta prima di esplorare. I nuovi arrivati usano un nuovo personaggio e slot di salvataggio, senza ricompense dei percorsi saltati. Non controlla il ritorno dei giocatori.", "Supporto riconnessione", "Attiva la riconnessione del gioco su questo dispositivo e mantiene aperta la stanza Steam durante l’esplorazione se sei host. Imposta prima di esplorare o unirti. Disattivare non vieta il ritorno e non sovrascrive le impostazioni del gioco.", "Disattivato", "Attivato" },
+            ["pl-PL"] = new[] { "Nowi gracze podczas eksploracji", "Gospodarz ustawia przed eksploracją. Nowi gracze używają nowej postaci i miejsca zapisu, bez nagród z pominiętych tras. Nie steruje powrotem graczy.", "Obsługa ponownego połączenia", "Włącza ponowne połączenie gry na tym urządzeniu i utrzymuje otwarty pokój Steam podczas eksploracji, gdy jesteś gospodarzem. Ustaw przed eksploracją lub dołączeniem. Wyłączenie nie zabrania powrotu ani nie zastępuje ustawień gry.", "Wyłączone", "Włączone" },
+            ["pt-BR"] = new[] { "Novos jogadores durante a exploração", "O anfitrião configura antes de explorar. Novos jogadores usam um novo personagem e espaço de salvamento, sem recompensas das rotas perdidas. Não controla o retorno de jogadores.", "Suporte à reconexão", "Ativa a reconexão do jogo neste dispositivo e mantém a sala Steam aberta durante a exploração quando você é anfitrião. Configure antes de explorar ou entrar. Desativar não proíbe o retorno nem substitui os ajustes do jogo.", "Desativado", "Ativado" },
+            ["ru-RU"] = new[] { "Новые игроки во время похода", "Хост настраивает до похода. Новые игроки получают нового персонажа и ячейку сохранения, без наград за пропущенные маршруты. Не управляет возвращением игроков.", "Поддержка переподключения", "Включает переподключение игры на этом устройстве и держит комнату Steam открытой в походе, если вы хост. Настройте до похода или входа. Отключение не запрещает возвращаться и не заменяет настройки игры.", "Выключено", "Включено" },
+            ["sv-SE"] = new[] { "Nya spelare under utforskning", "Värden ställer in före utforskning. Nya spelare använder en ny figur och sparplats, utan belöningar från missade rutter. Styr inte återvändande spelare.", "Stöd för återanslutning", "Aktiverar spelets återanslutning på denna enhet och håller Steam-rummet öppet under utforskning när du är värd. Ställ in före utforskning eller anslutning. Avstängning förbjuder inte återkomst och ersätter inte spelets inställningar.", "Av", "På" },
+            ["th-TH"] = new[] { "ผู้เล่นใหม่เข้าระหว่างสำรวจ", "โฮสต์ตั้งค่าก่อนสำรวจ ผู้เล่นใหม่ใช้ตัวละครและช่องบันทึกใหม่ ไม่ได้รับรางวัลจากเส้นทางที่พลาด ตัวเลือกนี้ไม่ควบคุมผู้เล่นเดิมที่กลับมา", "รองรับการเชื่อมต่อใหม่", "เปิดระบบเชื่อมต่อใหม่ของเกมบนเครื่องนี้ และเปิดห้อง Steam ไว้ระหว่างสำรวจเมื่อเป็นโฮสต์ ตั้งค่าก่อนสำรวจหรือเข้าร่วม การปิดไม่ห้ามผู้เล่นเดิมกลับมาและไม่แทนที่การตั้งค่าของเกม", "ปิด", "เปิด" },
+            ["tr-TR"] = new[] { "Keşif sırasında yeni oyuncular", "Ev sahibi keşiften önce ayarlar. Yeni gelenler yeni karakter ve kayıt yuvası kullanır; kaçırılan rota ödüllerini almaz. Geri dönen oyuncuları kontrol etmez.", "Yeniden bağlantı desteği", "Bu cihazda oyunun yeniden bağlantı desteğini açar ve ev sahibiyken keşif sırasında Steam odasını açık tutar. Keşif veya katılımdan önce ayarlayın. Kapatmak geri dönüşü yasaklamaz veya oyun ayarlarını geçersiz kılmaz.", "Kapalı", "Açık" },
         };
-
-        internal static void Register(Action<string, string, string> addText,
-            IEnumerable<string> languages)
-        {
+        internal static void Register(Action<string, string, string> addText, IEnumerable<string> languages) =>
             Configuration.LocalizationGroup.Register(addText, languages,
-                new[] { AllowJoinAndReconnectSetting, AllowJoinAndReconnectHelp }, Texts);
-        }
+                new[] { AllowMidRunJoinSetting, AllowMidRunJoinHelp, ReconnectSetting, ReconnectHelp, Off, On }, Texts);
     }
 }

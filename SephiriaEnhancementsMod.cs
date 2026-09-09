@@ -205,6 +205,7 @@ namespace SephiriaEnhancements
                 typeof(NativeUnitBarValuesPatch),
                 typeof(NativePropBarValuesPatch),
                 typeof(NativePlayerBarValuesPatch),
+                typeof(NativeCompanionBarValuesPatch),
                 typeof(NativeManaBarValuesPatch),
                 typeof(SephiriaEnhancements.Configuration.OptionsPanelPatch),
                 typeof(ModLanguageLoadPatch),
@@ -501,6 +502,7 @@ namespace SephiriaEnhancements
         private static bool RequiresMultiplayerRuleBehaviorPatches(
             bool isSavedSession)
         {
+            if (!isSavedSession && !EnhancementsSettings.Enabled) return false;
             MultiplayerRulesPreset preset;
             if (isSavedSession && ActiveExplorationRulesStore.TryRead(
                     out ActiveExplorationMultiplayerRules restoredRules))

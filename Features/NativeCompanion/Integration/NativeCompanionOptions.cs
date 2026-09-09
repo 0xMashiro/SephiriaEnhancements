@@ -24,6 +24,7 @@ namespace SephiriaEnhancements.NativeCompanion.Integration
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<NativeCompanionOption>().Configure(box, valueText);
+            NativeSettingsInteraction.Bind(row, box, valueText, SettingInteractionKind.Companion, template.valueText.text);
             MarkCategory(row, OptionsCategory.General);
             row.SetActive(true);
         }
@@ -61,6 +62,11 @@ namespace SephiriaEnhancements.NativeCompanion.Integration
 
         private void Changed(int value)
         {
+            if (!NativeSettingsInteraction.CanEdit(SettingInteractionKind.Companion))
+            {
+                box.ChangeValueWithoutNotify((int)NativeCompanionSettings.Mode);
+                return;
+            }
             NativeCompanionSettings.Mode = (NativeCompanionMode)value;
             NativeCompanionSettings.Save();
             valueText?.UpdateKey(ModLocalization.NativeCompanionModeKeys[value]);

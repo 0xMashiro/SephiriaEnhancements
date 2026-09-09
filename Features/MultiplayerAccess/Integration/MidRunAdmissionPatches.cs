@@ -68,7 +68,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
         private static void Postfix()
         {
             if (NetworkServer.active &&
-                MidRunAdmissionRuntime.CanAdvertiseMidRunJoin())
+                MidRunAdmissionRuntime.CanKeepRoomOpenForPlayers())
                 NativeLobbyAccess.TryOpenOwnedSteamRoomForJoin();
         }
     }

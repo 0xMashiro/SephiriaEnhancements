@@ -8,6 +8,8 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Configuration/SettingsInteractionPolicy.cs" Link="Configuration/SettingsInteractionPolicy.cs" />
+    <Compile Include="../../Configuration/SettingsInteractionLocalization.cs" Link="Configuration/SettingsInteractionLocalization.cs" />
     <Compile Include="../../Features/AutoCasting/AutoCastingLocalization.cs" Link="AutoCasting/AutoCastingLocalization.cs" />
     <Compile Include="../../Features/AutoCasting/Core/*.cs" Link="AutoCasting/%(Filename)%(Extension)" />
     <Compile Include="../../Features/AutoCasting/Integration/NativeAutoCastingBindings.cs" Link="AutoCasting/NativeAutoCastingBindings.cs" />

@@ -13,7 +13,7 @@ internal static class MultiplayerRulesSessionChecks
         ActiveExplorationMultiplayerRules frozenRules =
             multiplayerRulesSession.BeginNewExploration(new PreferredMultiplayerRules(
                 MultiplayerRulesPreset.Optimized, MultiplayerRuleSnapshot.Original(),
-                EnemyHealthModifierCombination.ParticipantRuleOnly));
+                EnemyHealthModifierCombination.ParticipantRuleOnly), true);
         if (!multiplayerRulesSession.TryGetActive(out var activeRules) ||
             !ReferenceEquals(frozenRules, activeRules) ||
             activeRules.Preset != MultiplayerRulesPreset.Optimized)

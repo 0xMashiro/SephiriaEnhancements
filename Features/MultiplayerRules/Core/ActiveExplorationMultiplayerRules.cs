@@ -58,9 +58,10 @@ namespace SephiriaEnhancements.MultiplayerRules
         }
 
         internal ActiveExplorationMultiplayerRules BeginNewExploration(
-            PreferredMultiplayerRules preferredRules)
+            PreferredMultiplayerRules preferredRules, bool suiteEnabled)
         {
-            activeRules = preferredRules.Freeze();
+            activeRules = suiteEnabled ? preferredRules.Freeze()
+                : ActiveExplorationMultiplayerRules.FromPreset(MultiplayerRulesPreset.Original);
             return activeRules;
         }
 

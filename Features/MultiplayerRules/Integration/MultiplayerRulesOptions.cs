@@ -75,6 +75,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 out UI_LocalizationStringText valueText);
             row.AddComponent<MultiplayerRuleOption>()
                 .Configure(box, valueText, definition);
+            NativeSettingsInteraction.Bind(row, box, valueText, SettingInteractionKind.HostRule, template.valueText.text);
             MarkCategory(row, OptionsCategory.Multiplayer,
                 requiresCustomPreset: true, multiplayerRuleGroup: groupIndex);
             row.SetActive(true);
@@ -90,6 +91,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<MultiplayerRulesPresetOption>().Configure(box, valueText);
+            NativeSettingsInteraction.Bind(row, box, valueText, SettingInteractionKind.HostRule, template.valueText.text);
             MarkCategory(row, OptionsCategory.Multiplayer);
             row.SetActive(true);
         }
@@ -138,6 +140,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 out UI_LocalizationStringText valueText);
             row.AddComponent<MultiplayerRulesExternalStackingOption>()
                 .Configure(box, valueText);
+            NativeSettingsInteraction.Bind(row, box, valueText, SettingInteractionKind.HostRule, template.valueText.text);
             MarkCategory(row, OptionsCategory.Multiplayer);
             row.SetActive(true);
         }
@@ -153,6 +156,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 out UI_LocalizationStringText valueText);
             row.AddComponent<MultiplayerRulesHealthCombinationOption>()
                 .Configure(box, valueText);
+            NativeSettingsInteraction.Bind(row, box, valueText, SettingInteractionKind.HostRule, template.valueText.text);
             MarkCategory(row, OptionsCategory.Multiplayer,
                 requiresCustomPreset: true);
             row.SetActive(true);
@@ -169,6 +173,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 out UI_LocalizationStringText valueText);
             row.AddComponent<MultiplayerRulesCopyParticipantValuesOption>()
                 .Configure(box, valueText);
+            NativeSettingsInteraction.Bind(row, box, valueText, SettingInteractionKind.HostRule, template.valueText.text);
             MarkCategory(row, OptionsCategory.Multiplayer,
                 requiresCustomPreset: true);
             row.SetActive(true);
@@ -614,9 +619,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         }
 
         internal static bool CanEditHostPreferences() =>
-            MultiplayerRulesLifecyclePolicy.CanEditHostPreferences(
-                !NetworkClient.active || NetworkServer.active,
-                MultiplayerRulesController.TryGetActivePreset(out _));
+            NativeSettingsInteraction.CanEdit(SettingInteractionKind.HostRule);
 
         internal static void Refresh(Transform parent)
         {

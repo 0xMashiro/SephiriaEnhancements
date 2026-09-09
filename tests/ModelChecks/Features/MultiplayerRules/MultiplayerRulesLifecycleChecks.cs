@@ -26,7 +26,7 @@ internal static class MultiplayerRulesLifecycleChecks
             MultiplayerRulesPreset.Optimized, MultiplayerRuleSnapshot.Original(),
             EnemyHealthModifierCombination.ParticipantRuleOnly);
         ActiveExplorationMultiplayerRules saved =
-            session.BeginNewExploration(preferred);
+            session.BeginNewExploration(preferred, true);
         AssertEditing(session, expectedHostEditing: false);
 
         // Opening a room or moving between floors must retain the frozen rules.
@@ -55,12 +55,18 @@ internal static class MultiplayerRulesLifecycleChecks
 
         session.EndExploration();
         AssertEditing(session, expectedHostEditing: true);
-        if (session.BeginNewExploration(changedPreference).Preset !=
+        if (session.BeginNewExploration(changedPreference, true).Preset !=
             MultiplayerRulesPreset.Original)
             throw new InvalidOperationException(
                 "the next departure must use preferences edited in town");
         AssertEditing(session, expectedHostEditing: false);
-        return "town editing, host departure, stage continuity, saved exploration and return to town passed";
+        session.EndExploration();
+        if (session.BeginNewExploration(preferred, false).Preset != MultiplayerRulesPreset.Original)
+            throw new InvalidOperationException("Disabled Mod must start new explorations with original rules.");
+        session.ResumeExploration(saved);
+        if (!session.TryGetActive(out var resumed) || resumed.Preset != MultiplayerRulesPreset.Optimized)
+            throw new InvalidOperationException("Saved exploration rules must not be replaced by the current preference.");
+        return "town editing, host departure, disabled Mod, stage continuity, saved exploration and return to town passed";
     }
 
     private static void AssertEditing(MultiplayerRulesSession session,

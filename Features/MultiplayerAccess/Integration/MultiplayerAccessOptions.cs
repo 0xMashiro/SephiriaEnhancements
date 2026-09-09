@@ -1,10 +1,6 @@
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
-using SephiriaEnhancements.MultiplayerRules;
-using SephiriaEnhancements.MultiplayerRules.Integration;
-using SephiriaEnhancements.MultiplayerRules.Presentation;
-using Mirror;
 using SephiriaEnhancements.MultiplayerAccess.Presentation;
 
 namespace SephiriaEnhancements.MultiplayerAccess.Integration
@@ -13,9 +9,17 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
     {
         internal static void Inject(UI_OptionsPanel panel, UI_OptionBox_PartyMemberDamage template, Transform section)
         {
-            if (panel.GetComponentInChildren<MidRunAdmissionOption>(true) == null)
+            if (panel.GetComponentInChildren<MultiplayerAccessOption>(true) == null)
             {
                 CreateMidRunAdmissionRow(template, section);
+                GameObject reconnectRow = CloneRow(template, section,
+                    "Option_SephiriaEnhancements_ReconnectSupport",
+                    MultiplayerAccessLocalization.ReconnectSetting, MultiplayerAccessLocalization.ReconnectHelp, 2,
+                    out UI_HorizontalSelectionBox reconnectBox, out UI_LocalizationStringText reconnectText);
+                reconnectRow.AddComponent<MultiplayerAccessOption>().Configure(reconnectBox, reconnectText, true);
+                NativeSettingsInteraction.Bind(reconnectRow, reconnectBox, reconnectText, SettingInteractionKind.Reconnect, template.valueText.text);
+                MarkCategory(reconnectRow, OptionsCategory.Multiplayer);
+                reconnectRow.SetActive(true);
             }
         }
 
@@ -24,26 +28,29 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
         {
             GameObject row = CloneRow(template, section,
                 "Option_SephiriaEnhancements_MidRunAdmission",
-                MultiplayerAccessLocalization.AllowJoinAndReconnectSetting,
-                MultiplayerAccessLocalization.AllowJoinAndReconnectHelp, 1,
+                MultiplayerAccessLocalization.AllowMidRunJoinSetting,
+                MultiplayerAccessLocalization.AllowMidRunJoinHelp, 1,
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
-            row.AddComponent<MidRunAdmissionOption>().Configure(box, valueText);
+            row.AddComponent<MultiplayerAccessOption>().Configure(box, valueText);
+            NativeSettingsInteraction.Bind(row, box, valueText, SettingInteractionKind.Admission, template.valueText.text);
             MarkCategory(row, OptionsCategory.Multiplayer);
             row.SetActive(true);
         }
     }
 
-    internal sealed class MidRunAdmissionOption : MonoBehaviour
+    internal sealed class MultiplayerAccessOption : MonoBehaviour
     {
         private UI_HorizontalSelectionBox box;
         private UI_LocalizationStringText valueText;
+        private bool reconnect;
 
         internal void Configure(UI_HorizontalSelectionBox selectionBox,
-            UI_LocalizationStringText text)
+            UI_LocalizationStringText text, bool reconnectSupport = false)
         {
             box = selectionBox;
             valueText = text;
+            reconnect = reconnectSupport;
         }
 
         private void OnEnable()
@@ -62,30 +69,29 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
 
         private void Refresh()
         {
-            bool enabled = MidRunAdmissionSettings.AllowJoinAndReconnect;
+            bool enabled = reconnect ? MidRunAdmissionSettings.ReconnectSupport : MidRunAdmissionSettings.AllowMidRunJoin;
             box.ChangeValueWithoutNotify(enabled ? 1 : 0);
             NativeHorizontalSelectionOptionState.Apply(gameObject, box,
-                MidRunAdmissionRuntime.IsAvailable &&
-                MultiplayerRulesOptionsRefresh.CanEditHostPreferences());
+                NativeSettingsInteraction.CanEdit(reconnect ? SettingInteractionKind.Reconnect : SettingInteractionKind.Admission));
             valueText?.UpdateKey(enabled
-                ? MultiplayerRulesLocalization.ToggleEnabled
-                : MultiplayerRulesLocalization.ToggleDisabled);
+                ? MultiplayerAccessLocalization.On
+                : MultiplayerAccessLocalization.Off);
         }
 
         private void Changed(int value)
         {
-            if (!MidRunAdmissionRuntime.IsAvailable ||
-                !MultiplayerRulesOptionsRefresh.CanEditHostPreferences())
+            if (!NativeSettingsInteraction.CanEdit(reconnect ? SettingInteractionKind.Reconnect : SettingInteractionKind.Admission))
             {
                 Refresh();
                 return;
             }
             bool enabled = value != 0;
-            MidRunAdmissionSettings.AllowJoinAndReconnect = enabled;
+            if (reconnect) MidRunAdmissionSettings.ReconnectSupport = enabled;
+            else MidRunAdmissionSettings.AllowMidRunJoin = enabled;
             MidRunAdmissionSettings.Save();
             valueText?.UpdateKey(enabled
-                ? MultiplayerRulesLocalization.ToggleEnabled
-                : MultiplayerRulesLocalization.ToggleDisabled);
+                ? MultiplayerAccessLocalization.On
+                : MultiplayerAccessLocalization.Off);
         }
     }
 }

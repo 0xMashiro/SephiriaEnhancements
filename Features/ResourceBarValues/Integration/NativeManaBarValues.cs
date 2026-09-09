@@ -15,7 +15,7 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
             var original = owner.valueText;
             bool originalEnabled = original.enabled;
             var value = view.Add(owner.valueImage.rectTransform.parent as RectTransform,
-                original, () => target != null
+                original, () => ResourceBarValueSettings.Get(ResourceBarValueSetting.ManaReservationNumbers) && target != null
                     ? ResourceBarValueFormatter.Mana(target.mp, target.MaxMp,
                         target.reservedMp, Loc._("Keyword_ReservedMP_Name")) : string.Empty,
                 () => original.fontSize, "Resource Bar Values — Mana");
@@ -23,7 +23,9 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
             value.rectTransform.offsetMax = new Vector2(-2f, 0f);
             view.RefreshLayout = enabled =>
             {
-                if (original != null) original.enabled = enabled ? false : originalEnabled;
+                if (original != null) original.enabled = enabled &&
+                    ResourceBarValueSettings.Get(ResourceBarValueSetting.ManaReservationNumbers) && target != null
+                    ? false : originalEnabled;
             };
             view.RestoreLayout = () =>
             {

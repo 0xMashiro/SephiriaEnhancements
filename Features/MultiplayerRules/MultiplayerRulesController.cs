@@ -137,7 +137,8 @@ namespace SephiriaEnhancements.MultiplayerRules
             }
 
             ActiveExplorationMultiplayerRules activeRules =
-                session.BeginNewExploration(PreferredMultiplayerRulesStore.Read());
+                session.BeginNewExploration(PreferredMultiplayerRulesStore.Read(),
+                    Configuration.EnhancementsSettings.Enabled);
             ActiveExplorationRulesStore.Write(activeRules);
             currentActiveRules = activeRules;
             DeveloperLogger.RecordMultiplayerRulesLifecycle("begin", activeRules);

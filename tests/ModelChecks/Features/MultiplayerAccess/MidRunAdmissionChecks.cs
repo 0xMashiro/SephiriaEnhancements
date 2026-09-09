@@ -39,10 +39,10 @@ internal static class MidRunAdmissionChecks
                 multiplayerAccessTexts[(language, key)] = value,
             new[] { "en-US", "zh-CN", "fr-FR" });
         if (multiplayerAccessTexts[("zh-CN",
-                MultiplayerAccessLocalization.AllowJoinAndReconnectSetting)] !=
-                "中途加入与重连" ||
+                MultiplayerAccessLocalization.AllowMidRunJoinSetting)] !=
+                "新玩家中途加入" ||
             !multiplayerAccessTexts.ContainsKey(("fr-FR",
-                MultiplayerAccessLocalization.AllowJoinAndReconnectHelp)))
+                MultiplayerAccessLocalization.AllowMidRunJoinHelp)))
         {
             throw new InvalidOperationException(
                 "multiplayer-access localization must be complete with en-US fallback");

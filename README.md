@@ -47,6 +47,16 @@ Search is bounded and does not guarantee an optimal layout or maximum combat dam
 Most display and control improvements start enabled. Retry after defeat, hidden-room display, mouse aim assist
 and the combat companion start **off**. Multiplayer rules start at **Original**, camera distance at **100%**.
 
+Set multiplayer rules before leaving town; only the host can change them. Starting an exploration locks its rules,
+and continuing a saved exploration keeps its saved rules. The Mod's main switch is locked during exploration,
+while connected to another host, and while a reconnect is pending. Display options remain individually adjustable.
+**New players during exploration** and **Reconnect support** are separate settings; disabling new arrivals does
+not disable reconnect support. Reconnection still depends on the game's room, character and save conditions.
+
+Under combat/display settings, teammate HP/MP, companion HUD numbers and extra mana-reservation numbers start off.
+**Disable all extra numbers** turns off the numeric display options together; your original HP/MP numbers remain.
+Companion HUD numbers and ordinary creatures' world-space numbers have separate controls.
+
 ## Install
 
 1. Exit Sephiria.

@@ -99,7 +99,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
             CaptureCheckpoint(RetryCheckpointKind.FloorEntry, current, currentRun,
-                string.Empty, floorGuid, CaptureCurrentPlacements(),
+                string.Empty, floorGuid, CaptureCheckpointPlacements(),
                 "native_run_save");
         }
 
@@ -143,7 +143,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 SerializeCurrentSession(floorGuid);
                 CaptureCheckpoint(RetryCheckpointKind.FloorEntry, current,
                     currentRun, string.Empty, floorGuid,
-                    CaptureCurrentPlacements(), "rendered_combat_floor_fallback");
+                    CaptureCheckpointPlacements(), "rendered_combat_floor_fallback");
             }
             catch (Exception ex)
             {
@@ -207,7 +207,7 @@ namespace SephiriaEnhancements.DefeatRetry
 
                 CaptureCheckpoint(RetryCheckpointKind.BossEncounter, current,
                     currentRun, bossName, floorGuid,
-                    CaptureCurrentPlacements(floorGuid, encounterPosition),
+                    CaptureCheckpointPlacements(floorGuid, encounterPosition),
                     "boss_spawner", BossRetryWorld.Capture(boss));
                 // The library encounter creates sibling golem/hand objects. Restore
                 // its serialized floor instead of retaining the later-phase world.
@@ -327,7 +327,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 captured.CurrentRun.GetString("LastFloorGuid", string.Empty));
         }
 
-        private static Dictionary<uint, RetryPlacement> CaptureCurrentPlacements(
+        private static Dictionary<uint, RetryPlacement> CaptureCheckpointPlacements(
             string sharedFloorGuid = null, Vector3? sharedPosition = null)
         {
             var placements = new Dictionary<uint, RetryPlacement>();
@@ -351,9 +351,26 @@ namespace SephiriaEnhancements.DefeatRetry
                     continue;
                 }
 
+                Vector3 position;
+                if (sharedPosition.HasValue)
+                {
+                    position = sharedPosition.Value;
+                }
+                else
+                {
+                    // Native travel updates the floor before the remote owner's
+                    // position returns to the server. Floor entry uses its spawn
+                    // point, never that potentially stale replicated position.
+                    FloorGenerator generator = FindFloorGenerator(floorGuid);
+                    AreaSpawnPointProp entry = generator != null
+                        ? generator.FindSpawnPoint(avatar.currentSpawnPoint) : null;
+                    if (entry == null) return new Dictionary<uint, RetryPlacement>();
+                    position = entry.SpawnPoint;
+                }
+
                 placements[avatar.netIdentity.netId] = new RetryPlacement(
                     floorGuid, avatar.currentSpawnPoint ?? string.Empty,
-                    sharedPosition ?? avatar.transform.position);
+                    position);
             }
             return placements;
         }

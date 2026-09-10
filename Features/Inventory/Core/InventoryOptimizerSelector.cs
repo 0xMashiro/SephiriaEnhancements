@@ -3,6 +3,7 @@ using SephiriaEnhancements.Runtime.Inventory;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -49,7 +50,7 @@ namespace SephiriaEnhancements.Inventory
             Snapshot = snapshot;
             Policy = policy;
             Budget = budget ?? InventorySearchBudget.ForEffort(
-                policy?.SearchEffort ?? InventorySearchEffort.Balanced);
+                policy?.SearchEffort ?? InventoryOptimizationPreferences.Default.SearchEffort);
         }
 
         internal InventorySnapshot Snapshot { get; }
@@ -96,6 +97,8 @@ namespace SephiriaEnhancements.Inventory
                 best = current;
                 optimalityProven = false;
             }
+            if (!InventoryLayoutPlanner.TryCreate(Snapshot, layout, out _, out string planIssue))
+                return Reject(planIssue);
             return new InventoryOptimizationProposal(true, layout, current, best,
                 candidateEvaluations, Array.Empty<string>(), Policy,
                 scorer.EvaluateTargets(before, after, searchEvidence, optimalityProven),
@@ -177,7 +180,12 @@ namespace SephiriaEnhancements.Inventory
         {
             var request = new InventoryOptimizationRequest(snapshot, policy,
                 budget);
-            return Solve(request, InventoryOptimizerRegistry.Capture(), cancellationToken);
+            var elapsed = Stopwatch.StartNew();
+            var initialRequest = new InventoryOptimizationRequest(snapshot, policy,
+                request.Budget.InitialSearchBudget());
+            InventoryOptimizationProposal initial = Solve(initialRequest,
+                InventoryOptimizerRegistry.Capture(), cancellationToken);
+            return InventoryLayoutRefinement.Improve(request, initial, elapsed, cancellationToken);
         }
 
         // Explicit composition also lets contract checks exercise a contributed
@@ -257,7 +265,9 @@ namespace SephiriaEnhancements.Inventory
             proposal = request.CreateProposal(exact.BestLayout,
                 exact.CandidateLayoutsEvaluated, exact.SearchSpaceExhausted
                     ? InventorySearchTerminationReason.SearchSpaceExhausted
-                    : InventorySearchTerminationReason.ElapsedTimeLimit,
+                    : exact.TerminationReason == InventoryExhaustiveSearchTerminationReason.UnsupportedCandidateLayouts
+                        ? InventorySearchTerminationReason.UnsupportedCandidateLayouts
+                        : InventorySearchTerminationReason.ElapsedTimeLimit,
                 exact.ElapsedMilliseconds,
                 InventoryOptimizationSearchMethod.Exhaustive,
                 optimalityProven: exact.SearchSpaceExhausted,

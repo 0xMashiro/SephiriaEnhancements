@@ -55,6 +55,9 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     issues.ToArray());
             }
 
+            if (!InventorySettlementValidator.NeighborCategoryInputsIndependent(snapshot, layout))
+                return Failure("LayoutProjectionDynamicCategoriesUnavailable");
+
             int[] additiveLevels = workspace?.AdditiveLevels ?? new int[storage];
             int[] multipliers = workspace?.Multipliers ?? new int[storage];
             int[] disables = workspace?.Disables ?? new int[storage];
@@ -152,11 +155,21 @@ namespace SephiriaEnhancements.Runtime.Inventory
 
             Dictionary<string, int> combos = CountCombos(snapshot, layout,
                 itemAtCell, workspace);
+            if (!MysticCountPreserved(snapshot, combos))
+                return Failure("LayoutProjectionMysticCountChanged");
             return new ProjectedInventorySettlement(true, cells,
                 artifacts.ToArray(), combos, Array.Empty<string>(),
                 tablets?.ToArray(), workspace?.PositionEffectProjector != null
                     ? workspace.PositionEffectProjector.Evaluate(layout, artifacts)
                     : InventoryPositionEffectProjector.Evaluate(snapshot, layout, artifacts));
+        }
+
+        internal static bool MysticCountPreserved(InventorySnapshot snapshot,
+            IReadOnlyDictionary<string, int> combos)
+        {
+            int original = snapshot.ComboCategories.FirstOrDefault(category =>
+                category.CategoryId == "MYSTIC")?.CurrentCount ?? 0;
+            return (combos.TryGetValue("MYSTIC", out int count) ? count : 0) == original;
         }
 
         private static bool TryBuildOccupancy(InventorySnapshot snapshot,

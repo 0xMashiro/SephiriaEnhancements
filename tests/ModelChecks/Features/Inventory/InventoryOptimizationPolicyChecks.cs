@@ -39,23 +39,14 @@ internal static class InventoryOptimizationPolicyChecks
                 "explicit inventory preferences must override broader rules");
         InventoryOptimizationPreferences thoroughPreferences =
             explicitPreferences.WithExecutionSettings(
-                InventorySearchModePolicy.GetSearchEffort(
-                    InventorySearchMode.Thorough),
+                InventoryOptimizationPreferences.Default.SearchEffort,
                 allowStoneTabletRotation: true);
-        if (InventorySearchModePolicy.GetSearchEffort(
-                InventorySearchMode.Quick) != InventorySearchEffort.Fast ||
-            InventorySearchModePolicy.GetSearchEffort(
-                InventorySearchMode.Automatic) !=
-                    InventorySearchEffort.Balanced ||
-            InventorySearchModePolicy.GetSearchEffort(
-                InventorySearchMode.Thorough) !=
-                    InventorySearchEffort.Thorough ||
-            thoroughPreferences.SearchEffort != InventorySearchEffort.Thorough ||
+        if (thoroughPreferences.SearchEffort != InventorySearchEffort.Thorough ||
             !thoroughPreferences.AllowStoneTabletRotation ||
             thoroughPreferences.ArtifactPreferences.Count != 1 ||
             thoroughPreferences.ComboPreferences.Count != 1)
             throw new InvalidOperationException(
-                "search modes must tune automatic search without losing player intent");
+                "default search must retain player intent");
         InventoryOptimizationProposal explicitProposal = InventoryOptimizer.Solve(
             rowSnapshot, explicitPolicy,
             new InventorySearchBudget(maximumImprovementRounds: 4,

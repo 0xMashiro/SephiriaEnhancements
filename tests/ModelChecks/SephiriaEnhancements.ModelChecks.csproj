@@ -157,4 +157,8 @@
     <Compile Include="../../Features/DefeatRetry/Core/RetryRecovery.cs" Link="DefeatRetry/RetryRecovery.cs" />
     <Compile Include="../../Features/DefeatRetry/RetryRecoveryLocalization.cs" Link="DefeatRetry/RetryRecoveryLocalization.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../Features/Inventory/Core/InventoryGroupRelocation.cs" />
+    <Compile Include="../../Features/Inventory/Core/InventoryLayoutRefinement.cs" />
+  </ItemGroup>
 </Project>

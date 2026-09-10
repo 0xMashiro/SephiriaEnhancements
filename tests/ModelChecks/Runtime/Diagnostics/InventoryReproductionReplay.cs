@@ -70,7 +70,8 @@ internal static class InventoryReproductionReplay
         var preferences = Read<InventoryOptimizationPreferences>(input.GetProperty("Preferences"));
         var budget = Read<InventorySearchBudget>(input.GetProperty("Budget"));
         if (args.Contains("--no-time-limit")) budget = new InventorySearchBudget(
-            budget.MaximumImprovementRounds, budget.MaximumCandidateEvaluations, int.MaxValue);
+            budget.MaximumImprovementRounds, budget.MaximumCandidateEvaluations, budget.MaximumElapsedMilliseconds,
+            false, budget.RefinementCandidateEvaluations, budget.RefinementElapsedMilliseconds, true);
         var policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, preferences);
         Console.WriteLine("Recorded build: " + header.Value.GetRawText());
         Console.WriteLine("Replay uses the current model sources; wall-clock cutoffs and native application timing are not deterministic.");

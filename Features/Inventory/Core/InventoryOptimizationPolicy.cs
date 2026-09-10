@@ -8,26 +8,6 @@ using System.Linq;
 
 namespace SephiriaEnhancements.Inventory
 {
-    internal enum InventorySearchMode
-    {
-        Automatic,
-        Quick,
-        Thorough
-    }
-
-    internal static class InventorySearchModePolicy
-    {
-        internal static InventorySearchEffort GetSearchEffort(
-            InventorySearchMode mode) => mode switch
-            {
-                InventorySearchMode.Quick =>
-                    InventorySearchEffort.Fast,
-                InventorySearchMode.Thorough =>
-                    InventorySearchEffort.Thorough,
-                _ => InventorySearchEffort.Balanced
-            };
-    }
-
     internal enum InventorySearchEffort
     {
         Fast,
@@ -129,7 +109,7 @@ namespace SephiriaEnhancements.Inventory
     internal sealed class InventoryOptimizationPreferences
     {
         internal static readonly InventoryOptimizationPreferences Default = new(
-            InventorySearchEffort.Balanced,
+            InventorySearchEffort.Thorough,
             allowStoneTabletRotation: true,
             Array.Empty<ArtifactOptimizationPreference>(),
             Array.Empty<ComboOptimizationPreference>());

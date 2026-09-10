@@ -12,7 +12,7 @@ internal static class InventoryDefaultObjectiveChecks
         ResolvedInventoryOptimizationPolicy policy =
             InventoryOptimizationPolicyResolver.Resolve(snapshot,
                 InventoryOptimizationPreferences.Default);
-        if (policy.SearchEffort != InventorySearchEffort.Balanced ||
+        if (policy.SearchEffort != InventorySearchEffort.Thorough ||
             !policy.AllowStoneTabletRotation ||
             policy.ArtifactInstanceRules.Count != 0 ||
             policy.ArtifactEntityRules.Count != 0 ||
@@ -21,6 +21,11 @@ internal static class InventoryDefaultObjectiveChecks
             throw new InvalidOperationException(
                 "default inventory policy must expose only implemented behavior");
         }
+
+        var budget = InventorySearchBudget.ForEffort(policy.SearchEffort);
+        if (budget.MaximumElapsedMilliseconds != 1650 || budget.UseCandidateEvaluationLimit ||
+            !budget.UseElapsedTimeLimit || budget.InitialSearchBudget().MaximumElapsedMilliseconds != 1500)
+            throw new InvalidOperationException("default arrangement must use the full time-only search allowance");
 
         AssertHigher("excluded targets", Score(avoidedTargets: 0),
             Score(avoidedTargets: 1, priorityTargets: 100));

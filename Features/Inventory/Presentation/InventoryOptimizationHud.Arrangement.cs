@@ -20,8 +20,8 @@ namespace SephiriaEnhancements.Inventory
         private bool canUndo;
         private bool preferencesExpanded;
 
-        private float OpenPanelHeight => preferencesExpanded ? PanelHeight : InventoryOptimizationHudLayout.CompactHeight;
-        private float ActionsTop => preferencesExpanded ? InventoryOptimizationHudLayout.ActionsTop : InventoryOptimizationHudLayout.CompactActionsTop;
+        private float OpenPanelHeight => preferencesExpanded ? specialEffectsExpanded ? InventoryOptimizationHudLayout.SpecialEffectsHeight : PanelHeight : InventoryOptimizationHudLayout.CompactHeight;
+        private float ActionsTop => preferencesExpanded ? specialEffectsExpanded ? InventoryOptimizationHudLayout.SpecialEffectsActionsTop : InventoryOptimizationHudLayout.ActionsTop : InventoryOptimizationHudLayout.CompactActionsTop;
 
         internal void ConfigureArrangementActions(Action undo, bool undoAvailable)
         {
@@ -88,7 +88,7 @@ namespace SephiriaEnhancements.Inventory
             var toggle = (UI_HorayButton)preferencesToggle;
             var undo = (UI_HorayButton)undoArrangement;
             undo.SetForceNavRight(optimize);
-            undo.SetForceNavUp(preferencesExpanded && !detailsExpanded && editGoals.interactable ? editGoals : preferencesToggle);
+            undo.SetForceNavUp(preferencesExpanded && !detailsExpanded && moveMark.interactable ? moveMark : preferencesToggle);
             Button below = !preferencesExpanded ? optimize : detailsExpanded
                 ? rows.FirstOrDefault(row => row.Root.activeInHierarchy)?.Choice ?? optimize : prioritySlots[0].Button;
             toggle.SetForceNavDown(!preferencesExpanded && undoArrangement.interactable ? undoArrangement : below);

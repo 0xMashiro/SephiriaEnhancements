@@ -553,10 +553,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 item.Artifact.CategoryRule != null &&
                 item.Artifact.CategoryRule.Kind !=
                     ArtifactCategoryRuleKind.Static).ToArray();
-            int neighborMatchCount = dynamicItems.Count(item =>
-                item.Artifact.CategoryRule.Kind ==
-                    ArtifactCategoryRuleKind.NeighborMatch);
-            bool dynamicCategoriesSupported = neighborMatchCount <= 1 &&
+            bool dynamicCategoriesSupported = NeighborCategoryInputsIndependent(snapshot) &&
                 dynamicItems.All(item => IsCategoryRuleComplete(
                     item.Artifact.CategoryRule));
             if (dynamicCategoriesSupported)
@@ -583,18 +580,11 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 issues.Add("LayoutProjectionUniqueResolutionUnavailable");
             }
 
-            bool dynamicMysticContribution = snapshot.Items.Any(item =>
-                item.Artifact != null &&
-                item.Artifact.CategoryRule != null &&
-                item.Artifact.CategoryRule.Kind !=
-                    ArtifactCategoryRuleKind.Static &&
-                item.Artifact.PossibleCategories.Contains("MYSTIC",
-                    StringComparer.Ordinal));
             bool fixedTabletSourcesReady = snapshot.FixedTabletSources.All(
                 source => source.CellIndex >= 0 &&
                     source.CellIndex < snapshot.Storage &&
                     source.Projection?.ParseSucceeded == true);
-            if (!dynamicMysticContribution && fixedTabletSourcesReady)
+            if (fixedTabletSourcesReady)
             {
                 capabilities |= InventorySettlementCapabilities.
                     LayoutProjectionFixedEngravings;
@@ -603,6 +593,50 @@ namespace SephiriaEnhancements.Runtime.Inventory
             {
                 issues.Add("LayoutProjectionFixedEngravingsUnavailable");
             }
+        }
+
+        internal static bool HasDynamicMysticContribution(InventorySnapshot snapshot)
+        {
+            bool mysticCategoryAvailable = snapshot.Items.Any(item => item.Artifact != null &&
+                (item.BaseCategories.Contains("MYSTIC", StringComparer.Ordinal) ||
+                 item.Artifact.EffectiveCategories.Contains("MYSTIC", StringComparer.Ordinal) ||
+                 item.Artifact.PossibleCategories.Contains("MYSTIC", StringComparer.Ordinal) ||
+                 item.Artifact.CategoryRule.RowCategories.Contains("MYSTIC", StringComparer.Ordinal)));
+            // Copied categories can come from another item even when the copier's
+            // own declared categories do not include the generated-cell category.
+            return mysticCategoryAvailable && snapshot.Items.Where(item => item.Artifact != null &&
+                item.Artifact.CategoryRule.Kind != ArtifactCategoryRuleKind.Static).Any(item =>
+                item.Artifact.CategoryRule.Kind == ArtifactCategoryRuleKind.NeighborMatch ||
+                item.Artifact.CategoryRule.Kind == ArtifactCategoryRuleKind.DependencyTarget ||
+                item.Artifact.EffectiveCategories.Contains("MYSTIC", StringComparer.Ordinal) ||
+                item.Artifact.PossibleCategories.Contains("MYSTIC", StringComparer.Ordinal) ||
+                item.Artifact.CategoryRule.RowCategories.Contains("MYSTIC", StringComparer.Ordinal));
+        }
+
+        // Neighbor-copying artifacts refresh one at a time and can observe another
+        // artifact's previous categories. Only project layouts without that interaction.
+        internal static bool NeighborCategoryInputsIndependent(InventorySnapshot snapshot,
+            InventoryLayoutProjection layout = null)
+        {
+            for (int first = 0; first < snapshot.Items.Count; first++)
+            {
+                ArtifactSnapshot a = snapshot.Items[first].Artifact;
+                if (a?.CategoryRule?.Kind != ArtifactCategoryRuleKind.NeighborMatch) continue;
+                for (int second = first + 1; second < snapshot.Items.Count; second++)
+                {
+                    ArtifactSnapshot b = snapshot.Items[second].Artifact;
+                    if (b?.CategoryRule?.Kind != ArtifactCategoryRuleKind.NeighborMatch) continue;
+                    // Attackable category copiers could also feed a dependency chain.
+                    if (a.Attackable || b.Attackable) return false;
+                    int firstCell = layout?.GetCell(first) ?? snapshot.Items[first].CellIndex;
+                    int secondCell = layout?.GetCell(second) ?? snapshot.Items[second].CellIndex;
+                    int dx = secondCell % snapshot.Width - firstCell % snapshot.Width;
+                    int dy = secondCell / snapshot.Width - firstCell / snapshot.Width;
+                    if (a.CategoryRule.NeighborOffsets.Any(offset => offset.X == dx && offset.Y == dy) ||
+                        b.CategoryRule.NeighborOffsets.Any(offset => offset.X == -dx && offset.Y == -dy)) return false;
+                }
+            }
+            return true;
         }
 
         private static bool IsCategoryRuleComplete(

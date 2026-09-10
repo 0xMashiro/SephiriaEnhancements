@@ -20,10 +20,6 @@ internal static class InventoryOptimizationLocalizationChecks
         });
         if (inventoryTexts.Count != 15 ||
             inventoryTexts.Values.Any(texts =>
-                !texts.ContainsKey(InventoryOptimizationLocalization.
-                    SettingSearchMode) ||
-                !InventoryOptimizationLocalization.SearchModeKeys.All(
-                    texts.ContainsKey) ||
                 !InventoryOptimizationLocalization.PreferenceChoiceKeys.All(
                     texts.ContainsKey) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.PositionEffectsUnavailable) ||
@@ -66,14 +62,28 @@ internal static class InventoryOptimizationLocalizationChecks
                     HudAdjustmentCount) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudEnabled) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudNoTargets) ||
-                !texts.ContainsKey(InventoryOptimizationLocalization.HudPage)) ||
-            inventoryTexts["en-US"][InventoryOptimizationLocalization.
-                SearchModeKeys[0]] != "Automatic")
+                !texts.ContainsKey(InventoryOptimizationLocalization.HudPage)))
             throw new InvalidOperationException(
                 "inventory target editor must localize as one complete feature group");
-        Console.WriteLine("InventorySearchMode: intent-level settings and target-editor localization passed");
+        Console.WriteLine("Inventory targets: complete editor localization passed");
         VerifyTargetConditions(inventoryTexts);
         VerifyArtifactGoalSummaries(inventoryTexts);
+        foreach (var status in Enum.GetValues<InventoryHardConstraintStatus>())
+        {
+            string expected = status == InventoryHardConstraintStatus.ProvenInfeasible
+                ? InventoryOptimizationLocalization.HardInfeasible
+                : status == InventoryHardConstraintStatus.NotFound
+                    ? InventoryOptimizationLocalization.HardNotFound
+                    : InventoryOptimizationLocalization.MoveOrderNotFound;
+            if (InventoryOptimizationLocalization.FailureMessage(status,
+                    new[] { "LayoutIntermediateCategoriesUnavailable" }) != expected)
+                throw new InvalidOperationException("failure feedback must distinguish requirements and move order");
+        }
+        if (InventoryOptimizationLocalization.FailureMessage(InventoryHardConstraintStatus.NotEvaluated,
+                new[] { "LayoutProjectionMysticCountChanged" }) != InventoryOptimizationLocalization.Unsupported ||
+            inventoryTexts["en-US"][InventoryOptimizationLocalization.HardNotFound].Contains("Thorough") ||
+            inventoryTexts.Values.Any(texts => !texts.ContainsKey(InventoryOptimizationLocalization.MoveOrderNotFound)))
+            throw new InvalidOperationException("unsupported effects and unavailable search modes must not become movement advice");
     }
 
     private static void VerifyArtifactGoalSummaries(Dictionary<string, Dictionary<string, string>> texts)

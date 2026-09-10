@@ -29,6 +29,8 @@ if (args.Contains("--joining-supplies-only"))
     return;
 }
 
+InventoryLayoutRefinementChecks.Run();
+if (args.Contains("--inventory-refinement-only")) return;
 SephiriaEnhancements.ModelChecks.Features.AutoCasting.AutoCastingChecks.Run();
 if (args.Contains("--auto-casting-only")) return;
 ResourceBarValueChecks.Run();

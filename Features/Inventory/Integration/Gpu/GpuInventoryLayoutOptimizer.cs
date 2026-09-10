@@ -63,7 +63,8 @@ internal sealed class GpuInventoryLayoutOptimizer : IInventoryLayoutOptimizer, I
             var budget = new InventorySearchBudget(request.Budget.MaximumImprovementRounds,
                 request.Budget.MaximumCandidateEvaluations,
                 Math.Max(0, request.Budget.MaximumElapsedMilliseconds - (int)elapsed.ElapsedMilliseconds),
-                request.Budget.UseElapsedTimeLimit);
+                request.Budget.UseElapsedTimeLimit,
+                useCandidateEvaluationLimit: request.Budget.UseCandidateEvaluationLimit);
             try { proposal = InventoryOptimizer.Solve(request.Snapshot, request.Policy, budget, cancellationToken, evaluator); }
             catch (NotSupportedException) { return false; }
             // Validate the selected result on the CPU before any game inventory operation.

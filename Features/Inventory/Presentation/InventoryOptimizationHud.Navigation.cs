@@ -84,7 +84,7 @@ namespace SephiriaEnhancements.Inventory
         internal bool TryCancelPanel(UIBase panel)
         {
             if (panel != attachedPanel || !NavigationAvailable) return false;
-            if (interaction.HasPickup) ClearArtifactPickup();
+            if (interaction.HasPickup) CancelPickedUpMark();
             else if (goalEditor.Visible)
             {
                 CloseLevelEditor();
@@ -153,7 +153,7 @@ namespace SephiriaEnhancements.Inventory
 
             if (panelOpen && !preferencesExpanded && KeyboardUiSelection.IsNavigable(optimize?.gameObject)) return optimize.gameObject;
 
-            Button[] preferred = { preferencesToggle, editGoals, close, markPriorities,
+            Button[] preferred = { preferencesToggle, moveMark, close, markPriorities,
                 optimize, previousPage, nextPage };
             return preferred.FirstOrDefault(button => button != null &&
                 button.gameObject.activeInHierarchy && button.IsInteractable())?.gameObject;

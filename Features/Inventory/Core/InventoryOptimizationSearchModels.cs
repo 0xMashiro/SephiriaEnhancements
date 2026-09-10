@@ -14,7 +14,9 @@ namespace SephiriaEnhancements.Inventory
         ImprovementRoundLimit,
         CandidateEvaluationLimit,
         ElapsedTimeLimit,
-        InputRejected
+        InputRejected,
+        RefinementCompleted,
+        UnsupportedCandidateLayouts
     }
 
     internal enum InventoryOptimizationSearchMethod
@@ -33,7 +35,8 @@ namespace SephiriaEnhancements.Inventory
         TwoSwaps,
         TwoItemRelocationAndRotation,
         ThreeItemRelocation,
-        Restart
+        Restart,
+        GroupRelocation
     }
 
     internal sealed class InventorySearchStageStatistics
@@ -56,7 +59,9 @@ namespace SephiriaEnhancements.Inventory
     {
         internal InventorySearchBudget(int maximumImprovementRounds = 8,
             int maximumCandidateEvaluations = 5000,
-            int maximumElapsedMilliseconds = 200, bool useElapsedTimeLimit = true)
+            int maximumElapsedMilliseconds = 200, bool useElapsedTimeLimit = true,
+            int refinementCandidateEvaluations = 0, int refinementElapsedMilliseconds = 0,
+            bool useCandidateEvaluationLimit = true)
         {
             MaximumImprovementRounds = Math.Max(1,
                 maximumImprovementRounds);
@@ -65,12 +70,29 @@ namespace SephiriaEnhancements.Inventory
             MaximumElapsedMilliseconds = Math.Max(0,
                 maximumElapsedMilliseconds);
             UseElapsedTimeLimit = useElapsedTimeLimit;
+            UseCandidateEvaluationLimit = useCandidateEvaluationLimit;
+            RefinementCandidateEvaluations = Math.Max(0, Math.Min(
+                refinementCandidateEvaluations, MaximumCandidateEvaluations - 1));
+            RefinementElapsedMilliseconds = Math.Max(0, Math.Min(
+                refinementElapsedMilliseconds, MaximumElapsedMilliseconds));
         }
 
         internal int MaximumImprovementRounds { get; }
+        // Also retains the small-space strategy threshold when runtime count limits are disabled.
         internal int MaximumCandidateEvaluations { get; }
         internal int MaximumElapsedMilliseconds { get; }
         internal bool UseElapsedTimeLimit { get; }
+        internal bool UseCandidateEvaluationLimit { get; }
+        internal int RefinementCandidateEvaluations { get; }
+        internal int RefinementElapsedMilliseconds { get; }
+
+        // The total budget includes the optional second phase; the original
+        // search keeps its full allowance instead of competing with refinement.
+        internal InventorySearchBudget InitialSearchBudget() => RefinementCandidateEvaluations == 0
+            ? this : new InventorySearchBudget(MaximumImprovementRounds,
+                MaximumCandidateEvaluations - RefinementCandidateEvaluations,
+                MaximumElapsedMilliseconds - RefinementElapsedMilliseconds, UseElapsedTimeLimit,
+                useCandidateEvaluationLimit: UseCandidateEvaluationLimit);
 
         internal static InventorySearchBudget ForEffort(
             InventorySearchEffort effort)
@@ -78,10 +100,10 @@ namespace SephiriaEnhancements.Inventory
             return effort switch
             {
                 InventorySearchEffort.Fast =>
-                    new InventorySearchBudget(4, 1500, 50),
+                    new InventorySearchBudget(4, 1500, 50, useCandidateEvaluationLimit: false),
                 InventorySearchEffort.Thorough =>
-                    new InventorySearchBudget(16, 15000, 1500),
-                _ => new InventorySearchBudget()
+                    new InventorySearchBudget(16, 25000, 1650, true, 10000, 150, false),
+                _ => new InventorySearchBudget(8, 10000, 300, true, 5000, 100, false)
             };
         }
     }

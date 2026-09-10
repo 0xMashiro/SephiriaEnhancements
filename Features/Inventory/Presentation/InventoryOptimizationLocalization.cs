@@ -40,8 +40,8 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.Inventory.GameplayContextChanged";
         internal const string ApplyTimedOut =
             "SephiriaEnhancements.Inventory.ApplyTimedOut";
-        internal const string Failed =
-            "SephiriaEnhancements.Inventory.Failed";
+        internal const string MoveOrderNotFound =
+            "SephiriaEnhancements.Inventory.MoveOrderNotFound";
         internal const string VerificationFailed =
             "SephiriaEnhancements.Inventory.VerificationFailed";
         internal const string Busy =
@@ -59,16 +59,6 @@ namespace SephiriaEnhancements.Inventory
             Func<string, string> localize) => hasIssuedOperation
                 ? string.Format(localize(ApplicationMayHaveChanged), localize(reasonKey))
                 : localize(reasonKey);
-        internal const string SettingSearchMode =
-            "SephiriaEnhancements.Setting.InventorySearchMode";
-        internal const string HelpSearchMode =
-            "SephiriaEnhancements.Help.InventorySearchMode";
-        internal static readonly string[] SearchModeKeys =
-        {
-            "SephiriaEnhancements.InventorySearchMode.Automatic",
-            "SephiriaEnhancements.InventorySearchMode.Quick",
-            "SephiriaEnhancements.InventorySearchMode.Thorough"
-        };
         internal const string HudTitle =
             "SephiriaEnhancements.InventoryHud.Title";
         internal const string HudComboTargets =
@@ -150,6 +140,16 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.InventoryPreference.Avoid"
         };
 
+        internal static string FailureMessage(InventoryHardConstraintStatus status,
+            IReadOnlyList<string> issues)
+        {
+            if (status == InventoryHardConstraintStatus.ProvenInfeasible) return HardInfeasible;
+            if (status == InventoryHardConstraintStatus.NotFound) return HardNotFound;
+            foreach (string issue in issues)
+                if (issue == "LayoutIntermediateCategoriesUnavailable") return MoveOrderNotFound;
+            return Unsupported;
+        }
+
         internal static string FormatTargetCondition(
             InventoryComboTarget target, Func<string, string> localize)
         {
@@ -201,6 +201,8 @@ namespace SephiriaEnhancements.Inventory
             string.Format(localize(rule.Strength == InventoryConstraintStrength.Hard
                 ? HudGoalHardSummary : HudGoalSoftSummary), FormatArtifactTarget(rule, artifact, localize, allowAdditionalMagicCost: allowAdditionalMagicCost));
 
+        internal const string HudMoveMark = "SephiriaEnhancements.InventoryHud.MoveMark";
+        internal const string HudArtifactPersistence = "SephiriaEnhancements.InventoryHud.ArtifactPersistence";
         internal const string HudGoalTitle = "SephiriaEnhancements.InventoryHud.GoalTitle";
         internal const string HudGoalTarget = "SephiriaEnhancements.InventoryHud.GoalTarget";
         internal const string HudGoalRequirement = "SephiriaEnhancements.InventoryHud.GoalRequirement";
@@ -226,17 +228,12 @@ namespace SephiriaEnhancements.Inventory
             OptimizationUnavailable,
             GameplayContextChanged,
             ApplyTimedOut,
-            Failed,
+            MoveOrderNotFound,
             VerificationFailed,
             Busy,
             FinishMovingItem,
             MovingItemInterrupted,
             DisabledForGameplayContext,
-            SettingSearchMode,
-            HelpSearchMode,
-            SearchModeKeys[0],
-            SearchModeKeys[1],
-            SearchModeKeys[2],
             HudTitle,
             HudComboTargets,
             HudOptimize,
@@ -299,6 +296,8 @@ namespace SephiriaEnhancements.Inventory
             HudGoalBack,
             OperationStopped,
             ApplicationMayHaveChanged,
+            HudMoveMark,
+            HudArtifactPersistence,
 
 };
 

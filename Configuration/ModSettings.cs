@@ -1,5 +1,4 @@
 using UnityEngine;
-using SephiriaEnhancements.Inventory;
 
 namespace SephiriaEnhancements.Configuration
 {
@@ -21,8 +20,6 @@ namespace SephiriaEnhancements.Configuration
         internal const string DamageStatisticsScaleIndexKey =
             "SephiriaEnhancements.CombatInsights.DamageStatisticsScaleIndex";
         internal const string DisplayPolicyKey = "SephiriaEnhancements.CombatInsights.DisplayPolicy";
-        internal const string InventorySearchModeKey =
-            "SephiriaEnhancements.Inventory.SearchMode";
         internal const string InventoryTargetPreferencesKey =
             "SephiriaEnhancements.Inventory.TargetPreferences";
 
@@ -39,21 +36,6 @@ namespace SephiriaEnhancements.Configuration
                 OptionsBinding.Instance?.DeviceOptions?.GetInt(DisplayPolicyKey, 0) ?? 0, 0, 3);
             set => OptionsBinding.Instance?.DeviceOptions?.SetInt(DisplayPolicyKey,
                 Mathf.Clamp((int)value, 0, 3));
-        }
-
-        internal static InventorySearchMode InventorySearchMode
-        {
-            get => (InventorySearchMode)Mathf.Clamp(
-                OptionsBinding.Instance?.DeviceOptions?.GetInt(
-                    InventorySearchModeKey,
-                    (int)Inventory.InventorySearchMode.Automatic) ??
-                (int)Inventory.InventorySearchMode.Automatic,
-                (int)Inventory.InventorySearchMode.Automatic,
-                (int)Inventory.InventorySearchMode.Thorough);
-            set => OptionsBinding.Instance?.DeviceOptions?.SetInt(
-                InventorySearchModeKey, Mathf.Clamp((int)value,
-                    (int)Inventory.InventorySearchMode.Automatic,
-                    (int)Inventory.InventorySearchMode.Thorough));
         }
 
         internal static int DamageStatisticsScaleIndex

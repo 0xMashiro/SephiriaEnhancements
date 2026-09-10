@@ -120,7 +120,7 @@ namespace SephiriaEnhancements.Inventory
             bool Stopped()
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (evaluations >= budget.MaximumCandidateEvaluations)
+                if (budget.UseCandidateEvaluationLimit && evaluations >= budget.MaximumCandidateEvaluations)
                 {
                     reason = InventorySearchTerminationReason.CandidateEvaluationLimit;
                     return true;
@@ -151,6 +151,7 @@ namespace SephiriaEnhancements.Inventory
                 if (score.CompareTo(bestScore) > 0 || score.CompareTo(bestScore) == 0 &&
                     candidate.CompareStableTo(bestLayout) < 0)
                 {
+                    if (!InventoryLayoutPlanner.TryCreate(snapshot, candidate, out _, out _, cancellationToken)) return true;
                     if (score.CompareTo(bestScore) > 0)
                     {
                         restartStage.Improvements++;

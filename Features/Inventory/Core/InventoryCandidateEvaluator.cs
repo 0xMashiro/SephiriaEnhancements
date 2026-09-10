@@ -69,13 +69,14 @@ namespace SephiriaEnhancements.Inventory
                     indexes.Clear();
                     // A submitted batch is indivisible: every evaluated candidate counts and
                     // participates in selection before a first-improvement branch resumes.
-                    int capacity = Math.Min(batchSize,
-                        Math.Max(1, budget.MaximumCandidateEvaluations - CandidateEvaluations));
+                    int capacity = budget.UseCandidateEvaluationLimit
+                        ? Math.Min(batchSize, Math.Max(1, budget.MaximumCandidateEvaluations - CandidateEvaluations))
+                        : batchSize;
                     while (pending.Count < capacity)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         if (!iterator.MoveNext()) break;
-                        if (CandidateEvaluations >= budget.MaximumCandidateEvaluations)
+                        if (budget.UseCandidateEvaluationLimit && CandidateEvaluations >= budget.MaximumCandidateEvaluations)
                         {
                             reason = InventorySearchTerminationReason.CandidateEvaluationLimit;
                             return false;
@@ -117,6 +118,7 @@ namespace SephiriaEnhancements.Inventory
                         int comparison = score.CompareTo(bestScore);
                         if (comparison > 0 || comparison == 0 && layout.CompareStableTo(bestLayout) < 0)
                         {
+                            if (!InventoryLayoutPlanner.TryCreate(snapshot, layout, out _, out _, cancellationToken)) continue;
                             if (comparison > 0)
                             {
                                 statistics.Improvements++;
@@ -194,7 +196,7 @@ namespace SephiriaEnhancements.Inventory
             }
         }
 
-        private sealed class LayoutComparer : IEqualityComparer<InventoryLayoutProjection>
+        internal sealed class LayoutComparer : IEqualityComparer<InventoryLayoutProjection>
         {
             internal static readonly LayoutComparer Instance = new();
             public bool Equals(InventoryLayoutProjection first, InventoryLayoutProjection second) =>

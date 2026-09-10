@@ -15,7 +15,8 @@ namespace SephiriaEnhancements.Inventory
         SearchSpaceExhausted,
         CandidateLayoutLimit,
         ElapsedTimeLimit,
-        InputRejected
+        InputRejected,
+        UnsupportedCandidateLayouts
     }
 
     internal sealed class InventoryExhaustiveSearchLimits
@@ -140,8 +141,9 @@ namespace SephiriaEnhancements.Inventory
                 elapsed.ElapsedMilliseconds,
                 search.ElapsedTimeLimitReached
                     ? InventoryExhaustiveSearchTerminationReason.ElapsedTimeLimit
-                    : InventoryExhaustiveSearchTerminationReason.
-                        SearchSpaceExhausted,
+                    : search.HasUnsupportedCandidates
+                        ? InventoryExhaustiveSearchTerminationReason.UnsupportedCandidateLayouts
+                        : InventoryExhaustiveSearchTerminationReason.SearchSpaceExhausted,
                 search.TargetSearchEvidence);
         }
 
@@ -240,6 +242,7 @@ namespace SephiriaEnhancements.Inventory
             internal InventoryOptimizationScore BestScore { get; private set; }
             internal int CandidateLayoutsEvaluated { get; private set; }
             internal bool ElapsedTimeLimitReached { get; private set; }
+            internal bool HasUnsupportedCandidates { get; private set; }
             internal IDictionary<string, InventoryTargetSearchEvidence>
                 TargetSearchEvidence
             { get; }
@@ -295,6 +298,7 @@ namespace SephiriaEnhancements.Inventory
                 CandidateLayoutsEvaluated++;
                 if (!settlement.Succeeded)
                 {
+                    HasUnsupportedCandidates = true;
                     return;
                 }
 
@@ -305,6 +309,11 @@ namespace SephiriaEnhancements.Inventory
                 if (comparison > 0 || comparison == 0 &&
                     candidate.CompareStableTo(BestLayout) < 0)
                 {
+                    if (!InventoryLayoutPlanner.TryCreate(snapshot, candidate, out _, out _, cancellationToken))
+                    {
+                        HasUnsupportedCandidates = true;
+                        return;
+                    }
                     BestLayout = candidate;
                     BestScore = score;
                 }

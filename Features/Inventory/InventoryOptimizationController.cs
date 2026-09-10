@@ -430,8 +430,7 @@ namespace SephiriaEnhancements.Inventory
             intentFeedback = null;
             LastAppliedOutcome = null;
             InventorySearchEffort searchEffort =
-                InventorySearchModePolicy.GetSearchEffort(
-                    ModSettings.InventorySearchMode);
+                InventoryOptimizationPreferences.Default.SearchEffort;
             InventoryOptimizationPreferences preferences =
                 InventoryOptimizationPreferenceComposer.Compose(
                     PersistentInventoryOptimizationPolicyStore.Capture(),
@@ -500,9 +499,8 @@ namespace SephiriaEnhancements.Inventory
                     MatchesInventory(sourceSnapshot, unchangedInventory))
                     intentFeedback = new InventoryIntentResultFeedback(sourceSnapshot, result.Policy,
                         WorldSessionInventoryIntentStore.Capture(), sourceRuntime);
-                ShowMessage(result.HardConstraintStatus == InventoryHardConstraintStatus.ProvenInfeasible
-                    ? InventoryOptimizationLocalization.HardInfeasible
-                    : hardFailure ? InventoryOptimizationLocalization.HardNotFound : InventoryOptimizationLocalization.Unsupported);
+                ShowMessage(InventoryOptimizationLocalization.FailureMessage(
+                    result.HardConstraintStatus, result.Issues));
                 ResetOperationState();
                 return;
             }
@@ -527,12 +525,13 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
             if (!InventoryLayoutPlanner.TryCreate(sourceSnapshot, result.Layout,
-                    out InventoryApplicationPlan applicationPlan, out string _))
+                    out InventoryApplicationPlan applicationPlan, out string planIssue))
             {
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
                 RecordReproduction(InventoryReproductionReason.ApplicationPlanRejected, proposal: result);
 #endif
-                ShowMessage(InventoryOptimizationLocalization.Failed);
+                ShowMessage(InventoryOptimizationLocalization.FailureMessage(
+                    InventoryHardConstraintStatus.NotEvaluated, new[] { planIssue }));
                 ResetOperationState();
                 return;
             }

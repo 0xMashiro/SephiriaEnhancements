@@ -30,7 +30,7 @@ namespace SephiriaEnhancements.Inventory
             Button entry = previous.IsInteractable() ? previous : next.IsInteractable() ? next : null;
             Button content = detailsExpanded
                 ? rows.FirstOrDefault(row => row.Root.activeInHierarchy)?.Choice ?? optimize
-                : editGoals.IsInteractable() ? editGoals : optimize;
+                : moveMark.IsInteractable() ? moveMark : optimize;
             Button above = detailsExpanded ? preferencesToggle : avoidSlots[0].Button;
 
             previous.SetForceNavRight(next.IsInteractable() ? next : null);

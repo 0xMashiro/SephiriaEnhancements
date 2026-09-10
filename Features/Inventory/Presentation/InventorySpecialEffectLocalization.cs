@@ -10,10 +10,11 @@ namespace SephiriaEnhancements.Inventory
         private const string Prefix = "SephiriaEnhancements.InventorySpecialEffects.";
         internal const string Title = Prefix + "Title", KeepCost = Prefix + "KeepCost", AllowCost = Prefix + "AllowCost",
             CostHelp = Prefix + "CostHelp", NoCost = Prefix + "NoCost", Reset = Prefix + "Reset", NoPositionEffects = Prefix + "NoPositionEffects";
+        internal const string Persistence = Prefix + "Persistence";
         internal static readonly string[] PositionModes = { Prefix + "Preserve", Prefix + "Improve", Prefix + "Redistribute" };
         internal static readonly string[] PositionHelp = { Prefix + "PreserveHelp", Prefix + "ImproveHelp", Prefix + "RedistributeHelp" };
         private static readonly string[] Keys = new[] { Title }.Concat(PositionModes).Concat(PositionHelp)
-            .Concat(new[] { NoPositionEffects, KeepCost, AllowCost, CostHelp, NoCost, Reset }).ToArray();
+            .Concat(new[] { NoPositionEffects, KeepCost, AllowCost, CostHelp, NoCost, Reset, Persistence }).ToArray();
         private static readonly Dictionary<string, string[]> Texts = new()
         {
             ["en-US"] = new[] {
@@ -29,7 +30,8 @@ namespace SephiriaEnhancements.Inventory
                 "Allow higher MP cost",
                 "Upgrading multishot magic artifacts can cost more MP. Choose whether to allow this. Manually chosen artifact levels take precedence.",
                 "No artifacts here need more MP when upgraded.",
-                "Restore defaults" },
+                "Reset these options",
+                "These options are saved for future games." },
             ["zh-CN"] = new[] {
                 "特殊效果",
                 "保留当前加成",
@@ -43,7 +45,8 @@ namespace SephiriaEnhancements.Inventory
                 "允许增加耗蓝",
                 "多发法术神器升级后可能更耗蓝，由你决定是否允许。手动指定神器等级时，以指定等级为准。",
                 "当前没有升级后更耗蓝的神器。",
-                "恢复默认" },
+                "重置本页选项",
+                "本页选项会保留到下次游玩。" },
             ["zh-TW"] = new[] {
                 "特殊效果",
                 "保留目前加成",
@@ -57,7 +60,8 @@ namespace SephiriaEnhancements.Inventory
                 "允許增加耗魔",
                 "多發法術神器升級後可能更耗魔，由你決定是否允許。手動指定神器等級時，以指定等級為準。",
                 "目前沒有升級後更耗魔的神器。",
-                "恢復預設" },
+                "重設本頁選項",
+                "本頁選項會保留到下次遊玩。" },
             ["ja-JP"] = new[] {
                 "特殊効果",
                 "現在の補正を維持",
@@ -71,7 +75,8 @@ namespace SephiriaEnhancements.Inventory
                 "MP消費の増加を許可",
                 "多重発射魔法のアーティファクトは強化でMP消費が増える場合があります。許可するか選べます。手動で指定したレベルが優先されます。",
                 "強化でMP消費が増えるアーティファクトはありません。",
-                "初期設定に戻す" },
+                "このページを初期化",
+                "この設定は次回のプレイにも引き継がれます。" },
             ["ko-KR"] = new[] {
                 "특수 효과",
                 "현재 보너스 유지",
@@ -85,7 +90,8 @@ namespace SephiriaEnhancements.Inventory
                 "MP 소모 증가 허용",
                 "다중 발사 마법 아티팩트는 강화 시 MP 소모가 늘 수 있습니다. 허용 여부를 선택하세요. 직접 지정한 레벨이 우선합니다.",
                 "강화 시 MP 소모가 늘어나는 아티팩트가 없습니다.",
-                "기본값 복원" },
+                "이 페이지 초기화",
+                "이 설정은 다음 플레이에도 유지됩니다." },
             ["de-DE"] = new[] {
                 "Sondereffekte",
                 "Boni behalten",
@@ -99,7 +105,8 @@ namespace SephiriaEnhancements.Inventory
                 "Höhere MP-Kosten erlauben",
                 "Mehrfachschuss-Magieartefakte können nach Aufwertungen mehr MP kosten. Du entscheidest, ob das erlaubt ist. Manuell gewählte Stufen gehen vor.",
                 "Hier kostet kein Artefakt nach Aufwertungen mehr MP.",
-                "Vorgaben wiederherstellen" },
+                "Diese Optionen zurücksetzen",
+                "Diese Optionen bleiben für künftige Spiele gespeichert." },
             ["es-ES"] = new[] {
                 "Efectos especiales",
                 "Conservar bonificaciones",
@@ -113,7 +120,8 @@ namespace SephiriaEnhancements.Inventory
                 "Permitir gastar más PM",
                 "Mejorar artefactos mágicos de disparo múltiple puede gastar más PM. Tú decides si lo permites. Los niveles elegidos manualmente van primero.",
                 "Ningún artefacto aquí gasta más PM al mejorarlo.",
-                "Restaurar valores iniciales" },
+                "Restablecer estas opciones",
+                "Estas opciones se guardan para futuras partidas." },
             ["fr-FR"] = new[] {
                 "Effets spéciaux",
                 "Garder les bonus actuels",
@@ -127,7 +135,8 @@ namespace SephiriaEnhancements.Inventory
                 "Autoriser plus de PM",
                 "Améliorer les artefacts magiques à tirs multiples peut coûter plus de PM. À toi de décider. Les niveaux choisis manuellement priment.",
                 "Aucun artefact ici ne coûte plus de PM après amélioration.",
-                "Rétablir les valeurs par défaut" },
+                "Réinitialiser ces options",
+                "Ces options sont conservées pour les prochaines parties." },
             ["it-IT"] = new[] {
                 "Effetti speciali",
                 "Mantieni i bonus attuali",
@@ -141,7 +150,8 @@ namespace SephiriaEnhancements.Inventory
                 "Consenti più spesa di PM",
                 "Potenziare artefatti magici a colpi multipli può costare più PM. Decidi se consentirlo. I livelli scelti manualmente vengono prima.",
                 "Nessun artefatto qui costa più PM dopo il potenziamento.",
-                "Ripristina valori iniziali" },
+                "Ripristina queste opzioni",
+                "Queste opzioni vengono salvate per le prossime partite." },
             ["pl-PL"] = new[] {
                 "Efekty specjalne",
                 "Zachowaj obecne premie",
@@ -155,7 +165,8 @@ namespace SephiriaEnhancements.Inventory
                 "Zezwól na wyższy koszt PM",
                 "Ulepszanie magicznych artefaktów wielostrzału może kosztować więcej PM. Ty decydujesz. Ręcznie wybrane poziomy są ważniejsze.",
                 "Żaden artefakt tutaj nie kosztuje więcej PM po ulepszeniu.",
-                "Przywróć ustawienia domyślne" },
+                "Resetuj te opcje",
+                "Te opcje są zachowywane na kolejne gry." },
             ["pt-BR"] = new[] {
                 "Efeitos especiais",
                 "Manter bônus atuais",
@@ -169,7 +180,8 @@ namespace SephiriaEnhancements.Inventory
                 "Permitir gastar mais PM",
                 "Melhorar artefatos mágicos de disparo múltiplo pode custar mais PM. Você decide se permite. Níveis escolhidos manualmente vêm primeiro.",
                 "Nenhum artefato aqui gasta mais PM após melhorar.",
-                "Restaurar padrões" },
+                "Redefinir estas opções",
+                "Estas opções são salvas para as próximas partidas." },
             ["ru-RU"] = new[] {
                 "Особые эффекты",
                 "Сохранить текущие бонусы",
@@ -183,7 +195,8 @@ namespace SephiriaEnhancements.Inventory
                 "Разрешить больший расход маны",
                 "Улучшение магических артефактов мультивыстрела может требовать больше маны. Решение за вами. Вручную заданные уровни важнее.",
                 "Здесь нет артефактов с ростом расхода маны при улучшении.",
-                "Восстановить настройки" },
+                "Сбросить эти настройки",
+                "Эти настройки сохраняются для следующих игр." },
             ["sv-SE"] = new[] {
                 "Specialeffekter",
                 "Behåll nuvarande bonusar",
@@ -197,7 +210,8 @@ namespace SephiriaEnhancements.Inventory
                 "Tillåt högre MP-kostnad",
                 "Magiska flerskottsartefakter kan kosta mer MP efter uppgradering. Du väljer om det tillåts. Manuellt valda nivåer går först.",
                 "Ingen artefakt här kostar mer MP efter uppgradering.",
-                "Återställ standardval" },
+                "Återställ dessa val",
+                "Dessa val sparas till kommande spel." },
             ["th-TH"] = new[] {
                 "เอฟเฟกต์พิเศษ",
                 "รักษาโบนัสปัจจุบัน",
@@ -211,7 +225,8 @@ namespace SephiriaEnhancements.Inventory
                 "อนุญาตให้ใช้ MP เพิ่ม",
                 "การอัปเกรดอาร์ติแฟกต์เวทยิงหลายลูกอาจใช้ MP มากขึ้น คุณเลือกได้ว่าจะอนุญาตหรือไม่ ระดับที่เลือกเองสำคัญกว่า",
                 "ไม่มีอาร์ติแฟกต์ที่ใช้ MP เพิ่มเมื่ออัปเกรด",
-                "คืนค่าเริ่มต้น" },
+                "รีเซ็ตตัวเลือกหน้านี้",
+                "ตัวเลือกเหล่านี้จะถูกเก็บไว้สำหรับการเล่นครั้งต่อไป" },
             ["tr-TR"] = new[] {
                 "Özel etkiler",
                 "Mevcut bonusları koru",
@@ -225,7 +240,8 @@ namespace SephiriaEnhancements.Inventory
                 "Daha çok MP harcamaya izin ver",
                 "Çoklu atış büyü eserlarını yükseltmek daha çok MP harcatabilir. İzin verip vermemek sana bağlı. Elle seçilen seviyeler önce gelir.",
                 "Burada yükseltilince daha çok MP harcayan eser yok.",
-                "Varsayılanları geri yükle" }
+                "Bu seçenekleri sıfırla",
+                "Bu seçenekler sonraki oyunlar için kaydedilir." },
         };
         internal static void Register(Action<string, string, string> addText) =>
             LocalizationGroup.Register(addText, LocalizationLanguages.All, Keys, Texts);

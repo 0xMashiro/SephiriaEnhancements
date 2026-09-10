@@ -17,7 +17,7 @@ internal static class OptionsCategoryChecks
                 "设置分类" ||
             optionsCategoryTexts[("zh-CN",
                 OptionsCategoryLocalization.CategoryKeys[
-                    (int)OptionsCategory.InventoryArrangement])] != "背包整理" ||
+                    (int)OptionsCategory.ControlsAndCamera])] != "操作与镜头" ||
             optionsCategoryTexts[("und",
                 OptionsCategoryLocalization.CategoryKeys[
                     (int)OptionsCategory.Multiplayer])] != "Multiplayer")

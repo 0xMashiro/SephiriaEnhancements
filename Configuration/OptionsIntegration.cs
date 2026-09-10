@@ -19,7 +19,6 @@ using SephiriaEnhancements.ResourceBarValues.Integration;
 using SephiriaEnhancements.CombatTargeting.Integration;
 using SephiriaEnhancements.ViewDistance.Integration;
 using SephiriaEnhancements.DeveloperConsole.Integration;
-using SephiriaEnhancements.Inventory.Integration;
 using SephiriaEnhancements.DeveloperTools.Integration;
 using SephiriaEnhancements.MultiplayerAccess.Integration;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -107,7 +106,6 @@ namespace SephiriaEnhancements.Configuration
             CombatTargetingOptions.Inject(__instance, template, section.transform);
             ViewDistanceOptions.Inject(__instance, template, section.transform);
             DeveloperConsoleOptions.Inject(__instance, template, section.transform);
-            InventoryOptions.Inject(__instance, template, section.transform);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             DeveloperToolsOptions.Inject(__instance, template, section.transform);
 #endif
@@ -168,8 +166,7 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_DamageStatisticsScale",
                 "Option_SephiriaEnhancements_TargetingMode",
                 "Option_SephiriaEnhancements_MouseAimAssist",
-                "Option_SephiriaEnhancements_ViewDistance",
-                "Option_SephiriaEnhancements_InventorySearchMode"
+                "Option_SephiriaEnhancements_ViewDistance"
             };
             foreach (string rowName in mainRows)
             {

@@ -53,6 +53,18 @@ while connected to another host, and while a reconnect is pending. Display optio
 **New players during exploration** and **Reconnect support** are separate settings; disabling new arrivals does
 not disable reconnect support. Reconnection still depends on the game's room, character and save conditions.
 
+With the same Mod version on the host and joining player, a new arrival receives the positive difference up to
+the other players' average level and current gold, rounded down. Level gains use the game's growth rules;
+starting at level 1 and catching up to level 30 provides 29 level reward choices. Use **Claim joining supplies**
+in the pause menu outside combat to claim one reward at a time. Choice rewards use the game's own interfaces,
+including miracle choices; choosing another miracle follows the game's replacement rules.
+
+Joining supplies include recorded reward opportunities on one existing teammate's route. They do not copy
+another player's equipment, reimburse purchases, grant permanent unlocks or reconstruct rewards from before
+recording began. Keep the Mod installed to claim pending supplies. Reconnecting resumes the same allowance
+and remaining choices; it does not award another joining allowance. Saved exploration and defeat retry restore
+the corresponding supply progress.
+
 Under combat/display settings, teammate HP/MP, companion HUD numbers and extra mana-reservation numbers start off.
 **Disable all extra numbers** turns off the numeric display options together; your original HP/MP numbers remain.
 Companion HUD numbers and ordinary creatures' world-space numbers have separate controls.

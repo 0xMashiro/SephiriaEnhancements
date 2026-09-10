@@ -66,6 +66,18 @@ foreach ($patch in @(
     }
 }
 
+$admissionPatches = [regex]::Match($startup, '(?s)MidRunAdmissionPatchTypes\s*=\s*\{(?<types>.*?)\};').Groups['types'].Value
+foreach ($source in Get-ChildItem -LiteralPath (Join-Path $repoRoot 'Features/MultiplayerAccess/Integration') -Filter '*.cs' -File) {
+    foreach ($declaration in [regex]::Matches((Get-Content -LiteralPath $source.FullName -Raw),
+        '(?s)\[HarmonyPatch.*?internal static class\s+(\w+)')) {
+        $patch = $declaration.Groups[1].Value
+        if ($admissionPatches -notmatch ('typeof\(' + $patch + '\)')) {
+            throw "Required admission or joining-supply hook is missing from startup: $patch"
+        }
+    }
+}
+Write-Host 'Admission and joining-supply startup hooks passed.'
+
 dotnet restore $modelProject --locked-mode
 if ($LASTEXITCODE -ne 0) { throw 'Model check restore failed.' }
 

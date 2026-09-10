@@ -20,6 +20,15 @@ using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
+if (args.Contains("--joining-supplies-only"))
+{
+    MidRunAdmissionChecks.Run();
+    JoiningSupplyChecks.Run();
+    LocalizationGroupChecks.Run();
+    LocalizationChecks.Run();
+    return;
+}
+
 SephiriaEnhancements.ModelChecks.Features.AutoCasting.AutoCastingChecks.Run();
 if (args.Contains("--auto-casting-only")) return;
 ResourceBarValueChecks.Run();
@@ -151,6 +160,7 @@ DeveloperPlayerDamagePolicyChecks.Run();
 AmbientExecutionContextChecks.Run();
 MultiplayerExtensionDiscoveryChecks.Run();
 MidRunAdmissionChecks.Run();
+JoiningSupplyChecks.Run();
 MultiplayerRulePolicyChecks.Run();
 MultiplayerRulesSessionChecks.Run();
 Console.WriteLine("MultiplayerRulesLifecycle: " + MultiplayerRulesLifecycleChecks.Run());

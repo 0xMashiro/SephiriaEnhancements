@@ -1,0 +1,164 @@
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using HarmonyLib;
+using Mirror;
+using UnityEngine;
+
+namespace SephiriaEnhancements.MultiplayerAccess.Integration
+{
+    [HarmonyPatch(typeof(PlayerSpawner), "Initialize")]
+    internal static class JoiningSupplyInitializationPatch
+    {
+        private static void Postfix(PlayerSpawner __instance, bool __result)
+        {
+            if (__result && NetworkServer.active) NativeJoiningSupplies.Instance?.Initialized(__instance);
+        }
+    }
+
+    [HarmonyPatch(typeof(DungeonManager), "LoadStageAndMove")]
+    internal static class JoiningSupplyExplorationPatch
+    {
+        private static void Prefix(DungeonManager __instance)
+        {
+            if (NetworkServer.active && !__instance.isRunStarted) NativeJoiningSupplies.Instance?.BindRun(true);
+        }
+    }
+
+    [HarmonyPatch(typeof(DungeonManager), "LoadDungeon")]
+    internal static class JoiningSupplyLoadPatch
+    {
+        private static void Prefix() => NativeJoiningSupplies.Instance?.BindRun();
+    }
+
+    [HarmonyPatch(typeof(NetworkServer), "SpawnObject", new[] { typeof(GameObject), typeof(NetworkConnectionToClient) })]
+    internal static class JoiningSupplySpawnPatch
+    {
+        private static void Postfix(GameObject obj, NetworkConnectionToClient ownerConnection)
+        {
+            if (obj != null && obj.TryGetComponent<NetworkIdentity>(out var identity) && identity.isServer && identity.netId != 0)
+                NativeJoiningSupplies.Instance?.Spawned(obj, ownerConnection);
+        }
+    }
+
+    [HarmonyPatch(typeof(LevelController), nameof(LevelController.GenerateItem))]
+    internal static class JoiningSupplyLevelRewardPatch
+    {
+        private static bool Prefix(LevelController __instance, int seed) =>
+            !(NativeJoiningSupplies.Instance?.DeferLevelReward(__instance, seed) ?? false);
+    }
+
+    [HarmonyPatch(typeof(LevelController), "TargetLevelUp")]
+    internal static class JoiningSupplyLevelFeedbackPatch
+    {
+        private static bool Prefix(LevelController __instance) => NativeJoiningSupplies.AdvancingLevel != __instance;
+    }
+
+    [HarmonyPatch(typeof(PlayerAvatar), "FinishSephiriteAcquire")]
+    internal static class JoiningSupplyFinishPatch
+    {
+        private static bool Prefix(PlayerAvatar __instance, Sephirite sephirite) =>
+            sephirite == null || !(NativeJoiningSupplies.Instance?.Finish(__instance, sephirite) ?? false);
+    }
+
+    [HarmonyPatch(typeof(AltarOfTablet), "UserCode_CmdSpawnReward__AltarOfTabletInteractable__PlayerSpawner")]
+    internal static class JoiningSupplyTabletPatch
+    {
+        private static void Prefix(AltarOfTablet __instance, out AltarOfTablet __state)
+        { __state = NativeJoiningSupplies.SelectingTablet; NativeJoiningSupplies.SelectingTablet = __instance; }
+        private static void Finalizer(AltarOfTablet __state) => NativeJoiningSupplies.SelectingTablet = __state;
+    }
+
+    [HarmonyPatch(typeof(SaveData), nameof(SaveData.Copy))]
+    internal static class JoiningSupplyCheckpointPatch
+    {
+        private static void Prefix(SaveData __instance)
+        {
+            if (ReferenceEquals(__instance, SaveManager.CurrentRun)) NativeJoiningSupplies.Instance?.Flush();
+        }
+    }
+
+    [HarmonyPatch(typeof(PlayerSpawner), nameof(PlayerSpawner.SaveCurrentSessionData))]
+    internal static class JoiningSupplySavePatch
+    {
+        private static void Postfix() => NativeJoiningSupplies.Instance?.Flush();
+    }
+
+    [HarmonyPatch(typeof(HorayNetworkManager), nameof(HorayNetworkManager.OnServerDisconnect))]
+    internal static class JoiningSupplyDisconnectPatch
+    {
+        private static void Prefix(NetworkConnectionToClient conn) => NativeJoiningSupplies.Instance?.Disconnect(conn);
+    }
+
+    [HarmonyPatch(typeof(NetworkServer), "OnCommandMessage")]
+    internal static class JoiningSupplyCommandOwnershipPatch
+    {
+        private static bool Prefix(NetworkConnectionToClient conn, CommandMessage msg) =>
+            !NetworkServer.spawned.TryGetValue(msg.netId, out var identity) ||
+            (NativeJoiningSupplies.Instance?.Owns(identity.gameObject, conn) ?? true);
+    }
+
+    [HarmonyPatch]
+    internal static class JoiningSupplyRewardOwnershipPatch
+    {
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            yield return AccessTools.Method(typeof(PlayerAvatar), "LocalSelectSephiriteReward");
+            yield return AccessTools.Method(typeof(PlayerAvatar), "LocalSelectSephiriteRewardToSubBag");
+        }
+        private static bool Prefix(PlayerAvatar __instance, Sephirite sephirite) => sephirite == null ||
+            (NativeJoiningSupplies.Instance?.Owns(sephirite.gameObject, __instance.connectionToClient) ?? true);
+    }
+
+    [HarmonyPatch(typeof(SaveData), nameof(SaveData.Save), new[] { typeof(string) })]
+    internal static class JoiningSupplyWriteSavePatch
+    {
+        private static void Prefix(SaveData __instance)
+        {
+            if (ReferenceEquals(__instance, SaveManager.CurrentRun)) NativeJoiningSupplies.Instance?.Flush();
+        }
+    }
+
+    [HarmonyPatch(typeof(NetworkServer), nameof(NetworkServer.Destroy), new[] { typeof(GameObject) })]
+    internal static class JoiningSupplyDespawnPatch
+    {
+        private static void Prefix(GameObject obj) => NativeJoiningSupplies.Instance?.Despawning(obj);
+    }
+
+    [HarmonyPatch(typeof(DiceSpawner), "ServerCreateDice")]
+    internal static class JoiningSupplyFacilityDicePatch
+    {
+        private static void Prefix(out bool __state)
+        { __state = NativeJoiningSupplies.SpawningFacilityDice; NativeJoiningSupplies.SpawningFacilityDice = true; }
+        private static void Finalizer(bool __state) => NativeJoiningSupplies.SpawningFacilityDice = __state;
+    }
+
+    [HarmonyPatch]
+    internal static class JoiningSupplyInteractionOwnershipPatch
+    {
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            yield return AccessTools.Method(typeof(MiracleSelector2), "HandleInteraction");
+            yield return AccessTools.Method(typeof(Anvil), "HandleInteraction");
+            yield return AccessTools.Method(typeof(AltarOfEnchant), "HandleInteractive");
+            yield return AccessTools.Method(typeof(AltarOfTablet), "Select");
+            yield return AccessTools.Method(typeof(Sephirite), "HandleInteraction");
+        }
+        private static bool Prefix(Component __instance, GameObject actor) => !NetworkServer.active || actor == null ||
+            (NativeJoiningSupplies.Instance?.Owns(__instance.gameObject, actor.GetComponent<PlayerAvatar>()?.connectionToClient) ?? true);
+    }
+
+    [HarmonyPatch(typeof(MiracleSelector2), "GenerateMiracles")]
+    internal static class JoiningSupplyEmbeddedMiraclePatch
+    {
+        private static void Postfix(MiracleSelector2 __instance, NetworkIdentity identity) =>
+            NativeJoiningSupplies.Instance?.ObservedEmbeddedReward(__instance, identity);
+    }
+
+    [HarmonyPatch(typeof(Anvil), "UserCode_CmdMarkEnhanced__NetworkConnectionToClient")]
+    internal static class JoiningSupplyEmbeddedAnvilPatch
+    {
+        private static void Postfix(Anvil __instance, NetworkConnectionToClient sender) =>
+            NativeJoiningSupplies.Instance?.ObservedEmbeddedReward(__instance, sender?.identity);
+    }
+}

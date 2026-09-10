@@ -1270,6 +1270,7 @@ namespace SephiriaEnhancements.Configuration
             Inventory.InventorySpecialEffectLocalization.Register(addText);
             MultiplayerRulesLocalization.Register(addText, languages);
             MultiplayerAccessLocalization.Register(addText, languages);
+            JoiningSupplyLocalization.Register(addText, languages);
 
         }
 

@@ -73,7 +73,31 @@ namespace SephiriaEnhancements
             typeof(MidRunLobbyAvailabilityPatch),
             typeof(FreshPlayerSaveSlotPatch),
             typeof(MidRunDisconnectCleanupPatch),
-            typeof(MidRunServerCleanupPatch)
+            typeof(MidRunServerCleanupPatch),
+            typeof(JoiningSupplyInitializationPatch),
+            typeof(JoiningSupplyExplorationPatch),
+            typeof(JoiningSupplyLoadPatch),
+            typeof(JoiningSupplySpawnPatch),
+            typeof(JoiningSupplyLevelRewardPatch),
+            typeof(JoiningSupplyLevelFeedbackPatch),
+            typeof(JoiningSupplyFinishPatch),
+            typeof(JoiningSupplyTabletPatch),
+            typeof(JoiningSupplyCheckpointPatch),
+            typeof(JoiningSupplySavePatch),
+            typeof(JoiningSupplyDisconnectPatch),
+            typeof(JoiningSupplyCommandOwnershipPatch),
+            typeof(JoiningSupplyRewardOwnershipPatch),
+            typeof(JoiningSupplyWriteSavePatch),
+            typeof(JoiningSupplyDespawnPatch),
+            typeof(JoiningSupplyFacilityDicePatch),
+            typeof(JoiningSupplyInteractionOwnershipPatch),
+            typeof(JoiningSupplyEmbeddedMiraclePatch),
+            typeof(JoiningSupplyEmbeddedAnvilPatch),
+            typeof(JoiningSupplyMiracleConfirmationPatch),
+            typeof(JoiningSupplyAnvilSelectionPatch),
+            typeof(JoiningSupplyAnvilConfirmationPatch),
+            typeof(JoiningSupplyEnchantConfirmationPatch),
+            typeof(NativeJoiningSupplyPauseEntry)
         };
 
         private GameObject controllerObject;
@@ -149,6 +173,7 @@ namespace SephiriaEnhancements
             combatInsights.Initialize(runtimeKernel);
             DefeatRetryBridge.Initialize(combatInsights);
             controllerObject.AddComponent<DefeatRetryRuntime>();
+            controllerObject.AddComponent<NativeJoiningSupplies>();
             NativeReportDismissal.SetController(combatInsights);
             NativeStatisticsPauseEntry.SetController(combatInsights);
             combatTargeting = controllerObject.AddComponent<CombatTargetingController>();

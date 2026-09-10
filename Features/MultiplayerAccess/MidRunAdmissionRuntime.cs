@@ -115,6 +115,16 @@ namespace SephiriaEnhancements.MultiplayerAccess
                 FreshConnectionIds.Contains(connection.connectionId);
         }
 
+        internal static bool HasSavedPlayer(string playerGuid)
+        {
+            if (string.IsNullOrWhiteSpace(playerGuid) || SaveManager.CurrentRun == null) return false;
+            int count = SaveManager.CurrentRun.GetInt("SavedPlayerCount", 0);
+            for (int slot = 0; slot < count; slot++)
+                if (string.Equals(SaveManager.CurrentRun.GetString($"Player{slot}Guid", ""), playerGuid,
+                    StringComparison.Ordinal)) return true;
+            return false;
+        }
+
         internal static void RemoveConnection(NetworkConnectionToClient connection)
         {
             if (connection != null)

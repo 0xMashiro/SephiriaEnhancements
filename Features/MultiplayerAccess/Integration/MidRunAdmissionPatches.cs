@@ -79,6 +79,11 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
     {
         private static bool Prefix(PlayerSpawner __instance, string playerGuid)
         {
+            if (MidRunAdmissionRuntime.HasSavedPlayer(playerGuid))
+            {
+                MidRunAdmissionRuntime.RemoveConnection(__instance.connectionToClient);
+                return true;
+            }
             if (!MidRunAdmissionRuntime.IsFreshConnection(
                     __instance.connectionToClient) ||
                 SaveManager.CurrentRun == null)
@@ -110,6 +115,10 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
     [HarmonyPatch(typeof(HorayNetworkManager), "OnStopServer")]
     internal static class MidRunServerCleanupPatch
     {
-        private static void Postfix() => MidRunAdmissionRuntime.Clear();
+        private static void Postfix()
+        {
+            MidRunAdmissionRuntime.Clear();
+            NativeJoiningSupplies.Instance?.Stopped();
+        }
     }
 }

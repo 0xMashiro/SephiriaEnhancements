@@ -62,6 +62,10 @@
       <HintPath>$(SephiriaGameDir)\Sephiria_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>$(SephiriaGameDir)\Sephiria_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
       <HintPath>$(SephiriaGameDir)\Sephiria_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>false</Private>

@@ -93,6 +93,8 @@
     <Compile Include="..\..\Features\MultiplayerRules\Presentation\MultiplayerRulesLocalization.cs" Link="MultiplayerRules\MultiplayerRulesLocalization.cs" />
     <Compile Include="..\..\Features\MultiplayerRules\Presentation\MultiplayerRulePresentationGroups.cs" Link="MultiplayerRules\MultiplayerRulePresentationGroups.cs" />
     <Compile Include="..\..\Features\MultiplayerAccess\Core\MidRunAdmissionPolicy.cs" Link="MultiplayerAccess\MidRunAdmissionPolicy.cs" />
+    <Compile Include="..\..\Features\MultiplayerAccess\Core\JoiningSupplyLedger.cs" Link="MultiplayerAccess\JoiningSupplyLedger.cs" />
+    <Compile Include="..\..\Features\MultiplayerAccess\Presentation\JoiningSupplyLocalization.cs" Link="MultiplayerAccess\JoiningSupplyLocalization.cs" />
     <Compile Include="..\..\Features\MultiplayerAccess\Presentation\MultiplayerAccessLocalization.cs" Link="MultiplayerAccess\MultiplayerAccessLocalization.cs" />
     <Compile Include="..\..\Runtime\Inventory\InventoryItemKey.cs" Link="Runtime\Inventory\InventoryItemKey.cs" />
     <Compile Include="..\..\Runtime\Inventory\InventorySnapshot.cs" Link="Runtime\Inventory\InventorySnapshot.cs" />

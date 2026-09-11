@@ -38,7 +38,7 @@ namespace SephiriaEnhancements.ModInformation.Integration
                 .FirstOrDefault(candidate => candidate != template.valueText);
             box.gameObject.AddComponent<ModInformationOption>().Configure(kind, box, text,
                 template.valueText.text, labelText?.text, labelReference?.text);
-            MarkCategory(row, OptionsCategory.General);
+            MarkCategory(row, OptionsCategory.AboutAndUpdates);
             row.SetActive(true);
         }
     }

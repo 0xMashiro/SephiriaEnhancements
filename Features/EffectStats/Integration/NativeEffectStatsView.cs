@@ -18,6 +18,7 @@ namespace SephiriaEnhancements.EffectStats.Integration
             internal StatusInstance_Custom Status;
             internal TextMeshProUGUI Text;
             internal LayoutElement Layout;
+            internal System.Func<PlayerAvatar, string> ReadResult;
         }
 
         private sealed class Group
@@ -37,21 +38,30 @@ namespace SephiriaEnhancements.EffectStats.Integration
         private Group introduction;
         private Row solarDamage;
         private float nextRefresh;
+        private int openedFrame;
+        private ScrollRect scroll;
+        private UI_ScrollToSelection nativeScroll;
+        private bool suspendedNativeScroll;
+        private GameObject lastScrollSelection;
 
         internal void Show(UI_StatsPanel owner, PlayerAvatar current)
         {
             panel = owner;
             player = current;
+            openedFrame = Time.frameCount;
             if (groups.Count == 0) Build();
             Refresh();
         }
 
         private void Build()
         {
+            // OnOpened selects the common tab before this view builds; the special tab is inactive.
             UI_StatsCategory template = panel.categories.First(category =>
-                category.GetComponentInParent<ScrollRect>() != null &&
+                category.GetComponentInParent<ScrollRect>(includeInactive: true) != null &&
                 category.transform.Find("Name") != null);
-            content = template.GetComponentInParent<ScrollRect>().content;
+            scroll = template.GetComponentInParent<ScrollRect>(includeInactive: true);
+            content = scroll.content;
+            nativeScroll = scroll.GetComponent<UI_ScrollToSelection>();
             titleTemplate = template.transform.Find("Name").GetComponent<TextMeshProUGUI>();
             UI_StatusTooltipOpener nativeRow = panel.statElements.First(row =>
                 row.GetComponent<TextMeshProUGUI>() != null);
@@ -63,6 +73,19 @@ namespace SephiriaEnhancements.EffectStats.Integration
                 Group group = MakeGroup(template, definition.Title);
                 if (definition.Title == "ItemCategory_FlameSword")
                     solarDamage = AddRow(group, nativeRow, null);
+                if (definition.Title == "ItemCategory_DarkCloud")
+                {
+                    AddRow(group, nativeRow, null).ReadResult = NativeEffectStatsResults.CloudDamage;
+                    AddRow(group, nativeRow, null).ReadResult = NativeEffectStatsResults.CloudSupply;
+                }
+                if (definition.Title == "Status_Magic_Name")
+                    for (int slot = 0; slot < 8; slot++)
+                    {
+                        int index = slot;
+                        AddRow(group, nativeRow, null).ReadResult = avatar => NativeEffectStatsResults.Magic(avatar, index);
+                    }
+                if (definition.Title == "Debuff_Burn")
+                    AddRow(group, nativeRow, null).ReadResult = NativeEffectStatsResults.Burn;
                 foreach (string id in definition.Statuses)
                     AddRow(group, nativeRow, id);
             }
@@ -120,9 +143,38 @@ namespace SephiriaEnhancements.EffectStats.Integration
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private void LateUpdateCore()
         {
-            if (panel == null || !panel.IsOpened || Time.unscaledTime < nextRefresh) return;
+            if (panel == null || !panel.IsOpened) { RestoreNativeScroll(); return; }
+            HandleTabInput();
+            ScrollToSelectedRow();
+            if (Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + 0.2f;
             Refresh();
+        }
+
+        private void HandleTabInput()
+        {
+            if (!EnhancementsSettings.Enabled || !panel.IsControlEnabled || !panel.IsInteractable ||
+                Time.frameCount == openedFrame || player == null || !LocalPlayerResolver.IsLocal(player) ||
+                player.loadingScreenType != -1) return;
+            var manager = UIManager.Instance;
+            var stack = manager?.CurrentControlStack;
+            if (stack == null || !stack.Contains(panel)) return;
+            GameObject selected = EventSystem.current?.currentSelectedGameObject;
+            // Combined menus share control; only the panel containing the selection handles tabs.
+            if (stack.Count > 1 && (selected == null || !selected.transform.IsChildOf(panel.transform))) return;
+            // These native tooltips use the same actions to preview levels or weapon details.
+            if (manager.GetElement<UI_CharmTooltip>()?.IsOpened == true ||
+                manager.GetElement<UI_WeaponTooltip>()?.IsOpened == true) return;
+            var input = UIInputModule.current;
+            if (input == null) return;
+            bool previous = input.prevTabAction?.action?.WasPressedThisFrame() == true;
+            bool next = input.nextTabAction?.action?.WasPressedThisFrame() == true;
+            if (previous == next) return;
+            panel.SelectTab(panel.tab.CurrentSelectedTab + (next ? 1 : -1));
+            GameObject target = panel.defaultSelectable;
+            if (target == null || !target.activeInHierarchy)
+                target = panel.tab.tabButtons[panel.tab.CurrentSelectedTab].gameObject;
+            panel.DoControlSelection(target);
         }
 
         private void Refresh()
@@ -144,6 +196,11 @@ namespace SephiriaEnhancements.EffectStats.Integration
                     {
                         show = ready;
                         text = ModLocalization.Get(EffectStatsLocalization.Note);
+                    }
+                    else if (row.ReadResult != null)
+                    {
+                        text = ready ? row.ReadResult(player) : null;
+                        show = text != null;
                     }
                     else if (row == solarDamage)
                     {
@@ -185,8 +242,50 @@ namespace SephiriaEnhancements.EffectStats.Integration
             target.SetActive(visible);
         }
 
+        private void ScrollToSelectedRow()
+        {
+            GameObject selected = EventSystem.current?.currentSelectedGameObject;
+            bool ownRow = selected != null && groups.Any(group =>
+                group.Rows.Any(row => row.Text.gameObject == selected));
+            if (!ownRow || !selected.activeInHierarchy)
+            {
+                RestoreNativeScroll();
+                return;
+            }
+            // Native scrolling targets the entire parent category, which may exceed the viewport.
+            if (nativeScroll != null && nativeScroll.enabled)
+            {
+                nativeScroll.enabled = false;
+                suspendedNativeScroll = true;
+            }
+            if (selected == lastScrollSelection) return;
+            lastScrollSelection = selected;
+            Canvas.ForceUpdateCanvases();
+            var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(scroll.viewport,
+                selected.GetComponent<RectTransform>());
+            Rect window = scroll.viewport.rect;
+            float offset = bounds.max.y > window.yMax ? bounds.max.y - window.yMax :
+                bounds.min.y < window.yMin ? bounds.min.y - window.yMin : 0f;
+            float overflow = content.rect.height - window.height;
+            if (overflow > 0f && offset != 0f)
+            {
+                scroll.StopMovement();
+                scroll.verticalNormalizedPosition = Mathf.Clamp01(scroll.verticalNormalizedPosition + offset / overflow);
+            }
+        }
+
+        private void RestoreNativeScroll()
+        {
+            if (suspendedNativeScroll && nativeScroll != null) nativeScroll.enabled = true;
+            suspendedNativeScroll = false;
+            lastScrollSelection = null;
+        }
+
+        private void OnDisable() => RestoreNativeScroll();
+
         private void OnDestroy()
         {
+            RestoreNativeScroll();
             foreach (Group group in groups)
                 if (group.Root != null) { SetVisible(group.Root, false); Destroy(group.Root); }
             groups.Clear();

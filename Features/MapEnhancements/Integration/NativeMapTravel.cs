@@ -1,4 +1,7 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using SephiriaEnhancements.Diagnostics;
 using SephiriaEnhancements.Integration;
 using SephiriaEnhancements.MapEnhancements.Core;
 using UnityEngine;
@@ -8,6 +11,7 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
     internal sealed class NativeMapTravel
     {
         private readonly NativeMapGeometry geometry;
+        private readonly UI_MapPanel panel;
         private readonly List<Vector3> candidates = new();
         private readonly List<Vector3> path = new();
         private MapLocationMarkerView cachedMarker;
@@ -15,22 +19,35 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
         private float refreshAt;
         private bool active = true;
 
-        internal NativeMapTravel(NativeMapGeometry geometry) { this.geometry = geometry; }
+        internal NativeMapTravel(NativeMapGeometry geometry, UI_MapPanel panel)
+        {
+            this.geometry = geometry;
+            this.panel = panel;
+        }
         internal void Clear() { active = false; cachedMarker = null; }
 
-        private bool CanMove(PlayerAvatar player, MapLocationMarkerView marker) =>
-            active && geometry.Floor != null && marker != null && marker.Target != null &&
-            marker.Target.gameObject.activeInHierarchy && player != null &&
-            LocalPlayerResolver.Resolve() == player && player.currentFloorGuid == geometry.Floor.guid &&
-            player.loadingScreenType == -1 && GameCamera.Instance?.Observer == player &&
-            GameCamera.Instance.CurrentSeeingFloor == geometry.Floor &&
-            !player.IsDead && !player.IsInBattle && player.CanMove &&
-            player.blockMoveByInput <= 0 && !player.CanFastMove.IsFalse();
+        private string UnavailableReason(PlayerAvatar player, MapLocationMarkerView marker)
+        {
+            if (!active) return "map_cleared";
+            if (geometry.Floor == null) return "floor_removed";
+            if (marker == null || marker.Target == null || !marker.Target.gameObject.activeInHierarchy)
+                return "target_removed";
+            if (player == null || LocalPlayerResolver.Resolve() != player) return "local_player_changed";
+            if (player.currentFloorGuid != geometry.Floor.guid) return "floor_changed";
+            if (player.loadingScreenType != -1) return "player_loading";
+            if (GameCamera.Instance?.Observer != player || GameCamera.Instance.CurrentSeeingFloor != geometry.Floor)
+                return "camera_changed";
+            if (player.IsDead) return "player_dead";
+            if (player.IsInBattle) return "player_in_battle";
+            if (!player.CanMove || player.blockMoveByInput > 0 || player.CanFastMove.IsFalse())
+                return "movement_blocked";
+            return null;
+        }
 
         internal MapTravelState State(MapLocationMarkerView marker)
         {
             PlayerAvatar player = LocalPlayerResolver.Resolve();
-            if (!CanMove(player, marker) || ScreenFader.Instance == null || ScreenFader.Instance.IsFading)
+            if (UnavailableReason(player, marker) != null || ScreenFader.Instance == null || ScreenFader.Instance.IsFading)
                 return MapTravelState.Unavailable;
             if (marker.Destination != null)
                 return marker.Destination.CanTravel && geometry.Contains(marker.Destination.Position)
@@ -50,28 +67,77 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
         internal void Travel(MapLocationMarkerView marker)
         {
             refreshAt = 0f;
-            if (State(marker) != MapTravelState.Ready) return;
+            PlayerAvatar player = LocalPlayerResolver.Resolve();
+            string kind = marker?.Destination != null ? marker.Destination.Kind.ToString()
+                : marker != null && marker.IsPerson ? "Person" : "Facility";
+            MapTravelState state = State(marker);
+            if (state != MapTravelState.Ready)
+            {
+                SupportLogger.Record("map_travel_rejected",
+                    "target=" + kind + " reason=" + (UnavailableReason(player, marker) ?? state.ToString()));
+                return;
+            }
             if (geometry.Designed == null)
             {
                 if (geometry.TryGetRoomDestination(marker.WorldPosition, out var room)) room.TeleportToRoom();
                 return;
             }
-            PlayerAvatar player = LocalPlayerResolver.Resolve();
+            SupportLogger.Record("map_travel_started", "target=" + kind + " playerNetId=" + player.netId);
             // Revalidate after the native fade: targets, local player and floor can
             // change while it runs. ReqSetPosition retains native transform authority.
             ScreenFader.Instance.FadeOut(ScreenFader.ScreenType.NextFloor, () =>
             {
-                if (!CanMove(player, marker)) return;
+                string reason = UnavailableReason(player, marker);
+                if (reason != null)
+                {
+                    SupportLogger.Record("map_travel_cancelled", "target=" + kind + " reason=" + reason);
+                    return;
+                }
                 Vector3 position;
                 if (marker.Destination != null)
                 {
-                    if (!marker.Destination.CanTravel || !geometry.Contains(marker.Destination.Position)) return;
+                    // UIManager disables the map's CanvasGroup during the fade.
+                    // Recheck the destination itself, not that temporary UI input block.
+                    if (!marker.Destination.IsEnabled || !geometry.Contains(marker.Destination.Position))
+                    {
+                        SupportLogger.Record("map_travel_cancelled", "target=" + kind + " reason=destination_unavailable");
+                        return;
+                    }
                     position = marker.Destination.Position;
                 }
-                else if (FindNearbyLanding(player, marker, out position) != MapTravelState.Ready) return;
+                else
+                {
+                    MapTravelState landing = FindNearbyLanding(player, marker, out position);
+                    if (landing != MapTravelState.Ready)
+                    {
+                        SupportLogger.Record("map_travel_cancelled", "target=" + kind + " reason=" + landing);
+                        return;
+                    }
+                }
+                SupportLogger.Record("map_travel_position_requested", FormattableString.Invariant(
+                    $"target={kind} playerNetId={player.netId} server={player.isServer} owned={player.isOwned} from={player.transform.position.ToString("F3")} destination={position.ToString("F3")}"));
                 player.ReqSetPosition(position, teleport: true);
                 GameCamera.Instance.targetTracker.SetCameraPosition(player.transform.position);
+                player.StartCoroutine(ObservePositionNextFrame(player, geometry.Floor, position, kind));
+                // Closing clears the navigator and markers; only do it after requesting movement.
+                panel.Close();
             }, autoFadeIn: true, .33f, 2f);
+        }
+
+        private static IEnumerator ObservePositionNextFrame(PlayerAvatar player, FloorGenerator floor,
+            Vector3 destination, string kind)
+        {
+            yield return null;
+            if (player == null || floor == null || LocalPlayerResolver.Resolve() != player ||
+                GameCamera.Instance?.CurrentSeeingFloor != floor || player.currentFloorGuid != floor.guid ||
+                player.loadingScreenType != -1)
+            {
+                SupportLogger.Record("map_travel_observation_skipped", "target=" + kind + " reason=context_changed");
+                yield break;
+            }
+            // An observation is not a server acknowledgement, especially for remote requests.
+            SupportLogger.Record("map_travel_position_observed", FormattableString.Invariant(
+                $"target={kind} playerNetId={player.netId} position={player.transform.position.ToString("F3")} destination={destination.ToString("F3")} distance={(player.transform.position - destination).magnitude:F3}"));
         }
 
         private MapTravelState FindNearbyLanding(PlayerAvatar player, MapLocationMarkerView marker,

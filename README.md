@@ -39,7 +39,7 @@ Search is bounded and does not guarantee an optimal layout or maximum combat dam
 ## Features
 
 - **Combat:** damage, DPS, battle reports, hit streaks, resource values and ally/enemy outlines.
-- **Effect attributes:** the character menu's special-stat page shows additional nonzero bonuses for Solar Blade, Frost Relic, Storm Cloud, Planet, magic, Burn and Electrocution. An active Solar Blade also shows normal-throw damage before hit resolution. This does not cover every item or effect.
+- **Effect attributes:** the character menu's special-stat page shows nonzero bonuses for supported effects, normal Solar Blade and Storm Cloud damage before hit resolution, and Storm Cloud stock, discharge and recovery cycles. Equipped quick-slot magic shows MP cost, MP-budget casts, charges and new charge-cycle duration. Relevant Burn bonuses or supported application effects also show a per-stack damage reference. Tab switching follows the game's bindings; added rows support focus-following scrolling. This does not cover every item or effect.
 - **Controls:** keyboard menu and reward navigation, automatic targeting and manual target lock.
 - **Exploration:** map overlay, People / Places lists, NPC tracking and camera distance from **75% to 200%**.
   Town maps include map destinations and preparation facilities. When fast travel is available, travel near a person or facility, or use a map destination's assigned landing point.
@@ -67,7 +67,7 @@ recording began. Keep the Mod installed to claim pending supplies. Reconnecting 
 and remaining choices; it does not award another joining allowance. Saved exploration and defeat retry restore
 the corresponding supply progress.
 
-Under combat/display settings, teammate HP/MP, companion HUD numbers and extra mana-reservation numbers start off.
+Under Bars and Numbers settings, teammate HP/MP, companion HUD numbers and extra mana-reservation numbers start off.
 **Disable all extra numbers** turns off the numeric display options together; your original HP/MP numbers remain.
 Companion HUD numbers and ordinary creatures' world-space numbers have separate controls.
 
@@ -117,8 +117,10 @@ Each area remembers its selected slot until the backpack closes; returning resto
 
 ## In-game help
 
+Settings are grouped into **General**, **Combat and Display**, **Bars and Numbers**, **Controls and Camera**, **Multiplayer**, and **About and Updates**. Version information and update checks are in the last category.
+
 On first entering a game after launch, the Mod shows the Mod and game versions and official Nexus Mods / GitHub links
-in the local chat log. **General** settings include the version, both download pages, a welcome-message
+in the local chat log. **About and Updates** settings include the version, both download pages, a welcome-message
 toggle, automatic update checks and **Check for updates**. The settings also show the game version and the local time of the last completed check since launch. Checks distinguish connection failures, timeouts, GitHub request limits, service errors and invalid update data; repeat checks are disabled while a request is running. Welcome messages and automatic checks default
 to on while the Mod is enabled; these preferences are saved on your device, not in a character save.
 GitHub is checked in the background once after entering a game. Stable versions check stable releases;

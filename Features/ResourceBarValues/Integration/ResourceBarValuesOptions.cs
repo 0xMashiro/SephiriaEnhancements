@@ -16,7 +16,7 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
                     ResourceBarValueLocalization.DisableAllNumbers, ResourceBarValueLocalization.DisableAllNumbersHelp, 8,
                     out UI_HorizontalSelectionBox box, out UI_LocalizationStringText text);
                 action.AddComponent<DisableAllResourceNumbersOption>().Configure(box, text);
-                MarkCategory(action, OptionsCategory.CombatAndDisplay);
+                MarkCategory(action, OptionsCategory.ResourceBarValues);
                 action.SetActive(true);
                 foreach (ResourceBarValueSetting setting in System.Enum.GetValues(typeof(ResourceBarValueSetting)))
                     CreateResourceBarValueRow(template, section, setting);
@@ -32,7 +32,7 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
                 ResourceBarValueLocalization.Help(setting), 8,
                 out UI_HorizontalSelectionBox box, out UI_LocalizationStringText valueText);
             row.AddComponent<ResourceBarValueOption>().Configure(box, valueText, setting);
-            MarkCategory(row, OptionsCategory.CombatAndDisplay);
+            MarkCategory(row, OptionsCategory.ResourceBarValues);
             row.SetActive(true);
         }
     }

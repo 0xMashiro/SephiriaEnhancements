@@ -156,14 +156,6 @@ namespace SephiriaEnhancements.Configuration
             {
                 "Option_SephiriaEnhancements_Enabled",
                 "Option_SephiriaEnhancements_Category",
-                "Option_SephiriaEnhancements_ModInformation_Version",
-                "Option_SephiriaEnhancements_ModInformation_GameVersion",
-                "Option_SephiriaEnhancements_ModInformation_Welcome",
-                "Option_SephiriaEnhancements_ModInformation_Automatic",
-                "Option_SephiriaEnhancements_ModInformation_Check",
-                "Option_SephiriaEnhancements_ModInformation_LastChecked",
-                "Option_SephiriaEnhancements_ModInformation_Nexus",
-                "Option_SephiriaEnhancements_ModInformation_GitHub",
                 "Option_SephiriaEnhancements_NativeCompanion",
                 "Option_SephiriaEnhancements_DefeatRetry",
                 "Option_SephiriaEnhancements_DefeatRetryCutscenes",
@@ -181,6 +173,7 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_CombatOutlineScope",
                 "Option_SephiriaEnhancements_DisplayPolicy",
                 "Option_SephiriaEnhancements_HitStreakFeedback",
+                "Option_SephiriaEnhancements_DamageStatisticsScale",
                 "Option_SephiriaEnhancements_DisableAllNumbers",
                 "Option_SephiriaEnhancements_ManaReservationNumbers",
                 "Option_SephiriaEnhancements_TeammateResourceNumbers",
@@ -191,10 +184,17 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_MiniBossSuperArmorNumbers",
                 "Option_SephiriaEnhancements_BossHealthNumbers",
                 "Option_SephiriaEnhancements_PropHealthNumbers",
-                "Option_SephiriaEnhancements_DamageStatisticsScale",
                 "Option_SephiriaEnhancements_TargetingMode",
                 "Option_SephiriaEnhancements_MouseAimAssist",
-                "Option_SephiriaEnhancements_ViewDistance"
+                "Option_SephiriaEnhancements_ViewDistance",
+                "Option_SephiriaEnhancements_ModInformation_Version",
+                "Option_SephiriaEnhancements_ModInformation_GameVersion",
+                "Option_SephiriaEnhancements_ModInformation_Welcome",
+                "Option_SephiriaEnhancements_ModInformation_Automatic",
+                "Option_SephiriaEnhancements_ModInformation_Check",
+                "Option_SephiriaEnhancements_ModInformation_LastChecked",
+                "Option_SephiriaEnhancements_ModInformation_Nexus",
+                "Option_SephiriaEnhancements_ModInformation_GitHub"
             };
             foreach (string rowName in mainRows)
             {

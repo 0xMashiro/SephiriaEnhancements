@@ -108,7 +108,7 @@ namespace SephiriaEnhancements.MapEnhancements
             wheel.Zoom = ScrollZoom;
             uiRoot = Rect("Map Navigation", scrollFrame.parent, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             uiRoot.offsetMin = uiRoot.offsetMax = Vector2.zero;
-            travel = new NativeMapTravel(geometry);
+            travel = new NativeMapTravel(geometry, panel);
             if (roomNavigation != null)
                 roomsButton = Button(uiRoot, MapNavigationLocalization.Rooms, new Vector2(24, -31), new Vector2(57, 17), () => SetMode(MapNavigationMode.Rooms));
             peopleButton = Button(uiRoot, MapNavigationLocalization.People, new Vector2(roomNavigation != null ? 85 : 24, -31), new Vector2(57, 17), () => SetMode(MapNavigationMode.People));

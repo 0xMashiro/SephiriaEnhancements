@@ -12,9 +12,10 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
         internal Vector3 Position => connection.point.GetTeleportTargetPosition();
         internal bool IsVisible => connection.icon != null && connection.point != null &&
             connection.icon.gameObject.activeInHierarchy && connection.point.gameObject.activeInHierarchy;
-        internal bool CanTravel => IsVisible && connection.icon.enabled &&
+        internal bool IsEnabled => IsVisible && connection.icon.enabled &&
             connection.icon.GetComponent<Selectable>() is Selectable button &&
-            button.isActiveAndEnabled && button.IsInteractable();
+            button.isActiveAndEnabled && button.interactable;
+        internal bool CanTravel => IsEnabled && connection.icon.GetComponent<Selectable>().IsInteractable();
 
         internal NativeMapDestination(FullyDesignedFloorGenerator.MapTeleportConnection connection)
         {

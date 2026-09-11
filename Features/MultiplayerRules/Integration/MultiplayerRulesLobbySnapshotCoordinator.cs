@@ -7,6 +7,27 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 {
     internal static class MultiplayerRulesLobbySnapshotCoordinator
     {
+        private const string PreferredMetadataKey = "sephiria_enhancements_lobby_rules";
+
+        internal static void PublishLobbyRules()
+        {
+            if (!NetworkServer.active) return;
+            var rules = MultiplayerRulesLobbyContext.ReadDisplayed();
+            var multiplayer = NativeMultiplayerSessionReader.Read();
+            if (!Configuration.EnhancementsSettings.Enabled ||
+                multiplayer.ConnectedHumanParticipantCount > 4 ||
+                (multiplayer.HasMultiplayerExtension && !PreferredMultiplayerRulesStore.ReadAllowExternalRuleStacking()))
+                rules = ActiveExplorationMultiplayerRules.FromPreset(MultiplayerRulesPreset.Original);
+            NativeLobbyAccess.TryWriteOwnedSteamMetadata(PreferredMetadataKey,
+                ActiveExplorationRulesPayloadCodec.Encode(rules));
+        }
+
+        internal static ActiveExplorationMultiplayerRules ReadLobbyRules()
+        {
+            if (!NativeLobbyAccess.TryReadSteamMetadata(PreferredMetadataKey, out var payload) ||
+                string.IsNullOrEmpty(payload)) return null;
+            return ActiveExplorationRulesPayloadCodec.TryDecode(payload, out var rules) ? rules : null;
+        }
         private const string LobbyMetadataKey =
             "sephiria_enhancements_multiplayer_rules";
 

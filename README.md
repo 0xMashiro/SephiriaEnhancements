@@ -49,8 +49,9 @@ Search is bounded and does not guarantee an optimal layout or maximum combat dam
 Most display and control improvements start enabled. Retry after defeat, hidden-room display, mouse aim assist
 and the combat companion start **off**. Multiplayer rules start at **Original**, camera distance at **100%**.
 
-Set multiplayer rules before leaving town; only the host can change them. Starting an exploration locks its rules,
-and continuing a saved exploration keeps its saved rules. The Mod's main switch is locked during exploration,
+In the multiplayer lobby, open **Team rules** from the multiplayer menu or settings. The host edits a draft and applies it together; closing without applying discards it. Starting an exploration locks its rules,
+and continuing a saved exploration keeps its saved rules. The panel detects the current team size. Adjust enemy health, damage, spawning, rewards and supplies directly without choosing a preset first. Explanations compare original player scaling with the adjustment and include applicable calculation examples. Reset names the current team size. Joining or leaving updates the display with a notice; applying saves numerical changes for the current team size only. Other players view the host's applied rules.
+The Mod's main switch is locked during exploration,
 while connected to another host, and while a reconnect is pending. Display options remain individually adjustable.
 **New players during exploration** and **Reconnect support** are separate settings; disabling new arrivals does
 not disable reconnect support. Reconnection still depends on the game's room, character and save conditions.
@@ -68,7 +69,6 @@ and remaining choices; it does not award another joining allowance. Saved explor
 the corresponding supply progress.
 
 Under Bars and Numbers settings, teammate HP/MP, companion HUD numbers and extra mana-reservation numbers start off.
-**Disable all extra numbers** turns off the numeric display options together; your original HP/MP numbers remain.
 Companion HUD numbers and ordinary creatures' world-space numbers have separate controls.
 
 ## Install
@@ -118,6 +118,8 @@ Each area remembers its selected slot until the backpack closes; returning resto
 ## In-game help
 
 Settings are grouped into **General**, **Combat and Display**, **Bars and Numbers**, **Controls and Camera**, **Multiplayer**, and **About and Updates**. Version information and update checks are in the last category.
+
+When the Mod is off, its settings categories are hidden and saved choices are retained. In custom multiplayer rules, click a numeric value or use the confirm action to open an input dialog; arrows still adjust one step. The dialog shows the current team size, available game references, range and step. Clear the input to restore that rule to game behavior. Reference values describe the part controlled by the setting, not final enemy statistics.
 
 On first entering a game after launch, the Mod shows the Mod and game versions and official Nexus Mods / GitHub links
 in the local chat log. **About and Updates** settings include the version, both download pages, a welcome-message

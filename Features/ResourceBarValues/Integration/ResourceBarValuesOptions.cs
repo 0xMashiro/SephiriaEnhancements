@@ -1,4 +1,3 @@
-using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -11,13 +10,6 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
         {
             if (panel.GetComponentInChildren<ResourceBarValueOption>(true) == null)
             {
-                GameObject action = CloneRow(template, section,
-                    "Option_SephiriaEnhancements_DisableAllNumbers",
-                    ResourceBarValueLocalization.DisableAllNumbers, ResourceBarValueLocalization.DisableAllNumbersHelp, 8,
-                    out UI_HorizontalSelectionBox box, out UI_LocalizationStringText text);
-                action.AddComponent<DisableAllResourceNumbersOption>().Configure(box, text);
-                MarkCategory(action, OptionsCategory.ResourceBarValues);
-                action.SetActive(true);
                 foreach (ResourceBarValueSetting setting in System.Enum.GetValues(typeof(ResourceBarValueSetting)))
                     CreateResourceBarValueRow(template, section, setting);
             }
@@ -36,102 +28,4 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
             row.SetActive(true);
         }
     }
-
-    internal sealed class DisableAllResourceNumbersOption : MonoBehaviour
-    {
-        private UI_HorizontalSelectionBox box;
-        private UI_LocalizationStringText value;
-
-        internal void Configure(UI_HorizontalSelectionBox selection, UI_LocalizationStringText text)
-        { box = selection; value = text; }
-
-        private void OnEnable()
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.ResourceBarValues))
-            {
-                return;
-            }
-
-            try
-            {
-                OnEnableCore();
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.ResourceBarValues, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnEnableCore()
-        {
-            box.numberOfElements = 2;
-            box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
-            box.OnValueChanged += Changed;
-            ResourceBarValueSettings.Changed += Refresh;
-            Refresh();
-        }
-
-        private void OnDisable()
-        {
-            box.OnValueChanged -= Changed;
-            ResourceBarValueSettings.Changed -= Refresh;
-        }
-
-        private void Changed(int selection)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.ResourceBarValues))
-            {
-                return;
-            }
-
-            try
-            {
-                ChangedCore(selection);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.ResourceBarValues, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void ChangedCore(int selection)
-        {
-            if (selection == 1)
-                ResourceBarValueSettings.DisableAll();
-            Refresh();
-        }
-
-        private void Refresh()
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.ResourceBarValues))
-            {
-                return;
-            }
-
-            try
-            {
-                RefreshCore();
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.ResourceBarValues, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void RefreshCore()
-        {
-            box.ChangeValueWithoutNotify(0);
-            bool anyEnabled = ResourceBarValueSettings.AnyEnabled;
-            value.UpdateKey(anyEnabled ? ResourceBarValueLocalization.DisableAll : ResourceBarValueLocalization.AllOff);
-            NativeHorizontalSelectionOptionState.Apply(gameObject, box, anyEnabled);
-        }
-    }
-
-
 }

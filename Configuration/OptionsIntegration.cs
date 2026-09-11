@@ -174,7 +174,6 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_DisplayPolicy",
                 "Option_SephiriaEnhancements_HitStreakFeedback",
                 "Option_SephiriaEnhancements_DamageStatisticsScale",
-                "Option_SephiriaEnhancements_DisableAllNumbers",
                 "Option_SephiriaEnhancements_ManaReservationNumbers",
                 "Option_SephiriaEnhancements_TeammateResourceNumbers",
                 "Option_SephiriaEnhancements_CompanionHealthNumbers",
@@ -211,27 +210,13 @@ namespace SephiriaEnhancements.Configuration
             {
                 "Option_SephiriaEnhancements_MidRunAdmission",
                 "Option_SephiriaEnhancements_ReconnectSupport",
-                "Option_SephiriaEnhancements_MultiplayerRulesPreset",
-                "Option_SephiriaEnhancements_MultiplayerRulesExternalStacking",
-                "Option_SephiriaEnhancements_MultiplayerRulesParticipantCount",
-                "Option_SephiriaEnhancements_MultiplayerRulesCopyParticipantValues",
-                "Option_SephiriaEnhancements_MultiplayerRulesHealthCombination",
-                "Option_SephiriaEnhancements_MultiplayerRuleGroup"
+                "Option_SephiriaEnhancements_MultiplayerRulesLobby"
             };
             foreach (string rowName in multiplayerRows)
             {
                 MoveInjectedChild(parent, rowName, ref siblingIndex);
             }
-            foreach (MultiplayerRulePresentationGroup group in
-                MultiplayerRulePresentationGroups.All)
-            {
-                foreach (MultiplayerRuleId ruleId in group.RuleIds)
-                {
-                    MoveInjectedChild(parent,
-                        "Option_SephiriaEnhancements_MultiplayerRule_" + ruleId,
-                        ref siblingIndex);
-                }
-            }
+
         }
 
         private static void MoveInjectedChild(Transform parent, string name,
@@ -448,15 +433,10 @@ namespace SephiriaEnhancements.Configuration
     internal sealed class OptionsCategoryMember : MonoBehaviour
     {
         internal OptionsCategory Category { get; private set; }
-        internal bool RequiresCustomPreset { get; private set; }
-        internal int MultiplayerRuleGroup { get; private set; } = -1;
 
-        internal void Configure(OptionsCategory category,
-            bool requiresCustomPreset, int multiplayerRuleGroup)
+        internal void Configure(OptionsCategory category)
         {
             Category = category;
-            RequiresCustomPreset = requiresCustomPreset;
-            MultiplayerRuleGroup = multiplayerRuleGroup;
         }
     }
 
@@ -469,7 +449,6 @@ namespace SephiriaEnhancements.Configuration
 
         internal OptionsCategory SelectedCategory { get; private set; } =
             OptionsCategory.General;
-        internal int SelectedMultiplayerRuleGroup { get; private set; }
 
         internal void Configure(UI_OptionsPanel optionsPanel,
             UI_OptionBox_PartyMemberDamage rowTemplate, Transform contentTransform)
@@ -495,13 +474,6 @@ namespace SephiriaEnhancements.Configuration
             RefreshVisibility();
         }
 
-        internal void SelectMultiplayerRuleGroup(int groupIndex)
-        {
-            int count = MultiplayerRulePresentationGroups.All.Count;
-            SelectedMultiplayerRuleGroup = count == 0
-                ? 0 : Mathf.Clamp(groupIndex, 0, count - 1);
-            RefreshVisibility();
-        }
 
         internal void RefreshVisibility()
         {
@@ -511,19 +483,24 @@ namespace SephiriaEnhancements.Configuration
                 ? content.anchoredPosition : Vector2.zero;
             GameObject selected = EventSystem.current?.currentSelectedGameObject;
             bool selectedWillHide = false;
+            bool suiteEnabled = EnhancementsSettings.Enabled;
+            var categoryOption = panel.GetComponentInChildren<OptionsCategoryOption>(true);
+            if (categoryOption != null)
+            {
+                if (!suiteEnabled && selected != null &&
+                    (selected == categoryOption.gameObject ||
+                     selected.transform.IsChildOf(categoryOption.transform)))
+                    selectedWillHide = true;
+                categoryOption.gameObject.SetActive(suiteEnabled);
+            }
             OptionsCategoryMember[] members =
                 panel.GetComponentsInChildren<OptionsCategoryMember>(true);
-            MultiplayerRulesPreset displayedPreset =
-                MultiplayerRulesOptionsRefresh.DisplayedPreset();
+
             for (int index = 0; index < members.Length; index++)
             {
                 OptionsCategoryMember member = members[index];
-                bool visible = OptionsCategoryVisibility.IsVisible(
-                    member.Category, SelectedCategory,
-                    member.RequiresCustomPreset,
-                    displayedPreset == MultiplayerRulesPreset.Custom,
-                    member.MultiplayerRuleGroup,
-                    SelectedMultiplayerRuleGroup);
+                bool visible = suiteEnabled && OptionsCategoryVisibility.IsVisible(
+                    member.Category, SelectedCategory);
 
                 if (!visible && selected != null &&
                     (selected == member.gameObject ||
@@ -547,10 +524,12 @@ namespace SephiriaEnhancements.Configuration
             }
             OptionsPanelPatch.WireNavigation(panel, template);
 
-            if (selectedWillHide && EventSystem.current != null &&
-                categoryBox != null && categoryBox.gameObject.activeInHierarchy)
+            if (selectedWillHide && EventSystem.current != null)
             {
-                EventSystem.current.SetSelectedGameObject(categoryBox.gameObject);
+                var target = suiteEnabled ? categoryBox
+                    : panel.GetComponentInChildren<MasterEnabledOption>(true)?.Box;
+                if (target != null && target.gameObject.activeInHierarchy)
+                    EventSystem.current.SetSelectedGameObject(target.gameObject);
             }
 
         }
@@ -642,6 +621,7 @@ namespace SephiriaEnhancements.Configuration
             CombatVisualRuntime.RefreshCompanionBodies();
             valueText?.UpdateKey(value == 1
                 ? ModLocalization.SuiteOn : ModLocalization.SuiteOff);
+            GetComponentInParent<OptionsCategoryController>()?.RefreshVisibility();
         }
     }
 

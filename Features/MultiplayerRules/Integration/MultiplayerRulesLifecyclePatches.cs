@@ -6,6 +6,25 @@ using HarmonyLib;
 
 namespace SephiriaEnhancements.MultiplayerRules.Integration
 {
+    [HarmonyPatch(typeof(PlayerAvatar), nameof(PlayerAvatar.ServerLoadStage))]
+    internal static class MultiplayerRulesLobbyDeparturePatch
+    {
+        // Also covers the frame before the native preparation SyncVar is refreshed.
+        private static bool Prefix()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules)) return true;
+            try { return PrefixCore(); }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore() => !NativeLobbyRulesPanel.IsEditing;
+    }
+
     [HarmonyPatch(typeof(DungeonManager), nameof(DungeonManager.LoadStageAndMove))]
     internal static class MultiplayerRulesExplorationStartPatch
     {

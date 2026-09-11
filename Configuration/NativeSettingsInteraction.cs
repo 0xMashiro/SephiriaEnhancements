@@ -51,11 +51,8 @@ namespace SephiriaEnhancements.Configuration
             if (box == null || value == null || Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + 0.1f;
             SettingLockReason reason = NativeSettingsInteraction.Reason(kind);
-            var member = GetComponent<OptionsCategoryMember>();
-            bool customAllowed = member == null || !member.RequiresCustomPreset ||
-                MultiplayerRulesOptionsRefresh.DisplayedPreset() == MultiplayerRulesPreset.Custom;
             NativeHorizontalSelectionOptionState.Apply(gameObject, box,
-                reason == SettingLockReason.None && customAllowed);
+                reason == SettingLockReason.None);
             // Keep the native translation key so language changes and value refreshes remain valid.
             string current = ModLocalization.Get(value.valueString.key);
             bool hostPreference = reason == SettingLockReason.HostOnly &&

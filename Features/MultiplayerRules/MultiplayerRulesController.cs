@@ -14,6 +14,16 @@ namespace SephiriaEnhancements.MultiplayerRules
         private static bool integrationAvailable;
         private static bool allowExternalRuleStackingForExploration;
         private readonly MultiplayerRulesSession session = new MultiplayerRulesSession();
+        private float nextLobbyPublish;
+
+        private void Update()
+        {
+            if (!NetworkServer.active || Time.unscaledTime < nextLobbyPublish ||
+                !FeatureFailure.IsAvailable(FeatureId.MultiplayerRules)) return;
+            nextLobbyPublish = Time.unscaledTime + 2f;
+            try { MultiplayerRulesLobbySnapshotCoordinator.PublishLobbyRules(); }
+            catch (System.Exception exception) { FeatureFailure.Disable(FeatureId.MultiplayerRules, exception); }
+        }
 
         private void OnEnable()
         {
@@ -173,6 +183,7 @@ namespace SephiriaEnhancements.MultiplayerRules
 
         internal void Shutdown()
         {
+            NativeLobbyRulesPanel.CloseCurrent();
             EndExploration();
         }
 

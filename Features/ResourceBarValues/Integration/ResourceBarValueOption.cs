@@ -43,7 +43,6 @@ namespace SephiriaEnhancements.ResourceBarValues
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
-            ResourceBarValueSettings.Changed += Refresh;
             Refresh();
         }
 
@@ -76,7 +75,6 @@ namespace SephiriaEnhancements.ResourceBarValues
         private void OnDisable()
         {
             if (box != null) box.OnValueChanged -= Changed;
-            ResourceBarValueSettings.Changed -= Refresh;
         }
 
         private void Changed(int value)

@@ -12,8 +12,8 @@ internal static class ResourceBarValueChecks
         {
             var texts = new Dictionary<string, string>();
             ResourceBarValueLocalization.Register((_, key, value) => texts.Add(key, value), new[] { language });
-            if (texts.Count != 24 || !texts.Keys.ToHashSet().SetEquals(english.Keys) || texts.Values.Any(string.IsNullOrWhiteSpace))
-                throw new InvalidOperationException("Resource bar settings require nine label/help pairs, batch action and on/off text");
+            if (texts.Count != 20 || !texts.Keys.ToHashSet().SetEquals(english.Keys) || texts.Values.Any(string.IsNullOrWhiteSpace))
+                throw new InvalidOperationException("Resource bar settings require nine label/help pairs and on/off text");
             if (language == "unsupported-language" && texts.Any(entry => entry.Value != english[entry.Key]))
                 throw new InvalidOperationException("Resource bar settings must fall back as one complete English group");
         }

@@ -41,11 +41,9 @@ namespace SephiriaEnhancements.Configuration
         }
 
         internal static void MarkCategory(GameObject target,
-            OptionsCategory category, bool requiresCustomPreset = false,
-            int multiplayerRuleGroup = -1)
+            OptionsCategory category)
         {
-            target.AddComponent<OptionsCategoryMember>().Configure(category,
-                requiresCustomPreset, multiplayerRuleGroup);
+            target.AddComponent<OptionsCategoryMember>().Configure(category);
         }
     }
 }

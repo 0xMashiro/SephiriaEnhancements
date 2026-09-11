@@ -68,25 +68,21 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             }
         }
 
-        internal static void CopyCustomParticipantValues(int sourceParticipantCount,
-            int targetParticipantCount)
-        {
-            if (sourceParticipantCount < 1 || sourceParticipantCount > 4)
-                throw new ArgumentOutOfRangeException(nameof(sourceParticipantCount));
-            if (targetParticipantCount < 1 || targetParticipantCount > 4)
-                throw new ArgumentOutOfRangeException(nameof(targetParticipantCount));
-
-            foreach (MultiplayerRuleDefinition definition in
-                MultiplayerRuleCatalog.All)
-            {
-                WriteCustomValue(definition.Id, targetParticipantCount,
-                    ReadCustomValue(definition.Id, sourceParticipantCount));
-            }
-        }
-
         internal static void Save()
         {
             OptionsBinding.Instance?.DeviceOptions?.Save();
+        }
+
+        internal static void Apply(MultiplayerRulesDraft draft, int participants)
+        {
+            var rules = draft.RulesForCurrentTeam(participants, Read());
+            WritePreset(draft.Preset);
+            WriteCustomHealthCombination(draft.HealthCombination);
+            WriteAllowExternalRuleStacking(draft.AllowExternalStacking);
+            foreach (var definition in MultiplayerRuleCatalog.All)
+                for (int count = 1; count <= 4; count++)
+                    WriteCustomValue(definition.Id, count, rules.Get(definition.Id, count));
+            Save();
         }
 
         private static MultiplayerRuleValue<float> ReadCustomValue(

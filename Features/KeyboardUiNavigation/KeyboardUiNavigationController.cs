@@ -207,6 +207,14 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                 return;
             }
 
+            // Input dialogs and their settings rows can restore focus after Enable
+            // queued an entry request. Do not replace that valid selection next frame.
+            if ((panel is UI_OptionsPanel || panel is UI_MessageBox_InputYesNo) &&
+                KeyboardUiSelection.IsInPanel(panel, eventSystem.currentSelectedGameObject))
+            {
+                ClearPendingSelection();
+                return;
+            }
             GameObject selectable = KeyboardUiSelection.FindPanelEntry(panel, pendingSelectable);
             if (selectable == null || !KeyboardUiSelection.IsInControlStack(selectable))
             {

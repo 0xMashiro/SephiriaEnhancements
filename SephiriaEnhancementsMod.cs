@@ -365,6 +365,8 @@ namespace SephiriaEnhancements
                 typeof(SephiriaEnhancements.Runtime.GameBridge.Inventory.
                     UniqueEffectRegistrationTracePatch),
                 typeof(MultiplayerRulesNetworkSessionEndPatch),
+                typeof(MultiplayerRulesLobbyDeparturePatch),
+                typeof(NativeLobbyRulesEntryPatch),
                 typeof(MultiplayerRulesExplorationStartPatch)
             })
             {

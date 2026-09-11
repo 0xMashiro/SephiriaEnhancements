@@ -14,19 +14,7 @@ namespace SephiriaEnhancements.Configuration
     }
     internal static class OptionsCategoryVisibility
     {
-        internal static bool IsVisible(OptionsCategory memberCategory,
-            OptionsCategory selectedCategory, bool requiresCustomPreset,
-            bool customPresetVisible, int memberMultiplayerRuleGroup,
-            int selectedMultiplayerRuleGroup)
-        {
-            if (memberCategory != selectedCategory ||
-                requiresCustomPreset && !customPresetVisible)
-            {
-                return false;
-            }
-            return memberMultiplayerRuleGroup < 0 ||
-                memberMultiplayerRuleGroup == selectedMultiplayerRuleGroup;
-        }
+        internal static bool IsVisible(OptionsCategory memberCategory, OptionsCategory selectedCategory) => memberCategory == selectedCategory;
     }
     internal static class OptionsCategoryLocalization
     {

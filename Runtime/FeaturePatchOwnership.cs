@@ -173,6 +173,8 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.MultiplayerRules.Integration.MoneyAwardRulePatch":
                 case "SephiriaEnhancements.MultiplayerRules.Integration.MonsterSpawnEntryMultiplierPatch":
                 case "SephiriaEnhancements.MultiplayerRules.Integration.MultiplayerRulesExplorationStartPatch":
+                case "SephiriaEnhancements.MultiplayerRules.Integration.MultiplayerRulesLobbyDeparturePatch":
+                case "SephiriaEnhancements.MultiplayerRules.Integration.NativeLobbyRulesEntryPatch":
                 case "SephiriaEnhancements.MultiplayerRules.Integration.MultiplayerRulesNetworkSessionEndPatch":
                 case "SephiriaEnhancements.MultiplayerRules.Integration.NetworkSpawnOriginCapturePatch":
                 case "SephiriaEnhancements.MultiplayerRules.Integration.PlayerMoneyAwardAmountPatch":

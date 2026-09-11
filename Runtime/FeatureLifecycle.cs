@@ -98,6 +98,9 @@ namespace SephiriaEnhancements
         {
             switch (feature)
             {
+                case FeatureId.EffectStats:
+                    CleanupFeature(feature, EffectStats.Integration.NativeEffectStatsView.DisposeAll);
+                    break;
                 case FeatureId.Inventory:
                     CleanupFeature(feature, () => inventoryOptimization?.StopAfterFeatureFailure());
                     break;

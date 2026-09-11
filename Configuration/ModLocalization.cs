@@ -1258,6 +1258,7 @@ namespace SephiriaEnhancements.Configuration
             MapEnhancements.MapEnhancementsLocalization.Register(addText, languages);
             MapEnhancements.MapNavigationLocalization.Register(addText, languages);
             ModJournal.ModJournalLocalization.Register(addText, languages);
+            EffectStats.EffectStatsLocalization.Register(addText, languages);
             OptionsCategoryLocalization.Register(addText, languages);
             SettingsInteractionLocalization.Register(addText, languages);
             CombatVisualLocalization.Register(addText, languages);

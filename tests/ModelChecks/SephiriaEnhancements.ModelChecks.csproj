@@ -167,4 +167,5 @@
     <Compile Include="../../Features/Inventory/Core/InventoryGroupRelocation.cs" />
     <Compile Include="../../Features/Inventory/Core/InventoryLayoutRefinement.cs" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../../Features/EffectStats/EffectStatsLocalization.cs" /></ItemGroup>
 </Project>

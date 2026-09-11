@@ -10,7 +10,7 @@ namespace SephiriaEnhancements.Runtime
         MapEnhancements, KeyboardUiNavigation, CombatVisuals, CombatRelationOutlines,
         NativeCompanion, ViewDistance, ResourceBarValues, DefeatRetry,
         MultiplayerRules, MultiplayerAccess, ModJournal, Settings, ModInformation,
-        DeveloperTools
+        DeveloperTools, EffectStats
     }
 
     // Failure belongs to the loaded Mod instance, not to a floor or exploration.

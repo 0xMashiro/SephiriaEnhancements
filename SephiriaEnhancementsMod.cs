@@ -251,6 +251,7 @@ namespace SephiriaEnhancements
                 typeof(NativeReportDismissal),
                 typeof(NativeStatisticsPauseEntry),
                 typeof(ModJournalRefreshPatch),
+                typeof(EffectStats.Integration.EffectStatsPanelPatch),
                 typeof(ModJournalClearPatch),
                 typeof(ModJournalCategoryPatch),
                 typeof(ModJournalTutorialPatch),
@@ -481,6 +482,7 @@ namespace SephiriaEnhancements
             CleanupFeature(FeatureId.AutoCasting, () => NativeAutoCastingUi.DisposeAll());
             UnpatchFeatures();
             CleanupFeature(FeatureId.ModJournal, () => NativeModJournal.DisposeAll());
+            CleanupFeature(FeatureId.EffectStats, EffectStats.Integration.NativeEffectStatsView.DisposeAll);
 
             multiplayerRulesCompatibilityAvailable = false;
             multiplayerRuleBehaviorPatchesAttempted = false;

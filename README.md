@@ -39,6 +39,7 @@ Search is bounded and does not guarantee an optimal layout or maximum combat dam
 ## Features
 
 - **Combat:** damage, DPS, battle reports, hit streaks, resource values and ally/enemy outlines.
+- **Effect attributes:** the character menu's special-stat page shows additional nonzero bonuses for Solar Blade, Frost Relic, Storm Cloud, Planet, magic, Burn and Electrocution. An active Solar Blade also shows normal-throw damage before hit resolution. This does not cover every item or effect.
 - **Controls:** keyboard menu and reward navigation, automatic targeting and manual target lock.
 - **Exploration:** map overlay, People / Places lists, NPC tracking and camera distance from **75% to 200%**.
   Town maps include map destinations and preparation facilities. When fast travel is available, travel near a person or facility, or use a map destination's assigned landing point.

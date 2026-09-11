@@ -8,6 +8,7 @@ namespace SephiriaEnhancements.Runtime
         {
             switch (patchType.FullName)
             {
+                case "SephiriaEnhancements.EffectStats.Integration.EffectStatsPanelPatch": return FeatureId.EffectStats;
                 case "SephiriaEnhancements.Integration.NativePresetSavePatch": return FeatureId.Inventory;
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingManualInputPatch":
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingOptionsPatch":

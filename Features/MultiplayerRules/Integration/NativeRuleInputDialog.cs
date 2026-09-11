@@ -9,31 +9,41 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             Func<bool> canEdit, Action<MultiplayerRuleValue<float>> save,
             UnityEngine.GameObject returnSelection)
         {
-            var holder = UIManager.Instance?.GetElement<UI_MessageBoxHolder>();
-            if (holder == null) return null;
-            var dialog = (UI_MessageBox_InputYesNo)holder.OpenInputYesNoPrefab(prompt,
+            var dialog = UIManager.Instance?.GetElement<UI_MessageBox_InputYesNo>();
+            if (dialog == null || dialog.IsOpened) return null;
+            dialog.Open(prompt,
                 text =>
                 {
                     if (canEdit() && MultiplayerRuleInput.TryParse(text, definition, out var value)) save(value);
                 }, null, initial, "", true);
             dialog.input.characterLimit = 16;
-            dialog.input.onValueChanged.AddListener(text =>
-                dialog.yesButton.interactable = canEdit() && MultiplayerRuleInput.TryParse(text, definition, out _));
-            dialog.yesButton.interactable = canEdit() && MultiplayerRuleInput.TryParse(initial, definition, out _);
-            dialog.defaultSelectable = dialog.input.gameObject;
-            if (EventSystem.current != null)
-                EventSystem.current.SetSelectedGameObject(dialog.input.gameObject);
-            RestoreSelection(dialog, returnSelection);
-            return dialog;
-        }
-
-        private static void RestoreSelection(UI_MessageBox dialog, UnityEngine.GameObject returnSelection)
-        {
-            dialog.onCloseMessageBox += _ =>
+            var navigation = dialog.gameObject.AddComponent<NativeRuleInputNavigation>();
+            navigation.Configure(dialog, definition, () => dialog.yesButton.onClick.Invoke());
+            UnityEngine.Events.UnityAction<string> submit = navigation.Submit;
+            dialog.input.onSubmit.AddListener(submit);
+            UnityEngine.Events.UnityAction<string> validate = text =>
             {
+                dialog.yesButton.interactable = canEdit() && MultiplayerRuleInput.TryParse(text, definition, out _);
+                navigation.RefreshFeedback(text);
+            };
+            dialog.input.onValueChanged.AddListener(validate);
+            validate(initial);
+            dialog.defaultSelectable = navigation.InitialSelection;
+            if (EventSystem.current != null)
+                EventSystem.current.SetSelectedGameObject(navigation.InitialSelection);
+            Action<UI_MessageBox> closed = null;
+            closed = _ =>
+            {
+                dialog.input.onValueChanged.RemoveListener(validate);
+                dialog.input.onSubmit.RemoveListener(submit);
+                navigation.Release();
+                dialog.onCloseMessageBox -= closed;
+                dialog.yesButton.interactable = true;
                 if (returnSelection != null && returnSelection.activeInHierarchy && EventSystem.current != null)
                     EventSystem.current.SetSelectedGameObject(returnSelection);
             };
+            dialog.onCloseMessageBox += closed;
+            return dialog;
         }
     }
 }

@@ -15,9 +15,31 @@ namespace SephiriaEnhancements.MultiplayerRules
         private static bool allowExternalRuleStackingForExploration;
         private readonly MultiplayerRulesSession session = new MultiplayerRulesSession();
         private float nextLobbyPublish;
+        private bool announceExploration;
+        private readonly NativeLobbyRulesPoint lobbyPoint = new();
 
         private void Update()
         {
+            try
+            {
+                lobbyPoint.Update();
+                if (announceExploration && NetworkServer.active && currentActiveRules != null)
+                {
+                    var player = SephiriaEnhancements.Integration.LocalPlayerResolver.Resolve();
+                    var floor = player == null ? null : FloorGenerator.FindByGuid(player.currentFloorGuid);
+                    if (player != null && player.loadingScreenType == -1 && floor?.DataOnServer != null &&
+                        !string.IsNullOrEmpty(floor.DataOnServer.stageName) && !DungeonManager.Instance.IsInMultiZone(player))
+                    {
+                        announceExploration = false;
+                        NativeRulesBroadcast.Send(currentActiveRules, ServerParticipantCountReader.Read());
+                    }
+                }
+            }
+            catch (System.Exception exception)
+            {
+                lobbyPoint.Dispose();
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+            }
             if (!NetworkServer.active || Time.unscaledTime < nextLobbyPublish ||
                 !FeatureFailure.IsAvailable(FeatureId.MultiplayerRules)) return;
             nextLobbyPublish = Time.unscaledTime + 2f;
@@ -48,6 +70,7 @@ namespace SephiriaEnhancements.MultiplayerRules
 
         private void OnDisable()
         {
+            lobbyPoint.Dispose();
             if (currentController == this) currentController = null;
         }
 
@@ -116,12 +139,14 @@ namespace SephiriaEnhancements.MultiplayerRules
             MultiplayerRulesLobbySnapshotCoordinator.ClearPublishedSnapshot();
             EnemyHealthAdjustmentBridge.SetResolver(null);
             currentController?.session.EndExploration();
+            if (currentController != null) currentController.announceExploration = false;
             currentActiveRules = null;
             allowExternalRuleStackingForExploration = false;
         }
 
         internal void BeginServerExploration(bool isSavedExploration)
         {
+            announceExploration = true;
             allowExternalRuleStackingForExploration =
                 PreferredMultiplayerRulesStore.ReadAllowExternalRuleStacking();
             MultiplayerSessionSnapshot multiplayer =
@@ -183,6 +208,7 @@ namespace SephiriaEnhancements.MultiplayerRules
 
         internal void Shutdown()
         {
+            lobbyPoint.Dispose();
             NativeLobbyRulesPanel.CloseCurrent();
             EndExploration();
         }

@@ -124,7 +124,8 @@ namespace SephiriaEnhancements.Inventory
                 out GridInventory _, out openPanel);
             if (!visible)
             {
-                TrackInventorySelection();
+                lastInventorySelection = null;
+                lastCustomSelection = null;
                 SuspendEditing();
                 panelOpen = false;
                 preferencesExpanded = false;
@@ -943,6 +944,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void RefreshPickupControls()
         {
+            if (root == null) return;
             foreach (IntentSlot slot in prioritySlots.Concat(avoidSlots))
             {
                 slot.Icon.enabled = slot.Icon.sprite != null;
@@ -1497,6 +1499,11 @@ namespace SephiriaEnhancements.Inventory
             boardHint = null;
             comboTargetsTitle = null;
             lastCustomSelection = null;
+            lastInventorySelection = null;
+            requestOptimization = null;
+            replacePreferences = null;
+            togglePriorityMarking = null;
+            endPriorityMarking = null;
             currentSnapshot = null;
             goalEditor?.Dispose();
             goalEditor = null;

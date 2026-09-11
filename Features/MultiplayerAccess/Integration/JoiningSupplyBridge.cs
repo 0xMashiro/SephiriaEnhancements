@@ -4,6 +4,7 @@ using Mirror;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.MultiplayerAccess.Presentation;
 using UnityEngine;
+using SephiriaEnhancements.Integration;
 
 namespace SephiriaEnhancements.MultiplayerAccess.Integration
 {
@@ -18,6 +19,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
         { internal int Revision, SelectionRevision, Weapon, Instance; internal uint Object; internal ItemPosition Position; }
         private struct Status : NetworkMessage
         {
+            internal long NoticeId;
             internal int Revision, Remaining;
             internal bool Prepared, RecordedFromStart;
             internal byte Result;
@@ -34,12 +36,16 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
         private static int announcedRevision = -1;
         private static bool announce;
         private static bool restoreAnvil;
+        private static long nextNoticeId;
+        private static readonly JoiningSupplyNoticeState notices = new();
+        private static NetworkConnectionToServer noticeConnection;
         internal static bool Available => MidRunAdmissionRuntime.IsAvailable && current.Prepared && current.Remaining > 0;
         internal static bool IsCurrent(uint objectId) => objectId != 0 && current.Object == objectId;
 
         internal static void Initialize()
         {
             current = default; announce = false; restoreAnvil = false; announcedRevision = -1;
+            nextNoticeId = 0; notices.Reset(); noticeConnection = null;
             Writer<Hello>.write = (writer, message) => writer.WriteByte(message.Version);
             Reader<Hello>.read = reader => new Hello { Version = reader.ReadByte() };
             Writer<Request>.write = (writer, message) => writer.WriteInt(message.Revision);
@@ -64,6 +70,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             };
             Writer<Status>.write = (writer, message) =>
             {
+                writer.WriteLong(message.NoticeId);
                 writer.WriteInt(message.Revision); writer.WriteInt(message.Remaining);
                 writer.WriteBool(message.Prepared); writer.WriteBool(message.RecordedFromStart); writer.WriteByte(message.Result);
                 writer.WriteUInt(message.Object);
@@ -72,6 +79,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             };
             Reader<Status>.read = reader => new Status
             {
+                NoticeId = reader.ReadLong(),
                 Revision = reader.ReadInt(), Remaining = reader.ReadInt(), Prepared = reader.ReadBool(),
                 RecordedFromStart = reader.ReadBool(), Result = reader.ReadByte(), Object = reader.ReadUInt(), Selection = reader.ReadString(),
                 SelectionRevision = reader.ReadInt()
@@ -89,7 +97,17 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             if (clientRegistered) NetworkClient.UnregisterHandler<Status>();
             serverRegistered = false; clientRegistered = false; connection = null;
             current = default; peers.Clear(); lastRequest.Clear(); announce = false; restoreAnvil = false;
+            notices.Reset(); noticeConnection = null;
             if (NetworkServer.active && DungeonManager.Instance != null) DungeonManager.Instance.constValueDictionary.Remove(ProtocolKey);
+        }
+
+        internal static void NotifyHostUnavailable()
+        {
+            if (!NetworkServer.active) return;
+            // Only negotiated Mod peers receive this state, never the native chat channel.
+            foreach (var peer in peers.Keys)
+                if (peer.isReady && peer != NetworkServer.localConnection)
+                    peer.Send(new Status { Result = 6, NoticeId = ++nextNoticeId });
         }
 
         internal static void Tick()
@@ -100,7 +118,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                 {
                     NetworkServer.RegisterHandler<Hello>((peer, hello) => FeatureFailure.Run(FeatureId.MultiplayerAccess, () =>
                     {
-                        if (hello.Version == 1) peers[peer] = new Status { Revision = -1 };
+                        if (hello.Version == 2) peers[peer] = new Status { Revision = -1 };
                     }));
                     NetworkServer.RegisterHandler<Request>((peer, request) => FeatureFailure.Run(FeatureId.MultiplayerAccess, () =>
                     {
@@ -118,25 +136,29 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                     serverRegistered = true;
                 }
                 if (MidRunAdmissionRuntime.IsAvailable && DungeonManager.Instance != null)
-                    DungeonManager.Instance.constValueDictionary[ProtocolKey] = 1;
+                    DungeonManager.Instance.constValueDictionary[ProtocolKey] = 2;
             }
             else { serverRegistered = false; peers.Clear(); lastRequest.Clear(); }
             if (!NetworkClient.active)
             {
                 clientRegistered = false; connection = null; current = default; announce = false; announcedRevision = -1;
+                notices.Reset(); noticeConnection = null;
                 return;
             }
             if (!clientRegistered)
             {
-                NetworkClient.RegisterHandler<Status>(status => FeatureFailure.Run(FeatureId.MultiplayerAccess, () => Receive(status)));
+                NetworkClient.RegisterHandler<Status>(status => FeatureFailure.Run(FeatureId.MultiplayerAccess, () =>
+                {
+                    if (!NetworkServer.active) Receive(status);
+                }));
                 clientRegistered = true;
             }
             if (connection != NetworkClient.connection) current = default;
             if (NetworkClient.ready && NetworkClient.connection != null && connection != NetworkClient.connection &&
-                DungeonManager.Instance != null && DungeonManager.Instance.constValueDictionary.TryGetValue(ProtocolKey, out int version) && version == 1)
+                DungeonManager.Instance != null && DungeonManager.Instance.constValueDictionary.TryGetValue(ProtocolKey, out int version) && version == 2)
             {
                 connection = NetworkClient.connection;
-                if (!NetworkServer.active) NetworkClient.Send(new Hello { Version = 1 });
+                if (!NetworkServer.active) NetworkClient.Send(new Hello { Version = 2 });
             }
             if (announce && NetworkClient.localPlayer != null &&
                 NativeJoiningSupplyRecipes.CanOpen(NetworkClient.localPlayer.GetComponent<PlayerAvatar>()))
@@ -144,7 +166,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                 announce = false;
                 string message = string.Format(ModLocalization.Get(JoiningSupplyLocalization.Ready), current.Remaining);
                 if (!current.RecordedFromStart) message += "\n" + ModLocalization.Get(JoiningSupplyLocalization.MissingHistory);
-                UIManager.Instance.GetElement<UI_SystemMessage>().Open(message, 6f);
+                NativeModNotifications.ShortText(() => message, 6f);
             }
             if (restoreAnvil && NetworkClient.spawned.TryGetValue(current.Object, out var objectIdentity) &&
                 objectIdentity.TryGetComponent<Anvil>(out var anvil))
@@ -192,22 +214,37 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             lastRequest[peer] = Time.unscaledTime;
             bool success = NativeJoiningSupplies.Instance.Request(peer.identity?.GetComponent<PlayerSpawner>(), revision);
             var status = Read(peer);
+            status.NoticeId = ++nextNoticeId;
             if (status.Result != 3) status.Result = success ? (status.Object == 0 ? (byte)4 : (byte)1) : (byte)2;
             if (peer == NetworkServer.localConnection) Receive(status); else peer.Send(status);
         }
 
         private static void Receive(Status status)
         {
+            if (!ReferenceEquals(noticeConnection, NetworkClient.connection))
+            {
+                notices.Reset(); noticeConnection = NetworkClient.connection;
+                current = default; announce = false; restoreAnvil = false; announcedRevision = -1;
+            }
+            if (status.NoticeId > 0 && !notices.TakeReply(status.NoticeId)) return;
             if (current.Equals(status)) return;
             restoreAnvil = !string.IsNullOrEmpty(status.Selection) && (restoreAnvil || current.Object != status.Object || current.Selection != status.Selection);
             current = status;
             if (status.Prepared && status.Remaining > 0 && announcedRevision != status.Revision)
             { announcedRevision = status.Revision; announce = true; }
-            if (status.Result == 0 || UIManager.Instance == null) return;
+            if (status.Result == 0) return;
             string key = status.Result == 1 ? JoiningSupplyLocalization.Placed :
+                status.Result == 6 ? JoiningSupplyLocalization.HostUnavailable :
                 status.Result == 3 ? JoiningSupplyLocalization.Failed : status.Result == 4 ? JoiningSupplyLocalization.Claimed :
                 status.Result == 5 ? JoiningSupplyLocalization.ChoiceChanged : JoiningSupplyLocalization.Unavailable;
-            UIManager.Instance.GetElement<UI_SystemMessage>().Open(ModLocalization.Get(key), 4f);
+            if (status.Result == 6)
+                NativeModNotifications.Important("joining/host-disabled", () => ModLocalization.Get(key));
+            else if (status.Result == 3)
+            {
+                if (notices.TakeFailure(status.Revision))
+                    NativeModNotifications.Important("joining/" + status.Revision, () => ModLocalization.Get(key));
+            }
+            else NativeModNotifications.Short(key, 4f);
         }
 
         internal static void SelectMiracle(uint objectId, string id, int instance)
@@ -222,6 +259,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             bool success = NativeJoiningSupplies.Instance.SelectMiracle(peer.identity?.GetComponent<PlayerSpawner>(),
                 choice.Revision, choice.Object, choice.Id, choice.Instance);
             var status = Read(peer);
+            status.NoticeId = ++nextNoticeId;
             if (!success && status.Result != 3) status.Result = 5;
             if (peer == NetworkServer.localConnection) Receive(status); else peer.Send(status);
         }
@@ -247,6 +285,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             bool success = NativeJoiningSupplies.Instance.SelectFacility(peer.identity?.GetComponent<PlayerSpawner>(),
                 choice.Revision, choice.SelectionRevision, choice.Object, choice.Weapon, choice.Position, choice.Instance);
             var status = Read(peer);
+            status.NoticeId = ++nextNoticeId;
             if (!success && status.Result != 3) status.Result = 5;
             if (peer == NetworkServer.localConnection) Receive(status); else peer.Send(status);
         }

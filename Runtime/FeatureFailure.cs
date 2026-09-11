@@ -18,19 +18,11 @@ namespace SephiriaEnhancements.Runtime
     {
         private static readonly HashSet<FeatureId> failed = new();
         private static readonly Queue<FeatureId> pending = new();
-        private static bool noticePending;
-        private static bool noticeConsumed;
+        private static readonly HashSet<FeatureId> notices = new();
         internal static Action<FeatureId, Exception> Report;
 
-        internal static bool HasPendingNotice => noticePending && !noticeConsumed;
-
-        internal static bool ConsumeNotice()
-        {
-            if (!HasPendingNotice) return false;
-            noticeConsumed = true;
-            noticePending = false;
-            return true;
-        }
+        internal static FeatureId[] PendingNotices => new List<FeatureId>(notices).ToArray();
+        internal static void AcknowledgeNotice(FeatureId feature) => notices.Remove(feature);
 
         internal static bool IsAvailable(FeatureId feature) => !failed.Contains(feature);
 
@@ -38,7 +30,7 @@ namespace SephiriaEnhancements.Runtime
         {
             failed.Clear();
             pending.Clear();
-            noticePending = noticeConsumed = false;
+            notices.Clear();
             Report = null;
         }
 
@@ -46,8 +38,8 @@ namespace SephiriaEnhancements.Runtime
         {
             if (!failed.Add(feature)) return;
             pending.Enqueue(feature);
-            if (feature != FeatureId.Gameplay && feature != FeatureId.DeveloperTools && !noticeConsumed)
-                noticePending = true;
+            if (feature != FeatureId.Gameplay && feature != FeatureId.DeveloperTools)
+                notices.Add(feature);
             // Reporting must never replace the exception we are containing.
             try { Report?.Invoke(feature, exception); }
             catch (Exception) { }

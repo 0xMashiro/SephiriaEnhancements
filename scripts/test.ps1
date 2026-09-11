@@ -25,6 +25,23 @@ foreach ($directory in @('Configuration', 'Diagnostics', 'Features', 'Integratio
 }
 Write-Host 'Native text sizing boundary passed.'
 
+# Standalone Mod messages share one local native adapter; feature bridges own network results.
+foreach ($directory in @('Configuration', 'Features', 'Runtime')) {
+    foreach ($source in Get-ChildItem -LiteralPath (Join-Path $repoRoot $directory) -Recurse -Filter '*.cs' -File) {
+        if ((Get-Content -LiteralPath $source.FullName -Raw) -match 'GetElement<UI_SystemMessage>|\.SpawnLog\(|\.OpenYes\(') {
+            throw "Use NativeModNotifications for standalone messages: $($source.Name)"
+        }
+    }
+}
+$notifications = Get-Content -LiteralPath (Join-Path $repoRoot 'Integration/NativeModNotifications.cs') -Raw
+if ($notifications -match 'DungeonManager|NetworkClient\.Send|NetworkServer\.Send') {
+    # Mentioning the forbidden chat API in a comment is not a network call.
+    if (($notifications -replace '(?m)//[^\r\n]*', '') -match 'DungeonManager|NetworkClient\.Send|NetworkServer\.Send') {
+        throw 'The local notification adapter must not send network messages.'
+    }
+}
+Write-Host 'Local notification boundary passed.'
+
 # New localization groups must participate in automatic coverage checks.
 $modelDirectory = Split-Path -Parent $modelProject
 $modelXml = [xml](Get-Content -LiteralPath $modelProject -Raw)

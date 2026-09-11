@@ -49,7 +49,7 @@ Search is bounded and does not guarantee an optimal layout or maximum combat dam
 Most display and control improvements start enabled. Retry after defeat, hidden-room display, mouse aim assist
 and the combat companion start **off**. Multiplayer rules start at **Original**, camera distance at **100%**.
 
-In the multiplayer lobby, open **Team rules** from the multiplayer menu or settings. The host edits a draft and applies it together; closing without applying discards it. Starting an exploration locks its rules,
+In the multiplayer lobby, approach the **Team rules** stone beside Roots’ Retreat and use the game’s interaction action to open the panel. The host edits a draft and applies it together. Applying changes broadcasts a summary through game chat; entering exploration announces the final rules once. These ordinary chat messages also reach players without the Mod and use the host’s game language; closing without applying discards it. Starting an exploration locks its rules,
 and continuing a saved exploration keeps its saved rules. The panel detects the current team size. Adjust enemy health, damage, spawning, rewards and supplies directly without choosing a preset first. Explanations compare original player scaling with the adjustment and include applicable calculation examples. Reset names the current team size. Joining or leaving updates the display with a notice; applying saves numerical changes for the current team size only. Other players view the host's applied rules.
 The Mod's main switch is locked during exploration,
 while connected to another host, and while a reconnect is pending. Display options remain individually adjustable.
@@ -117,9 +117,11 @@ Each area remembers its selected slot until the backpack closes; returning resto
 
 ## In-game help
 
+Standalone Mod notices use the `[Sephiria Enhancements]` prefix. Errors and important interrupted operations appear in the local chat log; routine feedback uses short native messages. These local notices are not broadcast as player chat. The chat log is temporary; use the Mod log when reporting an error.
+
 Settings are grouped into **General**, **Combat and Display**, **Bars and Numbers**, **Controls and Camera**, **Multiplayer**, and **About and Updates**. Version information and update checks are in the last category.
 
-When the Mod is off, its settings categories are hidden and saved choices are retained. In custom multiplayer rules, click a numeric value or use the confirm action to open an input dialog; arrows still adjust one step. The dialog shows the current team size, available game references, range and step. Clear the input to restore that rule to game behavior. Reference values describe the part controlled by the setting, not final enemy statistics.
+When the Mod is off, its settings categories are hidden and saved choices are retained. In custom multiplayer rules, click a numeric value or use the confirm action to open an input dialog; numeric rows no longer use adjustment arrows. Enter confirms input, Esc cancels, and Tab / Shift+Tab move between the field and buttons; controllers can use the on-screen number pad. Confirmation updates the draft; apply it from the main panel. The panel compares original, applied and draft values and counts unapplied changes. The dialog shows the current team size, available game references, range and step. Clear the input to restore that rule to game behavior. Reference values describe the part controlled by the setting, not final enemy statistics.
 
 On first entering a game after launch, the Mod shows the Mod and game versions and official Nexus Mods / GitHub links
 in the local chat log. **About and Updates** settings include the version, both download pages, a welcome-message

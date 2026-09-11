@@ -25,9 +25,7 @@ namespace SephiriaEnhancements.Integration
         internal static void Show(string key)
         {
             if (key == null) return;
-            UI_SystemMessage message =
-                UIManager.Instance?.GetElement<UI_SystemMessage>();
-            message?.Open(ModLocalization.Get(key), 2f);
+            NativeModNotifications.Short(key);
         }
     }
 }

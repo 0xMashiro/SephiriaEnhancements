@@ -6,6 +6,12 @@ internal static class JoiningSupplyChecks
 {
     internal static void Run()
     {
+        var notices = new JoiningSupplyNoticeState();
+        Require(notices.TakeReply(1) && !notices.TakeReply(1) && !notices.TakeReply(0), "Duplicate and stale replies must not notify again.");
+        Require(notices.TakeReply(3) && !notices.TakeReply(2), "Replies must not roll back to an older operation.");
+        Require(notices.TakeFailure(4) && !notices.TakeFailure(4) && notices.TakeFailure(5), "Failure state must notify once per revision.");
+        notices.Reset();
+        Require(notices.TakeReply(1) && notices.TakeFailure(4), "A new connection owns its own reply and failure identities.");
         Require(JoiningSupplyLedger.Mean(new[] { 10, 30 }) == 20, "Mean level must not average cumulative experience.");
         Require(JoiningSupplyLedger.Mean(new[] { int.MaxValue, int.MaxValue }) == int.MaxValue, "Mean must not overflow.");
         Require(JoiningSupplyLedger.Mean(new[] { 1, 2 }) == 1, "Fractional levels round down.");

@@ -72,26 +72,16 @@ namespace SephiriaEnhancements
                 }
             }
             NativeRetryFailure.Tick();
+            NativeModNotifications.Tick();
             ShowFailureNotice();
         }
 
         private void ShowFailureNotice()
         {
-            if (!FeatureFailure.HasPendingNotice || NativeRetryFailure.IsPending) return;
-            try
-            {
-                var message = UIManager.Instance?.GetElement<UI_SystemMessage>();
-                if (message == null || message.IsOpened) return;
-                // Never take control or replace a native message. Consume before opening,
-                // so a broken notification API cannot retry every frame.
-                if (!FeatureFailure.ConsumeNotice() || message.hasControl) return;
-                message.Open(Configuration.ModLocalization.Get(FeatureFailureLocalization.Message), 4f);
-            }
-            catch (Exception exception)
-            {
-                FeatureFailure.ConsumeNotice();
-                SupportLogger.Failure("feature_failure_notice_unavailable", exception);
-            }
+            FeatureId[] features = FeatureFailure.PendingNotices;
+            if (features.Length == 0) return;
+            if (NativeModNotifications.Chat(() => FeatureFailureLocalization.Describe(features, Configuration.ModLocalization.Get)))
+                foreach (FeatureId feature in features) FeatureFailure.AcknowledgeNotice(feature);
         }
 
         private void StopFeature(FeatureId feature)
@@ -118,6 +108,7 @@ namespace SephiriaEnhancements
                     CleanupFeature(feature, () => multiplayerRules?.Shutdown());
                     break;
                 case FeatureId.MultiplayerAccess:
+                    CleanupFeature(feature, MultiplayerAccess.Integration.JoiningSupplyBridge.NotifyHostUnavailable);
                     CleanupFeature(feature, () => MidRunAdmissionRuntime.SetIntegrationAvailable(false));
                     break;
                 case FeatureId.Gameplay:

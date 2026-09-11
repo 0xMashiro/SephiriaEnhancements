@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Linq;
 using UnityEngine;
 
 namespace SephiriaEnhancements.Diagnostics
@@ -41,7 +42,13 @@ namespace SephiriaEnhancements.Diagnostics
 
         internal static void Failure(string code, Exception exception)
         {
-            Record(code, "exception=" + (exception?.GetType().FullName ?? "unknown"), "ERROR");
+            // Method identities help locate the failure without copying messages, arguments or file paths.
+            var cause = exception?.GetBaseException();
+            var frames = cause == null ? null : new System.Diagnostics.StackTrace(cause, false).GetFrames();
+            string methods = frames == null ? "" : string.Join(" > ", frames.Select(frame => frame.GetMethod())
+                .Where(method => method != null).Select(method => method.DeclaringType?.FullName + "." + method.Name));
+            Record(code, "exception=" + (exception?.GetType().FullName ?? "unknown") +
+                " cause=" + (cause?.GetType().FullName ?? "unknown") + " methods=" + methods, "ERROR");
         }
 
         internal static void Info(string code, object message)

@@ -31,7 +31,9 @@ namespace SephiriaEnhancements.Inventory
         private InventoryOptimizationSearch search;
         private NativeInventoryLayoutApplication application;
         private float nextRequestAt;
+        private int notificationOperation;
         private bool compatible = true;
+        private bool shutdown;
         private float nextPriorityVisualRefreshAt;
         private InventoryIntentResultFeedback intentFeedback;
 
@@ -83,6 +85,9 @@ namespace SephiriaEnhancements.Inventory
 
         internal void Shutdown()
         {
+            if (shutdown) return;
+            shutdown = true;
+            if (this != null) enabled = false;
             if (Current == this) Current = null;
             compatible = false;
             InventoryArtifactIntentClickPatch.SetController(null);
@@ -105,7 +110,6 @@ namespace SephiriaEnhancements.Inventory
             LastAppliedOutcome = null;
             SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, hud.Dispose);
             runtimeKernel = null;
-            enabled = false;
         }
 
         internal static bool TryHandleKeyboardTab() =>
@@ -371,6 +375,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void TryStartOptimization()
         {
+            notificationOperation++;
             if (NativeInventoryIntentDrop.HasHeldItem || hud.HasArtifactPickup)
             {
                 ShowMessage(InventoryOptimizationLocalization.FinishMovingItem);
@@ -771,9 +776,9 @@ namespace SephiriaEnhancements.Inventory
             }
             finally
             {
-                // Stop issuing requests; already issued native moves are not rolled back.
-                ResetOperationState();
-                enabled = false;
+                // Release the failed feature as well as stopping requests. Native moves
+                // already issued are not rolled back by cleanup.
+                Shutdown();
             }
         }
         private void ResetOperationState()
@@ -797,20 +802,21 @@ namespace SephiriaEnhancements.Inventory
             bool hasIssuedOperation = application?.State.HasIssuedOperation == true;
             SupportLogger.Record("inventory_operation_stopped", "code=" + key +
                 " operationIssued=" + hasIssuedOperation);
-            string text = InventoryOptimizationLocalization.FormatOperationMessage(
+            Func<string> text = () => InventoryOptimizationLocalization.FormatOperationMessage(
                 key, hasIssuedOperation, ModLocalization.Get);
-            var message = UIManager.Instance?.GetElement<UI_SystemMessage>();
-            message?.Open(text, hasIssuedOperation ? 4f : 2f);
-            if (message != null && key == InventoryOptimizationLocalization.DisabledAfterError)
-                FeatureFailure.ConsumeNotice();
+            if (hasIssuedOperation || key == InventoryOptimizationLocalization.DisabledAfterError)
+                NativeModNotifications.Important("inventory/" + notificationOperation, text, onShown: () =>
+                {
+                    if (key == InventoryOptimizationLocalization.DisabledAfterError)
+                        FeatureFailure.AcknowledgeNotice(FeatureId.Inventory);
+                });
+            else NativeModNotifications.ShortText(text);
         }
 
         private static void ShowMessage(string key)
         {
             SupportLogger.Record("inventory_message", "code=" + key);
-            UI_SystemMessage message =
-                UIManager.Instance?.GetElement<UI_SystemMessage>();
-            message?.Open(Loc._(key), 2f);
+            NativeModNotifications.Short(key);
         }
     }
 }

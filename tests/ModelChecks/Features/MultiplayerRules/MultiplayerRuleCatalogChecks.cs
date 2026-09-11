@@ -7,7 +7,19 @@ internal static class MultiplayerRuleCatalogChecks
     internal static void Run()
     {
         CheckDraft();
+        foreach (char character in "wasdWASDeE+- ")
+            if (MultiplayerRuleInput.ValidateCharacter("", 0, character) != '\0')
+                throw new InvalidOperationException("Numeric editing must reject letters and non-numeric characters");
+        if (MultiplayerRuleInput.ValidateCharacter("2", 1, ',') != '.' ||
+            MultiplayerRuleInput.ValidateCharacter("2.5", 3, '.') != '\0' ||
+            MultiplayerRuleInput.ValidateCharacter("", 0, '0') != '0')
+            throw new InvalidOperationException("Numeric editing must accept digits and one decimal separator");
         var health = MultiplayerRuleCatalog.Get(MultiplayerRuleId.StandardBossHealthMultiplier);
+        if (MultiplayerRuleInput.Validate("abc", health, out _) != MultiplayerRuleInputError.Number ||
+            MultiplayerRuleInput.Validate("9", health, out _) != MultiplayerRuleInputError.Range ||
+            MultiplayerRuleInput.Validate("2.53", health, out _) != MultiplayerRuleInputError.Step ||
+            MultiplayerRuleInput.Validate("", health, out _) != MultiplayerRuleInputError.None)
+            throw new InvalidOperationException("Input errors must distinguish format, range, increments and restore");
         foreach (string input in new[] { "2.5", "2,5", " 2.50 ", "2.5×" })
             if (!MultiplayerRuleInput.TryParse(input, health, out var parsed) ||
                 !parsed.TryGetOverride(out float number) || number != 2.5f)

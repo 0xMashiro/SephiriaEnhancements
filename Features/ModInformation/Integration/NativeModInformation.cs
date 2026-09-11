@@ -44,6 +44,7 @@ namespace SephiriaEnhancements.ModInformation.Integration
         private bool automaticRequest;
         private float nextPoll;
         private string lastReadiness;
+        private bool pendingCheckFailure;
 
         private void Awake()
         {
@@ -104,6 +105,12 @@ namespace SephiriaEnhancements.ModInformation.Integration
                 if (check.IsFaulted)
                     _ = check.Exception;
                 ProcessState.LastCheckedUtc = DateTime.UtcNow;
+                pendingCheckFailure = ProcessState.Result.Status == ModUpdateStatus.Failed ||
+                    ProcessState.Result.Status == ModUpdateStatus.ConnectionFailed ||
+                    ProcessState.Result.Status == ModUpdateStatus.TimedOut ||
+                    ProcessState.Result.Status == ModUpdateStatus.RateLimited ||
+                    ProcessState.Result.Status == ModUpdateStatus.ServiceError ||
+                    ProcessState.Result.Status == ModUpdateStatus.InvalidResponse;
                 SupportLogger.Record("mod_update_check_completed", "status=" + ProcessState.Result.Status +
                     " httpStatus=" + ProcessState.Result.HttpStatus);
                 check = null;
@@ -111,7 +118,7 @@ namespace SephiriaEnhancements.ModInformation.Integration
                 cancellation = null;
             }
 
-            UI_HUDLogViewer viewer = ReadyViewer(out string readiness);
+            ReadyViewer(out string readiness);
             if (OptionsBinding.Instance?.DeviceOptions == null)
                 readiness = "settings_unavailable";
             if (lastReadiness != readiness)
@@ -124,14 +131,18 @@ namespace SephiriaEnhancements.ModInformation.Integration
                 return;
             if (ProcessState.EnterGameplay(EnhancementsSettings.Enabled && ModInformationSettings.ShowWelcome))
             {
-                WriteLines(viewer, string.Format(ModLocalization.Get(ModInformationLocalization.Welcome), "SEPHIRIA ENHANCEMENTS · by 0xMashiro", InstalledVersion, Application.version) + "\nNexus Mods: " + ModOfficialLinks.Nexus + "\nGitHub: " + ModOfficialLinks.GitHub);
-                SupportLogger.Record("mod_welcome_written", "lines=5");
+                NativeModNotifications.Chat(() => string.Format(ModLocalization.Get(ModInformationLocalization.Welcome), "SEPHIRIA ENHANCEMENTS · by 0xMashiro", InstalledVersion, Application.version).Replace("\n", " · ") + "\nNexus Mods: " + ModOfficialLinks.Nexus + "\nGitHub: " + ModOfficialLinks.GitHub);
+                SupportLogger.Record("mod_welcome_written", "lines=3");
             }
 
             if (ProcessState.BeginAutomaticCheck(automaticEnabled))
                 StartCheck(true);
             if (ProcessState.TakeUpdateNotice(automaticEnabled))
-                WriteLines(viewer, string.Format(ModLocalization.Get(ModInformationLocalization.Update), Result.Version, InstalledVersion, ModOfficialLinks.Nexus, ModOfficialLinks.GitHub));
+                NativeModNotifications.Chat(() => string.Format(ModLocalization.Get(ModInformationLocalization.Update), Result.Version, InstalledVersion, ModOfficialLinks.Nexus, ModOfficialLinks.GitHub));
+            if (pendingCheckFailure && NativeModNotifications.Chat(() =>
+                ModLocalization.Get(ModInformationLocalization.Check) + ": " +
+                ModLocalization.Get(ModInformationLocalization.StatusKey(Result.Status))))
+                pendingCheckFailure = false;
         }
 
         internal static UI_HUDLogViewer ReadyViewer() => ReadyViewer(out _);
@@ -161,14 +172,10 @@ namespace SephiriaEnhancements.ModInformation.Integration
             return viewer;
         }
 
-        private static void WriteLines(UI_HUDLogViewer viewer, string message)
-        {
-            foreach (string line in message.Split('\n')) viewer.SpawnLog(line, Color.cyan);
-        }
-
         internal void StartCheck(bool automatic = false)
         {
             if (check != null) return;
+            pendingCheckFailure = false;
             SupportLogger.Record("mod_update_check_started", "automatic=" + automatic);
             automaticRequest = automatic;
             ProcessState.Result = new ModUpdateResult(ModUpdateStatus.Checking);

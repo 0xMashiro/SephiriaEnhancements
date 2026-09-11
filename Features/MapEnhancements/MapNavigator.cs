@@ -48,11 +48,12 @@ namespace SephiriaEnhancements.MapEnhancements
         private MapNavigationMode mode;
         private readonly TextMeshProUGUI modeBindings;
         private bool initialRoomFocusPending;
+        private bool initialPlayerFocusPending = true;
         private float fitScale = 1f, zoom = 1f;
         internal float Scale => fitScale * zoom;
         internal GameObject DefaultSelection => mode == MapNavigationMode.Rooms
             ? RoomSelection() ?? roomsButton.gameObject
-            : rows.Count > 0 ? rows[0].gameObject : mode == MapNavigationMode.People ? peopleButton.gameObject : placesButton.gameObject;
+            : mode == MapNavigationMode.People ? peopleButton.gameObject : placesButton.gameObject;
 
         private GameObject RoomSelection() => roomNavigation?.FirstSelection(
             LocalPlayerResolver.Resolve()?.transform.position ?? Vector3.zero) ??
@@ -240,7 +241,7 @@ namespace SephiriaEnhancements.MapEnhancements
                     rows[i].SetForceNavDown(i + 1 < rows.Count ? rows[i + 1] : rows[i]);
                     rows[i].SetForceNavLeft(rows[i]);
                 }
-                if (selected == null || !filtered.Contains(selected)) selected = filtered.Count > 0 ? filtered[0] : null;
+                if (selected != null && !filtered.Contains(selected)) selected = null;
                 if (focused != null && rows.Count > 0)
                 {
                     int index = rowEntries.IndexOf(focused);
@@ -282,7 +283,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 if (index >= 0) listContent.anchoredPosition = new Vector2(0,
                     Mathf.Clamp(index * 18 - 62, 0, Mathf.Max(0, rows.Count * 18 - 142)));
             }
-            if (center)
+            if (center && !initialPlayerFocusPending)
             {
                 Vector2 position = viewport.InverseTransformPoint(marker.transform.position);
                 Rect safe = viewport.rect;
@@ -298,12 +299,22 @@ namespace SephiriaEnhancements.MapEnhancements
             panel.contentsParent.anchoredPosition += viewport.rect.center - (Vector2)viewport.InverseTransformPoint(worldPoint);
         }
 
+        private void FocusLocalPlayerIfPending()
+        {
+            if (!initialPlayerFocusPending) return;
+            PlayerAvatar player = LocalPlayerResolver.Resolve();
+            if (player == null || player.currentFloorGuid != geometry.Floor.guid ||
+                !geometry.Contains(player.transform.position)) return;
+            Center(map.contentsChild.TransformPoint(geometry.Project(player.transform.position)));
+            initialPlayerFocusPending = false;
+        }
+
         internal void Fit()
         {
             Canvas.ForceUpdateCanvases();
             Vector2 size = map.rectTransform.rect.size;
             fittedViewportSize = viewport.rect.size;
-            fitScale = Mathf.Min(1f, Mathf.Min(viewport.rect.width / Mathf.Max(1, size.x), viewport.rect.height / Mathf.Max(1, size.y)) * .9f);
+            fitScale = Mathf.Min(viewport.rect.width / Mathf.Max(1, size.x), viewport.rect.height / Mathf.Max(1, size.y)) * .9f;
             zoom = 1; ApplyScale();
             Center(map.rectTransform.TransformPoint(map.rectTransform.rect.center));
         }
@@ -370,6 +381,7 @@ namespace SephiriaEnhancements.MapEnhancements
                         break;
                     }
             centeredRoomSelection = roomSelection;
+            FocusLocalPlayerIfPending();
             UIInputModule input = UIInputModule.current;
             InputAction trackAction = NativeInputActions.FindShortcut(PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.SwitchLockedTarget);
             if (trackAction?.WasPressedThisFrame() == true) ToggleTracking();
@@ -444,7 +456,7 @@ namespace SephiriaEnhancements.MapEnhancements
         {
             if (mode == MapNavigationMode.Rooms) { FocusRooms(); return; }
             int index = rowEntries.IndexOf(selected);
-            EventSystem.current?.SetSelectedGameObject(index >= 0 ? rows[index].gameObject : peopleButton.gameObject);
+            EventSystem.current?.SetSelectedGameObject(rows.Count > 0 ? rows[Mathf.Max(0, index)].gameObject : DefaultSelection);
         }
 
         private void UpdateNavigation()

@@ -65,7 +65,7 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
             "Home" => MapPlaceKind.Home,
             "Weapon" => MapPlaceKind.Weapons,
             "Downstair" => MapPlaceKind.Departure,
-            "MultiDoor" => MapPlaceKind.Gate,
+            "MultiDoor" => MapPlaceKind.MultiplayerGate,
             "Tree_Mini" or "Towntree" => MapPlaceKind.Tree,
             "Training" => MapPlaceKind.Training,
             "Costume" or "Costume_Mini" => MapPlaceKind.Clothing,
@@ -75,6 +75,13 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
 
         internal static MapPlaceKind FacilityKind(Interactable target)
         {
+            if (target is MultiplayerRules.Integration.NativeLobbyRulesInteraction) return MapPlaceKind.TeamRules;
+            if (target.GetComponent<OpenMultiplayerPanel>() != null) return MapPlaceKind.MultiplayerGate;
+            if (target.GetComponent<NetConnectedPortal>() is NetConnectedPortal portal &&
+                portal.direction == NetConnectedPortal.EDirection.GoToMyTown) return MapPlaceKind.TownReturnPortal;
+            if (target.GetComponent<GoToNextStage_MultiZone>() != null) return MapPlaceKind.Departure;
+            if (target.GetComponent<OpenHardModePanel>() != null) return MapPlaceKind.RootsRetreat;
+            if (target.GetComponent<ClientTreeShopOpenObject>() != null) return MapPlaceKind.DestinyInscription;
             if (target is TownWeaponStand) return MapPlaceKind.Weapons;
             if (target.GetComponent<CostumeSelector>() != null) return MapPlaceKind.Clothing;
             if (target.GetComponent<AbilitySelector>() != null) return MapPlaceKind.Talents;
@@ -103,8 +110,10 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
                 MapPlaceKind.Home => MapNavigationLocalization.Home,
                 MapPlaceKind.Weapons => MapNavigationLocalization.Weapons,
                 MapPlaceKind.Departure => MapNavigationLocalization.Departure,
-                MapPlaceKind.Gate => MapNavigationLocalization.Gate,
+                MapPlaceKind.MultiplayerGate => MapNavigationLocalization.MultiplayerGate,
+                MapPlaceKind.TownReturnPortal => MapNavigationLocalization.TownReturnPortal,
                 MapPlaceKind.Tree => MapNavigationLocalization.Tree,
+                MapPlaceKind.TeamRules => MultiplayerRules.Presentation.MultiplayerRulesLocalization.LobbyTitle,
                 _ => null
             };
             if (modKey != null) return ModLocalization.Get(modKey);
@@ -119,6 +128,8 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
                 MapPlaceKind.Presets => "UI_PresetPanel",
                 MapPlaceKind.Shop => "Message_KiKiShop_Sign",
                 MapPlaceKind.Town => "Message_TheRabbittown",
+                MapPlaceKind.RootsRetreat => "UI_HardModePanel_Title",
+                MapPlaceKind.DestinyInscription => "UI_TreeShopPanel_Title",
                 _ => null
             };
             return nativeKey == null ? null : KeywordDatabase.Convert(Loc._(nativeKey),

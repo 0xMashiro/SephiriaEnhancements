@@ -13,7 +13,7 @@ namespace SephiriaEnhancements.Inventory
             AccessTools.FieldRefAccess<UI_HorayButton, Selectable>("forceNavLeft");
         private static readonly AccessTools.FieldRef<UI_HorayButton, Selectable> Right =
             AccessTools.FieldRefAccess<UI_HorayButton, Selectable>("forceNavRight");
-        private readonly List<(UI_HorayButton Button, bool Right, Selectable Original)> links = new();
+        private readonly List<(UI_HorayButton Button, bool Right, Selectable Original, Selectable Installed)> links = new();
 
         internal void Refresh(UI_CharacterStatusPanel panel, RectTransform root,
             UI_HorayButton entry, UI_HorayButton returnTarget, bool allowReturnFromEntry = true)
@@ -40,7 +40,7 @@ namespace SephiriaEnhancements.Inventory
         private void Link(UI_HorayButton button, bool right, Selectable target)
         {
             var field = right ? Right : Left;
-            links.Add((button, right, field(button)));
+            links.Add((button, right, field(button), target));
             field(button) = target;
         }
 
@@ -48,7 +48,11 @@ namespace SephiriaEnhancements.Inventory
         {
             foreach (var link in links)
                 if (link.Button != null)
-                    (link.Right ? Right : Left)(link.Button) = link.Original;
+                {
+                    var field = link.Right ? Right : Left;
+                    if (ReferenceEquals(field(link.Button), link.Installed))
+                        field(link.Button) = link.Original != null ? link.Original : null;
+                }
             links.Clear();
         }
     }

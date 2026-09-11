@@ -74,6 +74,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void TrackInventorySelection()
         {
+            if (!NavigationAvailable) return;
             GameObject selected = EventSystem.current?.currentSelectedGameObject;
             if (FindInventoryIcon(selected) != null)
             {
@@ -98,8 +99,9 @@ namespace SephiriaEnhancements.Inventory
 
         private UI_NewInventoryIcon FindInventoryIcon(GameObject candidate)
         {
-            UI_NewInventoryIcon icon = candidate?.GetComponent<UI_NewInventoryIcon>() ??
-                candidate?.GetComponentInParent<UI_NewInventoryIcon>();
+            if (candidate == null || attachedPanel == null || attachedInventoryZone == null) return null;
+            UI_NewInventoryIcon icon = candidate.GetComponent<UI_NewInventoryIcon>();
+            if (icon == null) icon = candidate.GetComponentInParent<UI_NewInventoryIcon>();
             return icon != null && attachedPanel != null &&
                 icon.Inventory == attachedPanel.PlayerAvatar?.Inventory &&
                 icon.transform.IsChildOf(attachedInventoryZone) ? icon : null;
@@ -120,20 +122,23 @@ namespace SephiriaEnhancements.Inventory
 
         private GameObject FindInventoryEntry()
         {
-            Selectable remembered = lastInventorySelection?.GetComponent<Selectable>() ??
-                lastInventorySelection?.GetComponentInParent<Selectable>();
-            if (FindInventoryIcon(lastInventorySelection) != null &&
-                remembered != null && remembered.gameObject.activeInHierarchy &&
-                remembered.IsInteractable())
+            if (attachedPanel == null || attachedInventoryZone == null) return null;
+            if (FindInventoryIcon(lastInventorySelection) != null)
             {
-                return remembered.gameObject;
+                var remembered = lastInventorySelection.GetComponent<Selectable>();
+                if (remembered == null) remembered = lastInventorySelection.GetComponentInParent<Selectable>();
+                if (remembered != null && remembered.gameObject.activeInHierarchy && remembered.IsInteractable())
+                    return remembered.gameObject;
             }
-
-            return attachedPanel?.GetComponentsInChildren<UI_NewInventoryIcon>(true)
-                .Select(icon => icon?.GetComponent<Selectable>())
-                .FirstOrDefault(selectable => selectable != null &&
-                    selectable.gameObject.activeInHierarchy &&
-                    selectable.IsInteractable())?.gameObject;
+            lastInventorySelection = null;
+            foreach (var icon in attachedPanel.GetComponentsInChildren<UI_NewInventoryIcon>(true))
+            {
+                if (icon == null || FindInventoryIcon(icon.gameObject) == null) continue;
+                var selectable = icon.GetComponent<Selectable>();
+                if (selectable != null && selectable.gameObject.activeInHierarchy && selectable.IsInteractable())
+                    return selectable.gameObject;
+            }
+            return null;
         }
 
         private GameObject FindFirstCustomEntry()

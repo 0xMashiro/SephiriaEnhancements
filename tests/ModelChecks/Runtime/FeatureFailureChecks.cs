@@ -19,11 +19,16 @@ internal static class FeatureFailureChecks
         Require(reports == 1 && calls == 1, "failed feature must not run or report repeatedly");
         Require(FeatureFailure.TryTakeFailure(out var failed) && failed == FeatureId.Inventory &&
             !FeatureFailure.TryTakeFailure(out _), "cleanup must run once");
-        Require(FeatureFailure.HasPendingNotice, "a feature failure must request one notice");
+        Require(FeatureFailure.PendingNotices.SequenceEqual(new[] { FeatureId.Inventory }), "a feature failure must name its owner");
         FeatureFailure.Disable(FeatureId.MapEnhancements, new Exception());
-        Require(FeatureFailure.ConsumeNotice() && !FeatureFailure.ConsumeNotice(), "simultaneous faults must share one notice");
+        FeatureFailure.AcknowledgeNotice(FeatureId.Inventory);
+        Require(FeatureFailure.PendingNotices.SequenceEqual(new[] { FeatureId.MapEnhancements }), "specific operation feedback must not swallow another feature's failure");
+        FeatureFailure.AcknowledgeNotice(FeatureId.MapEnhancements);
         FeatureFailure.Disable(FeatureId.AutoCasting, new Exception());
-        Require(!FeatureFailure.HasPendingNotice, "later faults must not interrupt play with more notices");
+        Require(FeatureFailure.PendingNotices.SequenceEqual(new[] { FeatureId.AutoCasting }), "later independent faults remain visible");
+        FeatureFailure.AcknowledgeNotice(FeatureId.AutoCasting);
+        FeatureFailure.Disable(FeatureId.AutoCasting, new Exception());
+        Require(FeatureFailure.PendingNotices.Length == 0, "the same disabled feature must not repeat its notice");
 
         FeatureFailure.Reset();
         FeatureFailure.Report = (_, _) => throw new InvalidOperationException();
@@ -31,10 +36,10 @@ internal static class FeatureFailureChecks
         Require(!FeatureFailure.IsAvailable(FeatureId.Inventory) && !FeatureFailure.IsAvailable(FeatureId.CombatInsights) &&
             !FeatureFailure.IsAvailable(FeatureId.DefeatRetry), "shared state failure must disable its consumers");
         Require(FeatureFailure.IsAvailable(FeatureId.MapEnhancements), "independent features must survive shared state failure");
-        Require(FeatureFailure.ConsumeNotice(), "a new Mod load may show a new failure notice");
+        Require(FeatureFailure.PendingNotices.Length == 3, "dependent failures must remain available for a combined notice");
         FeatureFailure.Reset();
         FeatureFailure.Disable(FeatureId.DeveloperTools, new Exception());
-        Require(!FeatureFailure.HasPendingNotice, "diagnostic failures must not notify the player");
+        Require(FeatureFailure.PendingNotices.Length == 0, "diagnostic failures must not notify the player");
         FeatureFailure.Reset();
         Require(Enum.GetValues<FeatureId>().All(FeatureFailure.IsAvailable), "reload must clear failure state");
         CheckPatchRollback();

@@ -38,6 +38,7 @@ namespace SephiriaEnhancements.Inventory
                 return;
             }
             hud.SuspendEditing();
+            notificationOperation++;
             application = new NativeInventoryLayoutApplication(inventory,
                 new InventoryLayoutApplication(source, runtime, target, plan, settlement,
                     Time.unscaledTime + ApplyTimeout));

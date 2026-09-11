@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SephiriaEnhancements.Configuration;
 
 namespace SephiriaEnhancements.Runtime
@@ -7,25 +8,30 @@ namespace SephiriaEnhancements.Runtime
     internal static class FeatureFailureLocalization
     {
         internal const string Message = "SephiriaEnhancements.FeatureFailure.Message";
-        private static readonly string[] Keys = { Message };
+        private static string FeatureKey(FeatureId feature) => "SephiriaEnhancements.FeatureFailure." + feature;
+        private static readonly string[] Keys = new[] { Message }.Concat(
+            Enum.GetValues(typeof(FeatureId)).Cast<FeatureId>().Select(FeatureKey)).ToArray();
         private static readonly Dictionary<string, string[]> Texts = new()
         {
-            ["en-US"] = new[] { "Some Mod features were disabled after an error. See the Mod log for details." },
-            ["zh-CN"] = new[] { "部分 Mod 功能因错误已停用。详情请查看 Mod 日志。" },
-            ["zh-TW"] = new[] { "部分 Mod 功能因錯誤已停用。詳情請查看 Mod 日誌。" },
-            ["ja-JP"] = new[] { "エラーのため一部の Mod 機能を無効にしました。詳細は Mod ログをご確認ください。" },
-            ["ko-KR"] = new[] { "오류로 일부 Mod 기능이 비활성화되었습니다. 자세한 내용은 Mod 로그를 확인하세요." },
-            ["de-DE"] = new[] { "Einige Mod-Funktionen wurden nach einem Fehler deaktiviert. Details stehen im Mod-Protokoll." },
-            ["es-ES"] = new[] { "Se desactivaron algunas funciones del Mod tras un error. Consulta el registro del Mod." },
-            ["fr-FR"] = new[] { "Certaines fonctions du Mod ont été désactivées après une erreur. Consultez le journal du Mod." },
-            ["it-IT"] = new[] { "Alcune funzioni del Mod sono state disattivate dopo un errore. Consulta il registro del Mod." },
-            ["pl-PL"] = new[] { "Niektóre funkcje Modu wyłączono po błędzie. Szczegóły znajdują się w dzienniku Modu." },
-            ["pt-BR"] = new[] { "Algumas funções do Mod foram desativadas após um erro. Consulte o registro do Mod." },
-            ["ru-RU"] = new[] { "Некоторые функции мода отключены из-за ошибки. Подробности — в журнале мода." },
-            ["sv-SE"] = new[] { "Vissa modfunktioner har inaktiverats efter ett fel. Se moddens logg för mer information." },
-            ["th-TH"] = new[] { "ปิดใช้งานฟังก์ชันบางส่วนของ Mod เนื่องจากข้อผิดพลาด ดูรายละเอียดในบันทึก Mod" },
-            ["tr-TR"] = new[] { "Bir hata nedeniyle bazı Mod özellikleri devre dışı bırakıldı. Ayrıntılar için Mod günlüğüne bakın." }
+            ["en-US"] = new[] { "Disabled after an error: {0}. See the Mod log for details.", "Game state", "Backpack arrangement", "Combat statistics", "Targeting", "Automatic casting", "Map navigation", "Keyboard navigation", "Combat visuals", "Ally and enemy outlines", "Combat companion", "View distance", "Bars and numbers", "Retry after defeat", "Multiplayer rules", "Joining and reconnecting", "Mod help", "Settings", "Version and updates", "Developer tools", "Effect attributes" },
+            ["zh-CN"] = new[] { "以下功能因错误已停用：{0}。详情请查看 Mod 日志。", "游戏状态", "背包整理", "战斗统计", "索敌", "自动施法", "地图导航", "键盘导航", "战斗特效", "敌友轮廓", "战斗伙伴", "镜头距离", "血条与数值", "失败后重试", "多人规则", "加入与重连", "Mod 帮助", "设置", "版本与更新", "开发工具", "效果属性" },
+            ["zh-TW"] = new[] { "以下功能因錯誤已停用：{0}。詳情請查看 Mod 日誌。", "遊戲狀態", "背包整理", "戰鬥統計", "索敵", "自動施法", "地圖導覽", "鍵盤導覽", "戰鬥特效", "敵友輪廓", "戰鬥夥伴", "鏡頭距離", "血條與數值", "失敗後重試", "多人規則", "加入與重連", "Mod 說明", "設定", "版本與更新", "開發工具", "效果屬性" },
+            ["ja-JP"] = new[] { "エラーにより無効になった機能：{0}。詳細は Mod ログをご確認ください。", "ゲーム状態", "バッグ整理", "戦闘統計", "ターゲット選択", "自動詠唱", "マップ案内", "キーボード操作", "戦闘エフェクト", "敵味方の輪郭", "戦闘仲間", "視点距離", "ゲージと数値", "敗北後の再挑戦", "マルチプレイルール", "参加と再接続", "Mod ヘルプ", "設定", "バージョンと更新", "開発ツール", "効果の詳細" },
+            ["ko-KR"] = new[] { "오류로 비활성화된 기능: {0}. 자세한 내용은 Mod 로그를 확인하세요.", "게임 상태", "가방 정리", "전투 통계", "대상 지정", "자동 시전", "지도 탐색", "키보드 탐색", "전투 효과", "아군 및 적 윤곽선", "전투 동료", "시야 거리", "상태 막대와 수치", "패배 후 재도전", "멀티플레이 규칙", "참가 및 재접속", "Mod 도움말", "설정", "버전 및 업데이트", "개발 도구", "효과 속성" },
+            ["de-DE"] = new[] { "Nach einem Fehler deaktiviert: {0}. Details stehen im Mod-Protokoll.", "Spielzustand", "Rucksackanordnung", "Kampfstatistik", "Zielauswahl", "Automatisches Wirken", "Kartennavigation", "Tastaturnavigation", "Kampfeffekte", "Freund- und Feindkonturen", "Kampfbegleiter", "Sichtweite", "Leisten und Zahlen", "Neustart nach Niederlage", "Mehrspielerregeln", "Beitritt und Wiederverbindung", "Mod-Hilfe", "Einstellungen", "Version und Updates", "Entwicklerwerkzeuge", "Effektwerte" },
+            ["es-ES"] = new[] { "Desactivado tras un error: {0}. Consulta el registro del Mod.", "Estado del juego", "Organización de mochila", "Estadísticas de combate", "Selección de objetivo", "Lanzamiento automático", "Navegación del mapa", "Navegación por teclado", "Efectos de combate", "Contornos de aliados y enemigos", "Compañero de combate", "Distancia de cámara", "Barras y cifras", "Reintento tras derrota", "Reglas multijugador", "Entrada y reconexión", "Ayuda del Mod", "Ajustes", "Versión y actualizaciones", "Herramientas de desarrollo", "Atributos de efectos" },
+            ["fr-FR"] = new[] { "Désactivé après une erreur : {0}. Consultez le journal du Mod.", "État du jeu", "Rangement du sac", "Statistiques de combat", "Ciblage", "Lancement automatique", "Navigation sur la carte", "Navigation au clavier", "Effets de combat", "Contours alliés et ennemis", "Compagnon de combat", "Distance de caméra", "Barres et valeurs", "Nouvel essai après défaite", "Règles multijoueurs", "Arrivée et reconnexion", "Aide du Mod", "Paramètres", "Version et mises à jour", "Outils de développement", "Attributs des effets" },
+            ["it-IT"] = new[] { "Disattivato dopo un errore: {0}. Consulta il registro del Mod.", "Stato del gioco", "Organizzazione zaino", "Statistiche di combattimento", "Puntamento", "Lancio automatico", "Navigazione mappa", "Navigazione da tastiera", "Effetti di combattimento", "Contorni alleati e nemici", "Compagno di combattimento", "Distanza visuale", "Barre e valori", "Riprova dopo sconfitta", "Regole multigiocatore", "Ingresso e riconnessione", "Guida del Mod", "Impostazioni", "Versione e aggiornamenti", "Strumenti di sviluppo", "Attributi degli effetti" },
+            ["pl-PL"] = new[] { "Wyłączono po błędzie: {0}. Szczegóły znajdują się w dzienniku Modu.", "Stan gry", "Układ plecaka", "Statystyki walki", "Wybór celu", "Automatyczne rzucanie", "Nawigacja mapy", "Nawigacja klawiaturą", "Efekty walki", "Obrysy sojuszników i wrogów", "Towarzysz walki", "Odległość kamery", "Paski i wartości", "Ponowna próba po porażce", "Zasady wieloosobowe", "Dołączanie i ponowne łączenie", "Pomoc Modu", "Ustawienia", "Wersja i aktualizacje", "Narzędzia programistyczne", "Atrybuty efektów" },
+            ["pt-BR"] = new[] { "Desativado após um erro: {0}. Consulte o registro do Mod.", "Estado do jogo", "Organização da mochila", "Estatísticas de combate", "Seleção de alvo", "Conjuração automática", "Navegação do mapa", "Navegação por teclado", "Efeitos de combate", "Contornos de aliados e inimigos", "Companheiro de combate", "Distância da câmera", "Barras e valores", "Nova tentativa após derrota", "Regras multijogador", "Entrada e reconexão", "Ajuda do Mod", "Configurações", "Versão e atualizações", "Ferramentas de desenvolvimento", "Atributos dos efeitos" },
+            ["ru-RU"] = new[] { "Отключено после ошибки: {0}. Подробности — в журнале мода.", "Состояние игры", "Расстановка в рюкзаке", "Статистика боя", "Выбор цели", "Автоматическое применение", "Навигация по карте", "Навигация клавиатурой", "Боевые эффекты", "Контуры союзников и врагов", "Боевой спутник", "Дальность камеры", "Шкалы и числа", "Повтор после поражения", "Правила сетевой игры", "Вход и переподключение", "Справка мода", "Настройки", "Версия и обновления", "Инструменты разработки", "Параметры эффектов" },
+            ["sv-SE"] = new[] { "Inaktiverat efter ett fel: {0}. Se moddens logg för mer information.", "Speltillstånd", "Ryggsäcksordning", "Stridsstatistik", "Målval", "Automatiska besvärjelser", "Kartnavigering", "Tangentbordsnavigering", "Stridseffekter", "Konturer för vänner och fiender", "Stridsföljeslagare", "Kameraavstånd", "Mätare och siffror", "Försök igen efter nederlag", "Flerspelarregler", "Anslutning och återanslutning", "Moddhjälp", "Inställningar", "Version och uppdateringar", "Utvecklarverktyg", "Effektvärden" },
+            ["th-TH"] = new[] { "ปิดใช้งานเนื่องจากข้อผิดพลาด: {0} ดูรายละเอียดในบันทึก Mod", "สถานะเกม", "จัดกระเป๋า", "สถิติการต่อสู้", "เลือกเป้าหมาย", "ร่ายอัตโนมัติ", "นำทางแผนที่", "นำทางด้วยแป้นพิมพ์", "เอฟเฟกต์การต่อสู้", "เส้นขอบมิตรและศัตรู", "เพื่อนร่วมรบ", "ระยะกล้อง", "แถบและตัวเลข", "ลองใหม่หลังพ่ายแพ้", "กฎผู้เล่นหลายคน", "เข้าร่วมและเชื่อมต่อใหม่", "ความช่วยเหลือ Mod", "การตั้งค่า", "เวอร์ชันและอัปเดต", "เครื่องมือพัฒนา", "ค่าเอฟเฟกต์" },
+            ["tr-TR"] = new[] { "Hata sonrası devre dışı bırakıldı: {0}. Ayrıntılar için Mod günlüğüne bakın.", "Oyun durumu", "Çanta düzenleme", "Savaş istatistikleri", "Hedef seçimi", "Otomatik büyü", "Harita gezintisi", "Klavye gezintisi", "Savaş efektleri", "Dost ve düşman hatları", "Savaş yoldaşı", "Kamera mesafesi", "Çubuklar ve sayılar", "Yenilgiden sonra yeniden deneme", "Çok oyunculu kuralları", "Katılma ve yeniden bağlanma", "Mod yardımı", "Ayarlar", "Sürüm ve güncellemeler", "Geliştirici araçları", "Etki özellikleri" },
         };
+
+        internal static string Describe(IEnumerable<FeatureId> features, Func<string, string> text) => string.Format(text(Message),
+            string.Join(", ", features.OrderBy(feature => feature).Select(feature => text(FeatureKey(feature)))));
 
         internal static void Register(Action<string, string, string> addText, IEnumerable<string> languages) =>
             LocalizationGroup.Register(addText, languages, Keys, Texts);

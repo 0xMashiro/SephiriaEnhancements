@@ -134,6 +134,7 @@ namespace SephiriaEnhancements
             activeInstance?.OnModUnloaded();
             activeInstance = this;
             FeatureFailure.Reset();
+            NativeModNotifications.Reset();
             FeatureFailure.Report = ReportFeatureFailure;
             SupportLogger.Initialize();
             Application.quitting += OnModUnloaded;
@@ -510,11 +511,13 @@ namespace SephiriaEnhancements
             runtimeKernel = null;
             Application.quitting -= OnModUnloaded;
             FeatureFailure.Report = null;
+            NativeModNotifications.Reset();
             SupportLogger.Shutdown();
         }
 
         private void OnStartSessionClientside(bool isSavedSession)
         {
+            NativeModNotifications.ClearContext();
             FeatureFailure.Run(FeatureId.DefeatRetry, () => NativeRetryBoss.ObserveWorldSession(isSavedSession));
             FeatureFailure.Run(FeatureId.AutoCasting, () => autoCasting?.ResetWorld());
             FeatureFailure.Run(FeatureId.DefeatRetry, () => DefeatRetryClientRestore.ObserveWorldSession(isSavedSession));
@@ -532,6 +535,7 @@ namespace SephiriaEnhancements
 
         private void OnLocalGameplayContextChanged(LocalGameplayContextChange change)
         {
+            NativeModNotifications.ClearContext();
             FeatureFailure.Run(FeatureId.AutoCasting, () => autoCasting?.ResetGameplayContext());
             FeatureFailure.Run(FeatureId.Inventory, () => inventoryOptimization?.ResetGameplayContext());
             FeatureFailure.Run(FeatureId.CombatRelationOutlines, () => combatRelationOutlines?.ResetGameplayContext());

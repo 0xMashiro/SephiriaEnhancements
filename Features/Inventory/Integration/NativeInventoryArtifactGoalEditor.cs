@@ -27,13 +27,17 @@ namespace SephiriaEnhancements.Inventory
         private Button decreaseLevel;
         private Button increaseLevel;
 
-        internal bool Visible => levelEditor.activeSelf;
-        internal bool ActiveInHierarchy => levelEditor.activeInHierarchy;
-        internal void SetVisible(bool visible) => levelEditor.SetActive(visible);
-        internal bool Contains(GameObject selected) => selected != null && selected.transform.IsChildOf(levelEditor.transform);
+        internal bool Visible => levelEditor != null && levelEditor.activeSelf;
+        internal bool ActiveInHierarchy => levelEditor != null && levelEditor.activeInHierarchy;
+        internal void SetVisible(bool visible) { if (levelEditor != null) levelEditor.SetActive(visible); }
+        internal bool Contains(GameObject selected) => selected != null && levelEditor != null && selected.transform.IsChildOf(levelEditor.transform);
         internal GameObject Entry => levelMode.IsInteractable() ? levelMode.gameObject : constraintStrength.gameObject;
         internal void SelectEntry() => EventSystem.current?.SetSelectedGameObject(Entry);
-        public void Dispose() => UnityEngine.Object.Destroy(levelEditor);
+        public void Dispose()
+        {
+            if (levelEditor != null) UnityEngine.Object.Destroy(levelEditor);
+            levelEditor = null;
+        }
 
         internal NativeInventoryArtifactGoalEditor(RectTransform parent, TextMeshProUGUI template,
             NativeInventoryOptimizationViewTemplates nativeTemplates, NativeInventoryHudControls controls,

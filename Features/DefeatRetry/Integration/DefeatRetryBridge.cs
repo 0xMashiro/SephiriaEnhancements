@@ -194,6 +194,7 @@ namespace SephiriaEnhancements.Integration
         }
         internal static bool BlocksBossBattle => recovery.BlocksBattle;
         internal static long CurrentRecoveryId => retryId;
+        internal static long LocalRecoveryId => receivedRetryId;
         internal static bool HasRecoveryFailed(long id) => id == retryId && recovery.Status == RetryRecoveryStatus.Failed;
         internal static void FailRecovery()
         {

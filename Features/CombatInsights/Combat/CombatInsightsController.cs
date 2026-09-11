@@ -110,14 +110,21 @@ namespace SephiriaEnhancements.Combat
             }
         }
 
+        private bool shutdown;
+
         internal void Shutdown()
         {
+            if (shutdown) return;
+            shutdown = true;
+            if (this != null) enabled = false;
             retryStatistics.Clear();
             Initialize(null);
             ResetCombatState();
             floorStatistics.Clear();
             if (statisticsBrowser != null) Destroy(statisticsBrowser.gameObject);
-            enabled = false;
+            statisticsBrowser = null;
+            hud.Dispose();
+            hitStreakFeedback.Dispose();
         }
 
         internal IReadOnlyList<PlayerDamageState> Players => ordered;
@@ -751,12 +758,7 @@ namespace SephiriaEnhancements.Combat
             hud.Hide();
             hitStreakFeedback.Hide();
         }
-        private void OnDestroy()
-        {
-            Initialize(null);
-            hud.Dispose();
-            hitStreakFeedback.Dispose();
-        }
+        private void OnDestroy() => Shutdown();
         private void OnApplicationQuit() => DeveloperLogger.Shutdown();
 
         internal void RecordBossDamage(UnitAvatar target, PlayerAvatar owner, float damage,

@@ -165,7 +165,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
                     message = IsPaused ? AutoCastingLocalization.PausedMessage : AutoCastingLocalization.ResumedMessage;
                 }
 
-                UIManager.Instance.GetElement<UI_SystemMessage>()?.Open(ModLocalization.Get(message), 2f);
+                SephiriaEnhancements.Integration.NativeModNotifications.Short(message);
                 // A toggle never sends a cast in the same frame.
                 return;
             }

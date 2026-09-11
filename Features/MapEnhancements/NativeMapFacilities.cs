@@ -25,7 +25,8 @@ namespace SephiriaEnhancements.MapEnhancements
                 }
             }
             if (key == null) return null;
-            return KeywordDatabase.Convert(Loc._(key), useColor: false, useSprite: false);
+            return KeywordDatabase.Convert(Loc._(key), useColor: false, useSprite: false,
+                useDungeonManager: true, disableLink: false);
         }
     }
 }

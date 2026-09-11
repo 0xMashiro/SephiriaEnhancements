@@ -11,6 +11,11 @@ namespace SephiriaEnhancements.Integration
         internal static void Report()
         {
             List<string> missing = new List<string>();
+            Runtime.GameBridge.NativeContractProbe.RequireMethod(typeof(KeywordDatabase),
+                "Convert", missing, typeof(string), typeof(bool), typeof(bool),
+                typeof(bool), typeof(bool));
+            Runtime.GameBridge.NativeContractProbe.RequireMethod(typeof(UnitAvatar),
+                "GetCustomStatUnsafe", missing, typeof(string));
             RequireProperty(typeof(UnitAvatar), "IsInBattle", missing);
             RequireField(typeof(UnitAvatar), "stencilSolidColor", missing);
             RequireField(typeof(UnitAvatar), "canBeTarget", missing);

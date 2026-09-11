@@ -130,7 +130,8 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                 fixedTabletSources: CaptureFixedTabletSources(inventory,
                     tabletProjectionReader),
                 arrangementBonusesEnabled: NativeInventoryRead.Required("arrangement_bonus",
-                    GridInventory.ArrangementBonusEnabled),
+                    () => inventory.UnitAvatar &&
+                        inventory.UnitAvatar.GetCustomStatUnsafe("ARRANGEMENTBONUS") > 0),
                 positionEffects: InventoryPositionEffectReader.Capture(inventory));
             return true;
         }

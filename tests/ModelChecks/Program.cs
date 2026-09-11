@@ -20,6 +20,14 @@ using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
+SephiriaEnhancements.ModelChecks.Features.ModInformation.ModInformationChecks.Run();
+if (args.Contains("--mod-information-only"))
+{
+    LocalizationGroupChecks.Run();
+    LocalizationChecks.Run();
+    return;
+}
+
 if (args.Contains("--joining-supplies-only"))
 {
     MidRunAdmissionChecks.Run();

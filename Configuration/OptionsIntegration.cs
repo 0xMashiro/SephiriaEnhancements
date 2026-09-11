@@ -106,6 +106,7 @@ namespace SephiriaEnhancements.Configuration
             CombatTargetingOptions.Inject(__instance, template, section.transform);
             ViewDistanceOptions.Inject(__instance, template, section.transform);
             DeveloperConsoleOptions.Inject(__instance, template, section.transform);
+            ModInformation.Integration.ModInformationOptions.Inject(__instance, template, section.transform);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             DeveloperToolsOptions.Inject(__instance, template, section.transform);
 #endif
@@ -136,6 +137,14 @@ namespace SephiriaEnhancements.Configuration
             {
                 "Option_SephiriaEnhancements_Enabled",
                 "Option_SephiriaEnhancements_Category",
+                "Option_SephiriaEnhancements_ModInformation_Version",
+                "Option_SephiriaEnhancements_ModInformation_GameVersion",
+                "Option_SephiriaEnhancements_ModInformation_Welcome",
+                "Option_SephiriaEnhancements_ModInformation_Automatic",
+                "Option_SephiriaEnhancements_ModInformation_Check",
+                "Option_SephiriaEnhancements_ModInformation_LastChecked",
+                "Option_SephiriaEnhancements_ModInformation_Nexus",
+                "Option_SephiriaEnhancements_ModInformation_GitHub",
                 "Option_SephiriaEnhancements_NativeCompanion",
                 "Option_SephiriaEnhancements_DefeatRetry",
                 "Option_SephiriaEnhancements_DefeatRetryCutscenes",

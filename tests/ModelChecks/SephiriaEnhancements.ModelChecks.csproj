@@ -8,6 +8,9 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Features/ModInformation/Core/*.cs" Link="ModInformation/%(Filename)%(Extension)" />
+    <Compile Include="../../Features/ModInformation/Integration/ModUpdateCheck.cs" Link="ModInformation/ModUpdateCheck.cs" />
+    <Compile Include="../../Features/ModInformation/ModInformationLocalization.cs" Link="ModInformation/ModInformationLocalization.cs" />
     <Compile Include="../../Configuration/SettingsInteractionPolicy.cs" Link="Configuration/SettingsInteractionPolicy.cs" />
     <Compile Include="../../Configuration/SettingsInteractionLocalization.cs" Link="Configuration/SettingsInteractionLocalization.cs" />
     <Compile Include="../../Features/AutoCasting/AutoCastingLocalization.cs" Link="AutoCasting/AutoCastingLocalization.cs" />

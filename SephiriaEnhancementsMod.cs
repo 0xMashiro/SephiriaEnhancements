@@ -159,6 +159,7 @@ namespace SephiriaEnhancements
             controllerObject = new GameObject("Sephiria Enhancements");
             UnityEngine.Object.DontDestroyOnLoad(controllerObject);
             runtimeKernel = controllerObject.AddComponent<RuntimeKernel>();
+            controllerObject.AddComponent<ModInformation.Integration.NativeModInformation>();
             runtimeKernel.Initialize();
             runtimeKernel.GameplayContextChanged += OnLocalGameplayContextChanged;
             inventoryOptimization =

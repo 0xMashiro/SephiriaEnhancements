@@ -116,6 +116,15 @@ Each area remembers its selected slot until the backpack closes; returning resto
 
 ## In-game help
 
+On first entering a game after launch, the Mod shows the Mod and game versions and official Nexus Mods / GitHub links
+in the local chat log. **General** settings include the version, both download pages, a welcome-message
+toggle, automatic update checks and **Check for updates**. The settings also show the game version and the local time of the last completed check since launch. Checks distinguish connection failures, timeouts, GitHub request limits, service errors and invalid update data; repeat checks are disabled while a request is running. Welcome messages and automatic checks default
+to on while the Mod is enabled; these preferences are saved on your device, not in a character save.
+GitHub is checked in the background once after entering a game. Stable versions check stable releases;
+test versions also check newer test releases. Checks never install files, and a newer version does not
+guarantee compatibility with your game version. Network failures do not prevent playing; use the settings
+to retry or open either official download page.
+
 Hover over or select a Mod setting to read its purpose, controls and limits. Backpack, map and battle-report
 screens show their own controls; hints follow your current bindings. Use the keyboard or gamepad settings
 to rebind Mod shortcuts.

@@ -51,31 +51,15 @@ namespace SephiriaEnhancements.MapEnhancements
                 size.y > 0 ? relative.y / size.y * icon.y : 0);
         }
 
-        internal bool Destination(Vector3 target, out TeleportPoint point, out UI_Map_Room room)
+        internal bool TryGetRoomDestination(Vector3 target, out UI_Map_Room room)
         {
-            point = null; room = null;
-            if (!Contains(target)) return false;
-            if (Designed == null)
-            {
-                room = RoomAt(target);
-                if (!(room is UI_Map_EnhancedProceduralDungeonRoom_Room) &&
-                    !(room is UI_Map_LibraryProceduralDungeonRoom)) return false;
-                var button = room.GetSelectable()?.GetComponent<Selectable>();
-                return button == null || button.IsInteractable();
-            }
-            float nearest = float.PositiveInfinity;
-            foreach (var connection in Designed.mapTeleportConnections)
-            {
-                if (connection.icon == null || !connection.icon.gameObject.activeSelf ||
-                    connection.icon.GetComponent<Selectable>()?.interactable == false ||
-                    connection.point == null || !connection.point.gameObject.activeInHierarchy) continue;
-                Vector3 destination = connection.point.GetTeleportTargetPosition();
-                if (!Contains(destination)) continue;
-                float distance = (destination - target).sqrMagnitude;
-                if (distance >= nearest) continue;
-                nearest = distance; point = connection.point;
-            }
-            return point != null;
+            room = null;
+            if (Designed != null || !Contains(target)) return false;
+            room = RoomAt(target);
+            if (!(room is UI_Map_EnhancedProceduralDungeonRoom_Room) &&
+                !(room is UI_Map_LibraryProceduralDungeonRoom)) return false;
+            var button = room.GetSelectable()?.GetComponent<Selectable>();
+            return button == null || button.isActiveAndEnabled && button.IsInteractable();
         }
     }
 }

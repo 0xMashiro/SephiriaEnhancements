@@ -41,6 +41,7 @@ Search is bounded and does not guarantee an optimal layout or maximum combat dam
 - **Combat:** damage, DPS, battle reports, hit streaks, resource values and ally/enemy outlines.
 - **Controls:** keyboard menu and reward navigation, automatic targeting and manual target lock.
 - **Exploration:** map overlay, People / Places lists, NPC tracking and camera distance from **75% to 200%**.
+  Town maps include map destinations and preparation facilities. When fast travel is available, travel near a person or facility, or use a map destination's assigned landing point.
 - **Backpack:** arrange artifacts around your priorities and highlight rewards matching your preset's favorite combos.
 - **Solo and co-op:** optional combat companion, retry after defeat, mid-run joining/reconnect support and **1–4 player** rule presets.
 

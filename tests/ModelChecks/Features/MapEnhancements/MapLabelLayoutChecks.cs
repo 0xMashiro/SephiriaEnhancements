@@ -78,7 +78,7 @@ internal static class MapLabelLayoutChecks
         var fallback = new Dictionary<string, string>();
         MapNavigationLocalization.Register((_, key, text) => english.Add(key, text), new[] { "en-US" });
         MapNavigationLocalization.Register((_, key, text) => fallback.Add(key, text), new[] { "unsupported" });
-        if (english.Count != 14 || fallback.Count != english.Count ||
+        if (english.Count != 24 || fallback.Count != english.Count ||
             english.Any(pair => fallback[pair.Key] != pair.Value))
             throw new InvalidOperationException("Map navigation must fall back as a complete language group.");
         if (english[MapNavigationLocalization.RoomTravel] == english[MapNavigationLocalization.Travel] ||

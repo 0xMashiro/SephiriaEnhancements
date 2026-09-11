@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System;
+using SephiriaEnhancements.MapEnhancements.Integration;
 
 namespace SephiriaEnhancements.MapEnhancements
 {
@@ -18,6 +19,8 @@ namespace SephiriaEnhancements.MapEnhancements
         internal bool IsPerson { get; private set; }
         internal bool HasQuest { get; private set; }
         internal Transform Target { get; private set; }
+        internal Vector3 WorldPosition { get; private set; }
+        internal NativeMapDestination Destination { get; private set; }
         internal Action Selected;
         internal Action Activated;
         internal Vector2 NameSize => new Vector2(Mathf.Clamp(nameText.GetPreferredValues(label).x + 4, 18, 80), 13);
@@ -66,13 +69,17 @@ namespace SephiriaEnhancements.MapEnhancements
             return marker;
         }
 
-        internal void Set(string text, Vector2 mapPosition, Transform target, bool person, bool quest = false)
+        internal void Set(string text, Vector2 mapPosition, Transform target, bool person,
+            bool quest = false, NativeMapDestination destination = null, Vector3? worldPosition = null)
         {
             rectTransform.anchoredPosition = mapPosition;
             label = text;
             Target = target;
+            WorldPosition = worldPosition ?? target.position;
             IsPerson = person;
             HasQuest = quest;
+            Destination = destination;
+            glyph.gameObject.SetActive(destination == null);
             nameText.text = label;
             NativeLocalizedText.MatchFontSize(glyph, textTemplate);
             NativeLocalizedText.MatchFontSize(nameText, textTemplate);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
 using SephiriaEnhancements.MapEnhancements.Core;
+using SephiriaEnhancements.MapEnhancements.Integration;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -30,7 +31,7 @@ namespace SephiriaEnhancements.MapEnhancements
         private Vector2 fittedViewportSize;
         private GameObject centeredRoomSelection;
         private readonly MapZoomWheel wheel;
-        private readonly UI_ClickToTeleport travel;
+        private readonly NativeMapTravel travel;
         private readonly UI_HorayButton peopleButton, placesButton, fitButton, travelButton, minusButton, plusButton, browseButton, trackButton;
         private readonly TextMeshProUGUI helpText;
         private readonly TextMeshProUGUI focusedName;
@@ -42,7 +43,6 @@ namespace SephiriaEnhancements.MapEnhancements
         private readonly List<UI_HorayButton> rows = new();
         private readonly List<MapLabelBounds> occupied = new();
         private readonly Dictionary<Transform, Vector3> nativeSymbolScales = new();
-        private readonly Dictionary<Selectable, bool> nativeTravelButtons = new();
         private GameObject localRoomSelection;
         private MapLocationMarkerView selected;
         private MapNavigationMode mode;
@@ -98,14 +98,6 @@ namespace SephiriaEnhancements.MapEnhancements
             nativeScroll.movementType = ScrollRect.MovementType.Unrestricted;
             nativeScroll.StopMovement();
             if (geometry.Designed != null)
-            foreach (var nativeTravel in map.GetComponentsInChildren<UI_ClickToTeleport>(true))
-            {
-                var button = nativeTravel.GetComponent<Selectable>();
-                if (button == null) continue;
-                nativeTravelButtons[button] = button.enabled;
-                button.enabled = false;
-            }
-            if (geometry.Designed != null)
             foreach (var connection in geometry.Designed.mapTeleportConnections)
                 if (connection.icon != null && connection.icon.transform.IsChildOf(map.contentsChild))
                     nativeSymbolScales[connection.icon.transform] = connection.icon.transform.localScale;
@@ -116,7 +108,7 @@ namespace SephiriaEnhancements.MapEnhancements
             wheel.Zoom = ScrollZoom;
             uiRoot = Rect("Map Navigation", scrollFrame.parent, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             uiRoot.offsetMin = uiRoot.offsetMax = Vector2.zero;
-            travel = uiRoot.gameObject.AddComponent<UI_ClickToTeleport>();
+            travel = new NativeMapTravel(geometry);
             if (roomNavigation != null)
                 roomsButton = Button(uiRoot, MapNavigationLocalization.Rooms, new Vector2(24, -31), new Vector2(57, 17), () => SetMode(MapNavigationMode.Rooms));
             peopleButton = Button(uiRoot, MapNavigationLocalization.People, new Vector2(roomNavigation != null ? 85 : 24, -31), new Vector2(57, 17), () => SetMode(MapNavigationMode.People));
@@ -401,13 +393,24 @@ namespace SephiriaEnhancements.MapEnhancements
             details.text = mode != MapNavigationMode.Rooms && selected != null ? selected.Label : string.Empty;
             travelButton.gameObject.SetActive(mode != MapNavigationMode.Rooms);
             trackButton.gameObject.SetActive(mode == MapNavigationMode.People);
-            travelButton.interactable = CanTravel(out _);
+            MapTravelState travelState = mode == MapNavigationMode.Rooms
+                ? MapTravelState.Unavailable : travel.State(selected);
+            travelButton.interactable = travelState == MapTravelState.Ready;
             UpdateNavigation();
             peopleButton.text.text = ModLocalization.Get(MapNavigationLocalization.People);
             modeBindings.text = Binding(input?.prevTabUIAction?.action) + " / " + Binding(input?.nextTabUIAction?.action) + "  ↔";
             placesButton.text.text = ModLocalization.Get(MapNavigationLocalization.Places);
             fitButton.text.text = ModLocalization.Get(MapNavigationLocalization.Fit);
-            travelButton.text.text = ModLocalization.Get(geometry.Designed != null ? MapNavigationLocalization.Travel : MapNavigationLocalization.RoomTravel);
+            travelButton.text.text = ModLocalization.Get(selected?.Destination != null
+                ? MapNavigationLocalization.DestinationTravel
+                : geometry.Designed != null ? MapNavigationLocalization.Travel : MapNavigationLocalization.RoomTravel);
+            if (selected != null && travelState != MapTravelState.Ready)
+                travelButton.text.text = ModLocalization.Get(travelState switch
+                {
+                    MapTravelState.MapNotReady => MapNavigationLocalization.MapNotReady,
+                    MapTravelState.NoNearbyLanding => MapNavigationLocalization.NoLanding,
+                    _ => MapNavigationLocalization.TravelUnavailable
+                });
             emptyText.text = ModLocalization.Get(MapNavigationLocalization.Empty);
             minusButton.text.text = "− " + Binding(input?.prevTab2Action?.action);
             plusButton.text.text = "+ " + Binding(input?.nextTab2Action?.action);
@@ -417,7 +420,9 @@ namespace SephiriaEnhancements.MapEnhancements
                 ? string.Format(ModLocalization.Get(MapNavigationLocalization.PanGuide), Binding(UIInputModule.currentModule?.submit?.action))
                 : IsRoomFocused()
                     ? string.Format(ModLocalization.Get(MapNavigationLocalization.SelectRoomGuide), Binding(UIInputModule.currentModule?.submit?.action))
-                    : string.Format(ModLocalization.Get(geometry.Designed != null ? MapNavigationLocalization.Guide : MapNavigationLocalization.RoomGuide), Binding(UIInputModule.currentModule?.submit?.action));
+                    : string.Format(ModLocalization.Get(selected?.Destination != null
+                        ? MapNavigationLocalization.DestinationGuide
+                        : geometry.Designed != null ? MapNavigationLocalization.Guide : MapNavigationLocalization.RoomGuide), Binding(UIInputModule.currentModule?.submit?.action));
             RefreshRowText();
             LayoutLabels();
         }
@@ -564,39 +569,20 @@ namespace SephiriaEnhancements.MapEnhancements
             focusedLeader.SetAsLastSibling(); focusedLabel.SetAsLastSibling();
         }
 
-        private bool CanTravel(out TeleportPoint point)
-        {
-            point = null;
-            PlayerAvatar player = LocalPlayerResolver.Resolve();
-            if (mode == MapNavigationMode.Rooms || selected == null || selected.Target == null || !selected.Target.gameObject.activeInHierarchy ||
-                player == null || player.currentFloorGuid != geometry.Floor.guid ||
-                GameCamera.Instance?.Observer != player || player.IsDead || player.IsInBattle || !player.CanMove ||
-                player.blockMoveByInput > 0 || player.CanFastMove.IsFalse() || ScreenFader.Instance == null || ScreenFader.Instance.IsFading) return false;
-            return geometry.Destination(selected.Target.position, out point, out _);
-        }
-
         private void Travel()
         {
-            if (!CanTravel(out TeleportPoint point)) return;
-            if (point != null)
-            {
-                travel.SetPosition(point);
-                travel.Teleport();
-            }
-            else if (geometry.Destination(selected.Target.position, out _, out var room))
-                room.TeleportToRoom();
+            if (mode != MapNavigationMode.Rooms) travel.Travel(selected);
         }
 
         internal void Clear()
         {
+            travel.Clear();
             roomNavigation?.Clear();
             if (nativeScroll != null) { nativeScroll.StopMovement(); nativeScroll.scrollSensitivity = originalSensitivity; nativeScroll.movementType = originalMovementType; }
             if (scrollFrame != null) { scrollFrame.offsetMin = originalMin; scrollFrame.offsetMax = originalMax; }
             if (map != null) map.rectTransform.localScale = originalScale;
             foreach (var symbol in nativeSymbolScales)
                 if (symbol.Key != null) symbol.Key.localScale = symbol.Value;
-            foreach (var button in nativeTravelButtons)
-                if (button.Key != null) button.Key.enabled = button.Value;
             if (panel != null)
             {
                 panel.contentsParent.sizeDelta = originalContentSize;

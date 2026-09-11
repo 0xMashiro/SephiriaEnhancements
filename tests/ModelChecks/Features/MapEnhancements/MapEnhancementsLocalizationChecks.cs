@@ -34,5 +34,22 @@ internal static class MapEnhancementsLocalizationChecks
             throw new InvalidOperationException(
                 "hidden-room settings must describe undiscovered rooms and the opt-in default");
         Console.WriteLine("MapEnhancementsLocalization: hidden-room scope and complete fallback passed");
+        var navigation = new Dictionary<(string Language, string Key), string>();
+        MapNavigationLocalization.Register((language, key, value) => navigation.Add((language, key), value),
+            SephiriaEnhancements.Configuration.LocalizationLanguages.All.Concat(new[] { "und" }));
+        foreach (string language in SephiriaEnhancements.Configuration.LocalizationLanguages.All)
+        {
+            if (navigation[(language, MapNavigationLocalization.Travel)] == navigation[(language, MapNavigationLocalization.DestinationTravel)] ||
+                navigation[(language, MapNavigationLocalization.TravelUnavailable)] == navigation[(language, MapNavigationLocalization.NoLanding)] ||
+                navigation[(language, MapNavigationLocalization.MapNotReady)] == navigation[(language, MapNavigationLocalization.NoLanding)])
+                throw new InvalidOperationException("Map travel must distinguish nearby placement, authored destinations, loading and no landing found.");
+            _ = string.Format(navigation[(language, MapNavigationLocalization.Guide)], "Confirm");
+            _ = string.Format(navigation[(language, MapNavigationLocalization.DestinationGuide)], "Confirm");
+        }
+        if (navigation[("zh-CN", MapNavigationLocalization.Travel)] != "传送到目标附近" ||
+            navigation[("en-US", MapNavigationLocalization.Travel)].Contains("nearest", StringComparison.OrdinalIgnoreCase) ||
+            navigation[("und", MapNavigationLocalization.DestinationGuide)] != navigation[("en-US", MapNavigationLocalization.DestinationGuide)])
+            throw new InvalidOperationException("Nearby travel must not promise a fixed teleport point; missing languages fall back as a group.");
+        Console.WriteLine("MapNavigationLocalization: nearby placement, exact destinations and distinct unavailability reasons passed");
     }
 }

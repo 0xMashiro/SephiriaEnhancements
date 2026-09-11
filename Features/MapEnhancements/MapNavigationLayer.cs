@@ -182,16 +182,10 @@ namespace SephiriaEnhancements.MapEnhancements
                 interactions = Object.FindObjectsByType<Interactable>(FindObjectsSortMode.None);
                 nextInteractionScanAt = Time.unscaledTime + 1f;
             }
-            foreach (Interactable interaction in interactions)
-            {
-                if (interaction == null || !interaction.isActiveAndEnabled || interaction.hideGuide ||
-                    interaction.interactionType == Interactable.EInteractionType.NoAction ||
-                    !Contains(interaction.transform.position) ||
-                    interaction.GetComponentInParent<UnitAI_NewBasic>() != null ||
-                    !interaction.IsInteractable(player.gameObject)) continue;
-                string text = NativeMapFacilities.Name(interaction);
-                if (!string.IsNullOrWhiteSpace(text)) Label(interaction.transform, text);
-            }
+            foreach (var place in NativeMapPlaces.Collect(geometry, player, interactions))
+                Label(place.Target, NativeMapPlaces.Name(place.Kind), destination: place.Destination,
+                    worldPosition: place.Position,
+                    mapPosition: place.Destination?.MapPosition(map.contentsChild, geometry));
             removed.Clear();
             foreach (var pair in labels)
                 if (pair.Key == null || !visible.Contains(pair.Key)) removed.Add(pair.Key);
@@ -203,7 +197,8 @@ namespace SephiriaEnhancements.MapEnhancements
             navigator?.Sync(labels.Values);
         }
 
-        private void Label(Transform target, string text, bool person = false, bool quest = false)
+        private void Label(Transform target, string text, bool person = false, bool quest = false,
+            NativeMapDestination destination = null, Vector3? worldPosition = null, Vector2? mapPosition = null)
         {
             visible.Add(target);
             if (!labels.TryGetValue(target, out MapLocationMarkerView marker))
@@ -211,7 +206,8 @@ namespace SephiriaEnhancements.MapEnhancements
                 marker = MapLocationMarkerView.Create(root, textTemplate);
                 labels.Add(target, marker);
             }
-            marker.Set(text, Project(target.position), target, person, quest);
+            Vector3 position = worldPosition ?? target.position;
+            marker.Set(text, mapPosition ?? Project(position), target, person, quest, destination, position);
             if (generatedContents && map.defaultSelectable == null)
                 map.defaultSelectable = marker.gameObject;
         }

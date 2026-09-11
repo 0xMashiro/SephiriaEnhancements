@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
@@ -95,11 +96,29 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Postfix(UIBase __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UIBase __instance)
+        {
             // The backpack opens after reward generation and combines control.
             // Seed entry again once that transition has finished.
             if (__instance is UI_CharacterStatusPanel)
-                RewardKeyboardNavigation.RequestFirstReward(
-                    UIManager.Instance?.GetElement<UI_SephiriteRewardPanel>());
+                RewardKeyboardNavigation.RequestFirstReward(UIManager.Instance?.GetElement<UI_SephiriteRewardPanel>());
         }
     }
 
@@ -107,6 +126,25 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     internal static class RewardKeyboardGeneratedSelectionPatch
     {
         private static void Postfix(UI_SephiriteRewardPanel __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_SephiriteRewardPanel __instance)
         {
             RewardKeyboardNavigation.Reset();
             RewardKeyboardNavigation.RequestFirstReward(__instance);
@@ -116,20 +154,76 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     [HarmonyPatch(typeof(UI_SephiriteRewardPanel), nameof(UI_SephiriteRewardPanel.OnClosed))]
     internal static class RewardKeyboardClosedSelectionPatch
     {
-        private static void Postfix() => RewardKeyboardNavigation.Reset();
+        private static void Postfix()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore() => RewardKeyboardNavigation.Reset();
     }
 
     [HarmonyPatch(typeof(UIInputModule), "Update")]
     internal static class RewardKeyboardCancelSelectionPatch
     {
-        private static bool Prefix(UIInputModule __instance) =>
-            __instance != UIInputModule.current || !RewardKeyboardNavigation.TryCancelCarriedReward();
+        private static bool Prefix(UIInputModule __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(UIInputModule __instance) => __instance != UIInputModule.current || !RewardKeyboardNavigation.TryCancelCarriedReward();
     }
 
     [HarmonyPatch(typeof(UIBase), nameof(UIBase.Enable))]
     internal static class RewardKeyboardControlSelectionPatch
     {
         private static void Postfix(UIBase __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UIBase __instance)
         {
             if (__instance is UI_SephiriteRewardPanel reward)
                 RewardKeyboardNavigation.RequestFirstReward(reward);
@@ -140,16 +234,31 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         nameof(UI_NewItemPicker_Controller.PickSephiriteReward))]
     internal static class RewardKeyboardToggleSelectionPatch
     {
-        private static void Prefix(UI_NewItemPicker_Controller __instance,
-            ref UI_SephiriteRewardElement instance)
+        private static void Prefix(UI_NewItemPicker_Controller __instance, ref UI_SephiriteRewardElement instance)
         {
-            if (instance == null ||
-                EventSystem.current?.currentSelectedGameObject != instance.gameObject ||
-                !KeyboardUiSelection.IsInControlStack(instance.gameObject) ||
-                !KeyboardUiNavigationController.WasNativeUiActionPressed(
-                    UIInputModule.currentModule?.submit))
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
                 return;
+            }
 
+            var original_instance = instance;
+            try
+            {
+                PrefixCore(__instance, ref instance);
+            }
+            catch (System.Exception exception)
+            {
+                instance = original_instance;
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(UI_NewItemPicker_Controller __instance, ref UI_SephiriteRewardElement instance)
+        {
+            if (instance == null || EventSystem.current?.currentSelectedGameObject != instance.gameObject || !KeyboardUiSelection.IsInControlStack(instance.gameObject) || !KeyboardUiNavigationController.WasNativeUiActionPressed(UIInputModule.currentModule?.submit))
+                return;
             KeyboardUiNavigationController.CancelSelection(instance.parentPanel);
             // Re-submit at the carried reward's source uses native cancellation,
             // including clearing its icon and rotation. Other rewards still pick.

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Reflection;
 using HarmonyLib;
@@ -30,6 +31,25 @@ namespace SephiriaEnhancements.Integration
         }
 
         private static void Postfix(UnitAvatar __instance, DamageData __0)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance, __0);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UnitAvatar __instance, DamageData __0)
         {
             controller?.RecordDamageDetail(__instance, __0);
         }

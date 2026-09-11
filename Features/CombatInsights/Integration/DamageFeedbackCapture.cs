@@ -42,6 +42,25 @@ namespace SephiriaEnhancements.Integration
 
         private static void Postfix(UnitAvatar __instance, DamageFeedback[] __0)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance, __0);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UnitAvatar __instance, DamageFeedback[] __0)
+        {
             DamageFeedback[] damageFeedbacks = __0;
             if (controller == null || damageFeedbacks == null)
             {
@@ -49,9 +68,7 @@ namespace SephiriaEnhancements.Integration
             }
 
             bool suiteEnabled = EnhancementsSettings.Enabled;
-            bool captureStatistics = suiteEnabled &&
-                ModSettings.DisplayPolicy !=
-                CombatInsightsDisplayPolicy.Disabled;
+            bool captureStatistics = suiteEnabled && ModSettings.DisplayPolicy != CombatInsightsDisplayPolicy.Disabled;
             bool logDamage = DeveloperLogger.IsEnabled;
             bool captureHitStreakFeedback = suiteEnabled && ModSettings.HitStreakFeedback;
             if (!captureStatistics && !logDamage && !captureHitStreakFeedback)
@@ -68,7 +85,6 @@ namespace SephiriaEnhancements.Integration
 
                 UnitAvatar attacker = feedback.attacker;
                 PlayerAvatar owner = ResolvePlayer(attacker);
-
                 if (logDamage)
                 {
                     DeveloperLogger.RecordDamageFeedback(feedback, owner);
@@ -86,12 +102,8 @@ namespace SephiriaEnhancements.Integration
                 }
 
                 UnitAvatar target = feedback.self != null ? feedback.self : __instance;
-                EncounterDamageType damageType = captureStatistics &&
-                    owner != null
-                        ? controller.ResolveDamageType(target, feedback)
-                        : EncounterDamageType.Unknown;
-                if (captureStatistics && owner != null && feedback.msgType <=
-                    (byte)DamageFeedback.EMsgType.Execution)
+                EncounterDamageType damageType = captureStatistics && owner != null ? controller.ResolveDamageType(target, feedback) : EncounterDamageType.Unknown;
+                if (captureStatistics && owner != null && feedback.msgType <= (byte)DamageFeedback.EMsgType.Execution)
                 {
                     // A feedback entry has exactly one statistics owner, even
                     // when its arrival is what starts the boss encounter.

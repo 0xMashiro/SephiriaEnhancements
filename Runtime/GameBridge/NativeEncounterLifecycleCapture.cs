@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 #nullable disable
 using SephiriaEnhancements.Runtime.Inventory;
 
@@ -201,79 +202,275 @@ namespace SephiriaEnhancements.Runtime
     [HarmonyPatch(typeof(NetworkAreaProp), "HookMapElementUsed")]
     internal static class NativeOrdinaryEncounterClearedPatch
     {
-        private static void Postfix(NetworkAreaProp __instance,
-            bool oldValue, bool newValue) =>
-            NativeEncounterLifecycleCapture.ReportOrdinaryCleared(__instance,
-                oldValue, newValue);
+        private static void Postfix(NetworkAreaProp __instance, bool oldValue, bool newValue)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance, oldValue, newValue);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(NetworkAreaProp __instance, bool oldValue, bool newValue) => NativeEncounterLifecycleCapture.ReportOrdinaryCleared(__instance, oldValue, newValue);
     }
 
     [HarmonyPatch(typeof(BossSpawner), "UserCode_RpcStartBattle")]
     internal static class NativeBossEncounterStartedPatch
     {
-        private static void Postfix(BossSpawner __instance) =>
-            NativeEncounterLifecycleCapture.ReportStarted(__instance);
+        private static void Postfix(BossSpawner __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(BossSpawner __instance) => NativeEncounterLifecycleCapture.ReportStarted(__instance);
     }
 
     [HarmonyPatch(typeof(BossSpawner), "UserCode_RpcStopBattle")]
     internal static class NativeBossEncounterDefeatedPatch
     {
-        private static void Postfix(BossSpawner __instance) =>
-            NativeEncounterLifecycleCapture.ReportDefeated(__instance);
+        private static void Postfix(BossSpawner __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(BossSpawner __instance) => NativeEncounterLifecycleCapture.ReportDefeated(__instance);
     }
 
     [HarmonyPatch(typeof(BossSpawner), "UserCode_RpcByeBegin__Boolean")]
     internal static class NativeBossEncounterCompletionStartedPatch
     {
-        private static void Postfix(BossSpawner __instance) =>
-            NativeEncounterLifecycleCapture.ReportCompletionStarted(__instance);
+        private static void Postfix(BossSpawner __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(BossSpawner __instance) => NativeEncounterLifecycleCapture.ReportCompletionStarted(__instance);
     }
 
     [HarmonyPatch(typeof(BossSpawner), "UserCode_RpcByeEnd")]
     internal static class NativeBossEncounterCompletedPatch
     {
-        private static void Postfix(BossSpawner __instance) =>
-            NativeEncounterLifecycleCapture.ReportCompleted(__instance);
+        private static void Postfix(BossSpawner __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(BossSpawner __instance) => NativeEncounterLifecycleCapture.ReportCompleted(__instance);
     }
 
     [HarmonyPatch(typeof(BossSpawner), "UserCode_RpcPhaseChangeBegin")]
     internal static class NativeBossEncounterPausedPatch
     {
-        private static void Postfix(BossSpawner __instance) =>
-            NativeEncounterLifecycleCapture.ReportPaused(__instance);
+        private static void Postfix(BossSpawner __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(BossSpawner __instance) => NativeEncounterLifecycleCapture.ReportPaused(__instance);
     }
 
     [HarmonyPatch(typeof(BossSpawner), "UserCode_RpcPhaseChangeEnd")]
     internal static class NativeBossEncounterResumedPatch
     {
-        private static void Postfix(BossSpawner __instance) =>
-            NativeEncounterLifecycleCapture.ReportResumed(__instance);
+        private static void Postfix(BossSpawner __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(BossSpawner __instance) => NativeEncounterLifecycleCapture.ReportResumed(__instance);
     }
 
     [HarmonyPatch(typeof(SeedBossSpawner), "UserCode_RpcStartBattle")]
     internal static class NativeSeedBossEncounterStartedPatch
     {
-        private static void Postfix(SeedBossSpawner __instance) =>
-            NativeEncounterLifecycleCapture.ReportStarted(__instance);
+        private static void Postfix(SeedBossSpawner __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(SeedBossSpawner __instance) => NativeEncounterLifecycleCapture.ReportStarted(__instance);
     }
 
     [HarmonyPatch(typeof(SeedBossSpawner), "UserCode_RpcStopBattle")]
     internal static class NativeSeedBossEncounterDefeatedPatch
     {
-        private static void Postfix(SeedBossSpawner __instance) =>
-            NativeEncounterLifecycleCapture.ReportDefeated(__instance);
+        private static void Postfix(SeedBossSpawner __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(SeedBossSpawner __instance) => NativeEncounterLifecycleCapture.ReportDefeated(__instance);
     }
 
     [HarmonyPatch(typeof(SeedBossSpawner), "UserCode_RpcByeBegin")]
     internal static class NativeSeedBossEncounterCompletionStartedPatch
     {
-        private static void Postfix(SeedBossSpawner __instance) =>
-            NativeEncounterLifecycleCapture.ReportCompletionStarted(__instance);
+        private static void Postfix(SeedBossSpawner __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(SeedBossSpawner __instance) => NativeEncounterLifecycleCapture.ReportCompletionStarted(__instance);
     }
 
     [HarmonyPatch(typeof(SeedBossSpawner), "UserCode_RpcByeEnd")]
     internal static class NativeSeedBossEncounterCompletedPatch
     {
-        private static void Postfix(SeedBossSpawner __instance) =>
-            NativeEncounterLifecycleCapture.ReportCompleted(__instance);
+        private static void Postfix(SeedBossSpawner __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(SeedBossSpawner __instance) => NativeEncounterLifecycleCapture.ReportCompleted(__instance);
     }
 }

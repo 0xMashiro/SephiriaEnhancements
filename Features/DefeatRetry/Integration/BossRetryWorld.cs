@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -260,14 +261,30 @@ namespace SephiriaEnhancements.DefeatRetry
     [HarmonyPatch(typeof(FloorGenerator), nameof(FloorGenerator.CreateProp))]
     internal static class BossRetryPropRecipePatch
     {
-        private static void Postfix(FloorGenerator __instance, int randomID,
-            PropEntity prop, Vector3 position, Vector3 localScale, XElement options,
-            GameObject __result)
+        private static void Postfix(FloorGenerator __instance, int randomID, PropEntity prop, Vector3 position, Vector3 localScale, XElement options, GameObject __result)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance, randomID, prop, position, localScale, options, __result);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(FloorGenerator __instance, int randomID, PropEntity prop, Vector3 position, Vector3 localScale, XElement options, GameObject __result)
         {
             if (NetworkServer.active)
             {
-                BossRetryWorld.Register(__instance, prop, randomID,
-                    position, localScale, options, __result);
+                BossRetryWorld.Register(__instance, prop, randomID, position, localScale, options, __result);
             }
         }
     }
@@ -275,6 +292,25 @@ namespace SephiriaEnhancements.DefeatRetry
     [HarmonyPatch(typeof(HorayNetworkManager), nameof(HorayNetworkManager.ClearNetworkObjects))]
     internal static class BossRetryPreserveFloorPatch
     {
-        private static bool Prefix() => !DefeatRetryFeature.PreserveBossRetryWorld();
+        private static bool Prefix()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore() => !DefeatRetryFeature.PreserveBossRetryWorld();
     }
 }

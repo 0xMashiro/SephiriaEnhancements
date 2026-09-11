@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using UnityEngine;
 
 namespace SephiriaEnhancements.ResourceBarValues
@@ -18,7 +19,27 @@ namespace SephiriaEnhancements.ResourceBarValues
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.ResourceBarValues))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ResourceBarValues, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -27,6 +48,25 @@ namespace SephiriaEnhancements.ResourceBarValues
         }
 
         private void Refresh()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.ResourceBarValues))
+            {
+                return;
+            }
+
+            try
+            {
+                RefreshCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ResourceBarValues, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void RefreshCore()
         {
             bool enabled = ResourceBarValueSettings.Get(setting);
             box.ChangeValueWithoutNotify(enabled ? 1 : 0);
@@ -40,6 +80,25 @@ namespace SephiriaEnhancements.ResourceBarValues
         }
 
         private void Changed(int value)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.ResourceBarValues))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ResourceBarValues, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
         {
             bool enabled = value == 1;
             ResourceBarValueSettings.Set(setting, enabled);

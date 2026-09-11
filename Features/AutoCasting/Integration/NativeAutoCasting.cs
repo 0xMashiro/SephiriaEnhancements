@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -29,7 +30,26 @@ namespace SephiriaEnhancements.AutoCasting.Integration
         internal string SelectionStateKey(Charm_Magic magic) => !IsSelected(magic) ? AutoCastingLocalization.Off :
             IsPaused ? AutoCastingLocalization.Paused : AutoCastingLocalization.On;
 
-        private void Awake() => Current = this;
+        private void Awake()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return;
+            }
+
+            try
+            {
+                AwakeCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void AwakeCore() => Current = this;
         private void OnDestroy() { if (Current == this) Current = null; }
 
         internal void ResetWorld()
@@ -98,50 +118,75 @@ namespace SephiriaEnhancements.AutoCasting.Integration
 
         private void LateUpdate()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return;
+            }
+
+            try
+            {
+                LateUpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void LateUpdateCore()
+        {
             BindPlayer();
-            if (player == null || actions == null || skills == null || weapon == null) return;
+            if (player == null || actions == null || skills == null || weapon == null)
+                return;
             ownedArtifacts.Clear();
             foreach (Charm_Basic charm in player.Inventory.charms.Values)
                 if (charm is Charm_Magic magic && magic.Item != null)
                     ownedArtifacts.Add(magic.Item.InstanceID);
             selection.Retain(ownedArtifacts);
-
             PlayerInputController input = PlayerInputController.Instance;
-            if (!EnhancementsSettings.Enabled || input == null || !input.isActiveAndEnabled ||
-                input.CombatBehaviour != player || player.loadingScreenType != -1 || player.NetworkaimObject == null ||
-                input.BlockAvatarInput || !InputReady(input) || !Application.isFocused ||
-                UIManager.Instance == null || UIManager.Instance.CurrentControlStack != null ||
-                DungeonManager.Instance == null || !DungeonManager.Instance.isRunStarted ||
-                player.IsDead || Time.timeScale <= 0f) return;
-
+            if (!EnhancementsSettings.Enabled || input == null || !input.isActiveAndEnabled || input.CombatBehaviour != player || player.loadingScreenType != -1 || player.NetworkaimObject == null || input.BlockAvatarInput || !InputReady(input) || !Application.isFocused || UIManager.Instance == null || UIManager.Instance.CurrentControlStack != null || DungeonManager.Instance == null || !DungeonManager.Instance.isRunStarted || player.IsDead || Time.timeScale <= 0f)
+                return;
             if (NativeInputActions.WasPressed(input.playerInput?.actions, ModShortcuts.ToggleAutoCastingPause))
             {
                 bool hasSelection = false;
                 for (int slot = 0; slot < 11; slot++)
-                    if (IsSelected(MagicAt(slot))) { hasSelection = true; break; }
+                    if (IsSelected(MagicAt(slot)))
+                    {
+                        hasSelection = true;
+                        break;
+                    }
+
                 string message = AutoCastingLocalization.SelectFirst;
                 if (hasSelection)
                 {
                     rotation.TogglePause();
                     message = IsPaused ? AutoCastingLocalization.PausedMessage : AutoCastingLocalization.ResumedMessage;
                 }
+
                 UIManager.Instance.GetElement<UI_SystemMessage>()?.Open(ModLocalization.Get(message), 2f);
                 // A toggle never sends a cast in the same frame.
                 return;
             }
 
-            if (IsPaused || !player.CanMove || !skills.CanCast || skills.IsInGlobalCooldown ||
-                weapon.IsCastAnimationRunning || !weapon.DoCastValidation() ||
-                player.GetCustomStatUnsafe("BLOCKCASTMAGIC") > 0) return;
-
+            if (IsPaused || !player.CanMove || !skills.CanCast || skills.IsInGlobalCooldown || weapon.IsCastAnimationRunning || !weapon.DoCastValidation() || player.GetCustomStatUnsafe("BLOCKCASTMAGIC") > 0)
+                return;
             // Space requests by the native global interval and the measured round trip.
             // Failed native requests may be silent; no requests are queued for later execution.
             double interval = Math.Max(0.35, NetworkTime.rtt * 2);
             int index = rotation.Take(Time.unscaledTimeAsDouble, 11, CanRequest, interval);
-            if (index < 0) return;
+            if (index < 0)
+                return;
             requesting = true;
-            try { actions.Cast(NativeSlot(index), AimedPosition(input), input.autoAimedTarget); }
-            finally { requesting = false; }
+            try
+            {
+                actions.Cast(NativeSlot(index), AimedPosition(input), input.autoAimedTarget);
+            }
+            finally
+            {
+                requesting = false;
+            }
         }
 
         private bool CanRequest(int index)
@@ -155,7 +200,25 @@ namespace SephiriaEnhancements.AutoCasting.Integration
     [HarmonyPatch(typeof(IntegratedActionController), nameof(IntegratedActionController.Cast))]
     internal static class AutoCastingManualInputPatch
     {
-        private static void Prefix(IntegratedActionController __instance) =>
-            NativeAutoCasting.Current?.ObserveManualCast(__instance);
+        private static void Prefix(IntegratedActionController __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(IntegratedActionController __instance) => NativeAutoCasting.Current?.ObserveManualCast(__instance);
     }
 }

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Diagnostics;
 using System.Reflection;
 using HarmonyLib;
@@ -17,27 +18,35 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private static void Prefix(UnitAvatar __instance, ref float percent)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            var original_percent = percent;
+            try
+            {
+                PrefixCore(__instance, ref percent);
+            }
+            catch (System.Exception exception)
+            {
+                percent = original_percent;
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(UnitAvatar __instance, ref float percent)
+        {
             int participantCount = ServerParticipantCountReader.Read();
-            if (!MultiplayerRulesController.TryGetActiveOverride(
-                    MultiplayerRuleId.FestivalOfBloodEnemyHealingMultiplier,
-                    participantCount, out float configuredMultiplier))
+            if (!MultiplayerRulesController.TryGetActiveOverride(MultiplayerRuleId.FestivalOfBloodEnemyHealingMultiplier, participantCount, out float configuredMultiplier))
                 return;
             MethodBase caller = new StackFrame(2, false).GetMethod();
-            if (caller?.DeclaringType != typeof(CombatManager) ||
-                caller.Name != nameof(CombatManager.AttackEvent) ||
-                DungeonManager.Instance == null ||
-                !DungeonManager.Instance.hardModeEnvironment.TryGetValue(
-                    NativeFestivalOfBloodEnvironmentKey,
-                    out int environmentLevel) ||
-                environmentLevel <= 0)
+            if (caller?.DeclaringType != typeof(CombatManager) || caller.Name != nameof(CombatManager.AttackEvent) || DungeonManager.Instance == null || !DungeonManager.Instance.hardModeEnvironment.TryGetValue(NativeFestivalOfBloodEnvironmentKey, out int environmentLevel) || environmentLevel <= 0)
                 return;
-
-            string nativeBaseKey = __instance.monsterType == EMonsterType.Boss ||
-                __instance.monsterType == EMonsterType.Miniboss
-                    ? NativeBossAndMinibossHealingKeyword
-                    : NativeRegularEnemyHealingKeyword;
-            percent = KeywordDatabase.GetConstValue(nativeBaseKey) *
-                environmentLevel * configuredMultiplier;
+            string nativeBaseKey = __instance.monsterType == EMonsterType.Boss || __instance.monsterType == EMonsterType.Miniboss ? NativeBossAndMinibossHealingKeyword : NativeRegularEnemyHealingKeyword;
+            percent = KeywordDatabase.GetConstValue(nativeBaseKey) * environmentLevel * configuredMultiplier;
         }
     }
 }

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -79,16 +80,46 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
     [HarmonyPatch(typeof(UnitAI_NewBasic), nameof(UnitAI_NewBasic.SetSocialID))]
     internal static class MerchantGenerationRuleContextPatch
     {
-        private static void Prefix(EProceduralMerchantType merchant,
-            out IDisposable __state)
+        private static void Prefix(EProceduralMerchantType merchant, out IDisposable __state)
         {
-            __state = merchant != EProceduralMerchantType.None &&
-                MerchantRuleActivation.HasOverride(merchant,
-                    ServerParticipantCountReader.Read())
-                ? MerchantGenerationContext.Enter(merchant) : null;
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(merchant, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(EProceduralMerchantType merchant, out IDisposable __state)
+        {
+            __state = merchant != EProceduralMerchantType.None && MerchantRuleActivation.HasOverride(merchant, ServerParticipantCountReader.Read()) ? MerchantGenerationContext.Enter(merchant) : null;
         }
 
         private static Exception Finalizer(Exception __exception, IDisposable __state)
+        {
+            try
+            {
+                return FinalizerCore(__exception, __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(Exception __exception, IDisposable __state)
         {
             __state?.Dispose();
             return __exception;
@@ -100,33 +131,46 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
     {
         private static void Prefix(ref int charms, ref int stoneTablets)
         {
-            if (!MerchantGenerationContext.TryGet(
-                    out EProceduralMerchantType merchant)) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            var original_charms = charms;
+            var original_stoneTablets = stoneTablets;
+            try
+            {
+                PrefixCore(ref charms, ref stoneTablets);
+            }
+            catch (System.Exception exception)
+            {
+                charms = original_charms;
+                stoneTablets = original_stoneTablets;
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(ref int charms, ref int stoneTablets)
+        {
+            if (!MerchantGenerationContext.TryGet(out EProceduralMerchantType merchant))
+                return;
             int participantCount = ServerParticipantCountReader.Read();
             // Native SetSocialID derives this bonus from raw server connections.
             int nativeParticipantBonus = NetworkServer.connections.Count - 1;
             if (merchant == EProceduralMerchantType.Vendor)
             {
-                if (MultiplayerRulesController.TryGetActiveOverride(
-                        MultiplayerRuleId.WanderingMerchantArtifactCandidateBonus,
-                        participantCount,
-                        out float charmBonus))
+                if (MultiplayerRulesController.TryGetActiveOverride(MultiplayerRuleId.WanderingMerchantArtifactCandidateBonus, participantCount, out float charmBonus))
                     charms += Mathf.RoundToInt(charmBonus) - nativeParticipantBonus;
-                if (MultiplayerRulesController.TryGetActiveOverride(
-                        MultiplayerRuleId.WanderingMerchantTabletCandidateCount,
-                        participantCount,
-                        out float tabletCount))
+                if (MultiplayerRulesController.TryGetActiveOverride(MultiplayerRuleId.WanderingMerchantTabletCandidateCount, participantCount, out float tabletCount))
                     stoneTablets = Mathf.RoundToInt(tabletCount);
             }
             else if (merchant == EProceduralMerchantType.MerchantUnionVendor)
             {
-                if (MultiplayerRulesController.TryGetActiveOverride(
-                        MultiplayerRuleId.MerchantGuildArtifactCandidateBonus,
-                        participantCount, out float charmBonus))
+                if (MultiplayerRulesController.TryGetActiveOverride(MultiplayerRuleId.MerchantGuildArtifactCandidateBonus, participantCount, out float charmBonus))
                     charms += Mathf.RoundToInt(charmBonus) - nativeParticipantBonus;
-                if (MultiplayerRulesController.TryGetActiveOverride(
-                        MultiplayerRuleId.MerchantGuildTabletCandidateCount,
-                        participantCount, out float tabletCount))
+                if (MultiplayerRulesController.TryGetActiveOverride(MultiplayerRuleId.MerchantGuildTabletCandidateCount, participantCount, out float tabletCount))
                     stoneTablets = Mathf.RoundToInt(tabletCount);
             }
         }
@@ -181,15 +225,55 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
     [HarmonyPatch(typeof(Safe), nameof(Safe.GenerateItemInInventory))]
     internal static class SafeMerchantInventoryRulePatch
     {
-        private static void Prefix(ref ItemMetadata[] data) =>
-            MerchantInventoryRuleApplier.Apply(ref data);
+        private static void Prefix(ref ItemMetadata[] data)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            var original_data = data;
+            try
+            {
+                PrefixCore(ref data);
+            }
+            catch (System.Exception exception)
+            {
+                data = original_data;
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(ref ItemMetadata[] data) => MerchantInventoryRuleApplier.Apply(ref data);
     }
 
     [HarmonyPatch(typeof(GridInventory), nameof(GridInventory.AddItems),
         new[] { typeof(ItemMetadata[]), typeof(bool), typeof(bool) })]
     internal static class DirectMerchantInventoryRulePatch
     {
-        private static void Prefix(ref ItemMetadata[] items) =>
-            MerchantInventoryRuleApplier.Apply(ref items);
+        private static void Prefix(ref ItemMetadata[] items)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            var original_items = items;
+            try
+            {
+                PrefixCore(ref items);
+            }
+            catch (System.Exception exception)
+            {
+                items = original_items;
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(ref ItemMetadata[] items) => MerchantInventoryRuleApplier.Apply(ref items);
     }
 }

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -528,6 +529,8 @@ namespace SephiriaEnhancements.DefeatRetry
             }
             catch (Exception ex)
             {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, ex);
+                NativeRetryFailure.Show(RetryRecoveryFailure.RestoreFailed);
                 IsRetrying = false;
                 DefeatRetryBridge.FailRecovery();
                 pendingPlacements = null;
@@ -764,7 +767,27 @@ namespace SephiriaEnhancements.DefeatRetry
 
         private void LateUpdate()
         {
-            if (actionGroup == null || !actionGroup.activeSelf || originalRect == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                LateUpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void LateUpdateCore()
+        {
+            if (actionGroup == null || !actionGroup.activeSelf || originalRect == null)
+                return;
             RectTransform panelRect = (RectTransform)panel.transform;
             // The native button is a direct child of the full-screen panel.
             // Anchor the retry row to the button, not the panel top edge.
@@ -774,11 +797,13 @@ namespace SephiriaEnhancements.DefeatRetry
             float available = Mathf.Max(height, panelRect.rect.width - gap * 2f);
             float padding = height * 0.6f;
             float width = Mathf.Max(height * 2.5f, PreferredWidth(retryButton) + padding);
-            if (bossRetryButton != null) width = Mathf.Max(width, PreferredWidth(bossRetryButton) + padding);
+            if (bossRetryButton != null)
+                width = Mathf.Max(width, PreferredWidth(bossRetryButton) + padding);
             stacked = bossRetryButton != null && width * 2f + gap > available;
             width = Mathf.Min(width, available);
             height = Mathf.Max(height, PreferredHeight(retryButton, width - padding) / 0.8f);
-            if (bossRetryButton != null) height = Mathf.Max(height, PreferredHeight(bossRetryButton, width - padding) / 0.8f);
+            if (bossRetryButton != null)
+                height = Mathf.Max(height, PreferredHeight(bossRetryButton, width - padding) / 0.8f);
             float groupWidth = bossRetryButton != null && !stacked ? width * 2f + gap : width;
             float groupHeight = bossRetryButton != null && stacked ? height * 2f + gap : height;
             RectTransform group = (RectTransform)actionGroup.transform;
@@ -786,20 +811,20 @@ namespace SephiriaEnhancements.DefeatRetry
             group.pivot = new Vector2(0.5f, 0f);
             group.sizeDelta = new Vector2(groupWidth, groupHeight);
             group.anchoredPosition = new Vector2(0f, source.yMax + gap - panelRect.rect.center.y);
-            Place(retryButton, width, height, padding, bossRetryButton == null ? Vector2.zero :
-                stacked ? new Vector2(0f, (height + gap) * 0.5f) : new Vector2(-(width + gap) * 0.5f, 0f));
-            if (bossRetryButton != null) Place(bossRetryButton, width, height, padding,
-                stacked ? new Vector2(0f, -(height + gap) * 0.5f) : new Vector2((width + gap) * 0.5f, 0f));
-
+            Place(retryButton, width, height, padding, bossRetryButton == null ? Vector2.zero : stacked ? new Vector2(0f, (height + gap) * 0.5f) : new Vector2(-(width + gap) * 0.5f, 0f));
+            if (bossRetryButton != null)
+                Place(bossRetryButton, width, height, padding, stacked ? new Vector2(0f, -(height + gap) * 0.5f) : new Vector2((width + gap) * 0.5f, 0f));
             float bottom = float.PositiveInfinity;
             foreach (RectTransform item in resultRoots)
             {
-                if (item == null) continue;
-                if (!resultPositions.ContainsKey(item)) resultPositions.Add(item, item.anchoredPosition);
-                Vector3 shift = panel.transform.InverseTransformVector(item.parent.TransformVector(
-                    (Vector3)(item.anchoredPosition - resultPositions[item])));
+                if (item == null)
+                    continue;
+                if (!resultPositions.ContainsKey(item))
+                    resultPositions.Add(item, item.anchoredPosition);
+                Vector3 shift = panel.transform.InverseTransformVector(item.parent.TransformVector((Vector3)(item.anchoredPosition - resultPositions[item])));
                 bottom = Mathf.Min(bottom, BoundsInPanel(item).yMin - shift.y);
             }
+
             MoveResults(Mathf.Max(0f, source.yMax + gap * 2f + groupHeight - bottom));
             ConfigureNavigation();
         }
@@ -853,17 +878,36 @@ namespace SephiriaEnhancements.DefeatRetry
 
         private void Update()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
             if (retryButton == null)
             {
                 return;
             }
 
-            bool visible = eligible && panel != null && panel.IsOpened &&
-                originalButton != null && originalButton.gameObject.activeSelf;
+            bool visible = eligible && panel != null && panel.IsOpened && originalButton != null && originalButton.gameObject.activeSelf;
             if (actionGroup != null)
             {
                 actionGroup.SetActive(visible);
             }
+
             retryButton.gameObject.SetActive(visible);
             bossRetryButton?.gameObject.SetActive(visible && bossEligible);
             if (!visible)
@@ -876,31 +920,69 @@ namespace SephiriaEnhancements.DefeatRetry
             retryButton.interactable = DefeatRetryFeature.CanRetry(panel, RetryCheckpointKind.FloorEntry);
             if (bossRetryButton != null)
             {
-                bossRetryButton.interactable = bossReady &&
-                    DefeatRetryFeature.CanRetry(panel, RetryCheckpointKind.BossEncounter);
+                bossRetryButton.interactable = bossReady && DefeatRetryFeature.CanRetry(panel, RetryCheckpointKind.BossEncounter);
             }
+
             ConfigureNavigation();
             SetLocalizedText();
             if (!selectedRetry && retryButton.interactable)
             {
                 panel.defaultSelectable = retryButton.gameObject;
                 panel.DoControlSelection(retryButton.gameObject);
-                KeyboardUiNavigation.KeyboardUiNavigationController.RequestSelection(
-                    panel, retryButton.gameObject);
+                KeyboardUiNavigation.KeyboardUiNavigationController.RequestSelection(panel, retryButton.gameObject);
                 selectedRetry = true;
             }
         }
 
         private void OnRetryClicked()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                OnRetryClickedCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnRetryClickedCore()
+        {
             if (retryButton != null)
             {
                 retryButton.interactable = false;
             }
+
             DefeatRetryFeature.TryRetry(panel, RetryCheckpointKind.FloorEntry);
         }
 
         private void OnBossRetryClicked()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                OnBossRetryClickedCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnBossRetryClickedCore()
         {
             DefeatRetryFeature.TryRetry(panel, RetryCheckpointKind.BossEncounter);
         }

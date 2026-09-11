@@ -120,7 +120,7 @@ internal static class LocalizationChecks
                 InventoryOptimizationLocalization.Changed,
                 InventoryOptimizationLocalization.ApplyTimedOut,
                 InventoryOptimizationLocalization.VerificationFailed,
-                InventoryOptimizationLocalization.DisabledForGameplayContext
+                InventoryOptimizationLocalization.DisabledAfterError
             };
             if (inventoryFailures.Select(key => entries[key]).Distinct().Count() != inventoryFailures.Length)
                 throw new InvalidOperationException("inventory failure reasons must remain distinguishable: " + language);
@@ -133,9 +133,9 @@ internal static class LocalizationChecks
                     throw new InvalidOperationException("issued-operation feedback must retain its reason and add localized consequences: " + language);
             }
         }
-        if (texts["en-US"][InventoryOptimizationLocalization.DisabledForGameplayContext].Contains("floor", StringComparison.OrdinalIgnoreCase) ||
-            texts["zh-CN"][InventoryOptimizationLocalization.DisabledForGameplayContext].Contains("本层"))
-            throw new InvalidOperationException("context-scoped failure must not promise floor-scoped recovery");
+        if (texts["en-US"][InventoryOptimizationLocalization.DisabledAfterError].Contains("floor", StringComparison.OrdinalIgnoreCase) ||
+            texts["zh-CN"][InventoryOptimizationLocalization.DisabledAfterError].Contains("本层"))
+            throw new InvalidOperationException("feature failure must not promise recovery on a later floor");
         Console.WriteLine($"Localization: {languages.Count} languages, {tableCount} complete source tables, " +
             $"{english.Count} keys each; placeholders, terminology and distinct failure messages passed");
     }

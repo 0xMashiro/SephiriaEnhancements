@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Reflection;
 using HarmonyLib;
 using SephiriaEnhancements.Integration;
@@ -10,7 +11,27 @@ namespace SephiriaEnhancements.DefeatRetry
     {
         private static void Postfix(UI_GameOverLabel __instance)
         {
-            if (__instance.openType == 0) DefeatRetryBridge.ObserveTeamDefeat();
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_GameOverLabel __instance)
+        {
+            if (__instance.openType == 0)
+                DefeatRetryBridge.ObserveTeamDefeat();
             DefeatRetryFeature.AddButton(__instance);
         }
     }
@@ -18,13 +39,30 @@ namespace SephiriaEnhancements.DefeatRetry
     [HarmonyPatch(typeof(BossSpawner), nameof(BossSpawner.StartBattle))]
     internal static class BossEncounterRetryCheckpointPatch
     {
-        private static bool Prefix(BossSpawner __instance, PlayerAvatar player,
-            Vector3 position, string name)
+        private static bool Prefix(BossSpawner __instance, PlayerAvatar player, Vector3 position, string name)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance, player, position, name);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(BossSpawner __instance, PlayerAvatar player, Vector3 position, string name)
         {
             if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.BlocksBossBattle)
                 return false;
-            DefeatRetryFeature.CaptureBossEncounterSnapshot(__instance, player,
-                position, name);
+            DefeatRetryFeature.CaptureBossEncounterSnapshot(__instance, player, position, name);
             return true;
         }
     }
@@ -40,7 +78,27 @@ namespace SephiriaEnhancements.DefeatRetry
 
         private static bool Prefix(SeedBossSpawner __instance, PlayerAvatar player)
         {
-            if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.BlocksBossBattle) return false;
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance, player);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(SeedBossSpawner __instance, PlayerAvatar player)
+        {
+            if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.BlocksBossBattle)
+                return false;
             DefeatRetryFeature.CaptureSeedBossEncounterSnapshot(__instance, player);
             return true;
         }
@@ -62,6 +120,25 @@ namespace SephiriaEnhancements.DefeatRetry
 
         private static void Postfix(string floorGuid)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(floorGuid);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(string floorGuid)
+        {
             DefeatRetryFeature.CaptureRenderedCombatFloorFallback(floorGuid);
         }
     }
@@ -69,11 +146,32 @@ namespace SephiriaEnhancements.DefeatRetry
     [HarmonyPatch(typeof(DungeonManager), nameof(DungeonManager.MoveFloor))]
     internal static class ApplyDefeatRetryPlacementPatch
     {
-        private static void Prefix(PlayerAvatar avatar, string floorGuid,
-            ref string spawnPoint, ref Vector3? overridePosition)
+        private static void Prefix(PlayerAvatar avatar, string floorGuid, ref string spawnPoint, ref Vector3? overridePosition)
         {
-            DefeatRetryFeature.ApplyPendingPlacement(avatar, floorGuid,
-                ref spawnPoint, ref overridePosition);
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            var original_spawnPoint = spawnPoint;
+            var original_overridePosition = overridePosition;
+            try
+            {
+                PrefixCore(avatar, floorGuid, ref spawnPoint, ref overridePosition);
+            }
+            catch (System.Exception exception)
+            {
+                spawnPoint = original_spawnPoint;
+                overridePosition = original_overridePosition;
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(PlayerAvatar avatar, string floorGuid, ref string spawnPoint, ref Vector3? overridePosition)
+        {
+            DefeatRetryFeature.ApplyPendingPlacement(avatar, floorGuid, ref spawnPoint, ref overridePosition);
         }
     }
 
@@ -82,8 +180,26 @@ namespace SephiriaEnhancements.DefeatRetry
     {
         private static bool Prefix(PlayerAvatar avatar)
         {
-            return avatar == DefeatRetryPlayerRestorePatch.RestoringPlayer ||
-                (!DefeatRetryFeature.IsRetrying && !DefeatRetryBridge.IsAwaitingArrival(avatar));
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(avatar);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(PlayerAvatar avatar)
+        {
+            return avatar == DefeatRetryPlayerRestorePatch.RestoringPlayer || (!DefeatRetryFeature.IsRetrying && !DefeatRetryBridge.IsAwaitingArrival(avatar));
         }
     }
 
@@ -91,6 +207,21 @@ namespace SephiriaEnhancements.DefeatRetry
     internal static class PreserveDefeatRetrySaveDeletionPatch
     {
         private static bool Prefix(string fileName)
+        {
+            // Keep the in-flight save guard until recovery cleanup has finished.
+            try
+            {
+                return PrefixCore(fileName);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return false;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(string fileName)
         {
             return !DefeatRetryClientRestore.PreserveRunFile(fileName) && !DefeatRetryFeature.PreserveRunFile(fileName);
         }
@@ -100,6 +231,21 @@ namespace SephiriaEnhancements.DefeatRetry
     internal static class PreserveDefeatRetrySaveCreationPatch
     {
         private static bool Prefix(string fileName)
+        {
+            // Keep the in-flight save guard until recovery cleanup has finished.
+            try
+            {
+                return PrefixCore(fileName);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return false;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(string fileName)
         {
             return !DefeatRetryClientRestore.PreserveRunFile(fileName, creation: true) && !DefeatRetryFeature.PreserveRunCreation(fileName);
         }
@@ -116,6 +262,25 @@ namespace SephiriaEnhancements.DefeatRetry
 
         private static bool Prefix()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore()
+        {
             return !DefeatRetryFeature.IsRetrying;
         }
     }
@@ -131,6 +296,25 @@ namespace SephiriaEnhancements.DefeatRetry
 
         private static bool Prefix()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore()
+        {
             return !DefeatRetryFeature.IsRetrying;
         }
     }
@@ -140,10 +324,48 @@ namespace SephiriaEnhancements.DefeatRetry
     {
         private static void Prefix()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore()
+        {
             DefeatRetryFeature.Reset();
         }
 
         private static void Postfix()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore()
         {
             if (DefeatRetryFeature.IsRetrying)
             {

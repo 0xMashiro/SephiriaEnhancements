@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Diagnostics;
 using System;
 using HarmonyLib;
@@ -11,16 +12,33 @@ namespace SephiriaEnhancements.DeveloperConsole
         nameof(PlayerInputController.HandleOnOpenDevCommandPanel))]
     internal static class DeveloperConsoleOpenPatch
     {
-        private static bool Prefix(PlayerInputController __instance,
-            InputAction.CallbackContext input)
+        private static bool Prefix(PlayerInputController __instance, InputAction.CallbackContext input)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance, input);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(PlayerInputController __instance, InputAction.CallbackContext input)
         {
             if (!EnhancementsSettings.Enabled || !DeveloperConsoleSettings.Enabled)
             {
                 return true;
             }
 
-            if (__instance == null || !__instance.enabled || !input.performed ||
-                !__instance.HasAvatar)
+            if (__instance == null || !__instance.enabled || !input.performed || !__instance.HasAvatar)
             {
                 return false;
             }
@@ -32,9 +50,7 @@ namespace SephiriaEnhancements.DeveloperConsole
             }
 
             ScreenFader fader = ScreenFader.Instance;
-            if (fader != null &&
-                (fader.FadingState != ScreenFader.EFadingState.None ||
-                 fader.currentLoadingScreenType != -1))
+            if (fader != null && (fader.FadingState != ScreenFader.EFadingState.None || fader.currentLoadingScreenType != -1))
             {
                 return false;
             }
@@ -45,8 +61,7 @@ namespace SephiriaEnhancements.DeveloperConsole
             }
             catch (Exception ex)
             {
-                SupportLogger.Warning("developer_console_open_failed", "[SephiriaEnhancements] Native developer console " +
-                    "could not be opened: " + ex.Message);
+                SupportLogger.Warning("developer_console_open_failed", "[SephiriaEnhancements] Native developer console " + "could not be opened: " + ex.Message);
             }
 
             return false;

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Reflection;
 using System.Threading;
@@ -46,11 +47,49 @@ namespace SephiriaEnhancements.ModInformation.Integration
 
         private void Awake()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.ModInformation))
+            {
+                return;
+            }
+
+            try
+            {
+                AwakeCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ModInformation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void AwakeCore()
+        {
             Instance = this;
             SupportLogger.Record("mod_information_initialized", "version=" + InstalledVersion + " game=" + Application.version);
         }
 
         private void Update()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.ModInformation))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ModInformation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
         {
             if (Time.unscaledTime < nextPoll)
                 return;

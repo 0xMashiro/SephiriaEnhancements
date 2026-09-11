@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
 using HarmonyLib;
 using SephiriaEnhancements.Configuration;
@@ -11,8 +12,26 @@ namespace SephiriaEnhancements.DeveloperTools
     {
         private static void Postfix(DamageInstance __result)
         {
-            if (!EnhancementsSettings.Enabled || __result?.origin == null ||
-                DeveloperPlayerDamageSettings.MultiplierIndex == 0)
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__result);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(DamageInstance __result)
+        {
+            if (!EnhancementsSettings.Enabled || __result?.origin == null || DeveloperPlayerDamageSettings.MultiplierIndex == 0)
             {
                 return;
             }
@@ -23,8 +42,7 @@ namespace SephiriaEnhancements.DeveloperTools
                 return;
             }
 
-            __result.damage = DeveloperPlayerDamagePolicy.Apply(__result.damage,
-                DeveloperPlayerDamageSettings.MultiplierIndex);
+            __result.damage = DeveloperPlayerDamagePolicy.Apply(__result.damage, DeveloperPlayerDamageSettings.MultiplierIndex);
         }
 
         private static PlayerAvatar ResolvePlayer(UnitAvatar source)

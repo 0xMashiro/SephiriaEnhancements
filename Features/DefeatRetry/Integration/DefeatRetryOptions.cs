@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -54,7 +55,27 @@ namespace SephiriaEnhancements.DefeatRetry.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -70,8 +91,29 @@ namespace SephiriaEnhancements.DefeatRetry.Integration
 
         private void Changed(int value)
         {
-            if (cutscenes) DefeatRetrySettings.SkipCutscenes = value == 1;
-            else DefeatRetrySettings.Enabled = value == 1;
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
+            if (cutscenes)
+                DefeatRetrySettings.SkipCutscenes = value == 1;
+            else
+                DefeatRetrySettings.Enabled = value == 1;
             DefeatRetrySettings.Save();
             UpdateText(value);
         }

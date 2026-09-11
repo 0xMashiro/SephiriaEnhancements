@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Runtime.Inventory;
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
 using System;
@@ -49,15 +50,46 @@ namespace SephiriaEnhancements.Diagnostics
 
         private static void Prefix(out long __state)
         {
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(out long __state)
+        {
             __state = Stopwatch.GetTimestamp();
         }
 
-        private static Exception Finalizer(MethodBase __originalMethod,
-            long __state, Exception __exception)
+        private static Exception Finalizer(MethodBase __originalMethod, long __state, Exception __exception)
         {
-            DeveloperLogger.RecordGameStartupOperation(
-                __originalMethod.DeclaringType.Name + ".Initialize",
-                ElapsedMilliseconds(__state), __exception == null);
+            try
+            {
+                return FinalizerCore(__originalMethod, __state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(MethodBase __originalMethod, long __state, Exception __exception)
+        {
+            DeveloperLogger.RecordGameStartupOperation(__originalMethod.DeclaringType.Name + ".Initialize", ElapsedMilliseconds(__state), __exception == null);
             return __exception;
         }
 

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -91,8 +92,26 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
     [HarmonyPatch(typeof(FloorGenerator), nameof(FloorGenerator.CreateProp))]
     internal static class LifeSupplyCreatePropRulePatch
     {
-        private static bool Prefix(PropEntity prop) =>
-            LifeSupplyRuleApplier.BeforeCreateProp(prop);
+        private static bool Prefix(PropEntity prop)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(prop);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(PropEntity prop) => LifeSupplyRuleApplier.BeforeCreateProp(prop);
     }
 
     [HarmonyPatch]
@@ -120,16 +139,31 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             return method;
         }
 
-        private static void Postfix(FloorGenerator __instance,
-            ref IEnumerator __result)
+        private static void Postfix(FloorGenerator __instance, ref IEnumerator __result)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            var original___result = __result;
+            try
+            {
+                PostfixCore(__instance, ref __result);
+            }
+            catch (System.Exception exception)
+            {
+                __result = original___result;
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(FloorGenerator __instance, ref IEnumerator __result)
         {
             int participantCount = ServerParticipantCountReader.Read();
-            bool required = MultiplayerRulesController.TryGetActiveOverride(
-                    MultiplayerRuleId.EnemyGroupDifficultyOffset, participantCount,
-                    out _) ||
-                MultiplayerRulesController.TryGetActiveOverride(
-                    MultiplayerRuleId.ExplorationFloorHealingSupply,
-                    participantCount, out _);
+            bool required = MultiplayerRulesController.TryGetActiveOverride(MultiplayerRuleId.EnemyGroupDifficultyOffset, participantCount, out _) || MultiplayerRulesController.TryGetActiveOverride(MultiplayerRuleId.ExplorationFloorHealingSupply, participantCount, out _);
             if (required && __result != null)
                 __result = FloorGenerationContext.Wrap(__result, __instance);
         }
@@ -142,20 +176,33 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private static void Prefix(ref int difficulty)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            var original_difficulty = difficulty;
+            try
+            {
+                PrefixCore(ref difficulty);
+            }
+            catch (System.Exception exception)
+            {
+                difficulty = original_difficulty;
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(ref int difficulty)
+        {
             FloorGenerator generator = FloorGenerationContext.Current;
             int participantCount = ServerParticipantCountReader.Read();
-            if (generator == null || DungeonManager.Instance == null ||
-                !MultiplayerRulesController.TryGetActiveOverride(
-                    MultiplayerRuleId.EnemyGroupDifficultyOffset, participantCount,
-                    out float configuredOffset) ||
-                !DungeonManager.Instance.generatedFloors.TryGetValue(
-                    generator.guid, out FloorData floor))
+            if (generator == null || DungeonManager.Instance == null || !MultiplayerRulesController.TryGetActiveOverride(MultiplayerRuleId.EnemyGroupDifficultyOffset, participantCount, out float configuredOffset) || !DungeonManager.Instance.generatedFloors.TryGetValue(generator.guid, out FloorData floor))
                 return;
-
-            int hardBattleOffset = generator.currentHardBattleMode ==
-                DifficultyUpBattleParameter ? 1 : 0;
-            difficulty = floor.difficulty + Mathf.RoundToInt(configuredOffset) +
-                hardBattleOffset;
+            int hardBattleOffset = generator.currentHardBattleMode == DifficultyUpBattleParameter ? 1 : 0;
+            difficulty = floor.difficulty + Mathf.RoundToInt(configuredOffset) + hardBattleOffset;
         }
     }
 }

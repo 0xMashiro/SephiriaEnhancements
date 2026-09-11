@@ -1272,6 +1272,7 @@ namespace SephiriaEnhancements.Configuration
             MultiplayerAccessLocalization.Register(addText, languages);
             JoiningSupplyLocalization.Register(addText, languages);
             ModInformation.ModInformationLocalization.Register(addText, languages);
+            Runtime.FeatureFailureLocalization.Register(addText, languages);
 
         }
 

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -63,9 +64,29 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
 
         private static bool Prefix(object __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(object __instance)
+        {
             var element = (UI_MiracleElement)AccessTools.Field(__instance.GetType(), "<>4__this").GetValue(__instance);
             var selector = (MiracleSelector2)AccessTools.Field(typeof(UI_MiracleElement), "miracleSelector").GetValue(element);
-            if (selector == null || !JoiningSupplyBridge.IsCurrent(selector.netId)) return true;
+            if (selector == null || !JoiningSupplyBridge.IsCurrent(selector.netId))
+                return true;
             var choice = (MiracleMetadata)AccessTools.Field(typeof(UI_MiracleElement), "entity").GetValue(element);
             var actor = (MiracleController)AccessTools.Field(typeof(UI_MiracleElement), "actor").GetValue(element);
             actor.CloseMiraclePanel();

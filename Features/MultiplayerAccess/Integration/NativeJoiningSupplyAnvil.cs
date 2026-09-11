@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,6 +44,25 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             yield return AccessTools.Method(typeof(Anvil), nameof(Anvil.Reroll));
         }
         private static void Postfix(Anvil __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(Anvil __instance)
         {
             if (JoiningSupplyBridge.IsCurrent(__instance.netId))
                 JoiningSupplyBridge.SaveAnvil(__instance.netId, NativeJoiningSupplyAnvil.Capture(__instance));

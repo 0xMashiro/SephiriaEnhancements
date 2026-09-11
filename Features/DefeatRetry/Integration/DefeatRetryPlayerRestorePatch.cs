@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Reflection;
 using HarmonyLib;
 using Mirror;
@@ -19,10 +20,28 @@ namespace SephiriaEnhancements.DefeatRetry
 
         private static bool Prefix(PlayerSpawner __instance, int loadingScreen)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance, loadingScreen);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(PlayerSpawner __instance, int loadingScreen)
+        {
             // NewGame clears IsRetrying before players restart; ownership remains
             // until this player's Initialize call ends, including failure.
-            if (!NetworkServer.active ||
-                !DefeatRetryFeature.HasPendingPlacement(__instance.PlayerAvatar))
+            if (!NetworkServer.active || !DefeatRetryFeature.HasPendingPlacement(__instance.PlayerAvatar))
             {
                 return true;
             }
@@ -32,18 +51,14 @@ namespace SephiriaEnhancements.DefeatRetry
             try
             {
                 PlayerLocalDataStorage data = __instance.LocalDataStorage;
-                bool initialized = (bool)InitializePlayerMethod.Invoke(__instance, new object[]
-                {
-                    data.defaultWeapon, data.defaultCostume,
-                    data.defaultCostumeSkin, loadingScreen
-                });
-                SupportLogger.Record("retry_player_initialized", "player=" + avatar.netId +
-                    " success=" + initialized, initialized ? "INFO" : "ERROR");
+                bool initialized = (bool)InitializePlayerMethod.Invoke(__instance, new object[] { data.defaultWeapon, data.defaultCostume, data.defaultCostumeSkin, loadingScreen });
+                SupportLogger.Record("retry_player_initialized", "player=" + avatar.netId + " success=" + initialized, initialized ? "INFO" : "ERROR");
                 if (!initialized)
                 {
                     DefeatRetryBridge.CancelPlayer(avatar);
                     return false;
                 }
+
                 // Native RestartNewGame also grants starting items and a starting potion.
                 // A checkpoint restore already contains the player's saved items.
                 if (__instance.connectionToClient != null)
@@ -52,8 +67,7 @@ namespace SephiriaEnhancements.DefeatRetry
             catch (Exception exception)
             {
                 DefeatRetryBridge.CancelPlayer(avatar);
-                SupportLogger.Record("retry_player_restore_failed", "player=" + avatar.netId +
-                    " exception=" + (exception.InnerException ?? exception).GetType().Name, "ERROR");
+                SupportLogger.Record("retry_player_restore_failed", "player=" + avatar.netId + " exception=" + (exception.InnerException ?? exception).GetType().Name, "ERROR");
                 throw;
             }
             finally
@@ -61,6 +75,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 RestoringPlayer = null;
                 DefeatRetryFeature.FinishPlayerRestore(avatar);
             }
+
             return false;
         }
     }

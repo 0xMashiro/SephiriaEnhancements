@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Reflection;
 using HarmonyLib;
 using Mirror;
@@ -73,6 +74,25 @@ namespace SephiriaEnhancements.DefeatRetry
     [HarmonyPatch(typeof(UI_BossPanel), "Update")]
     internal static class DefeatRetryCutscenePatch
     {
-        private static void Postfix(UI_BossPanel __instance) => NativeRetryBoss.SkipRetryCutscene(__instance);
+        private static void Postfix(UI_BossPanel __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_BossPanel __instance) => NativeRetryBoss.SkipRetryCutscene(__instance);
     }
 }

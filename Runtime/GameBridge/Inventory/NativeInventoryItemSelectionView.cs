@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 #nullable disable
 using HarmonyLib;
 
@@ -167,8 +168,26 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
     {
         private static void Prefix(UI_CharacterStatusPanel __instance)
         {
-            NativeInventoryItemSelectionView.EndBeforeNativeModeChange(
-                __instance);
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(UI_CharacterStatusPanel __instance)
+        {
+            NativeInventoryItemSelectionView.EndBeforeNativeModeChange(__instance);
         }
     }
 }

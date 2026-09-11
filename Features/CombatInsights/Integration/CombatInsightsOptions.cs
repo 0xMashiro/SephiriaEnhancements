@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -74,7 +75,27 @@ namespace SephiriaEnhancements.CombatInsights.Integration
         { box = selectionBox; valueText = text; }
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = ModLocalization.DisplayPolicyKeys.Length;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -84,6 +105,25 @@ namespace SephiriaEnhancements.CombatInsights.Integration
         }
         private void OnDisable() { if (box != null) box.OnValueChanged -= Changed; }
         private void Changed(int value)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
         {
             ModSettings.DisplayPolicy = (CombatInsightsDisplayPolicy)value;
             ModSettings.Save();
@@ -107,7 +147,27 @@ namespace SephiriaEnhancements.CombatInsights.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -122,6 +182,25 @@ namespace SephiriaEnhancements.CombatInsights.Integration
         }
 
         private void Changed(int value)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
         {
             ModSettings.HitStreakFeedback = value == 1;
             ModSettings.Save();
@@ -144,7 +223,27 @@ namespace SephiriaEnhancements.CombatInsights.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = ModSettings.DamageStatisticsScaleCount;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -159,6 +258,25 @@ namespace SephiriaEnhancements.CombatInsights.Integration
         }
 
         private void Changed(int value)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
         {
             ModSettings.DamageStatisticsScaleIndex = value;
             ModSettings.Save();

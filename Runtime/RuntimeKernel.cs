@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 #nullable disable
 using SephiriaEnhancements.Runtime.GameBridge.Inventory;
 using SephiriaEnhancements.Runtime.GameBridge;
@@ -87,30 +88,50 @@ namespace SephiriaEnhancements.Runtime
 
         private void BeginGameplayContext(LocalGameplayContextChange change)
         {
-            DetachGridInventory();
-            InventoryEvaluationOrderTraceSignal.Clear();
-            inventoryStateStore.Clear();
-            nativePreset = null;
-            tabletProjectionReader?.Clear();
-            NativeEncounterLifecycleCapture.ResetGameplayContext();
-            RuntimeStateSnapshot runtimeState =
-                stateHub?.BeginGameplayContext(Time.realtimeSinceStartup);
-            encounterLifecycleHub.BeginGameplayContext(
-                runtimeState?.GameplayContextEpoch ?? 0,
-                Time.unscaledTime);
+            if (!FeatureFailure.IsAvailable(FeatureId.Gameplay))
+            {
+                return;
+            }
+
+            try
+            {
+                BeginGameplayContextCore(change);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Gameplay, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void BeginGameplayContextCore(LocalGameplayContextChange change)
+        {
+            FeatureFailure.Run(FeatureId.Inventory, () =>
+            {
+                DetachGridInventory();
+                InventoryEvaluationOrderTraceSignal.Clear();
+                inventoryStateStore.Clear();
+                nativePreset = null;
+                tabletProjectionReader?.Clear();
+            });
+            RuntimeStateSnapshot runtimeState = stateHub?.BeginGameplayContext(Time.realtimeSinceStartup);
+            FeatureFailure.Run(FeatureId.CombatInsights, () =>
+            {
+                NativeEncounterLifecycleCapture.ResetGameplayContext();
+                encounterLifecycleHub.BeginGameplayContext(runtimeState?.GameplayContextEpoch ?? 0, Time.unscaledTime);
+            });
             nextReconciliationAt = Time.unscaledTime;
-            nextMetricsAt = Math.Min(nextMetricsAt,
-                Time.unscaledTime + InitialMetricsInterval);
+            nextMetricsAt = Math.Min(nextMetricsAt, Time.unscaledTime + InitialMetricsInterval);
             inventoryCapturePending = false;
             settledInventoryCapturePending = false;
             inventoryCaptureNotBeforeFrame = 0;
             inventoryCaptureDeadlineFrame = 0;
-            PlayerAvatar player = localGameplayContext.Player;
-            DeveloperLogger.RecordLocalGameplayContext(change,
-                runtimeState?.GameplayContextEpoch ?? 0,
-                player != null ? player.netId : 0,
-                localGameplayContext.FloorGuid,
-                localGameplayContext.IsTraveling);
+            FeatureFailure.Run(FeatureId.DeveloperTools, () =>
+            {
+                PlayerAvatar player = localGameplayContext.Player;
+                DeveloperLogger.RecordLocalGameplayContext(change, runtimeState?.GameplayContextEpoch ?? 0, player != null ? player.netId : 0, localGameplayContext.FloorGuid, localGameplayContext.IsTraveling);
+            });
             GameplayContextChanged?.Invoke(change);
         }
 
@@ -147,18 +168,16 @@ namespace SephiriaEnhancements.Runtime
             }
 
             initialized = false;
-            localGameplayContext.Dispose();
-            NativeEncounterLifecycleCapture.SetObserver(null);
-            HorayModAPI.GridInventoryStartPermission -=
-                OnGridInventoryStartPermission;
-            HorayModAPI.GridInventoryEndPermission -=
-                OnGridInventoryEndPermission;
-            HorayModAPI.OnAllDatabasesReady -= OnAllDatabasesReady;
-            DetachGridInventory();
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Gameplay, localGameplayContext.Dispose);
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.CombatInsights, () => NativeEncounterLifecycleCapture.SetObserver(null));
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, () => HorayModAPI.GridInventoryStartPermission -= OnGridInventoryStartPermission);
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, () => HorayModAPI.GridInventoryEndPermission -= OnGridInventoryEndPermission);
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, () => HorayModAPI.OnAllDatabasesReady -= OnAllDatabasesReady);
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, DetachGridInventory);
             inventoryStateStore.Clear();
             inventoryCatalog = null;
             nativePreset = null;
-            tabletProjectionReader?.Clear();
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, () => tabletProjectionReader?.Clear());
             tabletProjectionReader = null;
             if (stateHub != null)
             {
@@ -177,8 +196,26 @@ namespace SephiriaEnhancements.Runtime
             encounterLifecycleHub.Observe(observation);
         }
 
-        private void ForwardEncounterLifecycleChanged(
-            EncounterLifecycleEvent lifecycleEvent)
+        private void ForwardEncounterLifecycleChanged(EncounterLifecycleEvent lifecycleEvent)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                ForwardEncounterLifecycleChangedCore(lifecycleEvent);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ForwardEncounterLifecycleChangedCore(EncounterLifecycleEvent lifecycleEvent)
         {
             DeveloperLogger.RecordEncounterLifecycle(lifecycleEvent);
             EncounterLifecycleChanged?.Invoke(lifecycleEvent);
@@ -186,21 +223,40 @@ namespace SephiriaEnhancements.Runtime
 
         private void Update()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Gameplay))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Gameplay, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
             if (!initialized)
             {
                 return;
             }
 
             float now = Time.unscaledTime;
-            StartupProfiler.ObserveFirstFrame();
+            FeatureFailure.Run(FeatureId.DeveloperTools, StartupProfiler.ObserveFirstFrame);
             localGameplayContext.Poll();
-            GameLoadProfiler.Poll();
-            RefreshNativePresetIfChanged();
-            CapturePendingInventory();
+            FeatureFailure.Run(FeatureId.DeveloperTools, GameLoadProfiler.Poll);
+            FeatureFailure.Run(FeatureId.Inventory, RefreshNativePresetIfChanged);
+            FeatureFailure.Run(FeatureId.Inventory, CapturePendingInventory);
             if (now >= nextReconciliationAt)
             {
                 nextReconciliationAt = now + ReconciliationInterval;
-                ReconcileLocalPlayer();
+                FeatureFailure.Run(FeatureId.Inventory, ReconcileLocalPlayer);
             }
 
             if (now >= nextMetricsAt)
@@ -208,8 +264,7 @@ namespace SephiriaEnhancements.Runtime
                 nextMetricsAt = now + MetricsInterval;
                 if (DeveloperLogger.IsEnabled)
                 {
-                    DeveloperLogger.RecordRuntimeMetrics(
-                        metrics.TakeSnapshotAndReset(), stateHub.Current);
+                    DeveloperLogger.RecordRuntimeMetrics(metrics.TakeSnapshotAndReset(), stateHub.Current);
                 }
                 else
                 {
@@ -314,8 +369,26 @@ namespace SephiriaEnhancements.Runtime
             InventoryEvaluationOrderTraceSignal.Clear(detachingInventory);
         }
 
-        private void OnGridInventoryStartPermission(GridInventory gridInventory,
-            PlayerAvatar player)
+        private void OnGridInventoryStartPermission(GridInventory gridInventory, PlayerAvatar player)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnGridInventoryStartPermissionCore(gridInventory, player);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnGridInventoryStartPermissionCore(GridInventory gridInventory, PlayerAvatar player)
         {
             if (!IsAttachedLocalInventory(gridInventory, player))
             {
@@ -326,8 +399,26 @@ namespace SephiriaEnhancements.Runtime
             MarkInventoryPending();
         }
 
-        private void OnGridInventoryEndPermission(GridInventory gridInventory,
-            PlayerAvatar player)
+        private void OnGridInventoryEndPermission(GridInventory gridInventory, PlayerAvatar player)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnGridInventoryEndPermissionCore(gridInventory, player);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnGridInventoryEndPermissionCore(GridInventory gridInventory, PlayerAvatar player)
         {
             if (!IsAttachedLocalInventory(gridInventory, player))
             {
@@ -356,11 +447,49 @@ namespace SephiriaEnhancements.Runtime
 
         private void OnItemUpdated(NewItemOwnInstance item, ItemPosition position)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnItemUpdatedCore(item, position);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnItemUpdatedCore(NewItemOwnInstance item, ItemPosition position)
+        {
             metrics.RecordEvent(RuntimeEventKind.ItemUpdated);
             MarkInventoryPending();
         }
 
         private void OnItemAdded(NewItemOwnInstance item)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnItemAddedCore(item);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnItemAddedCore(NewItemOwnInstance item)
         {
             metrics.RecordEvent(RuntimeEventKind.ItemAdded);
             MarkInventoryPending();
@@ -368,20 +497,76 @@ namespace SephiriaEnhancements.Runtime
 
         private void OnItemRemoved(ItemPosition position)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnItemRemovedCore(position);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnItemRemovedCore(ItemPosition position)
+        {
             metrics.RecordEvent(RuntimeEventKind.ItemRemoved);
             MarkInventoryPending();
         }
 
         private void OnInventoryStorageChanged(int oldStorage, int newStorage)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnInventoryStorageChangedCore(oldStorage, newStorage);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnInventoryStorageChangedCore(int oldStorage, int newStorage)
+        {
             metrics.RecordEvent(RuntimeEventKind.InventoryStorageChanged);
-            DeveloperLogger.RecordInventoryStorageChanged(
-                attachedGridInventory?.Width ?? 0, oldStorage, newStorage);
+            DeveloperLogger.RecordInventoryStorageChanged(attachedGridInventory?.Width ?? 0, oldStorage, newStorage);
             tabletProjectionReader?.Clear();
             MarkInventoryPending();
         }
 
         private void OnInventoryHeightChanged(int oldHeight, int newHeight)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnInventoryHeightChangedCore(oldHeight, newHeight);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnInventoryHeightChangedCore(int oldHeight, int newHeight)
         {
             metrics.RecordEvent(RuntimeEventKind.InventoryHeightChanged);
             DeveloperLogger.RecordInventoryHeightChanged(oldHeight, newHeight);
@@ -391,24 +576,99 @@ namespace SephiriaEnhancements.Runtime
 
         private void OnUniquePairEnchanted(ItemPosition position)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnUniquePairEnchantedCore(position);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnUniquePairEnchantedCore(ItemPosition position)
+        {
             metrics.RecordEvent(RuntimeEventKind.UniquePairEnchanted);
             MarkInventoryPending();
         }
 
         private void OnTabletRotated(StoneTablet tablet, int rotation)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnTabletRotatedCore(tablet, rotation);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnTabletRotatedCore(StoneTablet tablet, int rotation)
+        {
             metrics.RecordEvent(RuntimeEventKind.TabletRotated);
             MarkInventoryPending();
         }
 
-        private void OnItemIdentified(EItemIdentificationResult result,
-            Vector2Int position, NewItemOwnInstance item)
+        private void OnItemIdentified(EItemIdentificationResult result, Vector2Int position, NewItemOwnInstance item)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnItemIdentifiedCore(result, position, item);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnItemIdentifiedCore(EItemIdentificationResult result, Vector2Int position, NewItemOwnInstance item)
         {
             metrics.RecordEvent(RuntimeEventKind.ItemIdentified);
             MarkInventoryPending();
         }
 
         private void OnCharmEffectRefreshed()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnCharmEffectRefreshedCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnCharmEffectRefreshedCore()
         {
             metrics.RecordEvent(RuntimeEventKind.CharmEffectRefreshed);
             ScheduleInventoryCapture(settledObservation: true);
@@ -443,6 +703,25 @@ namespace SephiriaEnhancements.Runtime
         }
 
         private void OnInventoryCleared()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnInventoryClearedCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnInventoryClearedCore()
         {
             metrics.RecordEvent(RuntimeEventKind.InventoryCleared);
             MarkInventoryPending();
@@ -496,6 +775,7 @@ namespace SephiriaEnhancements.Runtime
                 lastCaptureFrame = frame;
                 inventoryStateStore.Clear();
                 string failureDetails = NativeInventoryRead.FailureDetails(exception);
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
                 stateHub.PublishIssue(
                     "Inventory snapshot capture failed: " +
                     failureDetails, invalid: false,
@@ -536,14 +816,32 @@ namespace SephiriaEnhancements.Runtime
 
         private void OnAllDatabasesReady()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                OnAllDatabasesReadyCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnAllDatabasesReadyCore()
+        {
             StartupProfiler.RecordMilestone("all_game_databases_ready");
             tabletProjectionReader?.Clear();
             inventoryCatalog = null;
             nativePreset = null;
             if (attachedPlayer != null)
             {
-                if (RefreshInventoryCatalog(attachedPlayer,
-                    invalidateInventory: true))
+                if (RefreshInventoryCatalog(attachedPlayer, invalidateInventory: true))
                 {
                     nativePreset = CaptureNativePreset();
                 }
@@ -619,6 +917,25 @@ namespace SephiriaEnhancements.Runtime
         }
 
         private void ForwardStateChanged(RuntimeStateSnapshot snapshot)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                ForwardStateChangedCore(snapshot);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ForwardStateChangedCore(RuntimeStateSnapshot snapshot)
         {
             StateChanged?.Invoke(snapshot);
         }

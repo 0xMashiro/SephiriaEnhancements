@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using HarmonyLib;
 using SephiriaEnhancements.Combat;
 using SephiriaEnhancements.Configuration;
@@ -22,8 +23,28 @@ namespace SephiriaEnhancements.Integration
 
         private static void Postfix(UI_PausePanel __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_PausePanel __instance)
+        {
             var entry = __instance.GetComponent<StatisticsPauseButton>();
-            if (entry == null) entry = __instance.gameObject.AddComponent<StatisticsPauseButton>();
+            if (entry == null)
+                entry = __instance.gameObject.AddComponent<StatisticsPauseButton>();
             entry.Refresh(__instance, controller);
         }
     }
@@ -60,7 +81,27 @@ namespace SephiriaEnhancements.Integration
 
         private void Update()
         {
-            if (button == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
+            if (button == null)
+                return;
             button.gameObject.SetActive(controller != null && controller.CanBrowseStatistics);
         }
 

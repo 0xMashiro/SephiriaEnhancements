@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
 using SephiriaEnhancements.Diagnostics;
 using UnityEngine;
@@ -17,7 +18,27 @@ namespace SephiriaEnhancements.DeveloperTools
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -31,6 +52,25 @@ namespace SephiriaEnhancements.DeveloperTools
         }
 
         private void Changed(int value)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
         {
             InventoryReproductionSettings.RecordAllResults = value == 1;
             RefreshText();

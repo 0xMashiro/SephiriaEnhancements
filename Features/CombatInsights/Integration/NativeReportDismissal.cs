@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using HarmonyLib;
 using SephiriaEnhancements.Combat;
 using UnityEngine.InputSystem;
@@ -18,16 +19,29 @@ namespace SephiriaEnhancements.Integration
 
         private static bool Prefix(UIInputModule __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(UIInputModule __instance)
+        {
             // CloseControl is the game's menu command, distinct from UI/Cancel.
             // Target switching also dismisses statistics using its current bindings.
             // Consume input before native menu opening, only when statistics close.
-            return __instance != UIInputModule.current ||
-                (__instance.closeControlAction?.action?.WasPressedThisFrame() != true &&
-                    !NativeInputActions.WasPressed(
-                        PlayerInputController.Instance?.playerInput?.actions,
-                        ModShortcuts.SwitchLockedTarget)) ||
-                controller == null || (!controller.TryCloseStatisticsBrowser() &&
-                    !controller.TryDismissPresentedReport());
+            return __instance != UIInputModule.current || (__instance.closeControlAction?.action?.WasPressedThisFrame() != true && !NativeInputActions.WasPressed(PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.SwitchLockedTarget)) || controller == null || (!controller.TryCloseStatisticsBrowser() && !controller.TryDismissPresentedReport());
         }
 
         internal static string BindingLabel()

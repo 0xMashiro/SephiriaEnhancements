@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -46,7 +47,27 @@ namespace SephiriaEnhancements.NativeCompanion.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.NativeCompanion))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.NativeCompanion, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = NativeCompanionSettings.ModeCount;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -62,11 +83,31 @@ namespace SephiriaEnhancements.NativeCompanion.Integration
 
         private void Changed(int value)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.NativeCompanion))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.NativeCompanion, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
             if (!NativeSettingsInteraction.CanEdit(SettingInteractionKind.Companion))
             {
                 box.ChangeValueWithoutNotify((int)NativeCompanionSettings.Mode);
                 return;
             }
+
             NativeCompanionSettings.Mode = (NativeCompanionMode)value;
             NativeCompanionSettings.Save();
             valueText?.UpdateKey(ModLocalization.NativeCompanionModeKeys[value]);

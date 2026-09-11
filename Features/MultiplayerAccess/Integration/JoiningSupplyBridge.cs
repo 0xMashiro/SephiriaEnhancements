@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Collections.Generic;
 using Mirror;
 using SephiriaEnhancements.Configuration;
@@ -97,23 +98,23 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             {
                 if (!serverRegistered)
                 {
-                    NetworkServer.RegisterHandler<Hello>((peer, hello) =>
+                    NetworkServer.RegisterHandler<Hello>((peer, hello) => FeatureFailure.Run(FeatureId.MultiplayerAccess, () =>
                     {
                         if (hello.Version == 1) peers[peer] = new Status { Revision = -1 };
-                    });
-                    NetworkServer.RegisterHandler<Request>((peer, request) =>
+                    }));
+                    NetworkServer.RegisterHandler<Request>((peer, request) => FeatureFailure.Run(FeatureId.MultiplayerAccess, () =>
                     {
                         if (peers.ContainsKey(peer)) HandleRequest(peer, request.Revision);
-                    });
-                    NetworkServer.RegisterHandler<MiracleChoice>((peer, choice) =>
-                    { if (peers.ContainsKey(peer)) HandleMiracle(peer, choice); });
-                    NetworkServer.RegisterHandler<AnvilSelection>((peer, selection) =>
+                    }));
+                    NetworkServer.RegisterHandler<MiracleChoice>((peer, choice) => FeatureFailure.Run(FeatureId.MultiplayerAccess, () =>
+                    { if (peers.ContainsKey(peer)) HandleMiracle(peer, choice); }));
+                    NetworkServer.RegisterHandler<AnvilSelection>((peer, selection) => FeatureFailure.Run(FeatureId.MultiplayerAccess, () =>
                     {
                         if (peers.ContainsKey(peer)) NativeJoiningSupplies.Instance.SaveAnvil(peer.identity?.GetComponent<PlayerSpawner>(),
                             selection.Revision, selection.Object, selection.Selection);
-                    });
-                    NetworkServer.RegisterHandler<FacilityChoice>((peer, choice) =>
-                    { if (peers.ContainsKey(peer)) HandleFacility(peer, choice); });
+                    }));
+                    NetworkServer.RegisterHandler<FacilityChoice>((peer, choice) => FeatureFailure.Run(FeatureId.MultiplayerAccess, () =>
+                    { if (peers.ContainsKey(peer)) HandleFacility(peer, choice); }));
                     serverRegistered = true;
                 }
                 if (MidRunAdmissionRuntime.IsAvailable && DungeonManager.Instance != null)
@@ -127,7 +128,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             }
             if (!clientRegistered)
             {
-                NetworkClient.RegisterHandler<Status>(Receive);
+                NetworkClient.RegisterHandler<Status>(status => FeatureFailure.Run(FeatureId.MultiplayerAccess, () => Receive(status)));
                 clientRegistered = true;
             }
             if (connection != NetworkClient.connection) current = default;

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 #nullable disable
 using SephiriaEnhancements.Runtime.Inventory;
 
@@ -102,6 +103,25 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
     {
         private static void Postfix(GridInventory __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(GridInventory __instance)
+        {
             InventoryEvaluationOrderTraceSignal.Begin(__instance);
         }
     }
@@ -110,6 +130,25 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
     internal static class ArtifactCategoryRefreshOrderPatch
     {
         private static void Prefix(Charm_Basic __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(Charm_Basic __instance)
         {
             InventoryEvaluationOrderTraceSignal.RecordCategory(__instance);
         }
@@ -120,6 +159,25 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
     {
         private static void Prefix(Charm_Basic __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(Charm_Basic __instance)
+        {
             InventoryEvaluationOrderTraceSignal.RecordArtifact(__instance);
         }
     }
@@ -129,8 +187,26 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
     {
         private static void Postfix(Charm_Basic charmInstance, bool __result)
         {
-            InventoryEvaluationOrderTraceSignal.RecordUnique(charmInstance,
-                __result);
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(charmInstance, __result);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(Charm_Basic charmInstance, bool __result)
+        {
+            InventoryEvaluationOrderTraceSignal.RecordUnique(charmInstance, __result);
         }
     }
 }

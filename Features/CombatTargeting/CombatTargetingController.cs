@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using SephiriaEnhancements.Configuration;
@@ -35,12 +36,52 @@ namespace SephiriaEnhancements.CombatTargeting
         internal static bool HidesPointer => current != null && current.aimApplied &&
             current.keyboardCombatActive && Application.isFocused;
 
-        private void Awake() => current = this;
+        private void Awake()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatTargeting))
+            {
+                return;
+            }
+
+            try
+            {
+                AwakeCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatTargeting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void AwakeCore() => current = this;
 
         private void LateUpdate()
         {
-            if (ownedTarget != null) feedback.Show(ownedTarget, GameCamera.Instance?.Camera, selection.IsManual, false);
-            else feedback.Hide();
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatTargeting))
+            {
+                return;
+            }
+
+            try
+            {
+                LateUpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatTargeting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void LateUpdateCore()
+        {
+            if (ownedTarget != null)
+                feedback.Show(ownedTarget, GameCamera.Instance?.Camera, selection.IsManual, false);
+            else
+                feedback.Hide();
         }
 
         internal static void UpdateInput(PlayerInputController input)
@@ -79,8 +120,10 @@ namespace SephiriaEnhancements.CombatTargeting
                 current.RefreshAim(input);
                 if (mouseAction || current.keyboardCombatActive || current.selection.IsManual)
                 {
-                    aimPosition = current.player.NetworkaimObject.transform.position;
-                    aimTarget = input.autoAimedTarget;
+                      Vector3 position = current.player.NetworkaimObject.transform.position;
+                      UnitAvatar target = input.autoAimedTarget;
+                      aimPosition = position;
+                      aimTarget = target;
                 }
             }
             catch (Exception ex) { current.DisableAfterFailure(ex); }
@@ -102,17 +145,19 @@ namespace SephiriaEnhancements.CombatTargeting
 
         private void OnDestroy()
         {
-            ClearControl(PlayerInputController.Instance);
-            feedback.Dispose();
             if (current == this) current = null;
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.CombatTargeting,
+                () => ClearControl(PlayerInputController.Instance));
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.CombatTargeting, feedback.Dispose);
         }
 
         private void DisableAfterFailure(Exception ex)
         {
-            ClearControl(PlayerInputController.Instance);
+            FeatureFailure.Disable(FeatureId.CombatTargeting, ex);
             runtimeCompatible = false;
+            ClearControl(PlayerInputController.Instance);
             SupportLogger.Warning("combat_targeting_failed",
-                "[SephiriaEnhancements] Combat targeting disabled for the current gameplay context: " + ex);
+                "[SephiriaEnhancements] Combat targeting disabled after an error: " + ex);
         }
 
         private bool TryBind(PlayerInputController input)

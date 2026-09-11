@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Collections.Generic;
 using HarmonyLib;
 using SephiriaEnhancements.Configuration;
@@ -25,16 +26,56 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             UIManager.Instance?.CurrentControlStack != null &&
             UIManager.Instance.CurrentControlStack[0] == panel;
 
-        private void Awake() => panel = GetComponent<UI_CharacterStatusPanel>();
+        private void Awake()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return;
+            }
+
+            try
+            {
+                AwakeCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void AwakeCore() => panel = GetComponent<UI_CharacterStatusPanel>();
 
         private void LateUpdate()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return;
+            }
+
+            try
+            {
+                LateUpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void LateUpdateCore()
         {
             if (textTemplate == null)
             {
                 UI_NewInventoryIcon reference = panel.itemIconPrefab.icon;
-                if (reference == null || reference.quantityText == null) return;
+                if (reference == null || reference.quantityText == null)
+                    return;
                 textTemplate = reference.quantityText;
             }
+
             if (Time.unscaledTime >= refreshAt)
             {
                 refreshAt = Time.unscaledTime + 0.2f;
@@ -45,31 +86,34 @@ namespace SephiriaEnhancements.AutoCasting.Integration
                     foreach (UI_SkillQuickSlotElement slot in bar.GetComponentsInChildren<UI_SkillQuickSlotElement>(true))
                         AddMarker(slot.gameObject, null, slot);
             }
+
             if (!IsEditable(panel))
             {
-                if (hint != null) hint.gameObject.SetActive(false);
-                if (focus != null) focus.gameObject.SetActive(false);
+                if (hint != null)
+                    hint.gameObject.SetActive(false);
+                if (focus != null)
+                    focus.gameObject.SetActive(false);
                 return;
             }
+
             UpdateFocus();
-            UI_PlayerSkillIcon selected = EventSystem.current?.currentSelectedGameObject?
-                .GetComponent<UI_PlayerSkillIcon>();
+            UI_PlayerSkillIcon selected = EventSystem.current?.currentSelectedGameObject?.GetComponent<UI_PlayerSkillIcon>();
             UpdateHint(selected);
-            InputAction shortcut = NativeInputActions.FindShortcut(
-                PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.SwitchLockedTarget);
-            if (shortcut?.WasPressedThisFrame() != true) return;
+            InputAction shortcut = NativeInputActions.FindShortcut(PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.SwitchLockedTarget);
+            if (shortcut?.WasPressedThisFrame() != true)
+                return;
             if (shortcut.activeControl?.device is Mouse)
             {
                 selected = null;
                 if (Mouse.current != null && EventSystem.current != null)
                 {
                     hits.Clear();
-                    EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current)
-                        { position = Mouse.current.position.ReadValue() }, hits);
+                    EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current) { position = Mouse.current.position.ReadValue() }, hits);
                     if (hits.Count > 0)
                         selected = hits[0].gameObject.GetComponentInParent<UI_PlayerSkillIcon>();
                 }
             }
+
             Toggle(selected);
         }
 
@@ -222,8 +266,29 @@ namespace SephiriaEnhancements.AutoCasting.Integration
         }
         private void LateUpdate()
         {
-            if (text == null) return;
-            if (template != null) NativeLocalizedText.MatchFontSize(text, template);
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return;
+            }
+
+            try
+            {
+                LateUpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void LateUpdateCore()
+        {
+            if (text == null)
+                return;
+            if (template != null)
+                NativeLocalizedText.MatchFontSize(text, template);
             if (slot != null)
             {
                 RectTransform iconRect = slot.iconImage.rectTransform;
@@ -236,6 +301,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
                 text.margin = Vector4.one;
                 text.transform.SetAsLastSibling();
             }
+
             NativeAutoCasting controller = NativeAutoCasting.Current;
             int index = slot == null ? -1 : slot.buttonIndex >= 100 ? slot.buttonIndex - 100 + 8 : slot.buttonIndex;
             Charm_Magic magic = icon != null ? icon.Magic : controller?.MagicAt(index);
@@ -250,6 +316,25 @@ namespace SephiriaEnhancements.AutoCasting.Integration
     {
         private static void Postfix(UI_CharacterStatusPanel __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_CharacterStatusPanel __instance)
+        {
             if (__instance.GetComponent<NativeAutoCastingUi>() == null)
                 __instance.gameObject.AddComponent<NativeAutoCastingUi>();
         }
@@ -260,11 +345,30 @@ namespace SephiriaEnhancements.AutoCasting.Integration
     {
         private static bool Prefix(UI_HorayButton __instance, BaseEventData eventData)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance, eventData);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(UI_HorayButton __instance, BaseEventData eventData)
+        {
             if (PlayerInputController.Instance?.playerInput?.currentControlScheme != ModShortcuts.GamepadScheme)
                 return true;
             UI_PlayerSkillIcon icon = __instance.GetComponent<UI_PlayerSkillIcon>();
-            if (icon == null || NativeAutoCasting.Current?.CanSelect(icon.Magic) != true ||
-                !NativeAutoCastingUi.IsEditable(icon.GetComponentInParent<UI_CharacterStatusPanel>())) return true;
+            if (icon == null || NativeAutoCasting.Current?.CanSelect(icon.Magic) != true || !NativeAutoCastingUi.IsEditable(icon.GetComponentInParent<UI_CharacterStatusPanel>()))
+                return true;
             NativeAutoCastingUi.Toggle(icon);
             eventData.Use();
             return false;

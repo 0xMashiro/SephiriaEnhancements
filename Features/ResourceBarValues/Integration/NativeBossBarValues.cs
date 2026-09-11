@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -101,7 +102,26 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
     [HarmonyPatch(typeof(UI_BossHPBar), nameof(UI_BossHPBar.SetBoss))]
     internal static class NativeBossBarValuesPatch
     {
-        private static void Postfix(UI_BossHPBar __instance) => NativeBossBarValues.Configure(__instance);
+        private static void Postfix(UI_BossHPBar __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.ResourceBarValues))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ResourceBarValues, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_BossHPBar __instance) => NativeBossBarValues.Configure(__instance);
     }
 
 }

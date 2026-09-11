@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using HarmonyLib;
 using Mirror;
 using UnityEngine;
@@ -14,46 +15,47 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private static void Postfix(BossSpawner __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(BossSpawner __instance)
+        {
             if (!NetworkServer.active || __instance.NetworkbossObject == null)
                 return;
-
             UnitAvatar boss = __instance.NetworkbossObject;
             int participantCount = ServerParticipantCountReader.Read();
             // The native BossSpawner formula uses raw server connections.
             int nativeAdditionalConnections = NetworkServer.connections.Count - 1;
-            if (MultiplayerRulesController.TryGetAuthoritativeActiveRules(
-                    out ActiveExplorationMultiplayerRules activeRules) &&
-                activeRules.Rules.Get(MultiplayerRuleId.StandardBossHealthMultiplier,
-                    participantCount).TryGetOverride(
-                        out float participantMultiplier))
+            if (MultiplayerRulesController.TryGetAuthoritativeActiveRules(out ActiveExplorationMultiplayerRules activeRules) && activeRules.Rules.Get(MultiplayerRuleId.StandardBossHealthMultiplier, participantCount).TryGetOverride(out float participantMultiplier))
             {
                 float baseHealth = boss.maxHp;
-                float nativeParticipantMultiplier = 1f +
-                    nativeAdditionalConnections *
-                    KeywordDatabase.GetConstValue(
-                        NativeBossHealthPerExtraPlayer) / 100f;
-                float nativeFinalMultiplier = baseHealth > 0f
-                    ? boss.MaxHp / baseHealth : 1f;
-                float otherModifierPercent =
-                    (nativeFinalMultiplier / nativeParticipantMultiplier - 1f) *
-                    100f;
+                float nativeParticipantMultiplier = 1f + nativeAdditionalConnections * KeywordDatabase.GetConstValue(NativeBossHealthPerExtraPlayer) / 100f;
+                float nativeFinalMultiplier = baseHealth > 0f ? boss.MaxHp / baseHealth : 1f;
+                float otherModifierPercent = (nativeFinalMultiplier / nativeParticipantMultiplier - 1f) * 100f;
                 float healthRatio = boss.HpRatio;
-                float configuredMultiplier = EnemyHealthRuleCalculator.Combine(
-                    participantMultiplier, otherModifierPercent,
-                    activeRules.HealthModifierCombination);
+                float configuredMultiplier = EnemyHealthRuleCalculator.Combine(participantMultiplier, otherModifierPercent, activeRules.HealthModifierCombination);
                 boss.NetworkmaxHp = baseHealth * configuredMultiplier;
                 boss.SetHp(boss.MaxHp * healthRatio);
             }
 
-            if (MultiplayerRulesController.TryGetActiveOverride(
-                    MultiplayerRuleId.BossEncounterDamageBonus, participantCount,
-                    out float configuredDamageBonus))
+            if (MultiplayerRulesController.TryGetActiveOverride(MultiplayerRuleId.BossEncounterDamageBonus, participantCount, out float configuredDamageBonus))
             {
-                int nativeDamageBonus = nativeAdditionalConnections *
-                    KeywordDatabase.GetConstValue(
-                        NativeBossDamagePerExtraPlayer);
-                boss.AddCustomStat(ECustomStat.AllDamageBonus,
-                    Mathf.RoundToInt(configuredDamageBonus) - nativeDamageBonus);
+                int nativeDamageBonus = nativeAdditionalConnections * KeywordDatabase.GetConstValue(NativeBossDamagePerExtraPlayer);
+                boss.AddCustomStat(ECustomStat.AllDamageBonus, Mathf.RoundToInt(configuredDamageBonus) - nativeDamageBonus);
             }
         }
     }

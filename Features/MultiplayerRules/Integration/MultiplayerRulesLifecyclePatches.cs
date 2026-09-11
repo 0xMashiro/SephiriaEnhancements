@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -17,8 +18,26 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private static void Prefix(DungeonManager __instance)
         {
-            if (MultiplayerRulesLifecyclePolicy.ShouldBeginNewExploration(
-                    __instance.isServer, __instance.isRunStarted))
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(DungeonManager __instance)
+        {
+            if (MultiplayerRulesLifecyclePolicy.ShouldBeginNewExploration(__instance.isServer, __instance.isRunStarted))
                 StartingExploration?.Invoke();
         }
     }
@@ -35,6 +54,25 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 nameof(HorayNetworkManager.OnStopClient));
         }
 
-        private static void Postfix() => MultiplayerRulesController.EndExploration();
+        private static void Postfix()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore() => MultiplayerRulesController.EndExploration();
     }
 }

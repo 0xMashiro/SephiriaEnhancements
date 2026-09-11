@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -55,7 +56,27 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -80,18 +101,38 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
 
         private void Changed(int value)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
             if (!NativeSettingsInteraction.CanEdit(reconnect ? SettingInteractionKind.Reconnect : SettingInteractionKind.Admission))
             {
                 Refresh();
                 return;
             }
+
             bool enabled = value != 0;
-            if (reconnect) MidRunAdmissionSettings.ReconnectSupport = enabled;
-            else MidRunAdmissionSettings.AllowMidRunJoin = enabled;
+            if (reconnect)
+                MidRunAdmissionSettings.ReconnectSupport = enabled;
+            else
+                MidRunAdmissionSettings.AllowMidRunJoin = enabled;
             MidRunAdmissionSettings.Save();
-            valueText?.UpdateKey(enabled
-                ? MultiplayerAccessLocalization.On
-                : MultiplayerAccessLocalization.Off);
+            valueText?.UpdateKey(enabled ? MultiplayerAccessLocalization.On : MultiplayerAccessLocalization.Off);
         }
     }
 }

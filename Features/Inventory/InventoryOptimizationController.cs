@@ -83,32 +83,29 @@ namespace SephiriaEnhancements.Inventory
 
         internal void Shutdown()
         {
+            if (Current == this) Current = null;
+            compatible = false;
+            InventoryArtifactIntentClickPatch.SetController(null);
             undo = null;
-            rewardComboHighlights.Clear();
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, rewardComboHighlights.Clear);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             ResetOptimizationFrameMetrics();
 #endif
             InventoryOptimizerRegistry.Unregister(gpuOptimizer);
-            gpuOptimizer?.Dispose();
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, () => gpuOptimizer?.Dispose());
             gpuOptimizer = null;
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
-            reproductionLog?.Dispose();
-            PumpReproductionLog();
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.DeveloperTools, () => reproductionLog?.Dispose());
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.DeveloperTools, PumpReproductionLog);
             reproductionLog = null;
 #endif
-            InventoryArtifactIntentClickPatch.SetController(null);
-            prioritySelectionView.Dispose();
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, prioritySelectionView.Dispose);
             WorldSessionInventoryIntentStore.Clear();
-            ResetOperationState();
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, ResetOperationState);
             LastAppliedOutcome = null;
-            hud.Dispose();
-            compatible = false;
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, hud.Dispose);
             runtimeKernel = null;
             enabled = false;
-            if (Current == this)
-            {
-                Current = null;
-            }
         }
 
         internal static bool TryHandleKeyboardTab() =>
@@ -133,29 +130,42 @@ namespace SephiriaEnhancements.Inventory
 
         private void Update()
         {
-#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
+        #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             SampleOptimizationFrame();
             PumpReproductionLog();
             HandleReproductionCapture();
-#endif
+        #endif
             PersistentInventoryOptimizationPolicyPersistence.EnsureLoaded();
             InventorySnapshot hudSnapshot = null;
-            runtimeKernel?.TryGetLatestInventorySnapshot(out hudSnapshot,
-                out RuntimeStateSnapshot _);
+            runtimeKernel?.TryGetLatestInventorySnapshot(out hudSnapshot, out RuntimeStateSnapshot _);
             rewardComboHighlights.Update(EnhancementsSettings.Enabled, hudSnapshot);
             MaintainPriorityMarking();
             MaintainArrangementHistory();
             RefreshPriorityMarkVisuals();
-            InventoryOptimizationPreferences worldSessionIntent =
-                WorldSessionInventoryIntentStore.Capture();
+            InventoryOptimizationPreferences worldSessionIntent = WorldSessionInventoryIntentStore.Capture();
             if (intentFeedback?.IsCurrent(runtimeKernel?.State, worldSessionIntent) != true)
                 intentFeedback = null;
             hud.ConfigureArrangementActions(RequestUndo, CanUndo);
-            hud.Update(EnhancementsSettings.Enabled && compatible,
-                HudPhase, hudSnapshot, RequestOptimization,
-                ReplacePreferences, prioritySelectionView.IsVisible,
-                InventoryArtifactIntentEditor.Count(worldSessionIntent),
-                TogglePriorityMarking, EndPriorityMarking, intentFeedback);
+            hud.Update(EnhancementsSettings.Enabled && compatible, HudPhase, hudSnapshot, RequestOptimization, ReplacePreferences, prioritySelectionView.IsVisible, InventoryArtifactIntentEditor.Count(worldSessionIntent), TogglePriorityMarking, EndPriorityMarking, intentFeedback);
             if (!EnhancementsSettings.Enabled)
             {
                 EndPriorityMarking();
@@ -164,8 +174,10 @@ namespace SephiriaEnhancements.Inventory
                     ShowOperationMessage(InventoryOptimizationLocalization.OperationStopped);
                     ResetOperationState();
                 }
+
                 return;
             }
+
             if (!compatible)
             {
                 EndPriorityMarking();
@@ -176,10 +188,12 @@ namespace SephiriaEnhancements.Inventory
             {
                 return;
             }
+
             if (search != null)
             {
                 PollSolver();
             }
+
             if (application != null)
             {
                 ApplyNextStep();
@@ -187,9 +201,7 @@ namespace SephiriaEnhancements.Inventory
 
             PlayerInputController input = PlayerInputController.Instance;
             NativeControlCoordinator.PreparePlayerInput(input);
-            if (!NativeInputActions.WasPressed(input?.playerInput?.actions,
-                    ModShortcuts.OptimizeInventory,
-                    rejectKeyboardModifiers: true))
+            if (!NativeInputActions.WasPressed(input?.playerInput?.actions, ModShortcuts.OptimizeInventory, rejectKeyboardModifiers: true))
             {
                 return;
             }
@@ -734,28 +746,45 @@ namespace SephiriaEnhancements.Inventory
 
         private void Fail(Exception exception)
         {
+            FeatureFailure.Disable(FeatureId.Inventory, exception);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             if (application != null)
                 RecordReproduction(InventoryReproductionReason.ApplicationException, exception: exception);
 #endif
             compatible = false;
             SupportLogger.Failure("inventory_operation_failed", exception);
-            SupportLogger.Warning("inventory_context_disabled", "[SephiriaEnhancements] Inventory optimization " +
-                "disabled for the current gameplay context: " +
+            SupportLogger.Warning("inventory_feature_disabled", "[SephiriaEnhancements] Inventory optimization " +
+                "disabled after an error: " +
                 (exception?.Message ?? "unknown failure"));
             ShowOperationMessage(InventoryOptimizationLocalization.
-                DisabledForGameplayContext);
+                DisabledAfterError);
             ResetOperationState();
         }
 
+        internal void StopAfterFeatureFailure()
+        {
+            compatible = false;
+            try
+            {
+                if (application != null || search != null)
+                    ShowOperationMessage(InventoryOptimizationLocalization.DisabledAfterError);
+            }
+            finally
+            {
+                // Stop issuing requests; already issued native moves are not rolled back.
+                ResetOperationState();
+                enabled = false;
+            }
+        }
         private void ResetOperationState()
         {
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             reproductionCase = null;
 #endif
-            search?.Dispose();
+            var pendingSearch = search;
             search = null;
             application = null;
+            pendingSearch?.Dispose();
         }
 
         private void OnDestroy()
@@ -770,7 +799,10 @@ namespace SephiriaEnhancements.Inventory
                 " operationIssued=" + hasIssuedOperation);
             string text = InventoryOptimizationLocalization.FormatOperationMessage(
                 key, hasIssuedOperation, ModLocalization.Get);
-            UIManager.Instance?.GetElement<UI_SystemMessage>()?.Open(text, hasIssuedOperation ? 4f : 2f);
+            var message = UIManager.Instance?.GetElement<UI_SystemMessage>();
+            message?.Open(text, hasIssuedOperation ? 4f : 2f);
+            if (message != null && key == InventoryOptimizationLocalization.DisabledAfterError)
+                FeatureFailure.ConsumeNotice();
         }
 
         private static void ShowMessage(string key)

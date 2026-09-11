@@ -5,6 +5,7 @@ using SephiriaEnhancements.Core;
 using SephiriaEnhancements.DefeatRetry;
 using SephiriaEnhancements.Diagnostics;
 using System;
+using SephiriaEnhancements.Runtime;
 using UnityEngine;
 
 namespace SephiriaEnhancements.Integration
@@ -75,14 +76,14 @@ namespace SephiriaEnhancements.Integration
             {
                 if (!serverRegistered)
                 {
-                    NetworkServer.RegisterHandler<Hello>((connection, message) =>
+                    NetworkServer.RegisterHandler<Hello>((connection, message) => FeatureFailure.Run(FeatureId.DefeatRetry, () =>
                     {
                         if (message.Version == 2) peers.Add(connection);
-                    });
-                    NetworkServer.RegisterHandler<Arrival>((connection, message) =>
+                    }));
+                    NetworkServer.RegisterHandler<Arrival>((connection, message) => FeatureFailure.Run(FeatureId.DefeatRetry, () =>
                     {
                         AcceptReceipt(connection, message.RetryId, message.Success);
-                    });
+                    }));
                     serverRegistered = true;
                 }
                 if (integrationAvailable && DungeonManager.Instance != null)
@@ -112,11 +113,11 @@ namespace SephiriaEnhancements.Integration
             }
             if (!clientRegistered)
             {
-                NetworkClient.RegisterHandler<Notification>(message =>
+                NetworkClient.RegisterHandler<Notification>(message => FeatureFailure.Run(FeatureId.DefeatRetry, () =>
                 {
                     if (!NetworkServer.active && message.Transition <= RetryTransition.RecoveryCompleted)
                         Receive(message);
-                });
+                }));
                 clientRegistered = true;
             }
             if (integrationAvailable && !NetworkServer.active && NetworkClient.ready && NetworkClient.connection != null &&
@@ -298,8 +299,6 @@ namespace SephiriaEnhancements.Integration
 
         internal static void Shutdown()
         {
-            if (NetworkServer.active && DungeonManager.Instance != null)
-                DungeonManager.Instance.constValueDictionary.Remove(ProtocolKey);
             NetworkServer.UnregisterHandler<Hello>();
             NetworkServer.UnregisterHandler<Arrival>();
             NetworkClient.UnregisterHandler<Notification>();
@@ -312,6 +311,30 @@ namespace SephiriaEnhancements.Integration
             NativeRetryBoss.Clear();
             integrationAvailable = false;
             NativeRetryFailure.Clear();
+            if (NetworkServer.active && DungeonManager.Instance != null)
+                DungeonManager.Instance.constValueDictionary.Remove(ProtocolKey);
+        }
+
+        internal static void StopAfterFeatureFailure()
+        {
+            integrationAvailable = false;
+            bool restoring = DefeatRetryFeature.IsRetrying || recovery.BlocksBattle ||
+                DefeatRetryClientRestore.PreserveClientRun || NativeRetryFailure.IsPending;
+            try
+            {
+                if (restoring && NetworkServer.active)
+                {
+                    FailRecovery();
+                    PublishRecoveryResult();
+                }
+                else if (restoring) DefeatRetryClientRestore.ReportFailure();
+            }
+            finally
+            {
+                SephiriaEnhancementsMod.CleanupFeature(FeatureId.DefeatRetry, DefeatRetryFeature.AbortRecovery);
+                SephiriaEnhancementsMod.CleanupFeature(FeatureId.DefeatRetry, Shutdown);
+                if (restoring) NativeRetryFailure.Show(RetryRecoveryFailure.RestoreFailed);
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -37,7 +38,27 @@ namespace SephiriaEnhancements.ViewDistance.Integration
         { box = selectionBox; valueText = text; }
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.ViewDistance))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ViewDistance, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = ViewDistanceSettings.ScaleCount;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -47,6 +68,25 @@ namespace SephiriaEnhancements.ViewDistance.Integration
         }
         private void OnDisable() { if (box != null) box.OnValueChanged -= Changed; }
         private void Changed(int value)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.ViewDistance))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ViewDistance, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
         {
             ViewDistanceSettings.ScaleIndex = value;
             ViewDistanceSettings.Save();

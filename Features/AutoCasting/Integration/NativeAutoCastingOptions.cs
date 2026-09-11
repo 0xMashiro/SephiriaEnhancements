@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using HarmonyLib;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
@@ -67,6 +68,25 @@ namespace SephiriaEnhancements.AutoCasting.Integration
 
         private void Update()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
             NativeAutoCasting controller = NativeAutoCasting.Current;
             Charm_Magic magic = controller?.MagicAt(slot);
             bool supported = EnhancementsSettings.Enabled && controller?.CanSelect(magic) == true;
@@ -88,6 +108,25 @@ namespace SephiriaEnhancements.AutoCasting.Integration
     [HarmonyPatch(typeof(UI_OptionsPanel), nameof(UI_OptionsPanel.SelectTab))]
     internal static class AutoCastingOptionsPatch
     {
-        private static void Postfix(UI_OptionsPanel __instance) => NativeAutoCastingOptions.AddToRows(__instance);
+        private static void Postfix(UI_OptionsPanel __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_OptionsPanel __instance) => NativeAutoCastingOptions.AddToRows(__instance);
     }
 }

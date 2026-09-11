@@ -8,6 +8,9 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Runtime/FeatureFailure.cs" Link="Runtime/FeatureFailure.cs" />
+    <Compile Include="../../Runtime/FeaturePatchSet.cs" Link="Runtime/FeaturePatchSet.cs" />
+    <Compile Include="../../Runtime/FeatureFailureLocalization.cs" Link="Runtime/FeatureFailureLocalization.cs" />
     <Compile Include="../../Features/ModInformation/Core/*.cs" Link="ModInformation/%(Filename)%(Extension)" />
     <Compile Include="../../Features/ModInformation/Integration/ModUpdateCheck.cs" Link="ModInformation/ModUpdateCheck.cs" />
     <Compile Include="../../Features/ModInformation/ModInformationLocalization.cs" Link="ModInformation/ModInformationLocalization.cs" />

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -11,8 +12,28 @@ namespace SephiriaEnhancements.CombatVisuals
     {
         private static void Postfix(string key, ref int __result)
         {
-            if (CombatVisualRuntime.TryGetTransparencyOverride(key,
-                    out int value))
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            var original___result = __result;
+            try
+            {
+                PostfixCore(key, ref __result);
+            }
+            catch (System.Exception exception)
+            {
+                __result = original___result;
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(string key, ref int __result)
+        {
+            if (CombatVisualRuntime.TryGetTransparencyOverride(key, out int value))
             {
                 __result = value;
             }
@@ -22,20 +43,65 @@ namespace SephiriaEnhancements.CombatVisuals
     [HarmonyPatch(typeof(UnitAvatar), nameof(UnitAvatar.SetTransparencyRenderMode))]
     internal static class CompanionBodyTransparencyPatch
     {
-        private static void Prefix(UnitAvatar __instance, UnitAvatar newValue,
-            out IDisposable __state)
+        private static void Prefix(UnitAvatar __instance, UnitAvatar newValue, out IDisposable __state)
         {
-            __state = CombatVisualRuntime.Begin(__instance,
-                CombatVisualSurface.Body, newValue);
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance, newValue, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(UnitAvatar __instance, UnitAvatar newValue, out IDisposable __state)
+        {
+            __state = CombatVisualRuntime.Begin(__instance, CombatVisualSurface.Body, newValue);
         }
 
         private static void Postfix(IDisposable __state)
         {
+            try
+            {
+                PostfixCore(__state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(IDisposable __state)
+        {
             __state?.Dispose();
         }
 
-        private static Exception Finalizer(IDisposable __state,
-            Exception __exception)
+        private static Exception Finalizer(IDisposable __state, Exception __exception)
+        {
+            try
+            {
+                return FinalizerCore(__state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(IDisposable __state, Exception __exception)
         {
             __state?.Dispose();
             return __exception;
@@ -47,17 +113,63 @@ namespace SephiriaEnhancements.CombatVisuals
     {
         private static void Prefix(Bullet __instance, out IDisposable __state)
         {
-            __state = CombatVisualRuntime.Begin(__instance.NetworkOwner,
-                CombatVisualSurface.Effect);
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(Bullet __instance, out IDisposable __state)
+        {
+            __state = CombatVisualRuntime.Begin(__instance.NetworkOwner, CombatVisualSurface.Effect);
         }
 
         private static void Postfix(IDisposable __state)
         {
+            try
+            {
+                PostfixCore(__state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(IDisposable __state)
+        {
             __state?.Dispose();
         }
 
-        private static Exception Finalizer(IDisposable __state,
-            Exception __exception)
+        private static Exception Finalizer(IDisposable __state, Exception __exception)
+        {
+            try
+            {
+                return FinalizerCore(__state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(IDisposable __state, Exception __exception)
         {
             __state?.Dispose();
             return __exception;
@@ -68,20 +180,65 @@ namespace SephiriaEnhancements.CombatVisuals
         nameof(SpecialProjectile_AreaJudgement.OnStartClient))]
     internal static class CompanionAreaJudgementTransparencyPatch
     {
-        private static void Prefix(SpecialProjectile_AreaJudgement __instance,
-            out IDisposable __state)
+        private static void Prefix(SpecialProjectile_AreaJudgement __instance, out IDisposable __state)
         {
-            __state = CombatVisualRuntime.Begin(__instance.Networkowner,
-                CombatVisualSurface.Effect);
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(SpecialProjectile_AreaJudgement __instance, out IDisposable __state)
+        {
+            __state = CombatVisualRuntime.Begin(__instance.Networkowner, CombatVisualSurface.Effect);
         }
 
         private static void Postfix(IDisposable __state)
         {
+            try
+            {
+                PostfixCore(__state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(IDisposable __state)
+        {
             __state?.Dispose();
         }
 
-        private static Exception Finalizer(IDisposable __state,
-            Exception __exception)
+        private static Exception Finalizer(IDisposable __state, Exception __exception)
+        {
+            try
+            {
+                return FinalizerCore(__state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(IDisposable __state, Exception __exception)
         {
             __state?.Dispose();
             return __exception;
@@ -92,20 +249,65 @@ namespace SephiriaEnhancements.CombatVisuals
         nameof(SpecialProjectile_SpreadAOE.OnStartClient))]
     internal static class CompanionSpreadAoeTransparencyPatch
     {
-        private static void Prefix(SpecialProjectile_SpreadAOE __instance,
-            out IDisposable __state)
+        private static void Prefix(SpecialProjectile_SpreadAOE __instance, out IDisposable __state)
         {
-            __state = CombatVisualRuntime.Begin(__instance.Networkowner,
-                CombatVisualSurface.Effect);
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(SpecialProjectile_SpreadAOE __instance, out IDisposable __state)
+        {
+            __state = CombatVisualRuntime.Begin(__instance.Networkowner, CombatVisualSurface.Effect);
         }
 
         private static void Postfix(IDisposable __state)
         {
+            try
+            {
+                PostfixCore(__state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(IDisposable __state)
+        {
             __state?.Dispose();
         }
 
-        private static Exception Finalizer(IDisposable __state,
-            Exception __exception)
+        private static Exception Finalizer(IDisposable __state, Exception __exception)
+        {
+            try
+            {
+                return FinalizerCore(__state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(IDisposable __state, Exception __exception)
         {
             __state?.Dispose();
             return __exception;
@@ -125,17 +327,63 @@ namespace SephiriaEnhancements.CombatVisuals
 
         private static void Prefix(UnitAvatar owner, out IDisposable __state)
         {
-            __state = CombatVisualRuntime.Begin(owner,
-                CombatVisualSurface.Effect);
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(owner, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(UnitAvatar owner, out IDisposable __state)
+        {
+            __state = CombatVisualRuntime.Begin(owner, CombatVisualSurface.Effect);
         }
 
         private static void Postfix(IDisposable __state)
         {
+            try
+            {
+                PostfixCore(__state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(IDisposable __state)
+        {
             __state?.Dispose();
         }
 
-        private static Exception Finalizer(IDisposable __state,
-            Exception __exception)
+        private static Exception Finalizer(IDisposable __state, Exception __exception)
+        {
+            try
+            {
+                return FinalizerCore(__state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(IDisposable __state, Exception __exception)
         {
             __state?.Dispose();
             return __exception;
@@ -171,20 +419,65 @@ namespace SephiriaEnhancements.CombatVisuals
                 nameof(BulletMoveModule.OnCanMoveCountChanged));
         }
 
-        private static void Prefix(BulletMoveModule __instance,
-            out IDisposable __state)
+        private static void Prefix(BulletMoveModule __instance, out IDisposable __state)
         {
-            __state = CombatVisualRuntime.Begin(__instance.Bullet?.NetworkOwner,
-                CombatVisualSurface.Effect);
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(BulletMoveModule __instance, out IDisposable __state)
+        {
+            __state = CombatVisualRuntime.Begin(__instance.Bullet?.NetworkOwner, CombatVisualSurface.Effect);
         }
 
         private static void Postfix(IDisposable __state)
         {
+            try
+            {
+                PostfixCore(__state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(IDisposable __state)
+        {
             __state?.Dispose();
         }
 
-        private static Exception Finalizer(IDisposable __state,
-            Exception __exception)
+        private static Exception Finalizer(IDisposable __state, Exception __exception)
+        {
+            try
+            {
+                return FinalizerCore(__state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(IDisposable __state, Exception __exception)
         {
             __state?.Dispose();
             return __exception;
@@ -204,18 +497,63 @@ namespace SephiriaEnhancements.CombatVisuals
 
         private static void Prefix(uint ownerNetId, out IDisposable __state)
         {
-            __state = CombatVisualRuntime.Begin(
-                CombatVisualSourceResolver.FindSource(ownerNetId),
-                CombatVisualSurface.Effect);
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(ownerNetId, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(uint ownerNetId, out IDisposable __state)
+        {
+            __state = CombatVisualRuntime.Begin(CombatVisualSourceResolver.FindSource(ownerNetId), CombatVisualSurface.Effect);
         }
 
         private static void Postfix(IDisposable __state)
         {
+            try
+            {
+                PostfixCore(__state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(IDisposable __state)
+        {
             __state?.Dispose();
         }
 
-        private static Exception Finalizer(IDisposable __state,
-            Exception __exception)
+        private static Exception Finalizer(IDisposable __state, Exception __exception)
+        {
+            try
+            {
+                return FinalizerCore(__state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(IDisposable __state, Exception __exception)
         {
             __state?.Dispose();
             return __exception;
@@ -226,20 +564,65 @@ namespace SephiriaEnhancements.CombatVisuals
         nameof(BulletDestroyModule.OnDestroyRequestReceived))]
     internal static class CompanionBulletDestroyTransparencyPatch
     {
-        private static void Prefix(BulletDestroyModule __instance,
-            out IDisposable __state)
+        private static void Prefix(BulletDestroyModule __instance, out IDisposable __state)
         {
-            __state = CombatVisualRuntime.Begin(
-                __instance.Bullet?.NetworkOwner, CombatVisualSurface.Effect);
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(BulletDestroyModule __instance, out IDisposable __state)
+        {
+            __state = CombatVisualRuntime.Begin(__instance.Bullet?.NetworkOwner, CombatVisualSurface.Effect);
         }
 
         private static void Postfix(IDisposable __state)
         {
+            try
+            {
+                PostfixCore(__state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(IDisposable __state)
+        {
             __state?.Dispose();
         }
 
-        private static Exception Finalizer(IDisposable __state,
-            Exception __exception)
+        private static Exception Finalizer(IDisposable __state, Exception __exception)
+        {
+            try
+            {
+                return FinalizerCore(__state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(IDisposable __state, Exception __exception)
         {
             __state?.Dispose();
             return __exception;
@@ -259,18 +642,63 @@ namespace SephiriaEnhancements.CombatVisuals
 
         private static void Prefix(uint ownerNetId, out IDisposable __state)
         {
-            __state = CombatVisualRuntime.Begin(
-                CombatVisualSourceResolver.FindSource(ownerNetId),
-                CombatVisualSurface.Effect);
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(ownerNetId, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(uint ownerNetId, out IDisposable __state)
+        {
+            __state = CombatVisualRuntime.Begin(CombatVisualSourceResolver.FindSource(ownerNetId), CombatVisualSurface.Effect);
         }
 
         private static void Postfix(IDisposable __state)
         {
+            try
+            {
+                PostfixCore(__state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(IDisposable __state)
+        {
             __state?.Dispose();
         }
 
-        private static Exception Finalizer(IDisposable __state,
-            Exception __exception)
+        private static Exception Finalizer(IDisposable __state, Exception __exception)
+        {
+            try
+            {
+                return FinalizerCore(__state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(IDisposable __state, Exception __exception)
         {
             __state?.Dispose();
             return __exception;

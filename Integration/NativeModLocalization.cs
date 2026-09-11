@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using HarmonyLib;
 
 namespace SephiriaEnhancements.Configuration
@@ -41,6 +42,25 @@ namespace SephiriaEnhancements.Configuration
     internal static class ModLanguageLoadPatch
     {
         private static void Prefix(LocalizationManager __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Settings))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Settings, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(LocalizationManager __instance)
         {
             ModLocalization.Register(__instance.AddModText);
         }

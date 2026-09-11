@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Reflection;
 using HarmonyLib;
 using SephiriaEnhancements.Configuration;
@@ -21,11 +22,49 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         private void Awake()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                AwakeCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void AwakeCore()
+        {
             current = this;
             ApplyNativeSelectionPolicy(ControlsChangeHandler.Current);
         }
 
         private void Update()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
         {
             KeyboardUiPointer.RefreshInput();
             ApplyNativeSelectionPolicy(ControlsChangeHandler.Current);
@@ -38,38 +77,54 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
             // A new navigation gesture on an existing control supersedes an
             // entry request still waiting for another panel's animation.
-            if (WasKeyboardNavigationPressed() &&
-                KeyboardUiSelection.IsInControlStack(EventSystem.current?.currentSelectedGameObject))
+            if (WasKeyboardNavigationPressed() && KeyboardUiSelection.IsInControlStack(EventSystem.current?.currentSelectedGameObject))
                 ClearPendingSelection();
             InitializePendingSelection();
-            if (!OptionsKeyboardNavigation.SwitchTab() &&
-                !SephiriaEnhancements.Inventory.InventoryOptimizationController.
-                    TryHandleKeyboardTab() &&
-                !SephiriaEnhancements.AutoCasting.Integration.NativeSkillNavigation.TrySwitchRegion())
+            if (!OptionsKeyboardNavigation.SwitchTab() && !SephiriaEnhancements.Inventory.InventoryOptimizationController.TryHandleKeyboardTab() && !SephiriaEnhancements.AutoCasting.Integration.NativeSkillNavigation.TrySwitchRegion())
                 SwitchCombinedPanelWithTab();
             RestoreMissingKeyboardSelection();
         }
 
         private void LateUpdate()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                LateUpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void LateUpdateCore()
+        {
             QuestBoardKeyboardScroll.Update();
             // Navigation and scroll/layout updates can run after a picker's Update.
             // Resolve its final position again before rendering the same frame.
             if (KeyboardUiPointer.SelectedTarget() != null)
             {
-                UI_NewItemPicker_Controller picker = UIManager.Instance
-                    .GetElement<UI_NewItemPicker_Controller>();
-                if (picker != null) KeyboardUiPointer.PositionCarriedItem(picker);
+                UI_NewItemPicker_Controller picker = UIManager.Instance.GetElement<UI_NewItemPicker_Controller>();
+                if (picker != null)
+                    KeyboardUiPointer.PositionCarriedItem(picker);
             }
+
             KeyboardUiPointer.UpdateCursor();
         }
 
         private void OnDestroy()
         {
-            RewardKeyboardNavigation.Reset();
-            KeyboardUiPointer.Reset();
-            SetKeyboardDefaultSelection(ControlsChangeHandler.Current, false);
-            ClearPendingSelection();
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.KeyboardUiNavigation, () => RewardKeyboardNavigation.Reset());
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.KeyboardUiNavigation, () => KeyboardUiPointer.Reset());
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.KeyboardUiNavigation, () => SetKeyboardDefaultSelection(ControlsChangeHandler.Current, false));
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.KeyboardUiNavigation, () => ClearPendingSelection());
             if (current == this)
             {
                 current = null;

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -196,13 +197,31 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = MultiplayerRulesLocalization.PresetKeys.Length;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
-
-            bool explorationActive = MultiplayerRulesController.TryGetActivePreset(
-                out MultiplayerRulesPreset preset);
+            bool explorationActive = MultiplayerRulesController.TryGetActivePreset(out MultiplayerRulesPreset preset);
             if (!explorationActive)
             {
                 preset = PreferredMultiplayerRulesStore.Read().Preset;
@@ -210,9 +229,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
             int value = (int)preset;
             box.ChangeValueWithoutNotify(value);
-            NativeHorizontalSelectionOptionState.Apply(gameObject, box,
-                !explorationActive &&
-                MultiplayerRulesOptionsRefresh.CanEditHostPreferences());
+            NativeHorizontalSelectionOptionState.Apply(gameObject, box, !explorationActive && MultiplayerRulesOptionsRefresh.CanEditHostPreferences());
             valueText?.UpdateKey(MultiplayerRulesLocalization.PresetKeys[value]);
         }
 
@@ -223,21 +240,34 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void Changed(int value)
         {
-            if (MultiplayerRulesController.TryGetActivePreset(out var activePreset) ||
-                !MultiplayerRulesOptionsRefresh.CanEditHostPreferences())
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
             {
-                int activeValue = MultiplayerRulesController.TryGetActivePreset(
-                    out activePreset) ? (int)activePreset :
-                    (int)PreferredMultiplayerRulesStore.Read().Preset;
-                box.ChangeValueWithoutNotify(activeValue);
-                valueText?.UpdateKey(
-                    MultiplayerRulesLocalization.PresetKeys[activeValue]);
                 return;
             }
 
-            MultiplayerRulesPreset preset = value >= 0 && value <= 2
-                ? (MultiplayerRulesPreset)value
-                : MultiplayerRulesPreset.Original;
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
+            if (MultiplayerRulesController.TryGetActivePreset(out var activePreset) || !MultiplayerRulesOptionsRefresh.CanEditHostPreferences())
+            {
+                int activeValue = MultiplayerRulesController.TryGetActivePreset(out activePreset) ? (int)activePreset : (int)PreferredMultiplayerRulesStore.Read().Preset;
+                box.ChangeValueWithoutNotify(activeValue);
+                valueText?.UpdateKey(MultiplayerRulesLocalization.PresetKeys[activeValue]);
+                return;
+            }
+
+            MultiplayerRulesPreset preset = value >= 0 && value <= 2 ? (MultiplayerRulesPreset)value : MultiplayerRulesPreset.Original;
             PreferredMultiplayerRulesStore.WritePreset(preset);
             PreferredMultiplayerRulesStore.Save();
             valueText?.UpdateKey(MultiplayerRulesLocalization.PresetKeys[(int)preset]);
@@ -259,7 +289,27 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -285,17 +335,35 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void Changed(int value)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
             if (!MultiplayerRulesOptionsRefresh.CanEditHostPreferences())
             {
                 Refresh();
                 return;
             }
+
             bool enabled = value != 0;
             PreferredMultiplayerRulesStore.WriteAllowExternalRuleStacking(enabled);
             PreferredMultiplayerRulesStore.Save();
-            valueText?.UpdateKey(enabled
-                ? MultiplayerRulesLocalization.ToggleEnabled
-                : MultiplayerRulesLocalization.ToggleDisabled);
+            valueText?.UpdateKey(enabled ? MultiplayerRulesLocalization.ToggleEnabled : MultiplayerRulesLocalization.ToggleDisabled);
         }
     }
 
@@ -315,7 +383,27 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 4;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -342,8 +430,26 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void Changed(int value)
         {
-            MultiplayerRulesOptionsRefresh.EditedParticipantCount =
-                Mathf.Clamp(value + 1, 1, 4);
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
+            MultiplayerRulesOptionsRefresh.EditedParticipantCount = Mathf.Clamp(value + 1, 1, 4);
             MultiplayerRulesOptionsRefresh.Refresh(transform.parent);
         }
     }
@@ -364,18 +470,36 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void OnEnable()
         {
-            if (box == null || controller == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null || controller == null)
+                return;
             int count = MultiplayerRulePresentationGroups.All.Count;
             box.numberOfElements = count;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
-            int value = count == 0 ? 0 : Mathf.Clamp(
-                controller.SelectedMultiplayerRuleGroup, 0, count - 1);
+            int value = count == 0 ? 0 : Mathf.Clamp(controller.SelectedMultiplayerRuleGroup, 0, count - 1);
             box.ChangeValueWithoutNotify(value);
             if (count > 0)
             {
-                valueText?.UpdateKey(MultiplayerRulePresentationGroups.All[value].
-                    LocalizationKey);
+                valueText?.UpdateKey(MultiplayerRulePresentationGroups.All[value].LocalizationKey);
             }
         }
 
@@ -386,11 +510,30 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void Changed(int value)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
             int count = MultiplayerRulePresentationGroups.All.Count;
-            if (count == 0) return;
+            if (count == 0)
+                return;
             int groupIndex = Mathf.Clamp(value, 0, count - 1);
-            valueText?.UpdateKey(MultiplayerRulePresentationGroups.All[groupIndex].
-                LocalizationKey);
+            valueText?.UpdateKey(MultiplayerRulePresentationGroups.All[groupIndex].LocalizationKey);
             controller?.SelectMultiplayerRuleGroup(groupIndex);
         }
     }
@@ -413,9 +556,28 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
-            box.numberOfElements =
-                MultiplayerRulesLocalization.NumericValueCount(definition) + 1;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
+            box.numberOfElements = MultiplayerRulesLocalization.NumericValueCount(definition) + 1;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Clamp;
             box.OnValueChanged += Changed;
             Refresh();
@@ -459,20 +621,33 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void Changed(int value)
         {
-            if (MultiplayerRulesController.TryGetActivePreset(out _) ||
-                !MultiplayerRulesOptionsRefresh.CanEditHostPreferences() ||
-                PreferredMultiplayerRulesStore.Read().Preset !=
-                    MultiplayerRulesPreset.Custom)
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
+            if (MultiplayerRulesController.TryGetActivePreset(out _) || !MultiplayerRulesOptionsRefresh.CanEditHostPreferences() || PreferredMultiplayerRulesStore.Read().Preset != MultiplayerRulesPreset.Custom)
             {
                 Refresh();
                 return;
             }
-            MultiplayerRuleValue<float> configured = value <= 0
-                ? MultiplayerRuleValue<float>.UseGameBehavior()
-                : MultiplayerRuleValue<float>.Override(definition.Minimum +
-                    definition.Step * (value - 1));
-            PreferredMultiplayerRulesStore.WriteCustomValue(definition.Id,
-                MultiplayerRulesOptionsRefresh.EditedParticipantCount, configured);
+
+            MultiplayerRuleValue<float> configured = value <= 0 ? MultiplayerRuleValue<float>.UseGameBehavior() : MultiplayerRuleValue<float>.Override(definition.Minimum + definition.Step * (value - 1));
+            PreferredMultiplayerRulesStore.WriteCustomValue(definition.Id, MultiplayerRulesOptionsRefresh.EditedParticipantCount, configured);
             PreferredMultiplayerRulesStore.Save();
             Refresh();
         }
@@ -494,7 +669,27 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 5;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Clamp;
             box.OnValueChanged += Changed;
@@ -521,20 +716,33 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void Changed(int targetParticipantCount)
         {
-            int sourceParticipantCount =
-                MultiplayerRulesOptionsRefresh.EditedParticipantCount;
-            bool canCopy = targetParticipantCount >= 1 &&
-                targetParticipantCount <= 4 &&
-                !MultiplayerRulesController.TryGetActivePreset(out _) &&
-                MultiplayerRulesOptionsRefresh.CanEditHostPreferences() &&
-                PreferredMultiplayerRulesStore.Read().Preset ==
-                    MultiplayerRulesPreset.Custom;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(targetParticipantCount);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int targetParticipantCount)
+        {
+            int sourceParticipantCount = MultiplayerRulesOptionsRefresh.EditedParticipantCount;
+            bool canCopy = targetParticipantCount >= 1 && targetParticipantCount <= 4 && !MultiplayerRulesController.TryGetActivePreset(out _) && MultiplayerRulesOptionsRefresh.CanEditHostPreferences() && PreferredMultiplayerRulesStore.Read().Preset == MultiplayerRulesPreset.Custom;
             if (canCopy && targetParticipantCount != sourceParticipantCount)
             {
-                PreferredMultiplayerRulesStore.CopyCustomParticipantValues(
-                    sourceParticipantCount, targetParticipantCount);
+                PreferredMultiplayerRulesStore.CopyCustomParticipantValues(sourceParticipantCount, targetParticipantCount);
                 PreferredMultiplayerRulesStore.Save();
             }
+
             MultiplayerRulesOptionsRefresh.Refresh(transform.parent);
         }
     }
@@ -555,7 +763,27 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = MultiplayerRulesLocalization.HealthCombinationKeys.Length;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -590,17 +818,32 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private void Changed(int value)
         {
-            if (MultiplayerRulesController.TryGetActivePreset(out _) ||
-                !MultiplayerRulesOptionsRefresh.CanEditHostPreferences() ||
-                PreferredMultiplayerRulesStore.Read().Preset !=
-                    MultiplayerRulesPreset.Custom)
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
+            if (MultiplayerRulesController.TryGetActivePreset(out _) || !MultiplayerRulesOptionsRefresh.CanEditHostPreferences() || PreferredMultiplayerRulesStore.Read().Preset != MultiplayerRulesPreset.Custom)
             {
                 Refresh();
                 return;
             }
-            EnemyHealthModifierCombination combination = value >= 0 && value <= 2
-                ? (EnemyHealthModifierCombination)value
-                : EnemyHealthModifierCombination.ParticipantRuleOnly;
+
+            EnemyHealthModifierCombination combination = value >= 0 && value <= 2 ? (EnemyHealthModifierCombination)value : EnemyHealthModifierCombination.ParticipantRuleOnly;
             PreferredMultiplayerRulesStore.WriteCustomHealthCombination(combination);
             PreferredMultiplayerRulesStore.Save();
             Refresh();

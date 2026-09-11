@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using HarmonyLib;
 using SephiriaEnhancements.MultiplayerAccess.Presentation;
 using UnityEngine;
@@ -10,8 +11,28 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
     {
         private static void Postfix(UI_PausePanel __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_PausePanel __instance)
+        {
             var entry = __instance.GetComponent<JoiningSupplyPauseButton>();
-            if (entry == null) entry = __instance.gameObject.AddComponent<JoiningSupplyPauseButton>();
+            if (entry == null)
+                entry = __instance.gameObject.AddComponent<JoiningSupplyPauseButton>();
             entry.Initialize(__instance);
         }
     }
@@ -43,7 +64,26 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             button.GetComponentInChildren<UI_LocalizationStringText>(true)?.UpdateKey(JoiningSupplyLocalization.Claim);
             Refresh();
         }
-        private void Update() => Refresh();
+        private void Update()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore() => Refresh();
         private void Refresh()
         {
             if (button != null) button.gameObject.SetActive(NativeJoiningSupplies.Instance != null && JoiningSupplyBridge.Available);

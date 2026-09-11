@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Collections.Generic;
 using HarmonyLib;
 using SephiriaEnhancements.Configuration;
@@ -114,8 +115,26 @@ namespace SephiriaEnhancements.AutoCasting.Integration
     [HarmonyPatch(typeof(Selectable), nameof(Selectable.OnMove))]
     internal static class SkillNavigationMovePatch
     {
-        private static bool Prefix(Selectable __instance, AxisEventData eventData) =>
-            NativeSkillNavigation.Move(__instance, eventData);
+        private static bool Prefix(Selectable __instance, AxisEventData eventData)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance, eventData);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(Selectable __instance, AxisEventData eventData) => NativeSkillNavigation.Move(__instance, eventData);
     }
 
     [HarmonyPatch(typeof(UI_CharacterStatusPanel), nameof(UI_CharacterStatusPanel.OnShowWeaponToggle))]
@@ -123,7 +142,27 @@ namespace SephiriaEnhancements.AutoCasting.Integration
     {
         private static void Prefix(UI_CharacterStatusPanel __instance, bool isOn)
         {
-            if (isOn || !NativeAutoCastingUi.IsEditable(__instance)) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.AutoCasting))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance, isOn);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.AutoCasting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(UI_CharacterStatusPanel __instance, bool isOn)
+        {
+            if (isOn || !NativeAutoCastingUi.IsEditable(__instance))
+                return;
             GameObject selected = EventSystem.current?.currentSelectedGameObject;
             foreach (UI_PlayerSkillIcon icon in __instance.weaponIcons)
                 if (icon != null && selected == icon.gameObject)

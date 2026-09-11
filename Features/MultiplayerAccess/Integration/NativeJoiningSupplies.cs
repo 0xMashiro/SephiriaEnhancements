@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,14 +34,37 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             internal JoiningSupplyOpportunity Child;
         }
 
-        private void Awake() { Instance = this; JoiningSupplyBridge.Initialize(); }
+        private void Awake()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
+            {
+                return;
+            }
+
+            try
+            {
+                AwakeCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void AwakeCore()
+        {
+            Instance = this;
+            JoiningSupplyBridge.Initialize();
+        }
         private void OnDestroy()
         {
-            Flush();
-            SuspendAll();
-            JoiningSupplyBridge.Shutdown();
-            JoiningSupplyPauseButton.DisposeAll();
-            Instance = null;
+            if (Instance == this) Instance = null;
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.MultiplayerAccess, Flush);
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.MultiplayerAccess, SuspendAll);
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.MultiplayerAccess, JoiningSupplyBridge.Shutdown);
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.MultiplayerAccess, JoiningSupplyPauseButton.DisposeAll);
         }
 
         internal void BindRun(bool newExploration = false)
@@ -177,15 +201,42 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
 
         private void Update()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
             JoiningSupplyBridge.Tick();
-            if (!NetworkServer.active || !MidRunAdmissionRuntime.IsAvailable) return;
+            if (!NetworkServer.active || !MidRunAdmissionRuntime.IsAvailable)
+                return;
             BindRun();
-            if (Time.unscaledTime < nextPoll) return;
+            if (Time.unscaledTime < nextPoll)
+                return;
             nextPoll = Time.unscaledTime + 0.2f;
-            if (loadFailed) { JoiningSupplyBridge.Publish(); return; }
+            if (loadFailed)
+            {
+                JoiningSupplyBridge.Publish();
+                return;
+            }
+
             foreach (var participant in ledger.Participants)
             {
-                if (!initialized.TryGetValue(participant.Slot, out var player) || player == null) continue;
+                if (!initialized.TryGetValue(participant.Slot, out var player) || player == null)
+                    continue;
                 var avatar = player.GetComponent<PlayerAvatar>();
                 if (!participant.Failed && !participant.BasicsComplete && !avatar.IsDead && NativeJoiningSupplyRecipes.Loaded(avatar))
                 {
@@ -193,9 +244,11 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                     {
                         if (!participant.MoneyGranted)
                         {
-                            if (participant.MoneyGrant > 0) avatar.AddMoney(participant.MoneyGrant);
+                            if (participant.MoneyGrant > 0)
+                                avatar.AddMoney(participant.MoneyGrant);
                             participant.MoneyGranted = true;
                         }
+
                         var level = player.GetComponent<LevelController>();
                         if (level.currentLevel < participant.TargetLevel)
                         {
@@ -206,18 +259,24 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                                 level.NetworkcurrentExp = Math.Max(level.currentExp, LevelController.ExpTableByLevel[level.currentLevel - 1]);
                                 level.LevelUpOnServer();
                             }
-                            finally { AdvancingLevel = null; }
+                            finally
+                            {
+                                AdvancingLevel = null;
+                            }
                         }
-                        else participant.BasicsComplete = true;
+                        else
+                            participant.BasicsComplete = true;
                     }
                     catch (Exception error)
                     {
                         participant.Failed = true;
                         SupportLogger.Record("joining_growth_failed", error.GetType().Name + ": " + error.Message, "ERROR");
                     }
+
                     dirty = true;
                 }
             }
+
             ReconcileGrants();
             JoiningSupplyBridge.Publish();
         }

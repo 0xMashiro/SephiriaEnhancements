@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Linq;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
@@ -62,6 +63,25 @@ namespace SephiriaEnhancements.ModInformation.Integration
 
         private void OnEnable()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.ModInformation))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ModInformation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
             if (box == null)
                 return;
             box.numberOfElements = IsToggle ? 2 : 1;
@@ -78,7 +98,26 @@ namespace SephiriaEnhancements.ModInformation.Integration
             if (box != null) box.OnValueChanged -= Changed;
         }
 
-        private void LateUpdate() => Refresh();
+        private void LateUpdate()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.ModInformation))
+            {
+                return;
+            }
+
+            try
+            {
+                LateUpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ModInformation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void LateUpdateCore() => Refresh();
 
         private void Refresh()
         {
@@ -107,6 +146,25 @@ namespace SephiriaEnhancements.ModInformation.Integration
         }
 
         private void Changed(int value)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.ModInformation))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ModInformation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
         {
             if (!IsToggle)
                 return;

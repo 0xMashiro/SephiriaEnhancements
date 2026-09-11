@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -153,7 +154,26 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     [HarmonyPatch(typeof(InputSystemUIInputModule), nameof(InputSystemUIInputModule.Process))]
     internal static class KeyboardPointerInputPatch
     {
-        private static void Prefix() => KeyboardUiPointer.RefreshInput();
+        private static void Prefix()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore() => KeyboardUiPointer.RefreshInput();
     }
 
     [HarmonyPatch]
@@ -169,26 +189,100 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
         }
 
-        private static bool Prefix() => !KeyboardUiPointer.OwnsFocus;
+        private static bool Prefix()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore() => !KeyboardUiPointer.OwnsFocus;
     }
 
     [HarmonyPatch(typeof(UI_Cursor), "LateUpdate")]
     internal static class KeyboardCursorVisibilityPatch
     {
-        private static void Postfix() => KeyboardUiPointer.UpdateCursor();
+        private static void Postfix()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore() => KeyboardUiPointer.UpdateCursor();
     }
 
     [HarmonyPatch(typeof(UI_NewItemPicker_Controller), "Update")]
     internal static class KeyboardCarriedItemPositionPatch
     {
-        private static void Postfix(UI_NewItemPicker_Controller __instance) =>
-            KeyboardUiPointer.PositionCarriedItem(__instance);
+        private static void Postfix(UI_NewItemPicker_Controller __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_NewItemPicker_Controller __instance) => KeyboardUiPointer.PositionCarriedItem(__instance);
     }
 
     [HarmonyPatch(typeof(UI_MapPanel), "Update")]
     internal static class KeyboardMapSelectionPositionPatch
     {
-        private static void Postfix(UI_MapPanel __instance, UI_Map ___currentMap) =>
-            KeyboardUiPointer.CenterMapSelection(__instance, ___currentMap);
+        private static void Postfix(UI_MapPanel __instance, UI_Map ___currentMap)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance, ___currentMap);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_MapPanel __instance, UI_Map ___currentMap) => KeyboardUiPointer.CenterMapSelection(__instance, ___currentMap);
     }
 }

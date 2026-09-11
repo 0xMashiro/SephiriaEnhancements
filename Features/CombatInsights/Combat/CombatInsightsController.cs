@@ -168,24 +168,38 @@ namespace SephiriaEnhancements.Combat
 
         private void Update()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
             DeveloperLogger.Pump();
-            if (!runtimeCompatible) return;
-            try { Tick(); }
+            if (!runtimeCompatible)
+                return;
+            try
+            {
+                Tick();
+            }
             catch (Exception ex)
             {
                 runtimeCompatible = false;
                 hud.Hide();
-                DeveloperLogger.RecordCombatInsightsVisibility(
-                    CombatInsightsVisibilityReason.RuntimeIncompatible.ToString(),
-                    ModSettings.DisplayPolicy.ToString(),
-                    CombatInsightsViewMode.Hidden.ToString(), encounterActive,
-                    bossEncounter.Active, false, false, false, false,
-                    hudHiddenByUser, hud.IsAttached, hud.IsActiveInHierarchy,
-                    0, null, false, false, false, false, false,
-                    reportWindow.State(Time.unscaledTime).ToString(),
-                    presentationBlock.ToString());
-                SupportLogger.Error("combat_insights_failed", "[SephiriaEnhancements] Runtime compatibility failure; " +
-                    "Combat Insights disabled until the Mod is reloaded: " + ex);
+                DeveloperLogger.RecordCombatInsightsVisibility(CombatInsightsVisibilityReason.RuntimeIncompatible.ToString(), ModSettings.DisplayPolicy.ToString(), CombatInsightsViewMode.Hidden.ToString(), encounterActive, bossEncounter.Active, false, false, false, false, hudHiddenByUser, hud.IsAttached, hud.IsActiveInHierarchy, 0, null, false, false, false, false, false, reportWindow.State(Time.unscaledTime).ToString(), presentationBlock.ToString());
+                SupportLogger.Error("combat_insights_failed", "[SephiriaEnhancements] Runtime compatibility failure; " + "Combat Insights disabled until the Mod is reloaded: " + ex);
             }
         }
 
@@ -438,6 +452,25 @@ namespace SephiriaEnhancements.Combat
 
         private void OnStatisticsContextChanged(LocalGameplayContextChange change)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                OnStatisticsContextChangedCore(change);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnStatisticsContextChangedCore(LocalGameplayContextChange change)
+        {
             if (change == LocalGameplayContextChange.TravelStarted)
                 retryStatistics.ObserveTravelStarted();
             if (change == LocalGameplayContextChange.WorldSessionLoaded)
@@ -445,15 +478,13 @@ namespace SephiriaEnhancements.Combat
                 retryStatistics.ObserveWorldLoaded();
                 encounterDefeated = false;
             }
-            else if (!retryStatistics.Pending &&
-                (change == LocalGameplayContextChange.PlayerChanged || change == LocalGameplayContextChange.FloorChanged))
+            else if (!retryStatistics.Pending && (change == LocalGameplayContextChange.PlayerChanged || change == LocalGameplayContextChange.FloorChanged))
             {
                 retryStatistics.Clear();
                 encounterDefeated = false;
             }
-            if (change == LocalGameplayContextChange.WorldSessionLoaded ||
-                change == LocalGameplayContextChange.PlayerChanged ||
-                change == LocalGameplayContextChange.FloorChanged)
+
+            if (change == LocalGameplayContextChange.WorldSessionLoaded || change == LocalGameplayContextChange.PlayerChanged || change == LocalGameplayContextChange.FloorChanged)
                 floorStatistics.Clear();
         }
 
@@ -820,16 +851,33 @@ namespace SephiriaEnhancements.Combat
             floorStatistics.UpdateClock(Time.time, false);
         }
 
-        private void OnEncounterLifecycleChanged(
-            EncounterLifecycleEvent lifecycleEvent)
+        private void OnEncounterLifecycleChanged(EncounterLifecycleEvent lifecycleEvent)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEncounterLifecycleChangedCore(lifecycleEvent);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEncounterLifecycleChangedCore(EncounterLifecycleEvent lifecycleEvent)
         {
             if (lifecycleEvent == null)
             {
                 return;
             }
 
-            if (lifecycleEvent.Transition ==
-                EncounterTransition.GameplayContextReset)
+            if (lifecycleEvent.Transition == EncounterTransition.GameplayContextReset)
             {
                 ResetGameplayContext();
                 return;
@@ -837,13 +885,11 @@ namespace SephiriaEnhancements.Combat
 
             if (lifecycleEvent.Kind == EncounterKind.Ordinary)
             {
-                if (lifecycleEvent.Transition == EncounterTransition.Cleared &&
-                    encounterActive && encounterScope != null &&
-                    encounterScope.SourceInstanceId ==
-                        lifecycleEvent.SourceInstanceId)
+                if (lifecycleEvent.Transition == EncounterTransition.Cleared && encounterActive && encounterScope != null && encounterScope.SourceInstanceId == lifecycleEvent.SourceInstanceId)
                 {
                     EndEncounter(lifecycleEvent.OccurredAt);
                 }
+
                 return;
             }
 
@@ -852,13 +898,11 @@ namespace SephiriaEnhancements.Combat
                 return;
             }
 
-            bool starts = lifecycleEvent.Transition == EncounterTransition.Started ||
-                lifecycleEvent.Transition == EncounterTransition.Resumed;
-            if (starts) encounterAreaLocator.Reset();
-            else if (!bossEncounter.Active || bossSourceInstanceId !=
-                (lifecycleEvent.Transition == EncounterTransition.ContinuationPrepared
-                    ? lifecycleEvent.PreviousSourceInstanceId : lifecycleEvent.SourceInstanceId)) return;
-
+            bool starts = lifecycleEvent.Transition == EncounterTransition.Started || lifecycleEvent.Transition == EncounterTransition.Resumed;
+            if (starts)
+                encounterAreaLocator.Reset();
+            else if (!bossEncounter.Active || bossSourceInstanceId != (lifecycleEvent.Transition == EncounterTransition.ContinuationPrepared ? lifecycleEvent.PreviousSourceInstanceId : lifecycleEvent.SourceInstanceId))
+                return;
             switch (lifecycleEvent.Transition)
             {
                 case EncounterTransition.Started:

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -40,14 +41,33 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private static void Postfix(object __instance, ref IEnumerator __result)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            var original___result = __result;
+            try
+            {
+                PostfixCore(__instance, ref __result);
+            }
+            catch (System.Exception exception)
+            {
+                __result = original___result;
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(object __instance, ref IEnumerator __result)
+        {
             if (!EnemySpawnOriginCapture.IsObserved || __result == null)
             {
                 return;
             }
 
-            EnemySpawnOrigin origin = __instance is RandomEnemyPhaseSpawner
-                ? EnemySpawnOrigin.RandomEncounter
-                : EnemySpawnOrigin.RegularEncounter;
+            EnemySpawnOrigin origin = __instance is RandomEnemyPhaseSpawner ? EnemySpawnOrigin.RandomEncounter : EnemySpawnOrigin.RegularEncounter;
             __result = EnemySpawnRoutineContext.Wrap(__result, origin, __instance);
         }
     }
@@ -56,6 +76,25 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
     internal static class AvatarSpawnOriginCapturePatch
     {
         private static void Postfix(UnitAvatar __result)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__result);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UnitAvatar __result)
         {
             EnemySpawnRoutineFrame frame = EnemySpawnRoutineContext.CurrentFrame;
             if (__result != null && frame != null)
@@ -71,9 +110,27 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
     {
         private static void Prefix(GameObject obj)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(obj);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(GameObject obj)
+        {
             EnemySpawnRoutineFrame frame = EnemySpawnRoutineContext.CurrentFrame;
-            if (obj != null && frame != null &&
-                obj.TryGetComponent<UnitAvatar>(out UnitAvatar unit))
+            if (obj != null && frame != null && obj.TryGetComponent<UnitAvatar>(out UnitAvatar unit))
                 EnemySpawnOriginCapture.Publish(unit, frame);
         }
     }

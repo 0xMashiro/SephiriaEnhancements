@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections;
 using System.Reflection;
@@ -17,6 +18,27 @@ namespace SephiriaEnhancements.DefeatRetry
         internal static bool IsAvailable => Restarting != null && TargetMethod() != null;
 
         private static void Postfix(HorayNetworkManager __instance, ref IEnumerator __result)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            var original___result = __result;
+            try
+            {
+                PostfixCore(__instance, ref __result);
+            }
+            catch (System.Exception exception)
+            {
+                __result = original___result;
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(HorayNetworkManager __instance, ref IEnumerator __result)
         {
             if (DefeatRetryFeature.IsRetrying)
                 __result = Observe(__instance, __result, DefeatRetryBridge.CurrentRecoveryId);

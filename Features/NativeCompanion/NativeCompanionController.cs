@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Diagnostics;
 using Mirror;
 using SephiriaEnhancements.Configuration;
@@ -50,6 +51,25 @@ namespace SephiriaEnhancements.NativeCompanion
 
         private void Update()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.NativeCompanion))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.NativeCompanion, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
             if (!runtimeCompatible)
             {
                 return;
@@ -61,11 +81,17 @@ namespace SephiriaEnhancements.NativeCompanion
             }
             catch (System.Exception ex)
             {
-                try { Despawn(); }
-                catch { }
+                try
+                {
+                    Despawn();
+                }
+                catch
+                {
+                }
+
                 runtimeCompatible = false;
-                SupportLogger.Warning("companion_failed", "[SephiriaEnhancements] Combat companion disabled for this " +
-                    "session: " + ex);
+                FeatureFailure.Disable(FeatureId.NativeCompanion, ex);
+                SupportLogger.Warning("companion_failed", "[SephiriaEnhancements] Combat companion disabled after an error: " + ex);
             }
         }
 

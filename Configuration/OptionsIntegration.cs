@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Diagnostics;
 using HarmonyLib;
 using SephiriaEnhancements.Integration;
@@ -30,14 +31,32 @@ namespace SephiriaEnhancements.Configuration
     {
         private static void Postfix(UI_OptionsPanel __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Settings))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Settings, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_OptionsPanel __instance)
+        {
             try
             {
                 Inject(__instance);
             }
             catch (System.Exception ex)
             {
-                SupportLogger.Warning("settings_integration_failed", "[SephiriaEnhancements] Native settings integration disabled: " +
-                    ex.Message);
+                SupportLogger.Warning("settings_integration_failed", "[SephiriaEnhancements] Native settings integration disabled: " + ex.Message);
             }
         }
 
@@ -378,14 +397,32 @@ namespace SephiriaEnhancements.Configuration
     {
         private static void Postfix()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Settings))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Settings, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore()
+        {
             try
             {
                 NativeControlCoordinator.ReloadOfficialBindings();
             }
             catch (System.Exception ex)
             {
-                SupportLogger.Warning("controls_restart_required", "[SephiriaEnhancements] Updated native controls " +
-                    "will take effect after restart: " + ex.Message);
+                SupportLogger.Warning("controls_restart_required", "[SephiriaEnhancements] Updated native controls " + "will take effect after restart: " + ex.Message);
             }
         }
     }

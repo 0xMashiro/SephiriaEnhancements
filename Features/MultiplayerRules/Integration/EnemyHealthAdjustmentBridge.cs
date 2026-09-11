@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Runtime.CompilerServices;
 using System.Reflection;
 using HarmonyLib;
@@ -240,8 +241,28 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
     {
         private static void Prefix(UnitAvatar __instance, ref float amount)
         {
-            EnemyHealthAdjustmentBridge.ApplyBeforeCurrentHealthInitialization(
-                __instance, ref amount);
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            var original_amount = amount;
+            try
+            {
+                PrefixCore(__instance, ref amount);
+            }
+            catch (System.Exception exception)
+            {
+                amount = original_amount;
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(UnitAvatar __instance, ref float amount)
+        {
+            EnemyHealthAdjustmentBridge.ApplyBeforeCurrentHealthInitialization(__instance, ref amount);
         }
     }
 }

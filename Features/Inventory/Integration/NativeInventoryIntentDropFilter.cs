@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 #nullable disable
 using HarmonyLib;
 using UnityEngine;
@@ -26,8 +27,26 @@ namespace SephiriaEnhancements.Inventory
     {
         private static void Prefix(UI_DraggableTempItemIcon __instance, PointerEventData eventData)
         {
-            NativeInventoryIntentDropFilter filter = __instance.Panel?.itemDropZone?
-                .GetComponent<NativeInventoryIntentDropFilter>();
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance, eventData);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(UI_DraggableTempItemIcon __instance, PointerEventData eventData)
+        {
+            NativeInventoryIntentDropFilter filter = __instance.Panel?.itemDropZone?.GetComponent<NativeInventoryIntentDropFilter>();
             if (filter != null && filter.Contains(eventData.position, eventData.pressEventCamera))
             {
                 // Native OnEndDrag restores its captured position on cancel;

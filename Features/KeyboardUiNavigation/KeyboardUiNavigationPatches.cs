@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,15 +12,31 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Postfix(UIBase __instance)
         {
-            // Enable also runs when a child menu closes and returns control.
-            if (__instance is UI_PausePanel &&
-                KeyboardUiNavigationController.IsKeyboardModeActive())
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
             {
-                KeyboardUiNavigationController.RequestSelection(__instance,
-                    __instance.defaultSelectable);
+                return;
             }
-            else if (__instance is UI_OptionsPanel options &&
-                KeyboardUiNavigationController.IsKeyboardModeActive())
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UIBase __instance)
+        {
+            // Enable also runs when a child menu closes and returns control.
+            if (__instance is UI_PausePanel && KeyboardUiNavigationController.IsKeyboardModeActive())
+            {
+                KeyboardUiNavigationController.RequestSelection(__instance, __instance.defaultSelectable);
+            }
+            else if (__instance is UI_OptionsPanel options && KeyboardUiNavigationController.IsKeyboardModeActive())
             {
                 OptionsKeyboardNavigation.RequestEntry(options);
             }
@@ -31,13 +48,31 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Postfix(UIBase __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UIBase __instance)
+        {
             if (__instance is UI_MessageBox messageBox)
             {
                 // Keyboard&Mouse deliberately skips UIBase's native default
                 // selection. Seed focus on the next frame so Navigate and Submit
                 // can use the message box's existing Selectable wiring.
-                KeyboardUiNavigationController.RequestSelection(messageBox,
-                    messageBox.defaultSelectable);
+                KeyboardUiNavigationController.RequestSelection(messageBox, messageBox.defaultSelectable);
             }
         }
     }
@@ -47,6 +82,25 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     internal static class MessageBoxKeyboardRestoredSelectionPatch
     {
         private static void Postfix(List<UI_MessageBox> ___openedBoxes)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(___openedBoxes);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(List<UI_MessageBox> ___openedBoxes)
         {
             if (___openedBoxes == null || ___openedBoxes.Count == 0)
             {
@@ -58,8 +112,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             {
                 // Re-establish focus after a nested box closes and the previous
                 // box becomes the interactive top sibling again.
-                KeyboardUiNavigationController.RequestSelection(top,
-                    top.defaultSelectable);
+                KeyboardUiNavigationController.RequestSelection(top, top.defaultSelectable);
             }
         }
     }
@@ -69,19 +122,33 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static bool Prefix()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore()
+        {
             ControlsChangeHandler controls = ControlsChangeHandler.Current;
-            if (controls?.PlayerInput == null ||
-                controls.PlayerInput.currentControlScheme !=
-                    PlayerInputController.KeyboardAndMouseScheme ||
-                EventSystem.current?.currentSelectedGameObject != null)
+            if (controls?.PlayerInput == null || controls.PlayerInput.currentControlScheme != PlayerInputController.KeyboardAndMouseScheme || EventSystem.current?.currentSelectedGameObject != null)
             {
                 return true;
             }
 
             UIManager manager = UIManager.Instance;
-            return manager?.CurrentControlStack == null ||
-                manager.CurrentControlStack.Count == 0 ||
-                !(manager.CurrentControlStack[0] is UI_OptionsPanel);
+            return manager?.CurrentControlStack == null || manager.CurrentControlStack.Count == 0 || !(manager.CurrentControlStack[0] is UI_OptionsPanel);
         }
     }
 
@@ -90,6 +157,25 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     internal static class KeyboardControlsChangedPatch
     {
         private static void Postfix(ControlsChangeHandler __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(ControlsChangeHandler __instance)
         {
             KeyboardUiNavigationController.ApplyNativeSelectionPolicy(__instance);
         }
@@ -105,17 +191,31 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         private static void Postfix(UI_ItemIcon __instance, bool ___ignoreOnClick)
         {
-            if (___ignoreOnClick || EventSystem.current == null ||
-                EventSystem.current.currentSelectedGameObject !=
-                    __instance.gameObject || UIInputModule.currentModule == null ||
-                !KeyboardUiNavigationController.WasNativeUiActionPressed(
-                    UIInputModule.currentModule.submit))
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
             {
                 return;
             }
 
-            Action<PointerEventData.InputButton, UI_ItemIcon> handler =
-                ClickHandler(__instance);
+            try
+            {
+                PostfixCore(__instance, ___ignoreOnClick);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_ItemIcon __instance, bool ___ignoreOnClick)
+        {
+            if (___ignoreOnClick || EventSystem.current == null || EventSystem.current.currentSelectedGameObject != __instance.gameObject || UIInputModule.currentModule == null || !KeyboardUiNavigationController.WasNativeUiActionPressed(UIInputModule.currentModule.submit))
+            {
+                return;
+            }
+
+            Action<PointerEventData.InputButton, UI_ItemIcon> handler = ClickHandler(__instance);
             handler?.Invoke(PointerEventData.InputButton.Left, __instance);
         }
     }
@@ -125,15 +225,31 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Postfix(UI_ItemBoxPanel __instance)
         {
-            if (UIInputModule.current == null || EventSystem.current == null ||
-                !KeyboardUiNavigationController.WasNativeUiActionPressed(
-                    UIInputModule.current.rotateItemControlAction))
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
             {
                 return;
             }
 
-            UI_ItemIcon icon = EventSystem.current.currentSelectedGameObject?
-                .GetComponent<UI_ItemIcon>();
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_ItemBoxPanel __instance)
+        {
+            if (UIInputModule.current == null || EventSystem.current == null || !KeyboardUiNavigationController.WasNativeUiActionPressed(UIInputModule.current.rotateItemControlAction))
+            {
+                return;
+            }
+
+            UI_ItemIcon icon = EventSystem.current.currentSelectedGameObject?.GetComponent<UI_ItemIcon>();
             if (icon != null && icon.transform.IsChildOf(__instance.transform))
             {
                 __instance.SetToggleFavorite(icon);
@@ -144,25 +260,36 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     [HarmonyPatch(typeof(UI_TreeShopPanel), "Update")]
     internal static class TreeShopKeyboardSecondaryActionPatch
     {
-        private static void Postfix(UI_TreeShopPanel __instance,
-            UI_TreeShopItem ___currentSelected, ref bool ___isPurchasing)
+        private static void Postfix(UI_TreeShopPanel __instance, UI_TreeShopItem ___currentSelected, ref bool ___isPurchasing)
         {
-            if (___currentSelected == null || UIInputModule.current == null ||
-                !KeyboardUiNavigationController.WasNativeUiActionPressed(
-                    UIInputModule.current.throwItemControlAction) ||
-                (UIInputModule.currentModule != null &&
-                    UIInputModule.currentModule.middleClick.action.
-                        WasPressedThisFrame()) ||
-                ___currentSelected.connected.behaviour !=
-                    TreeShopItemEntity.EBehaviour.UnlockItem)
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
             {
                 return;
             }
 
-            __instance.defaultSelectable =
-                EventSystem.current?.currentSelectedGameObject;
-            UIManager.Instance.GetElement<UI_UnlockItemPreviewer>().Open(
-                ___currentSelected.connected.items.ToList());
+            var original____isPurchasing = ___isPurchasing;
+            try
+            {
+                PostfixCore(__instance, ___currentSelected, ref ___isPurchasing);
+            }
+            catch (System.Exception exception)
+            {
+                ___isPurchasing = original____isPurchasing;
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_TreeShopPanel __instance, UI_TreeShopItem ___currentSelected, ref bool ___isPurchasing)
+        {
+            if (___currentSelected == null || UIInputModule.current == null || !KeyboardUiNavigationController.WasNativeUiActionPressed(UIInputModule.current.throwItemControlAction) || (UIInputModule.currentModule != null && UIInputModule.currentModule.middleClick.action.WasPressedThisFrame()) || ___currentSelected.connected.behaviour != TreeShopItemEntity.EBehaviour.UnlockItem)
+            {
+                return;
+            }
+
+            __instance.defaultSelectable = EventSystem.current?.currentSelectedGameObject;
+            UIManager.Instance.GetElement<UI_UnlockItemPreviewer>().Open(___currentSelected.connected.items.ToList());
             ___isPurchasing = false;
         }
     }

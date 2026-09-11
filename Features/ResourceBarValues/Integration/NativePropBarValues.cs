@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -13,17 +14,38 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
 
         private static void Postfix(UI_PropHPBar __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.ResourceBarValues))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ResourceBarValues, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_PropHPBar __instance)
+        {
             var owner = __instance;
-            if (owner.GetComponent<NativeResourceBarValueView>() != null) return;
+            if (owner.GetComponent<NativeResourceBarValueView>() != null)
+                return;
             TextMeshProUGUI template = UIManager.Instance?.GetElement<UI_PlayerMP>()?.mpBar?.valueText;
-            if (template == null) return;
+            if (template == null)
+                return;
             var view = NativeResourceBarValueView.GetOrAdd(owner);
             var text = view.Add(owner.frameImage.rectTransform, template, () =>
             {
-                if (!ResourceBarValueSettings.Get(ResourceBarValueSetting.PropHealthNumbers)) return string.Empty;
+                if (!ResourceBarValueSettings.Get(ResourceBarValueSetting.PropHealthNumbers))
+                    return string.Empty;
                 BreakableProp target = Target(owner);
-                return target != null && owner.valueImage.gameObject.activeInHierarchy
-                    ? ResourceBarValueFormatter.Ratio(target.hp, target.MaxHP) : string.Empty;
+                return target != null && owner.valueImage.gameObject.activeInHierarchy ? ResourceBarValueFormatter.Ratio(target.hp, target.MaxHP) : string.Empty;
             }, () => template.fontSize * 0.8f, "Resource Bar Values — Prop Health");
             // Same AppWorldUI scale and placement as ordinary creature bars.
             RectTransform rect = text.rectTransform;

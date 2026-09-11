@@ -15,7 +15,26 @@ namespace SephiriaEnhancements.MultiplayerRules
         private static bool allowExternalRuleStackingForExploration;
         private readonly MultiplayerRulesSession session = new MultiplayerRulesSession();
 
-        private void OnEnable() => currentController = this;
+        private void OnEnable()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore() => currentController = this;
 
         private void OnDisable()
         {

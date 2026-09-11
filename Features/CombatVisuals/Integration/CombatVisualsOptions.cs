@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -74,7 +75,27 @@ namespace SephiriaEnhancements.CombatVisuals.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
             RefreshRequested += Refresh;
@@ -89,6 +110,25 @@ namespace SephiriaEnhancements.CombatVisuals.Integration
 
         private void Changed(int value)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
             switch (kind)
             {
                 case CombatVisualOptionKind.Preset:
@@ -96,31 +136,24 @@ namespace SephiriaEnhancements.CombatVisuals.Integration
                     CombatVisualSettings.Preset = preset;
                     if (preset == CombatVisualPreset.Balanced)
                     {
-                        CombatVisualSettings.CompanionBody =
-                            EffectTransparencyLevel.SlightlyTransparent;
-                        CombatVisualSettings.CompanionEffects =
-                            EffectTransparencyLevel.VeryTransparent;
-                        CombatVisualSettings.OutlineScope =
-                            CombatOutlineScope.HostileAndFriendly;
+                        CombatVisualSettings.CompanionBody = EffectTransparencyLevel.SlightlyTransparent;
+                        CombatVisualSettings.CompanionEffects = EffectTransparencyLevel.VeryTransparent;
+                        CombatVisualSettings.OutlineScope = CombatOutlineScope.HostileAndFriendly;
                     }
                     else if (preset == CombatVisualPreset.Minimal)
                     {
-                        CombatVisualSettings.CompanionBody =
-                            EffectTransparencyLevel.VeryTransparent;
-                        CombatVisualSettings.CompanionEffects =
-                            EffectTransparencyLevel.CompletelyTransparent;
-                        CombatVisualSettings.OutlineScope =
-                            CombatOutlineScope.HostileAndFriendly;
+                        CombatVisualSettings.CompanionBody = EffectTransparencyLevel.VeryTransparent;
+                        CombatVisualSettings.CompanionEffects = EffectTransparencyLevel.CompletelyTransparent;
+                        CombatVisualSettings.OutlineScope = CombatOutlineScope.HostileAndFriendly;
                     }
+
                     break;
                 case CombatVisualOptionKind.CompanionBody:
-                    CombatVisualSettings.CompanionBody =
-                        (EffectTransparencyLevel)value;
+                    CombatVisualSettings.CompanionBody = (EffectTransparencyLevel)value;
                     CombatVisualSettings.Preset = CombatVisualPreset.Custom;
                     break;
                 case CombatVisualOptionKind.CompanionEffects:
-                    CombatVisualSettings.CompanionEffects =
-                        (EffectTransparencyLevel)value;
+                    CombatVisualSettings.CompanionEffects = (EffectTransparencyLevel)value;
                     CombatVisualSettings.Preset = CombatVisualPreset.Custom;
                     break;
                 case CombatVisualOptionKind.OutlineScope:
@@ -136,7 +169,27 @@ namespace SephiriaEnhancements.CombatVisuals.Integration
 
         private void Refresh()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatVisuals))
+            {
+                return;
+            }
+
+            try
+            {
+                RefreshCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatVisuals, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void RefreshCore()
+        {
+            if (box == null)
+                return;
             int value;
             string key;
             switch (kind)
@@ -147,14 +200,12 @@ namespace SephiriaEnhancements.CombatVisuals.Integration
                     key = CombatVisualLocalization.PresetKeys[value];
                     break;
                 case CombatVisualOptionKind.CompanionBody:
-                    box.numberOfElements =
-                        CombatVisualSettings.TransparencyLevelCount;
+                    box.numberOfElements = CombatVisualSettings.TransparencyLevelCount;
                     value = (int)CombatVisualSettings.CompanionBody;
                     key = CombatVisualLocalization.TransparencyKeys[value];
                     break;
                 case CombatVisualOptionKind.CompanionEffects:
-                    box.numberOfElements =
-                        CombatVisualSettings.TransparencyLevelCount;
+                    box.numberOfElements = CombatVisualSettings.TransparencyLevelCount;
                     value = (int)CombatVisualSettings.CompanionEffects;
                     key = CombatVisualLocalization.TransparencyKeys[value];
                     break;
@@ -166,8 +217,7 @@ namespace SephiriaEnhancements.CombatVisuals.Integration
             }
 
             box.ChangeValueWithoutNotify(value);
-            box.interactable = kind == CombatVisualOptionKind.Preset ||
-                CombatVisualSettings.Preset == CombatVisualPreset.Custom;
+            box.interactable = kind == CombatVisualOptionKind.Preset || CombatVisualSettings.Preset == CombatVisualPreset.Custom;
             valueText?.UpdateKey(key);
         }
     }

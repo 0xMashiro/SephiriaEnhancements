@@ -8,6 +8,21 @@ namespace SephiriaEnhancements.Integration
 {
     internal static class CompatibilityProbe
     {
+        internal static void ValidateMapText()
+        {
+            var method = HarmonyLib.AccessTools.Method(typeof(KeywordDatabase), "Convert",
+                new[] { typeof(string), typeof(bool), typeof(bool), typeof(bool), typeof(bool) });
+            if (method == null || !method.IsStatic || method.ReturnType != typeof(string))
+                throw new MissingMethodException("KeywordDatabase.Convert contract changed.");
+        }
+
+        internal static void ValidateCustomStats()
+        {
+            var method = HarmonyLib.AccessTools.Method(typeof(UnitAvatar), "GetCustomStatUnsafe", new[] { typeof(string) });
+            if (method == null || method.IsStatic || method.ReturnType != typeof(int))
+                throw new MissingMethodException("UnitAvatar.GetCustomStatUnsafe contract changed.");
+        }
+
         internal static void Report()
         {
             List<string> missing = new List<string>();

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using SephiriaEnhancements.Configuration;
@@ -45,10 +46,31 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
 
         private void LateUpdate()
         {
-            if (Time.unscaledTime < nextRefresh) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.ResourceBarValues))
+            {
+                return;
+            }
+
+            try
+            {
+                LateUpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ResourceBarValues, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void LateUpdateCore()
+        {
+            if (Time.unscaledTime < nextRefresh)
+                return;
             nextRefresh = Time.unscaledTime + 0.1f;
             bool enabled = EnhancementsSettings.Enabled;
-            foreach (Label label in labels) label.Refresh(enabled);
+            foreach (Label label in labels)
+                label.Refresh(enabled);
             RefreshLayout?.Invoke(enabled);
         }
 

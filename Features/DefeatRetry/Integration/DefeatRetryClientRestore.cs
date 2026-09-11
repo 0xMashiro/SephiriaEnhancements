@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Reflection;
 using HarmonyLib;
@@ -12,13 +13,36 @@ namespace SephiriaEnhancements.DefeatRetry
     {
         private void Update()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
             DefeatRetryBridge.Tick();
-            try { DefeatRetryClientRestore.Tick(); NativeRetryFailure.Tick(); }
+            try
+            {
+                DefeatRetryClientRestore.Tick();
+            }
             catch (Exception exception)
             {
                 SupportLogger.Failure("retry_client_restore_failed", exception);
                 DefeatRetryClientRestore.ReportFailure();
                 DefeatRetryClientRestore.Clear();
+                throw;
             }
         }
     }
@@ -56,7 +80,26 @@ namespace SephiriaEnhancements.DefeatRetry
             SupportLogger.Record("retry_client_prepared", "player=" + player.netId);
         }
 
-        private static void OnTravelPrepared() => traveled = true;
+        private static void OnTravelPrepared()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
+
+            try
+            {
+                OnTravelPreparedCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void OnTravelPreparedCore() => traveled = true;
 
         internal static void ObserveWorldSession(bool isSavedSession)
         {
@@ -159,10 +202,42 @@ namespace SephiriaEnhancements.DefeatRetry
         private static MethodBase TargetMethod() => AccessTools.Method(typeof(PlayerSpawner),
             "UserCode_TargetRestartNewGame__NetworkConnectionToClient");
 
-        private static void Prefix(PlayerSpawner __instance, out bool __state) =>
-            __state = DefeatRetryClientRestore.BeginNotification(__instance);
+        private static void Prefix(PlayerSpawner __instance, out bool __state)
+        {
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
+            {
+                return;
+            }
 
-        private static void Finalizer(bool __state, Exception __exception) =>
-            DefeatRetryClientRestore.EndNotification(__state, __exception);
+            try
+            {
+                PrefixCore(__instance, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(PlayerSpawner __instance, out bool __state) => __state = DefeatRetryClientRestore.BeginNotification(__instance);
+
+        private static void Finalizer(bool __state, Exception __exception)
+        {
+            try
+            {
+                FinalizerCore(__state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void FinalizerCore(bool __state, Exception __exception) => DefeatRetryClientRestore.EndNotification(__state, __exception);
     }
 }

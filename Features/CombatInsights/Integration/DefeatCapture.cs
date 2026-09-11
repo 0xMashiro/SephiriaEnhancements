@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Reflection;
 using HarmonyLib;
@@ -12,8 +13,26 @@ namespace SephiriaEnhancements.Integration
 
         internal static void SetController(CombatInsightsController value) => controller = value;
 
-        private static void Postfix(UnitAvatar __instance) =>
-            controller?.RecordEnemyDeath(__instance);
+        private static void Postfix(UnitAvatar __instance)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UnitAvatar __instance) => controller?.RecordEnemyDeath(__instance);
     }
 
     [HarmonyPatch]
@@ -40,6 +59,25 @@ namespace SephiriaEnhancements.Integration
         }
 
         private static void Postfix(UnitAvatar __instance, UnitKillData __1)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatInsights))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance, __1);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatInsights, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UnitAvatar __instance, UnitKillData __1)
         {
             if (__instance is PlayerAvatar player && LocalPlayerResolver.IsLocal(player))
                 controller?.RecordLocalFinalBlow(__1);

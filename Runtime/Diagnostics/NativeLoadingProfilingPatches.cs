@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Runtime.Inventory;
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
 using System;
@@ -43,20 +44,49 @@ namespace SephiriaEnhancements.Diagnostics
                 typeof(string));
         }
 
-        private static void Prefix(MethodBase __originalMethod,
-            out LoadingOperationState __state)
+        private static void Prefix(MethodBase __originalMethod, out LoadingOperationState __state)
         {
-            string operation = OperationName(__originalMethod);
-            __state = new LoadingOperationState(Stopwatch.GetTimestamp(),
-                GameLoadProfiler.ObserveNativeOperationStarted(operation));
+            __state = default;
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__originalMethod, out __state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
         }
 
-        private static Exception Finalizer(MethodBase __originalMethod,
-            LoadingOperationState __state, Exception __exception)
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(MethodBase __originalMethod, out LoadingOperationState __state)
         {
-            DeveloperLogger.RecordGameLoadingOperation(
-                __state.LoadAttemptId, OperationName(__originalMethod),
-                ElapsedMilliseconds(__state.StartedAt), __exception == null);
+            string operation = OperationName(__originalMethod);
+            __state = new LoadingOperationState(Stopwatch.GetTimestamp(), GameLoadProfiler.ObserveNativeOperationStarted(operation));
+        }
+
+        private static Exception Finalizer(MethodBase __originalMethod, LoadingOperationState __state, Exception __exception)
+        {
+            try
+            {
+                return FinalizerCore(__originalMethod, __state, __exception);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return __exception;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static Exception FinalizerCore(MethodBase __originalMethod, LoadingOperationState __state, Exception __exception)
+        {
+            DeveloperLogger.RecordGameLoadingOperation(__state.LoadAttemptId, OperationName(__originalMethod), ElapsedMilliseconds(__state.StartedAt), __exception == null);
             return __exception;
         }
 
@@ -105,11 +135,28 @@ namespace SephiriaEnhancements.Diagnostics
                 "HookLoadingScreenType", new[] { typeof(int), typeof(int) });
         }
 
-        private static void Postfix(PlayerAvatar __instance, int oldValue,
-            int newValue)
+        private static void Postfix(PlayerAvatar __instance, int oldValue, int newValue)
         {
-            GameLoadProfiler.ObserveNativeLoadingTransition(__instance, oldValue,
-                newValue);
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance, oldValue, newValue);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(PlayerAvatar __instance, int oldValue, int newValue)
+        {
+            GameLoadProfiler.ObserveNativeLoadingTransition(__instance, oldValue, newValue);
         }
     }
 
@@ -126,13 +173,28 @@ namespace SephiriaEnhancements.Diagnostics
                 new[] { typeof(string) });
         }
 
-        private static void Postfix(MethodBase __originalMethod,
-            string floorGuid)
+        private static void Postfix(MethodBase __originalMethod, string floorGuid)
         {
-            string milestone = __originalMethod.Name ==
-                nameof(PlayerLocalDataStorage.OnFloorRenderFinalizedVeryFirst)
-                ? "floor_render_first_pass_completed"
-                : "floor_render_completed";
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__originalMethod, floorGuid);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(MethodBase __originalMethod, string floorGuid)
+        {
+            string milestone = __originalMethod.Name == nameof(PlayerLocalDataStorage.OnFloorRenderFinalizedVeryFirst) ? "floor_render_first_pass_completed" : "floor_render_completed";
             GameLoadProfiler.ObserveFloorRenderFinalized(milestone, floorGuid);
         }
     }

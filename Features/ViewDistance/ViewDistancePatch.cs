@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using HarmonyLib;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
@@ -9,8 +10,26 @@ namespace SephiriaEnhancements.ViewDistance
     {
         private static void Postfix(TargetTracker __instance)
         {
-            if (!EnhancementsSettings.Enabled || __instance == null ||
-                GameCamera.Instance?.targetTracker != __instance)
+            if (!FeatureFailure.IsAvailable(FeatureId.ViewDistance))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ViewDistance, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(TargetTracker __instance)
+        {
+            if (!EnhancementsSettings.Enabled || __instance == null || GameCamera.Instance?.targetTracker != __instance)
             {
                 return;
             }

@@ -32,7 +32,7 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace SephiriaEnhancements
 {
-    public sealed class SephiriaEnhancementsMod : HorayModBase
+    public sealed partial class SephiriaEnhancementsMod : HorayModBase
     {
         private const string HarmonyId = "io.github.0xmashiro.sephiria-enhancements";
         private static SephiriaEnhancementsMod activeInstance;
@@ -111,29 +111,45 @@ namespace SephiriaEnhancements
         private RuntimeKernel runtimeKernel;
         private InventoryOptimizationController inventoryOptimization;
         private MultiplayerRulesController multiplayerRules;
-        private Harmony harmony;
+
         private bool multiplayerRulesCompatibilityAvailable;
         private bool multiplayerRuleBehaviorPatchesAttempted;
         private bool multiplayerRuleBehaviorPatchesInstalled;
 
         protected override void OnModLoaded()
         {
+            try { Load(); }
+            catch (Exception exception)
+            {
+                SupportLogger.Failure("mod_startup_failed", exception);
+                try { OnModUnloaded(); }
+                catch (Exception cleanup) { SupportLogger.Failure("mod_cleanup_failed", cleanup); }
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void Load()
+        {
             // The native loader can load again without unloading its previous instance.
             activeInstance?.OnModUnloaded();
             activeInstance = this;
+            FeatureFailure.Reset();
+            FeatureFailure.Report = ReportFeatureFailure;
             SupportLogger.Initialize();
             Application.quitting += OnModUnloaded;
             StartupProfiler.Begin();
             GameLoadProfiler.Reset();
             long loadStartedAt = Stopwatch.GetTimestamp();
             long phaseStartedAt = loadStartedAt;
-            SephiriaEnhancements.Integration.CompatibilityProbe.Report();
+            FeatureFailure.Run(FeatureId.DeveloperTools, SephiriaEnhancements.Integration.CompatibilityProbe.Report);
+            FeatureFailure.Run(FeatureId.MapEnhancements, CompatibilityProbe.ValidateMapText);
+            FeatureFailure.Run(FeatureId.Inventory, CompatibilityProbe.ValidateCustomStats);
+            FeatureFailure.Run(FeatureId.AutoCasting, CompatibilityProbe.ValidateCustomStats);
             float compatibilityMilliseconds = ElapsedMilliseconds(phaseStartedAt);
 
             phaseStartedAt = Stopwatch.GetTimestamp();
-            HorayModAPI.OnLocalizationReady +=
-                SephiriaEnhancements.Configuration.ModLocalization.Register;
-            SephiriaEnhancements.Configuration.ModLocalization.RegisterCurrent();
+            HorayModAPI.OnLocalizationReady += RegisterLocalization;
+            FeatureFailure.Run(FeatureId.Settings, () => SephiriaEnhancements.Configuration.ModLocalization.RegisterCurrent());
             HorayModAPI.OnStartSessionClientside += OnStartSessionClientside;
             HorayModAPI.OnFloorAllocatedClientside += OnFloorAllocatedClientside;
             HorayModAPI.OnStartSessionServerside += OnStartSessionServerside;
@@ -150,6 +166,7 @@ namespace SephiriaEnhancements
             }
             catch (Exception ex)
             {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, ex);
                 SupportLogger.Warning("controls_initialization_failed", "[SephiriaEnhancements] Native control bindings " +
                     "could not be initialized: " + ex.Message);
             }
@@ -158,52 +175,73 @@ namespace SephiriaEnhancements
             phaseStartedAt = Stopwatch.GetTimestamp();
             controllerObject = new GameObject("Sephiria Enhancements");
             UnityEngine.Object.DontDestroyOnLoad(controllerObject);
-            runtimeKernel = controllerObject.AddComponent<RuntimeKernel>();
-            controllerObject.AddComponent<ModInformation.Integration.NativeModInformation>();
-            runtimeKernel.Initialize();
-            runtimeKernel.GameplayContextChanged += OnLocalGameplayContextChanged;
-            inventoryOptimization =
-                controllerObject.AddComponent<InventoryOptimizationController>();
-            inventoryOptimization.Initialize(runtimeKernel);
-            multiplayerRules = controllerObject.AddComponent<MultiplayerRulesController>();
-            EnemySpawnRoutineContext.SetRuleScopeFactory(
-                EnemySpawnRoutineRuleScope.Enter);
-            combatRelationOutlines =
-                controllerObject.AddComponent<CombatRelationOutlinesController>();
-            combatInsights = controllerObject.AddComponent<CombatInsightsController>();
-            combatInsights.Initialize(runtimeKernel);
-            DefeatRetryBridge.Initialize(combatInsights);
-            controllerObject.AddComponent<DefeatRetryRuntime>();
-            controllerObject.AddComponent<NativeJoiningSupplies>();
-            NativeReportDismissal.SetController(combatInsights);
-            NativeStatisticsPauseEntry.SetController(combatInsights);
-            combatTargeting = controllerObject.AddComponent<CombatTargetingController>();
-            autoCasting = controllerObject.AddComponent<NativeAutoCasting>();
-            nativeCompanion = controllerObject.AddComponent<NativeCompanionController>();
-            keyboardUiNavigation =
-                controllerObject.AddComponent<KeyboardUiNavigationController>();
-            mapEnhancements = controllerObject.AddComponent<MapEnhancementsController>();
-            DamageFeedbackCapture.SetController(combatInsights);
-            DamageDetailCapture.SetController(combatInsights);
-            UnitDeathCapture.SetController(combatInsights);
-            LocalFinalBlowCapture.SetController(combatInsights);
+            controllerObject.AddComponent<FeatureFailurePump>().Process = ProcessFeatureFailures;
+            InitializeFeature(FeatureId.Gameplay, () =>
+            {
+                runtimeKernel = AddController<RuntimeKernel>(FeatureId.Gameplay);
+                runtimeKernel.Initialize();
+                runtimeKernel.GameplayContextChanged += OnLocalGameplayContextChanged;
+            });
+            InitializeFeature(FeatureId.ModInformation, () =>
+                AddController<ModInformation.Integration.NativeModInformation>(FeatureId.ModInformation));
+            InitializeFeature(FeatureId.Inventory, () =>
+            {
+                inventoryOptimization = AddController<InventoryOptimizationController>(FeatureId.Inventory);
+                inventoryOptimization.Initialize(runtimeKernel);
+            });
+            InitializeFeature(FeatureId.MultiplayerRules, () =>
+            {
+                multiplayerRules = AddController<MultiplayerRulesController>(FeatureId.MultiplayerRules);
+                EnemySpawnRoutineContext.SetRuleScopeFactory(EnemySpawnRoutineRuleScope.Enter);
+            });
+            InitializeFeature(FeatureId.CombatRelationOutlines, () =>
+                combatRelationOutlines = AddController<CombatRelationOutlinesController>(FeatureId.CombatRelationOutlines));
+            InitializeFeature(FeatureId.CombatInsights, () =>
+            {
+                combatInsights = AddController<CombatInsightsController>(FeatureId.CombatInsights);
+                combatInsights.Initialize(runtimeKernel);
+                NativeReportDismissal.SetController(combatInsights);
+                NativeStatisticsPauseEntry.SetController(combatInsights);
+                DamageFeedbackCapture.SetController(combatInsights);
+                DamageDetailCapture.SetController(combatInsights);
+                UnitDeathCapture.SetController(combatInsights);
+                LocalFinalBlowCapture.SetController(combatInsights);
+            });
+            InitializeFeature(FeatureId.DefeatRetry, () =>
+            {
+                DefeatRetryBridge.Initialize(combatInsights);
+                AddController<DefeatRetryRuntime>(FeatureId.DefeatRetry);
+            });
+            InitializeFeature(FeatureId.MultiplayerAccess, () =>
+                AddController<NativeJoiningSupplies>(FeatureId.MultiplayerAccess));
+            InitializeFeature(FeatureId.CombatTargeting, () =>
+                combatTargeting = AddController<CombatTargetingController>(FeatureId.CombatTargeting));
+            InitializeFeature(FeatureId.AutoCasting, () =>
+                autoCasting = AddController<NativeAutoCasting>(FeatureId.AutoCasting));
+            InitializeFeature(FeatureId.NativeCompanion, () =>
+                nativeCompanion = AddController<NativeCompanionController>(FeatureId.NativeCompanion));
+            InitializeFeature(FeatureId.KeyboardUiNavigation, () =>
+                keyboardUiNavigation = AddController<KeyboardUiNavigationController>(FeatureId.KeyboardUiNavigation));
+            InitializeFeature(FeatureId.MapEnhancements, () =>
+                mapEnhancements = AddController<MapEnhancementsController>(FeatureId.MapEnhancements));
             float controllersMilliseconds = ElapsedMilliseconds(phaseStartedAt);
 
             phaseStartedAt = Stopwatch.GetTimestamp();
-            harmony = new Harmony(HarmonyId);
+
             int successfulPatchCount = 0;
             int failedPatchCount = 0;
-            multiplayerRulesCompatibilityAvailable =
-                MultiplayerRulesCompatibilityProbe.Validate();
+            multiplayerRulesCompatibilityAvailable = ValidateFeature(FeatureId.MultiplayerRules,
+                MultiplayerRulesCompatibilityProbe.Validate);
             bool multiplayerExtensionPresent =
                 MultiplayerExtensionDiscovery.HasDetectedExtension;
             bool midRunAdmissionCompatibilityAvailable =
                 !multiplayerExtensionPresent &&
-                MidRunAdmissionCompatibilityProbe.Validate();
+                ValidateFeature(FeatureId.MultiplayerAccess, MidRunAdmissionCompatibilityProbe.Validate);
             string slowestPatchName = string.Empty;
             float slowestPatchMilliseconds = 0f;
-            bool retryCompatibilityAvailable = NativeRetryTravel.IsAvailable && NativeRetryBoss.IsAvailable && NativeRetryRestart.IsAvailable &&
-                DefeatRetryClientRestore.IsAvailable && DefeatRetryPlayerRestorePatch.IsAvailable;
+            bool retryCompatibilityAvailable = ValidateFeature(FeatureId.DefeatRetry, () =>
+                NativeRetryTravel.IsAvailable && NativeRetryBoss.IsAvailable && NativeRetryRestart.IsAvailable &&
+                DefeatRetryClientRestore.IsAvailable && DefeatRetryPlayerRestorePatch.IsAvailable);
             foreach (Type patchType in new[]
             {
                 typeof(DamageFeedbackCapture),
@@ -255,6 +293,7 @@ namespace SephiriaEnhancements
                 typeof(NativeFloorRenderProfilingPatch),
 #endif
                 typeof(NativeSaveCapturePatch),
+                typeof(NativePresetSavePatch),
                 typeof(BossEncounterRetryCheckpointPatch),
                 typeof(SeedBossEncounterRetryCheckpointPatch),
                 typeof(RenderedCombatFloorRetryCheckpointPatch),
@@ -383,6 +422,7 @@ namespace SephiriaEnhancements
             if (!multiplayerRulesCompatibilityAvailable)
                 SupportLogger.Warning("multiplayer_rules_unavailable", "[SephiriaEnhancements] Multiplayer Rules " +
                     "are pass-through because at least one required native hook failed.");
+            ProcessFeatureFailures();
             float patchesMilliseconds = ElapsedMilliseconds(phaseStartedAt);
 
             float loadMilliseconds = ElapsedMilliseconds(loadStartedAt);
@@ -402,40 +442,46 @@ namespace SephiriaEnhancements
 
         protected override void OnModUnloaded()
         {
+            try { Unload(); }
+            catch (Exception exception) { SupportLogger.Failure("mod_cleanup_failed", exception); }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void Unload()
+        {
             if (activeInstance != this) return;
             activeInstance = null;
-            NativeOptionsLifetime.DisposeAll();
-            multiplayerRules?.Shutdown();
-            MidRunAdmissionRuntime.SetIntegrationAvailable(false);
-            EnemySpawnRoutineContext.SetRuleScopeFactory(null);
-            inventoryOptimization?.Shutdown();
-            DefeatRetryBridge.Shutdown();
-            combatInsights?.Shutdown();
-            NativeReportDismissal.SetController(null);
-            NativeStatisticsPauseEntry.SetController(null);
-            DeveloperLogger.Shutdown();
+            CleanupFeature(FeatureId.Settings, () => NativeOptionsLifetime.DisposeAll());
+            CleanupFeature(FeatureId.MultiplayerRules, () => multiplayerRules?.Shutdown());
+            CleanupFeature(FeatureId.MultiplayerAccess, () => MidRunAdmissionRuntime.SetIntegrationAvailable(false));
+            CleanupFeature(FeatureId.MultiplayerRules, () => EnemySpawnRoutineContext.SetRuleScopeFactory(null));
+            CleanupFeature(FeatureId.Inventory, () => inventoryOptimization?.Shutdown());
+            CleanupFeature(FeatureId.DefeatRetry, () => DefeatRetryBridge.Shutdown());
+            CleanupFeature(FeatureId.CombatInsights, () => combatInsights?.Shutdown());
+            CleanupFeature(FeatureId.CombatInsights, () => NativeReportDismissal.SetController(null));
+            CleanupFeature(FeatureId.CombatInsights, () => NativeStatisticsPauseEntry.SetController(null));
+            CleanupFeature(FeatureId.DeveloperTools, () => DeveloperLogger.Shutdown());
             if (runtimeKernel != null)
             {
                 runtimeKernel.GameplayContextChanged -= OnLocalGameplayContextChanged;
-                runtimeKernel.Dispose();
+                CleanupFeature(FeatureId.Gameplay, () => runtimeKernel.Dispose());
             }
-            HorayModAPI.OnLocalizationReady -=
-                SephiriaEnhancements.Configuration.ModLocalization.Register;
+            HorayModAPI.OnLocalizationReady -= RegisterLocalization;
             HorayModAPI.OnStartSessionClientside -= OnStartSessionClientside;
             HorayModAPI.OnFloorAllocatedClientside -= OnFloorAllocatedClientside;
             HorayModAPI.OnStartSessionServerside -= OnStartSessionServerside;
             HorayModAPI.OnFloorAllocatedServerside -= OnFloorAllocatedServerside;
             MultiplayerRulesExplorationStartPatch.StartingExploration -=
                 OnStartingExploration;
-            DamageFeedbackCapture.SetController(null);
-            DamageDetailCapture.SetController(null);
-            UnitDeathCapture.SetController(null);
-            LocalFinalBlowCapture.SetController(null);
-            NativeResourceBarValueView.DisposeAll();
-            NativeAutoCastingUi.DisposeAll();
-            harmony?.UnpatchAll(HarmonyId);
-            NativeModJournal.DisposeAll();
-            harmony = null;
+            CleanupFeature(FeatureId.CombatInsights, () => DamageFeedbackCapture.SetController(null));
+            CleanupFeature(FeatureId.CombatInsights, () => DamageDetailCapture.SetController(null));
+            CleanupFeature(FeatureId.CombatInsights, () => UnitDeathCapture.SetController(null));
+            CleanupFeature(FeatureId.CombatInsights, () => LocalFinalBlowCapture.SetController(null));
+            CleanupFeature(FeatureId.ResourceBarValues, () => NativeResourceBarValueView.DisposeAll());
+            CleanupFeature(FeatureId.AutoCasting, () => NativeAutoCastingUi.DisposeAll());
+            UnpatchFeatures();
+            CleanupFeature(FeatureId.ModJournal, () => NativeModJournal.DisposeAll());
+
             multiplayerRulesCompatibilityAvailable = false;
             multiplayerRuleBehaviorPatchesAttempted = false;
             multiplayerRuleBehaviorPatchesInstalled = false;
@@ -444,7 +490,7 @@ namespace SephiriaEnhancements
             {
                 // Finish old controller callbacks before a replacement installs
                 // its static observers and event subscriptions.
-                UnityEngine.Object.DestroyImmediate(controllerObject);
+                CleanupFeature(FeatureId.Gameplay, () => UnityEngine.Object.DestroyImmediate(controllerObject));
                 controllerObject = null;
             }
 
@@ -459,65 +505,64 @@ namespace SephiriaEnhancements
             multiplayerRules = null;
             runtimeKernel = null;
             Application.quitting -= OnModUnloaded;
+            FeatureFailure.Report = null;
             SupportLogger.Shutdown();
         }
 
         private void OnStartSessionClientside(bool isSavedSession)
         {
-            NativeRetryBoss.ObserveWorldSession(isSavedSession);
-            autoCasting?.ResetWorld();
-            DefeatRetryClientRestore.ObserveWorldSession(isSavedSession);
-            GameLoadProfiler.ObserveClientSessionStarted(isSavedSession);
-            MultiplayerRulesLobbySnapshotCoordinator.ReadHostSnapshot();
-            inventoryOptimization?.ResetWorldSession();
-            runtimeKernel?.BeginWorldSession();
+            FeatureFailure.Run(FeatureId.DefeatRetry, () => NativeRetryBoss.ObserveWorldSession(isSavedSession));
+            FeatureFailure.Run(FeatureId.AutoCasting, () => autoCasting?.ResetWorld());
+            FeatureFailure.Run(FeatureId.DefeatRetry, () => DefeatRetryClientRestore.ObserveWorldSession(isSavedSession));
+            FeatureFailure.Run(FeatureId.DeveloperTools, () => GameLoadProfiler.ObserveClientSessionStarted(isSavedSession));
+            FeatureFailure.Run(FeatureId.MultiplayerRules, MultiplayerRulesLobbySnapshotCoordinator.ReadHostSnapshot);
+            FeatureFailure.Run(FeatureId.Inventory, () => inventoryOptimization?.ResetWorldSession());
+            FeatureFailure.Run(FeatureId.Gameplay, () => runtimeKernel?.BeginWorldSession());
         }
 
-        private void OnFloorAllocatedClientside(string guid, string floorName,
-            FloorGenerator generator)
+        private void OnFloorAllocatedClientside(string guid, string floorName, FloorGenerator generator)
         {
-            GameLoadProfiler.ObserveFloorAllocated(guid, floorName);
-            MultiplayerRulesLobbySnapshotCoordinator.ReadHostSnapshot();
+            FeatureFailure.Run(FeatureId.DeveloperTools, () => GameLoadProfiler.ObserveFloorAllocated(guid, floorName));
+            FeatureFailure.Run(FeatureId.MultiplayerRules, MultiplayerRulesLobbySnapshotCoordinator.ReadHostSnapshot);
         }
 
         private void OnLocalGameplayContextChanged(LocalGameplayContextChange change)
         {
-            autoCasting?.ResetGameplayContext();
-            inventoryOptimization?.ResetGameplayContext();
-            combatRelationOutlines?.ResetGameplayContext();
-            combatTargeting?.ResetGameplayContext();
-            keyboardUiNavigation?.ResetGameplayContext();
-            mapEnhancements?.ResetGameplayContext();
-            nativeCompanion?.ResetGameplayContext();
-            GameLoadProfiler.ObserveGameplayContextReset();
+            FeatureFailure.Run(FeatureId.AutoCasting, () => autoCasting?.ResetGameplayContext());
+            FeatureFailure.Run(FeatureId.Inventory, () => inventoryOptimization?.ResetGameplayContext());
+            FeatureFailure.Run(FeatureId.CombatRelationOutlines, () => combatRelationOutlines?.ResetGameplayContext());
+            FeatureFailure.Run(FeatureId.CombatTargeting, () => combatTargeting?.ResetGameplayContext());
+            FeatureFailure.Run(FeatureId.KeyboardUiNavigation, () => keyboardUiNavigation?.ResetGameplayContext());
+            FeatureFailure.Run(FeatureId.MapEnhancements, () => mapEnhancements?.ResetGameplayContext());
+            FeatureFailure.Run(FeatureId.NativeCompanion, () => nativeCompanion?.ResetGameplayContext());
+            FeatureFailure.Run(FeatureId.DeveloperTools, GameLoadProfiler.ObserveGameplayContextReset);
         }
 
         private void OnStartSessionServerside(bool isSavedSession)
         {
-            GameLoadProfiler.ObserveServerSessionStarted(isSavedSession);
-            if (MultiplayerRulesExplorationStartPatch.ExplorationStarted)
-                BeginServerExploration(isSavedSession);
-            else
-                MultiplayerRulesController.EndExploration();
-            nativeCompanion?.ResetSession();
+            FeatureFailure.Run(FeatureId.DeveloperTools, () => GameLoadProfiler.ObserveServerSessionStarted(isSavedSession));
+            FeatureFailure.Run(FeatureId.MultiplayerRules, () =>
+            {
+                if (MultiplayerRulesExplorationStartPatch.ExplorationStarted)
+                    BeginServerExploration(isSavedSession);
+                else MultiplayerRulesController.EndExploration();
+            });
+            FeatureFailure.Run(FeatureId.NativeCompanion, () => nativeCompanion?.ResetSession());
         }
 
-        private void OnStartingExploration() => BeginServerExploration(false);
+        private void OnStartingExploration() =>
+            FeatureFailure.Run(FeatureId.MultiplayerRules, () => BeginServerExploration(false));
 
         private void BeginServerExploration(bool isSavedSession)
         {
             if (RequiresMultiplayerRuleBehaviorPatches(isSavedSession))
-            {
                 EnsureMultiplayerRuleBehaviorPatches();
-            }
-            multiplayerRules?.BeginServerExploration(isSavedSession);
+            if (FeatureFailure.IsAvailable(FeatureId.MultiplayerRules))
+                multiplayerRules?.BeginServerExploration(isSavedSession);
         }
 
-        private void OnFloorAllocatedServerside(string guid, string floorName,
-            FloorGenerator generator)
-        {
-            multiplayerRules?.PublishActiveRulesForLobbyDisplay();
-        }
+        private void OnFloorAllocatedServerside(string guid, string floorName, FloorGenerator generator) =>
+            FeatureFailure.Run(FeatureId.MultiplayerRules, () => multiplayerRules?.PublishActiveRulesForLobbyDisplay());
 
         private static float ElapsedMilliseconds(long startedAt)
         {
@@ -583,13 +628,13 @@ namespace SephiriaEnhancements
             float preparationMilliseconds = 0f;
             float applicationMilliseconds = 0f;
             bool succeeded = false;
+            FeatureId feature = FeaturePatchOwnership.Get(patchType);
+            if (!FeatureFailure.IsAvailable(feature)) return false;
             try
             {
-                PatchClassProcessor processor =
-                    harmony.CreateClassProcessor(patchType);
                 preparationMilliseconds = ElapsedMilliseconds(startedAt);
                 long applicationStartedAt = Stopwatch.GetTimestamp();
-                processor.Patch();
+                if (!featurePatches.Install(feature, patchType)) return false;
                 applicationMilliseconds =
                     ElapsedMilliseconds(applicationStartedAt);
                 succeeded = true;
@@ -597,6 +642,7 @@ namespace SephiriaEnhancements
             }
             catch (Exception ex)
             {
+                FeatureFailure.Disable(feature, ex);
                 SupportLogger.Failure("hook_failed." + patchType.Name, ex);
                 SupportLogger.Warning("feature_hook_failed", "[SephiriaEnhancements] Feature disabled because hook failed: " +
                     patchType.Name + " — " + ex.Message);

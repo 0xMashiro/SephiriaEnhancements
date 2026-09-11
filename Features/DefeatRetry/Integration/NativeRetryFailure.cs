@@ -6,11 +6,23 @@ namespace SephiriaEnhancements.DefeatRetry
     {
         private static RetryRecoveryFailure pending;
         private static bool shown;
+        internal static bool IsPending => pending != RetryRecoveryFailure.None;
 
         internal static void Show(RetryRecoveryFailure reason) => pending = reason;
         internal static void Clear() { pending = RetryRecoveryFailure.None; shown = false; }
 
         internal static void Tick()
+        {
+            try { ShowPending(); }
+            catch (System.Exception exception)
+            {
+                Clear();
+                Diagnostics.SupportLogger.Failure("retry_failure_notice_unavailable", exception);
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void ShowPending()
         {
             if (pending == RetryRecoveryFailure.None || shown || UIManager.Instance == null) return;
             UI_MessageBoxHolder holder = UIManager.Instance.GetElement<UI_MessageBoxHolder>();
@@ -20,8 +32,9 @@ namespace SephiriaEnhancements.DefeatRetry
                 pending == RetryRecoveryFailure.Disconnected ? RetryRecoveryLocalization.Disconnected : RetryRecoveryLocalization.Failed;
             // A failed restore may still have the native loading overlay active.
             ScreenFader.Instance?.ClearLoadingScreen();
-            holder.OpenYes(ModLocalization.Get(key), () => pause.Open());
             shown = true;
+            Runtime.FeatureFailure.ConsumeNotice();
+            holder.OpenYes(ModLocalization.Get(key), () => pause.Open());
         }
     }
 }

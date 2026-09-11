@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
@@ -88,6 +89,25 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Postfix(UI_OptionsPanel __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_OptionsPanel __instance)
+        {
             if (OptionsKeyboardNavigation.ActivePanel() == __instance)
                 OptionsKeyboardNavigation.RequestEntry(__instance);
         }
@@ -96,7 +116,25 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     [HarmonyPatch(typeof(Selectable), nameof(Selectable.OnMove))]
     internal static class OptionsKeyboardMovePatch
     {
-        private static bool Prefix(Selectable __instance, AxisEventData eventData) =>
-            OptionsKeyboardNavigation.Move(__instance, eventData);
+        private static bool Prefix(Selectable __instance, AxisEventData eventData)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance, eventData);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(Selectable __instance, AxisEventData eventData) => OptionsKeyboardNavigation.Move(__instance, eventData);
     }
 }

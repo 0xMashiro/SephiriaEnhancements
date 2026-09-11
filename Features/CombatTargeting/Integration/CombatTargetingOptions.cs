@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
 using UnityEngine;
@@ -59,7 +60,27 @@ namespace SephiriaEnhancements.CombatTargeting.Integration
         { box = selectionBox; valueText = text; }
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatTargeting))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatTargeting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = CombatTargetingSettings.TargetingModeCount;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -70,10 +91,28 @@ namespace SephiriaEnhancements.CombatTargeting.Integration
         private void OnDisable() { if (box != null) box.OnValueChanged -= Changed; }
         private void Changed(int value)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatTargeting))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatTargeting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
             CombatTargetingSettings.TargetingMode = (TargetingMode)value;
             CombatTargetingSettings.Save();
-            NativeControlCoordinator.OnTargetingSettingChanged(
-                value != (int)TargetingMode.Disabled);
+            NativeControlCoordinator.OnTargetingSettingChanged(value != (int)TargetingMode.Disabled);
             valueText?.UpdateKey(ControlLocalization.TargetingModeKeys[value]);
         }
     }
@@ -88,7 +127,27 @@ namespace SephiriaEnhancements.CombatTargeting.Integration
         { box = selectionBox; valueText = text; }
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatTargeting))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatTargeting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = CombatTargetingSettings.MouseAimAssistModeCount;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -98,6 +157,25 @@ namespace SephiriaEnhancements.CombatTargeting.Integration
         }
         private void OnDisable() { if (box != null) box.OnValueChanged -= Changed; }
         private void Changed(int value)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatTargeting))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatTargeting, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
         {
             CombatTargetingSettings.MouseAimAssistEnabled = value == 1;
             CombatTargetingSettings.Save();

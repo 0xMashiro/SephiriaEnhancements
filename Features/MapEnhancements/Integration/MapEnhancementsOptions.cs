@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -53,7 +54,27 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MapEnhancements))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MapEnhancements, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
@@ -67,6 +88,25 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
         }
 
         private void Changed(int value)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MapEnhancements))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MapEnhancements, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
         {
             MapEnhancementsSettings.Enabled = value == 1;
             EnhancementsSettings.Save();
@@ -94,15 +134,33 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MapEnhancements))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MapEnhancements, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
             int value = MapEnhancementsSettings.ShowHiddenRooms ? 1 : 0;
             box.ChangeValueWithoutNotify(value);
-            valueText?.UpdateKey(value == 1
-                ? MapEnhancementsLocalization.On
-                : MapEnhancementsLocalization.Off);
+            valueText?.UpdateKey(value == 1 ? MapEnhancementsLocalization.On : MapEnhancementsLocalization.Off);
         }
 
         private void OnDisable()
@@ -112,20 +170,58 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
 
         private void Update()
         {
-            if (box == null || box.interactable == MapEnhancementsSettings.IsActive) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.MapEnhancements))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MapEnhancements, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
+            if (box == null || box.interactable == MapEnhancementsSettings.IsActive)
+                return;
             box.interactable = MapEnhancementsSettings.IsActive;
             UI_OptionsPanel panel = GetComponentInParent<UI_OptionsPanel>();
             var template = panel?.GetComponentInChildren<UI_OptionBox_PartyMemberDamage>(true);
-            if (template != null) OptionsPanelPatch.WireNavigation(panel, template);
+            if (template != null)
+                OptionsPanelPatch.WireNavigation(panel, template);
         }
 
         private void Changed(int value)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MapEnhancements))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MapEnhancements, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
             MapEnhancementsSettings.ShowHiddenRooms = value == 1;
             EnhancementsSettings.Save();
-            valueText?.UpdateKey(value == 1
-                ? MapEnhancementsLocalization.On
-                : MapEnhancementsLocalization.Off);
+            valueText?.UpdateKey(value == 1 ? MapEnhancementsLocalization.On : MapEnhancementsLocalization.Off);
         }
     }
 }

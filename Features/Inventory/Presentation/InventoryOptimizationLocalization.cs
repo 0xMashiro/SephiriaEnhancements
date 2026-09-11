@@ -50,8 +50,8 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.Inventory.FinishMovingItem";
         internal const string MovingItemInterrupted =
             "SephiriaEnhancements.Inventory.MovingItemInterrupted";
-        internal const string DisabledForGameplayContext =
-            "SephiriaEnhancements.Inventory.DisabledForGameplayContext";
+        internal const string DisabledAfterError =
+            "SephiriaEnhancements.Inventory.DisabledAfterError";
         internal const string OperationStopped = "SephiriaEnhancements.Inventory.OperationStopped";
         internal const string ApplicationMayHaveChanged = "SephiriaEnhancements.Inventory.ApplicationMayHaveChanged";
 
@@ -233,7 +233,7 @@ namespace SephiriaEnhancements.Inventory
             Busy,
             FinishMovingItem,
             MovingItemInterrupted,
-            DisabledForGameplayContext,
+            DisabledAfterError,
             HudTitle,
             HudComboTargets,
             HudOptimize,

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -87,10 +88,30 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
     {
         private static void Postfix(UI_UnitHPBar __instance)
         {
-            if (__instance.GetComponent<NativeResourceBarValueView>() != null) return;
-            TextMeshProUGUI template = __instance is UI_MiniBossHPBar mini
-                ? mini.nameText : UIManager.Instance?.GetElement<UI_PlayerMP>()?.mpBar?.valueText;
-            if (template == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.ResourceBarValues))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ResourceBarValues, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_UnitHPBar __instance)
+        {
+            if (__instance.GetComponent<NativeResourceBarValueView>() != null)
+                return;
+            TextMeshProUGUI template = __instance is UI_MiniBossHPBar mini ? mini.nameText : UIManager.Instance?.GetElement<UI_PlayerMP>()?.mpBar?.valueText;
+            if (template == null)
+                return;
             NativeUnitBarValues.Configure(__instance, template);
         }
     }

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using SephiriaEnhancements.Integration;
 
@@ -33,10 +34,48 @@ namespace SephiriaEnhancements.Runtime.GameBridge
 
         private void OnEnteredFloor(string floorGuid)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.Gameplay))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnteredFloorCore(floorGuid);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Gameplay, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnteredFloorCore(string floorGuid)
+        {
             ObserveEvent(floorGuid, player.loadingScreenType != -1);
         }
 
         private void OnLoadingChanged(int loadingScreenType)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Gameplay))
+            {
+                return;
+            }
+
+            try
+            {
+                OnLoadingChangedCore(loadingScreenType);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Gameplay, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnLoadingChangedCore(int loadingScreenType)
         {
             // Native loading completion precedes the floor-GUID update. Arrival
             // is observed separately; this callback invalidates departing work.

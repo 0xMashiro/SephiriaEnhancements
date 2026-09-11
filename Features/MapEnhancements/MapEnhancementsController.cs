@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Diagnostics;
 using SephiriaEnhancements.MapEnhancements.Integration;
 using HarmonyLib;
@@ -61,10 +62,48 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void Awake()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MapEnhancements))
+            {
+                return;
+            }
+
+            try
+            {
+                AwakeCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MapEnhancements, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void AwakeCore()
+        {
             current = this;
         }
 
         private void Update()
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.MapEnhancements))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MapEnhancements, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
         {
             RefreshEnabledState();
             bool enabled = MapEnhancementsSettings.IsActive;
@@ -72,9 +111,9 @@ namespace SephiriaEnhancements.MapEnhancements
             {
                 return;
             }
+
             wasEnabled = true;
             npcTracking.Update();
-
             bool showHiddenRooms = MapEnhancementsSettings.ShowHiddenRooms;
             if (hiddenRoomsShown != showHiddenRooms)
             {
@@ -83,6 +122,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 {
                     ClearMarkers();
                 }
+
                 UI_MapPanel panel = UIManager.Instance?.GetElement<UI_MapPanel>();
                 if (showHiddenRooms && panel != null)
                 {
@@ -94,23 +134,19 @@ namespace SephiriaEnhancements.MapEnhancements
             }
 
             // Fixed-floor markers refresh after the native map update.
-
             if (!currentFloorMapOverlayCompatible)
             {
                 return;
             }
 
             bool nativeMenuOpen = UIManager.Instance?.CurrentControlStack != null;
-            if (currentFloorMapOverlayVisible && !nativeMapPanelOpen &&
-                !nativeMenuOpen &&
-                Time.unscaledTime >= nextCurrentFloorMapRefreshAt)
+            if (currentFloorMapOverlayVisible && !nativeMapPanelOpen && !nativeMenuOpen && Time.unscaledTime >= nextCurrentFloorMapRefreshAt)
             {
                 nextCurrentFloorMapRefreshAt = Time.unscaledTime + 0.25f;
                 TryRefreshCurrentFloorMapOverlay();
             }
 
-            if (currentFloorMapOverlayRoot != null &&
-                (nativeMapPanelOpen || nativeMenuOpen))
+            if (currentFloorMapOverlayRoot != null && (nativeMapPanelOpen || nativeMenuOpen))
             {
                 RestoreCurrentFloorMapOverlay();
             }
@@ -121,10 +157,7 @@ namespace SephiriaEnhancements.MapEnhancements
 
             PlayerInputController input = PlayerInputController.Instance;
             NativeControlCoordinator.PreparePlayerInput(input);
-            if (!NativeInputActions.WasPressed(input?.playerInput?.actions,
-                    ModShortcuts.ToggleCurrentFloorMapOverlay,
-                    rejectKeyboardModifiers: true) ||
-                !CanUseGameplayShortcut())
+            if (!NativeInputActions.WasPressed(input?.playerInput?.actions, ModShortcuts.ToggleCurrentFloorMapOverlay, rejectKeyboardModifiers: true) || !CanUseGameplayShortcut())
             {
                 return;
             }
@@ -138,8 +171,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 currentFloorMapOverlayVisible = false;
                 RestoreCurrentFloorMapOverlay();
                 currentFloorMapOverlayCompatible = false;
-                SupportLogger.Warning("map_shortcut_failed", "[SephiriaEnhancements] Current-floor map overlay " +
-                    "shortcut disabled until the Mod is reloaded: " + ex.Message);
+                SupportLogger.Warning("map_shortcut_failed", "[SephiriaEnhancements] Current-floor map overlay " + "shortcut disabled until the Mod is reloaded: " + ex.Message);
             }
         }
 
@@ -170,10 +202,10 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void OnDestroy()
         {
-            npcTracking.Clear();
-            mapNavigation.Clear();
-            ClearMarkers();
-            RestoreCurrentFloorMapOverlay();
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.MapEnhancements, () => npcTracking.Clear());
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.MapEnhancements, () => mapNavigation.Clear());
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.MapEnhancements, () => ClearMarkers());
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.MapEnhancements, () => RestoreCurrentFloorMapOverlay());
 
             if (current == this)
             {
@@ -819,12 +851,31 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void Update()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MapEnhancements))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MapEnhancements, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
             if (Time.unscaledTime < nextRevealCheckAt)
             {
                 return;
             }
-            nextRevealCheckAt = Time.unscaledTime + 0.25f;
 
+            nextRevealCheckAt = Time.unscaledTime + 0.25f;
             if (IsRevealed())
             {
                 RestoreInteraction();

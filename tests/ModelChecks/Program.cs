@@ -20,6 +20,8 @@ using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
+SephiriaEnhancements.ModelChecks.Runtime.FeatureFailureChecks.Run();
+if (args.Contains("--feature-isolation-only")) return;
 SephiriaEnhancements.ModelChecks.Features.ModInformation.ModInformationChecks.Run();
 if (args.Contains("--mod-information-only"))
 {

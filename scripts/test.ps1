@@ -6,6 +6,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $modelProject = Join-Path $repoRoot 'tests\ModelChecks\SephiriaEnhancements.ModelChecks.csproj'
 
 & (Join-Path $PSScriptRoot 'verify-public.ps1')
+& (Join-Path $PSScriptRoot 'verify-feature-isolation.ps1')
 
 # Automatic text fitting must use the shared size ceiling and minimum-size constraint.
 $textSizingOwner = Join-Path $repoRoot 'Integration/NativeLocalizedText.cs'
@@ -30,7 +31,7 @@ $modelXml = [xml](Get-Content -LiteralPath $modelProject -Raw)
 $modelSources = @($modelXml.Project.ItemGroup.Compile | ForEach-Object {
     if ($_.Include) { [System.IO.Path]::GetFullPath((Join-Path $modelDirectory $_.Include)) }
 })
-foreach ($directory in @('Configuration', 'Diagnostics', 'Features')) {
+foreach ($directory in @('Configuration', 'Diagnostics', 'Features', 'Runtime')) {
     foreach ($source in Get-ChildItem -LiteralPath (Join-Path $repoRoot $directory) -Recurse -Filter '*Localization.cs' -File) {
         if ($source.FullName -notin $modelSources) {
             throw "Include localization source in ModelChecks: $([System.IO.Path]::GetRelativePath($repoRoot, $source.FullName))"

@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -45,9 +46,29 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
 
         private static bool Prefix(object __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(object __instance)
+        {
             var panel = (UI_WeaponEnhancementPanel)AccessTools.Field(__instance.GetType(), "<>4__this").GetValue(__instance);
             var anvil = (Anvil)AccessTools.Field(typeof(UI_WeaponEnhancementPanel), "anvil").GetValue(panel);
-            if (anvil == null || !JoiningSupplyBridge.IsCurrent(anvil.netId)) return true;
+            if (anvil == null || !JoiningSupplyBridge.IsCurrent(anvil.netId))
+                return true;
             var weapon = (WeaponEntity)AccessTools.Field(__instance.GetType(), "weapon").GetValue(__instance);
             panel.Close();
             JoiningSupplyBridge.SelectFacility(anvil.netId, weapon.id, default, 0);
@@ -64,11 +85,32 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
 
         private static bool Prefix(object __instance)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
+            {
+                return true;
+            }
+
+            try
+            {
+                return PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
+                return true;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool PrefixCore(object __instance)
+        {
             var altar = (AltarOfEnchant)AccessTools.Field(__instance.GetType(), "savedEnchantBinding").GetValue(__instance);
-            if (altar == null || !JoiningSupplyBridge.IsCurrent(altar.netId)) return true;
+            if (altar == null || !JoiningSupplyBridge.IsCurrent(altar.netId))
+                return true;
             var icon = (UI_NewInventoryIcon)AccessTools.Field(__instance.GetType(), "icon").GetValue(__instance);
             var panel = (UI_CharacterStatusPanel)AccessTools.Field(__instance.GetType(), "<>4__this").GetValue(__instance);
-            if (icon?.Item == null) return false;
+            if (icon?.Item == null)
+                return false;
             JoiningSupplyBridge.SelectFacility(altar.netId, 0, icon.Item.Position, icon.Item.InstanceID);
             panel.SetInventoryMode(UI_CharacterStatusPanel.EInventoryMode.None);
             panel.EnchantBinding = null;

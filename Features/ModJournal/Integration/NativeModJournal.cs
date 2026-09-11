@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -113,8 +114,29 @@ namespace SephiriaEnhancements.ModJournal.Integration
 
         private void LateUpdate()
         {
-            if (category == null) return;
-            if (language != LocalizationManager.Instance?.CurrentLanguage) RefreshTexts();
+            if (!FeatureFailure.IsAvailable(FeatureId.ModJournal))
+            {
+                return;
+            }
+
+            try
+            {
+                LateUpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ModJournal, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void LateUpdateCore()
+        {
+            if (category == null)
+                return;
+            if (language != LocalizationManager.Instance?.CurrentLanguage)
+                RefreshTexts();
             NativeLocalizedText.MatchFontSize(category.text, panel.locationIconOriginal.text);
             foreach (TextMeshProUGUI label in labels)
                 NativeLocalizedText.MatchFontSize(label, panel.loreIconOriginal.text);
@@ -157,8 +179,26 @@ namespace SephiriaEnhancements.ModJournal.Integration
     {
         private static void Postfix(UI_JournalContent_Lore __instance)
         {
-            NativeModJournal view = __instance.GetComponent<NativeModJournal>()
-                ?? __instance.gameObject.AddComponent<NativeModJournal>();
+            if (!FeatureFailure.IsAvailable(FeatureId.ModJournal))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ModJournal, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_JournalContent_Lore __instance)
+        {
+            NativeModJournal view = __instance.GetComponent<NativeModJournal>() ?? __instance.gameObject.AddComponent<NativeModJournal>();
             view.Build(__instance);
         }
     }
@@ -167,21 +207,74 @@ namespace SephiriaEnhancements.ModJournal.Integration
     internal static class ModJournalClearPatch
     {
         private static void Prefix(UI_JournalContent_Lore __instance)
-            => __instance.GetComponent<NativeModJournal>()?.Clear();
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.ModJournal))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ModJournal, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(UI_JournalContent_Lore __instance) => __instance.GetComponent<NativeModJournal>()?.Clear();
     }
 
     [HarmonyPatch(typeof(UI_JournalContent_Lore), "OnLocationIconClick")]
     internal static class ModJournalCategoryPatch
     {
-        private static void Postfix(UI_JournalContent_Lore __instance,
-            UI_JournalPanel_SearchOptionButton button)
-            => __instance.GetComponent<NativeModJournal>()?.Select(button.data);
+        private static void Postfix(UI_JournalContent_Lore __instance, UI_JournalPanel_SearchOptionButton button)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.ModJournal))
+            {
+                return;
+            }
+
+            try
+            {
+                PostfixCore(__instance, button);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ModJournal, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(UI_JournalContent_Lore __instance, UI_JournalPanel_SearchOptionButton button) => __instance.GetComponent<NativeModJournal>()?.Select(button.data);
     }
 
     [HarmonyPatch(typeof(UI_JournalContent_Lore), "OnTutorialCategoryClicked")]
     internal static class ModJournalTutorialPatch
     {
         private static void Prefix(UI_JournalContent_Lore __instance)
-            => __instance.GetComponent<NativeModJournal>()?.Select(null);
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.ModJournal))
+            {
+                return;
+            }
+
+            try
+            {
+                PrefixCore(__instance);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.ModJournal, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PrefixCore(UI_JournalContent_Lore __instance) => __instance.GetComponent<NativeModJournal>()?.Select(null);
     }
 }

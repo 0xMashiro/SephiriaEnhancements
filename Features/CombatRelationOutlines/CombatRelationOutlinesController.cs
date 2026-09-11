@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Diagnostics;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,25 @@ namespace SephiriaEnhancements.CombatRelationOutlines
 
         private void Update()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatRelationOutlines))
+            {
+                return;
+            }
+
+            try
+            {
+                UpdateCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.CombatRelationOutlines, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateCore()
+        {
             if (!runtimeCompatible || Time.unscaledTime < nextRefresh)
             {
                 return;
@@ -34,8 +54,7 @@ namespace SephiriaEnhancements.CombatRelationOutlines
             {
                 RestoreAll();
                 runtimeCompatible = false;
-                SupportLogger.Warning("combat_relation_outlines_failed", "[SephiriaEnhancements] Combat-relation outlines disabled " +
-                    "for the current gameplay context: " + ex);
+                SupportLogger.Warning("combat_relation_outlines_failed", "[SephiriaEnhancements] Combat-relation outlines disabled " + "for the current gameplay context: " + ex);
             }
         }
 

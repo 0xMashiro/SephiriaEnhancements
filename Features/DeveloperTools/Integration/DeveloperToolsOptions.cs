@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -59,14 +60,33 @@ namespace SephiriaEnhancements.DeveloperTools.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = DeveloperPlayerDamageSettings.MultiplierCount;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
             int value = DeveloperPlayerDamageSettings.MultiplierIndex;
             box.ChangeValueWithoutNotify(value);
-            valueText?.UpdateKey(ModLocalization.DeveloperPlayerDamageMultiplierKeys[
-                value]);
+            valueText?.UpdateKey(ModLocalization.DeveloperPlayerDamageMultiplierKeys[value]);
         }
 
         private void OnDisable()
@@ -76,10 +96,28 @@ namespace SephiriaEnhancements.DeveloperTools.Integration
 
         private void Changed(int value)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
             DeveloperPlayerDamageSettings.MultiplierIndex = value;
             DeveloperPlayerDamageSettings.Save();
-            valueText?.UpdateKey(ModLocalization.DeveloperPlayerDamageMultiplierKeys[
-                DeveloperPlayerDamageSettings.MultiplierIndex]);
+            valueText?.UpdateKey(ModLocalization.DeveloperPlayerDamageMultiplierKeys[DeveloperPlayerDamageSettings.MultiplierIndex]);
         }
     }
 #endif

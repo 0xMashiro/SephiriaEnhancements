@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 using static SephiriaEnhancements.Configuration.NativeOptionsRows;
@@ -45,15 +46,33 @@ namespace SephiriaEnhancements.DeveloperConsole.Integration
 
         private void OnEnable()
         {
-            if (box == null) return;
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                OnEnableCore();
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void OnEnableCore()
+        {
+            if (box == null)
+                return;
             box.numberOfElements = 2;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
             int value = DeveloperConsoleSettings.Enabled ? 1 : 0;
             box.ChangeValueWithoutNotify(value);
-            valueText?.UpdateKey(value == 1
-                ? ModLocalization.DeveloperConsoleOn
-                : ModLocalization.DeveloperConsoleOff);
+            valueText?.UpdateKey(value == 1 ? ModLocalization.DeveloperConsoleOn : ModLocalization.DeveloperConsoleOff);
         }
 
         private void OnDisable()
@@ -63,11 +82,28 @@ namespace SephiriaEnhancements.DeveloperConsole.Integration
 
         private void Changed(int value)
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.DeveloperTools))
+            {
+                return;
+            }
+
+            try
+            {
+                ChangedCore(value);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.DeveloperTools, exception);
+                return;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ChangedCore(int value)
+        {
             DeveloperConsoleSettings.Enabled = value == 1;
             DeveloperConsoleSettings.Save();
-            valueText?.UpdateKey(value == 1
-                ? ModLocalization.DeveloperConsoleOn
-                : ModLocalization.DeveloperConsoleOff);
+            valueText?.UpdateKey(value == 1 ? ModLocalization.DeveloperConsoleOn : ModLocalization.DeveloperConsoleOff);
         }
     }
 }

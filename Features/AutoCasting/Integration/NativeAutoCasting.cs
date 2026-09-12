@@ -18,6 +18,8 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             AccessTools.MethodDelegate<Func<PlayerInputController, bool>>(
                 AccessTools.Method(typeof(PlayerInputController), "ValidateScreenFader_PlayerMove"));
         internal static NativeAutoCasting Current { get; private set; }
+        internal static bool IsRequestingCast(IntegratedActionController source) =>
+            Current != null && Current.requesting && Current.actions == source;
         private readonly AutoCastingSelection selection = new AutoCastingSelection();
         private readonly AutoCastingRotation rotation = new AutoCastingRotation();
         private readonly List<int> ownedArtifacts = new List<int>();
@@ -176,12 +178,16 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             // Failed native requests may be silent; no requests are queued for later execution.
             double interval = Math.Max(0.35, NetworkTime.rtt * 2);
             int index = rotation.Take(Time.unscaledTimeAsDouble, 11, CanRequest, interval);
-            if (index < 0)
+            if (index < 0 || !NativeAutoCastingCombat.IsActive(player))
+                return;
+            Vector3 aimPosition = AimedPosition(input);
+            UnitAvatar aimTarget = input.autoAimedTarget;
+            if (!CombatTargeting.CombatTargetingController.TryPrepareAutomaticCast(actions, ref aimPosition, ref aimTarget))
                 return;
             requesting = true;
             try
             {
-                actions.Cast(NativeSlot(index), AimedPosition(input), input.autoAimedTarget);
+                actions.Cast(NativeSlot(index), aimPosition, aimTarget);
             }
             finally
             {

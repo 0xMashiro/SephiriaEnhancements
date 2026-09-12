@@ -91,10 +91,34 @@ namespace SephiriaEnhancements.CombatTargeting
             catch (Exception ex) { current.DisableAfterFailure(ex); }
         }
 
+        internal static bool TryPrepareAutomaticCast(IntegratedActionController source,
+            ref Vector3 aimPosition, ref UnitAvatar aimTarget)
+        {
+            if (CombatTargetingSettings.TargetingMode == TargetingMode.Disabled) return true;
+            if (!FeatureFailure.IsAvailable(FeatureId.CombatTargeting) || current == null || source == null) return false;
+            try
+            {
+                if (!current.TryBind(PlayerInputController.Instance) || source.gameObject != current.player.gameObject)
+                    return false;
+                // Keep manual targeting state governed by its input mode, not by automatic magic.
+                current.RefreshCandidates(force: true,
+                    allowAutomatic: current.keyboardCombatActive && current.PrefersTarget());
+                UnitAvatar target = current.selection.Target ??
+                    (current.candidates.Count > 0 ? current.candidates[0] : null);
+                if (target == null) return false;
+                aimPosition = target.transform.position;
+                aimTarget = target;
+                return true;
+            }
+            catch (Exception ex) { current.DisableAfterFailure(ex); }
+            return false;
+        }
+
         internal static void PrepareCast(IntegratedActionController source, int slot,
             ref Vector3 aimPosition, ref UnitAvatar aimTarget)
         {
-            if (current == null || source == null) return;
+            if (current == null || source == null ||
+                AutoCasting.Integration.NativeAutoCasting.IsRequestingCast(source)) return;
             try
             {
                 PlayerInputController input = PlayerInputController.Instance;

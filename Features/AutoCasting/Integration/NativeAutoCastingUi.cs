@@ -236,8 +236,6 @@ namespace SephiriaEnhancements.AutoCasting.Integration
 
         private void OnDestroy()
         {
-            NativeSkillNavigationMemory memory = GetComponent<NativeSkillNavigationMemory>();
-            if (memory != null) Destroy(memory);
             if (focus != null) Destroy(focus.gameObject);
             if (hint != null) Destroy(hint.gameObject);
             foreach (AutoCastingMarker marker in markers) if (marker != null) Destroy(marker);

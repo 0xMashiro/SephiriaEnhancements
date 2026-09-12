@@ -36,7 +36,8 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         internal static void RefreshInput()
         {
             var stack = UIManager.Instance?.CurrentControlStack;
-            bool available = KeyboardUiNavigationController.IsKeyboardModeActive() &&
+            bool available = FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation) &&
+                KeyboardUiNavigationController.IsKeyboardModeActive() &&
                 Application.isFocused && stack != null && stack.Count > 0;
             if (!available)
             {
@@ -53,13 +54,13 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                  mouse.middleButton.isPressed || mouse.middleButton.wasReleasedThisFrame ||
                  mouse.scroll.ReadValue().sqrMagnitude > 0f);
             bool keyboardOwnedFocus = Ownership.KeyboardOwnsFocus;
-            // Opening a menu or typing is not a request to replace mouse hover.
-            // Use the same native navigation action that moves UI selection.
+            // Opening menus, changing tabs and typing are keyboard interaction too.
+            // The native Keyboard&Mouse scheme alone cannot distinguish them from hover.
             bool navigationPressed = UIInputModule.currentModule?.move?.action?
                 .WasPressedThisFrame() == true;
-            bool tabPressed = Keyboard.current?.tabKey.wasPressedThisFrame == true;
+            bool keyboardPressed = Keyboard.current?.anyKey.wasPressedThisFrame == true;
             bool submitPressed = UIInputModule.currentModule?.submit?.action?.WasPressedThisFrame() == true;
-            Ownership.Update(available, navigationPressed || submitPressed || tabPressed,
+            Ownership.Update(available, navigationPressed || submitPressed || keyboardPressed,
                 pointerAction, mouse != null, position.x, position.y);
             if (keyboardOwnedFocus && !Ownership.KeyboardOwnsFocus)
                 RestorePointerHover(position);
@@ -139,6 +140,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         internal static void CenterMapSelection(UI_MapPanel panel, UI_Map map)
         {
+            if (MapEnhancements.MapEnhancementsController.HasMapNavigation) return;
             GameObject selected = SelectedTarget();
             if (selected == null || !panel.IsControlEnabled || map == null) return;
             foreach (UI_Map_Room room in map.rooms)
@@ -181,16 +183,18 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static IEnumerable<MethodBase> TargetMethods()
         {
-            foreach (Type type in new[] { typeof(UI_HorayButton), typeof(UI_HorizontalSelectionBox),
-                typeof(UI_HoraySelectable), typeof(UI_ArcSlider), typeof(UI_ArcSliderHandle) })
+            // Intercept native hover dispatch, including controls that do not derive
+            // from shared game buttons. Click, drag and scroll keep their native path.
+            foreach (Type handler in new[] { typeof(IPointerEnterHandler), typeof(IPointerExitHandler),
+                typeof(IPointerMoveHandler) })
             {
-                yield return AccessTools.Method(type, "OnPointerEnter");
-                yield return AccessTools.Method(type, "OnPointerExit");
+                yield return AccessTools.Method(typeof(ExecuteEvents), "Execute", new[] { handler, typeof(BaseEventData) });
             }
         }
 
-        private static bool Prefix()
+        private static bool Prefix(MethodBase __originalMethod, out GameObject __state)
         {
+            __state = null;
             if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
             {
                 return true;
@@ -198,7 +202,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
             try
             {
-                return PrefixCore();
+                return PrefixCore(__originalMethod, out __state);
             }
             catch (System.Exception exception)
             {
@@ -208,7 +212,37 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static bool PrefixCore() => !KeyboardUiPointer.OwnsFocus;
+        private static bool PrefixCore(MethodBase method, out GameObject selection)
+        {
+            selection = null;
+            if (!KeyboardUiPointer.OwnsFocus) return true;
+            if (method.GetParameters()[0].ParameterType != typeof(IPointerExitHandler)) return false;
+            // Exit still clears hover visuals and tooltips; it must not clear
+            // the keyboard selection when layout moves under a stationary mouse.
+            selection = EventSystem.current?.currentSelectedGameObject;
+            return true;
+        }
+
+        private static void Postfix(GameObject __state)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation)) return;
+            try
+            {
+                PostfixCore(__state);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(GameObject selection)
+        {
+            if (selection != null && EventSystem.current != null &&
+                EventSystem.current.currentSelectedGameObject != selection)
+                EventSystem.current.SetSelectedGameObject(selection);
+        }
     }
 
     [HarmonyPatch(typeof(UI_Cursor), "LateUpdate")]
@@ -241,7 +275,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Postfix(UI_NewItemPicker_Controller __instance)
         {
-            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            if (!FeatureFailure.IsAvailable(FeatureId.CharacterPanelNavigation))
             {
                 return;
             }
@@ -252,7 +286,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
             catch (System.Exception exception)
             {
-                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                FeatureFailure.Disable(FeatureId.CharacterPanelNavigation, exception);
                 return;
             }
         }

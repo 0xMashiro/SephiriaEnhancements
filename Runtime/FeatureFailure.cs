@@ -10,7 +10,8 @@ namespace SephiriaEnhancements.Runtime
         MapEnhancements, KeyboardUiNavigation, CombatVisuals, CombatRelationOutlines,
         NativeCompanion, ViewDistance, ResourceBarValues, DefeatRetry,
         MultiplayerRules, MultiplayerAccess, ModJournal, Settings, ModInformation,
-        DeveloperTools, EffectStats
+        DeveloperTools, EffectStats, CharacterPanelNavigation, OptionsNavigation,
+        RewardNavigation, WorldMapKeyboardScrolling
     }
 
     // Failure belongs to the loaded Mod instance, not to a floor or exploration.
@@ -43,6 +44,13 @@ namespace SephiriaEnhancements.Runtime
             // Reporting must never replace the exception we are containing.
             try { Report?.Invoke(feature, exception); }
             catch (Exception) { }
+            if (feature == FeatureId.KeyboardUiNavigation)
+            {
+                Disable(FeatureId.CharacterPanelNavigation, exception);
+                Disable(FeatureId.OptionsNavigation, exception);
+                Disable(FeatureId.RewardNavigation, exception);
+                Disable(FeatureId.WorldMapKeyboardScrolling, exception);
+            }
             if (feature == FeatureId.Gameplay)
             {
                 Disable(FeatureId.Inventory, exception);

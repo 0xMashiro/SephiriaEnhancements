@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Runtime;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -23,7 +24,16 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         internal static bool IsInPanel(UIBase panel, GameObject candidate) =>
             IsPanelReady(panel) && IsNavigable(candidate) &&
             (candidate.transform.IsChildOf(panel.transform) ||
-                Inventory.InventoryOptimizationController.OwnsSelection(panel, candidate));
+                OwnsCustomSelection(panel, candidate));
+
+        private static bool OwnsCustomSelection(UIBase panel, GameObject candidate)
+        {
+            if (!(panel is UI_CharacterStatusPanel)) return false;
+            bool owned = false;
+            FeatureFailure.Run(FeatureId.CharacterPanelNavigation, () =>
+                owned = Inventory.InventoryOptimizationController.OwnsSelection(panel, candidate));
+            return owned;
+        }
 
         internal static bool IsInControlStack(GameObject candidate)
         {
@@ -52,7 +62,8 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             // partition while sharing control with the inventory.
             if (panel is UI_OptionsPanel options)
             {
-                GameObject entry = OptionsKeyboardNavigation.FindEntry(options);
+                GameObject entry = null;
+                FeatureFailure.Run(FeatureId.OptionsNavigation, () => entry = OptionsKeyboardNavigation.FindEntry(options));
                 if (entry != null) return entry;
             }
             if (IsInPanel(panel, panel.defaultSelectable)) return panel.defaultSelectable;

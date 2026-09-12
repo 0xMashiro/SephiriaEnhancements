@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
 using SephiriaEnhancements.Runtime;
@@ -15,10 +16,11 @@ namespace SephiriaEnhancements.EffectStats.Integration
         private sealed class Row
         {
             internal string Id;
-            internal StatusInstance_Custom Status;
             internal TextMeshProUGUI Text;
             internal LayoutElement Layout;
-            internal System.Func<PlayerAvatar, string> ReadResult;
+            internal UI_TooltipOpener Tooltip;
+            internal string Summary;
+            internal string Details;
         }
 
         private sealed class Group
@@ -26,6 +28,7 @@ namespace SephiriaEnhancements.EffectStats.Integration
             internal GameObject Root;
             internal TextMeshProUGUI Title;
             internal string TitleKey;
+            internal (string Id, StatusInstance_Custom Status)[] Statuses;
             internal readonly List<Row> Rows = new();
         }
 
@@ -35,8 +38,7 @@ namespace SephiriaEnhancements.EffectStats.Integration
         private TextMeshProUGUI rowTemplate;
         private TextMeshProUGUI titleTemplate;
         private RectTransform content;
-        private Group introduction;
-        private Row solarDamage;
+        private UI_StatusTooltipOpener nativeRow;
         private float nextRefresh;
         private int openedFrame;
         private ScrollRect scroll;
@@ -63,31 +65,14 @@ namespace SephiriaEnhancements.EffectStats.Integration
             content = scroll.content;
             nativeScroll = scroll.GetComponent<UI_ScrollToSelection>();
             titleTemplate = template.transform.Find("Name").GetComponent<TextMeshProUGUI>();
-            UI_StatusTooltipOpener nativeRow = panel.statElements.First(row =>
+            nativeRow = panel.statElements.First(row =>
                 row.GetComponent<TextMeshProUGUI>() != null);
             rowTemplate = nativeRow.GetComponent<TextMeshProUGUI>();
-            introduction = MakeGroup(template, EffectStatsLocalization.Title);
-            AddRow(introduction, nativeRow, null);
             foreach (var definition in NativeEffectStatsCatalog.Groups)
             {
                 Group group = MakeGroup(template, definition.Title);
-                if (definition.Title == "ItemCategory_FlameSword")
-                    solarDamage = AddRow(group, nativeRow, null);
-                if (definition.Title == "ItemCategory_DarkCloud")
-                {
-                    AddRow(group, nativeRow, null).ReadResult = NativeEffectStatsResults.CloudDamage;
-                    AddRow(group, nativeRow, null).ReadResult = NativeEffectStatsResults.CloudSupply;
-                }
-                if (definition.Title == "Status_Magic_Name")
-                    for (int slot = 0; slot < 8; slot++)
-                    {
-                        int index = slot;
-                        AddRow(group, nativeRow, null).ReadResult = avatar => NativeEffectStatsResults.Magic(avatar, index);
-                    }
-                if (definition.Title == "Debuff_Burn")
-                    AddRow(group, nativeRow, null).ReadResult = NativeEffectStatsResults.Burn;
-                foreach (string id in definition.Statuses)
-                    AddRow(group, nativeRow, id);
+                group.Statuses = definition.Statuses.Select(id =>
+                    (id, NativeEffectStatsCatalog.CreateStatus(id))).ToArray();
             }
         }
 
@@ -128,8 +113,11 @@ namespace SephiriaEnhancements.EffectStats.Integration
             button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
             var layout = text.GetComponent<LayoutElement>() ?? text.gameObject.AddComponent<LayoutElement>();
             var row = new Row { Id = id, Text = text, Layout = layout,
-                Status = id == null ? null : NativeEffectStatsCatalog.CreateStatus(id) };
+                Tooltip = text.gameObject.AddComponent<UI_TooltipOpener>() };
+            row.Tooltip.OnSelected += _ => FeatureFailure.Run(FeatureId.EffectStats, () => ShowTooltip(row));
+            row.Tooltip.OnDeselected += _ => HideTooltip(row);
             group.Rows.Add(row);
+            lastScrollSelection = null;
             return row;
         }
 
@@ -143,7 +131,12 @@ namespace SephiriaEnhancements.EffectStats.Integration
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private void LateUpdateCore()
         {
-            if (panel == null || !panel.IsOpened) { RestoreNativeScroll(); return; }
+            if (panel == null || !panel.IsOpened)
+            {
+                HideTooltips();
+                RestoreNativeScroll();
+                return;
+            }
             HandleTabInput();
             ScrollToSelectedRow();
             if (Time.unscaledTime < nextRefresh) return;
@@ -181,60 +174,89 @@ namespace SephiriaEnhancements.EffectStats.Integration
         {
             bool ready = EnhancementsSettings.Enabled && player != null && LocalPlayerResolver.IsLocal(player) &&
                 player.loadingScreenType == -1;
-            bool hasDamage = ready && NativeEffectStatsCatalog.TrySolarBladeDamage(player, out _);
             foreach (Group group in groups)
             {
                 NativeLocalizedText.MatchFontSize(group.Title, titleTemplate);
-                group.Title.text = group == introduction ? ModLocalization.Get(group.TitleKey)
-                    : new LocalizedString(group.TitleKey).ToString();
-                bool visible = group == introduction && ready;
-                foreach (Row row in group.Rows)
+                group.Title.text = new LocalizedString(group.TitleKey).ToString();
+                var results = ready ? NativeEffectStatsResults.Read(player, group.TitleKey)
+                    .Where(result => result.Text != null).ToList() : new List<(string Id, string Text)>();
+                var bonuses = new StringBuilder();
+                if (ready)
+                    foreach (var status in group.Statuses)
+                    {
+                        int value = NativeEffectStatsCatalog.Read(player, status.Id);
+                        if (value != 0) bonuses.AppendLine(NativeEffectStatsCatalog.Describe(status.Status, value));
+                    }
+                if (results.Count == 0 && bonuses.Length > 0)
+                    results.Add(("bonuses", ModLocalization.Get(EffectStatsLocalization.Bonuses)));
+                foreach (Row obsolete in group.Rows.Where(row => !results.Any(result => result.Id == row.Id)).ToArray())
                 {
-                    bool show;
-                    string text;
-                    if (group == introduction)
-                    {
-                        show = ready;
-                        text = ModLocalization.Get(EffectStatsLocalization.Note);
-                    }
-                    else if (row.ReadResult != null)
-                    {
-                        text = ready ? row.ReadResult(player) : null;
-                        show = text != null;
-                    }
-                    else if (row == solarDamage)
-                    {
-                        show = hasDamage;
-                        float damage = 0;
-                        if (show) NativeEffectStatsCatalog.TrySolarBladeDamage(player, out damage);
-                        text = string.Format(ModLocalization.Get(EffectStatsLocalization.SolarDamage), damage.ToString("0.#"));
-                    }
-                    else
-                    {
-                        int value = ready ? NativeEffectStatsCatalog.Read(player, row.Id) : 0;
-                        show = value != 0;
-                        text = show ? NativeEffectStatsCatalog.Describe(row.Status, value) : string.Empty;
-                    }
-                    SetVisible(row.Text.gameObject, show);
-                    if (!show) continue;
-                    visible = true;
+                    HideTooltip(obsolete);
+                    SetVisible(obsolete.Text.gameObject, false);
+                    Destroy(obsolete.Text.gameObject);
+                    group.Rows.Remove(obsolete);
+                }
+                for (int index = 0; index < results.Count; index++)
+                {
+                    var result = results[index];
+                    Row row = group.Rows.FirstOrDefault(row => row.Id == result.Id) ?? AddRow(group, nativeRow, result.Id);
+                    int newline = result.Text.IndexOf('\n');
+                    row.Summary = newline < 0 ? result.Text : result.Text.Substring(0, newline);
+                    row.Details = (newline < 0 ? string.Empty : result.Text.Substring(newline + 1) + "\n\n") +
+                        bonuses.ToString().TrimEnd();
                     NativeLocalizedText.MatchFontSize(row.Text, rowTemplate);
-                    row.Text.text = text;
-                    // Full sentences use the native body size and grow vertically inside its scroll area.
+                    row.Text.text = row.Summary;
+                    row.Text.transform.SetSiblingIndex(index + 1);
+                    // Summary rows retain the native body size; longer translations may wrap.
                     float width = Mathf.Max(1f, content.rect.width -
                         content.GetComponent<VerticalLayoutGroup>().padding.horizontal -
                         group.Root.GetComponent<VerticalLayoutGroup>().padding.horizontal);
-                    row.Layout.preferredHeight = Mathf.Max(rowTemplate.rectTransform.rect.height,
-                        row.Text.GetPreferredValues(text, width, float.PositiveInfinity).y + 4f);
+                    float height = Mathf.Max(rowTemplate.rectTransform.rect.height,
+                        row.Text.GetPreferredValues(row.Summary, width, float.PositiveInfinity).y + 4f);
+                    if (!Mathf.Approximately(row.Layout.preferredHeight, height)) lastScrollSelection = null;
+                    row.Layout.preferredHeight = height;
+                    RefreshTooltip(row);
                 }
-                SetVisible(group.Root, visible);
+                SetVisible(group.Root, results.Count > 0);
             }
-            SetVisible(introduction.Root, ready && groups.Skip(1).Any(group => group.Root.activeSelf));
+        }
+
+        private void ShowTooltip(Row row)
+        {
+            if (panel == null || !panel.IsOpened || !EnhancementsSettings.Enabled ||
+                player == null || !LocalPlayerResolver.IsLocal(player) || player.loadingScreenType != -1) return;
+            RectTransform rect = row.Text.rectTransform;
+            UIManager.Instance.GetElement<UI_CommonTooltip>().Open(row.Tooltip, rect, rect.rect.size * 0.5f,
+                new SimpleTooltipObject(row.Summary, row.Details));
+        }
+
+        private static void RefreshTooltip(Row row)
+        {
+            if (!row.Tooltip.Showing || !(row.Tooltip.LastTooltip is UI_CommonTooltip tooltip) ||
+                !ReferenceEquals(tooltip.Target, row.Tooltip)) return;
+            // Updating the open native text avoids restarting its fade on each value refresh.
+            tooltip.titleText.text = KeywordDatabase.Convert(row.Summary, useColor: false, useSprite: false);
+            tooltip.flavorText.text = KeywordDatabase.Convert(row.Details, useColor: false, useSprite: false);
+            tooltip.flavorText.gameObject.SetActive(row.Details.Length > 0);
+        }
+
+        private static void HideTooltip(Row row)
+        {
+            row.Tooltip.Showing = false;
+            if (row.Tooltip.LastTooltip != null && ReferenceEquals(row.Tooltip.LastTooltip.Target, row.Tooltip))
+                row.Tooltip.LastTooltip.Close();
+        }
+
+        private void HideTooltips()
+        {
+            foreach (Group group in groups)
+                foreach (Row row in group.Rows) HideTooltip(row);
         }
 
         private void SetVisible(GameObject target, bool visible)
         {
             if (target.activeSelf == visible) return;
+            lastScrollSelection = null;
             GameObject selected = EventSystem.current?.currentSelectedGameObject;
             if (!visible && panel != null && panel.IsOpened && panel.tab.CurrentSelectedTab >= 0 &&
                 selected != null && selected.transform.IsChildOf(target.transform))
@@ -281,10 +303,15 @@ namespace SephiriaEnhancements.EffectStats.Integration
             lastScrollSelection = null;
         }
 
-        private void OnDisable() => RestoreNativeScroll();
+        private void OnDisable()
+        {
+            HideTooltips();
+            RestoreNativeScroll();
+        }
 
         private void OnDestroy()
         {
+            HideTooltips();
             RestoreNativeScroll();
             foreach (Group group in groups)
                 if (group.Root != null) { SetVisible(group.Root, false); Destroy(group.Root); }

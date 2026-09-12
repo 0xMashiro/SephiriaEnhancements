@@ -32,14 +32,14 @@ Uses the game's built-in AddOns system; no BepInEx required.
 
 **Beta:** backpack arrangement is experimental. It also seeks better use of supported
 position-dependent artifact effects, such as adjacent magic modifiers and same-row companion effects.
-Your explicit priorities take precedence. By default, existing bonuses are preserved and additional MP costs are limited.
-Under **Special effects**, choose whether to redistribute bonuses or allow upgrades that cost more MP.
+Your artifact priorities also guide supported directional damage, magic cooldown recovery, MP cost reduction, and planet enhancement. Arrangement tries to preserve other bonuses; your artifact and Combo goals take precedence.
+The arrangement panel lets you allow upgrades that cost more MP; this is off by default. Manually specified artifact levels take precedence.
 Search is bounded and does not guarantee an optimal layout or maximum combat damage.
 
 ## Features
 
 - **Combat:** damage, DPS, battle reports, hit streaks, resource values and ally/enemy outlines.
-- **Effect attributes:** the character menu's special-stat page shows nonzero bonuses for supported effects, normal Solar Blade and Storm Cloud damage before hit resolution, and Storm Cloud stock, discharge and recovery cycles. Equipped quick-slot magic shows MP cost, MP-budget casts, charges and new charge-cycle duration. Relevant Burn bonuses or supported application effects also show a per-stack damage reference. Tab switching follows the game's bindings; added rows support focus-following scrolling. This does not cover every item or effect.
+- **Effect attributes:** the character menu's special-stat page shows compact results; hover or focus a row for bonuses and conditions in the game's tooltip. It includes Solar Blade damage and stock, Storm Cloud damage and supply, quick-slot magic costs and charges, supported Frost Relic damage with current MP, Planet bullet damage, and Burn/Electrocution references. Damage values precede hit resolution; debuff references still require an application source. Tab switching follows the game's bindings, and rows scroll into view when focused. This does not cover every item or effect.
 - **Controls:** keyboard menu and reward navigation, automatic targeting and manual target lock.
 - **Exploration:** map overlay, People / Places lists, NPC tracking and camera distance from **75% to 200%**.
   Town maps include map destinations and preparation facilities. When fast travel is available, travel near a person or facility, or use a map destination's assigned landing point.

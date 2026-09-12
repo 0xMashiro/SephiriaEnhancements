@@ -86,8 +86,15 @@ namespace SephiriaEnhancements
 
         private void StopFeature(FeatureId feature)
         {
+            if (keyboardUiNavigation != null) keyboardUiNavigation.CancelFeatureSelection(feature);
             switch (feature)
             {
+                case FeatureId.CharacterPanelNavigation:
+                    CleanupFeature(feature, () => KeyboardUiNavigation.CharacterPanelNavigationMemory.ResetAll(destroy: true));
+                    break;
+                case FeatureId.RewardNavigation:
+                    CleanupFeature(feature, KeyboardUiNavigation.RewardKeyboardNavigation.Reset);
+                    break;
                 case FeatureId.EffectStats:
                     CleanupFeature(feature, EffectStats.Integration.NativeEffectStatsView.DisposeAll);
                     break;

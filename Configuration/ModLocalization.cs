@@ -1268,7 +1268,7 @@ namespace SephiriaEnhancements.Configuration
             DefeatRetry.DefeatRetryCutsceneLocalization.Register(addText, languages);
             DefeatRetry.RetryRecoveryLocalization.Register(addText, languages);
             Inventory.InventoryOptimizationLocalization.Register(addText);
-            Inventory.InventorySpecialEffectLocalization.Register(addText);
+            Inventory.InventoryMagicCostLocalization.Register(addText);
             MultiplayerRulesLocalization.Register(addText, languages);
             MultiplayerAccessLocalization.Register(addText, languages);
             JoiningSupplyLocalization.Register(addText, languages);

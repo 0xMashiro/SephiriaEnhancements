@@ -20,6 +20,18 @@ using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
+if (args.Contains("--inventory-support-only"))
+{
+    Console.WriteLine(InventoryOptimizationPreferencesCodecChecks.Run());
+    InventoryMagicCostPreferenceChecks.Run();
+    InventorySupportPriorityChecks.Run();
+    InventoryDamagePriorityChecks.Run();
+    InventoryPriorityQueueChecks.Run();
+    InventoryHardConstraintChecks.Run();
+    Console.WriteLine(InventoryHudInteractionChecks.Run());
+    return;
+}
+
 SephiriaEnhancements.ModelChecks.Runtime.FeatureFailureChecks.Run();
 if (args.Contains("--multiplayer-rules-only"))
 {
@@ -94,7 +106,8 @@ if (args.FirstOrDefault() == "--inventory-known-solutions-benchmark")
     InventoryKnownSolutionChecks.Benchmark(args[1], args.Contains("--fixed-work"));
     return;
 }
-InventorySpecialEffectPreferenceChecks.Run();
+InventoryMagicCostPreferenceChecks.Run();
+InventorySupportPriorityChecks.Run();
 InventoryMixedMechanismChecks.Run();
 InventoryKnownSolutionChecks.Run();
 if (args.Contains("--inventory-known-solutions-only")) return;

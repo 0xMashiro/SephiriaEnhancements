@@ -9,6 +9,14 @@ namespace SephiriaEnhancements.Inventory
 {
     internal sealed partial class InventoryOptimizationHud
     {
+        internal bool OwnsKeyboardTab()
+        {
+            if (!NavigationAvailable || EventSystem.current == null) return false;
+            GameObject selected = EventSystem.current.currentSelectedGameObject;
+            return interaction.HasPickup || selected == null || FindInventoryIcon(selected) != null ||
+                IsCustomSelection(selected);
+        }
+
         internal bool TryHandleKeyboardTab()
         {
             Keyboard keyboard = Keyboard.current;

@@ -104,8 +104,6 @@ namespace SephiriaEnhancements.Inventory
         internal InventoryConstraintStrength Strength { get; }
     }
 
-    internal enum InventoryPositionEffectPreference { Preserve, Improve, Redistribute }
-
     internal sealed class InventoryOptimizationPreferences
     {
         internal static readonly InventoryOptimizationPreferences Default = new(
@@ -118,10 +116,8 @@ namespace SephiriaEnhancements.Inventory
             InventorySearchEffort searchEffort, bool allowStoneTabletRotation,
             ArtifactOptimizationPreference[] artifactPreferences,
             ComboOptimizationPreference[] comboPreferences,
-            InventoryPositionEffectPreference positionEffectPreference = InventoryPositionEffectPreference.Improve,
             bool allowAdditionalMagicCost = false)
         {
-            PositionEffectPreference = positionEffectPreference;
             AllowAdditionalMagicCost = allowAdditionalMagicCost;
             SearchEffort = searchEffort;
             AllowStoneTabletRotation = allowStoneTabletRotation;
@@ -133,7 +129,6 @@ namespace SephiriaEnhancements.Inventory
                 : (ComboOptimizationPreference[])comboPreferences.Clone());
         }
 
-        internal InventoryPositionEffectPreference PositionEffectPreference { get; }
         internal bool AllowAdditionalMagicCost { get; }
         internal InventorySearchEffort SearchEffort { get; }
         internal bool AllowStoneTabletRotation { get; }
@@ -147,11 +142,11 @@ namespace SephiriaEnhancements.Inventory
             InventorySearchEffort searchEffort,
             bool allowStoneTabletRotation) => new(searchEffort,
                 allowStoneTabletRotation, ArtifactPreferences.ToArray(),
-                ComboPreferences.ToArray(), PositionEffectPreference, AllowAdditionalMagicCost);
+                ComboPreferences.ToArray(), AllowAdditionalMagicCost);
 
-        internal InventoryOptimizationPreferences WithSpecialEffects(InventoryPositionEffectPreference positionEffects,
-            bool allowAdditionalMagicCost) => new(SearchEffort, AllowStoneTabletRotation,
-                ArtifactPreferences.ToArray(), ComboPreferences.ToArray(), positionEffects, allowAdditionalMagicCost);
+        internal InventoryOptimizationPreferences WithAdditionalMagicCost(bool allowAdditionalMagicCost) =>
+            new(SearchEffort, AllowStoneTabletRotation,
+                ArtifactPreferences.ToArray(), ComboPreferences.ToArray(), allowAdditionalMagicCost);
     }
 
     internal static class PersistentInventoryOptimizationPolicyStore
@@ -217,7 +212,7 @@ namespace SephiriaEnhancements.Inventory
                 Select(group => group.Last()).ToArray();
             return new InventoryOptimizationPreferences(searchEffort,
                 allowStoneTabletRotation, worldSessionIntent.ArtifactPreferences.ToArray(), combos,
-                persistentPolicy.PositionEffectPreference, persistentPolicy.AllowAdditionalMagicCost);
+                persistentPolicy.AllowAdditionalMagicCost);
         }
 
     }
@@ -278,10 +273,8 @@ namespace SephiriaEnhancements.Inventory
             IDictionary<int, ResolvedArtifactOptimizationRule>
                 artifactEntityRules,
             IDictionary<string, ResolvedComboOptimizationRule> comboRules,
-            InventoryPositionEffectPreference positionEffectPreference = InventoryPositionEffectPreference.Improve,
             bool allowAdditionalMagicCost = false)
         {
-            PositionEffectPreference = positionEffectPreference;
             AllowAdditionalMagicCost = allowAdditionalMagicCost;
             SearchEffort = searchEffort;
             AllowStoneTabletRotation = allowStoneTabletRotation;
@@ -299,7 +292,6 @@ namespace SephiriaEnhancements.Inventory
 
         internal InventorySearchEffort SearchEffort { get; }
         internal bool AllowStoneTabletRotation { get; }
-        internal InventoryPositionEffectPreference PositionEffectPreference { get; }
         internal bool AllowAdditionalMagicCost { get; }
         internal IReadOnlyDictionary<InventoryItemKey, ResolvedArtifactOptimizationRule>
             ArtifactInstanceRules
@@ -393,7 +385,7 @@ namespace SephiriaEnhancements.Inventory
             return new ResolvedInventoryOptimizationPolicy(
                 preferences.SearchEffort, preferences.AllowStoneTabletRotation,
                 artifactInstanceRules, artifactEntityRules, comboRules,
-                preferences.PositionEffectPreference, preferences.AllowAdditionalMagicCost);
+                preferences.AllowAdditionalMagicCost);
         }
     }
 }

@@ -40,10 +40,38 @@ internal static class FeatureFailureChecks
         FeatureFailure.Reset();
         FeatureFailure.Disable(FeatureId.DeveloperTools, new Exception());
         Require(FeatureFailure.PendingNotices.Length == 0, "diagnostic failures must not notify the player");
+        CheckNavigationIsolation();
         FeatureFailure.Reset();
         Require(Enum.GetValues<FeatureId>().All(FeatureFailure.IsAvailable), "reload must clear failure state");
         CheckPatchRollback();
         Console.WriteLine("Feature isolation: independent execution, lifetime, dependencies, reporting, transactional patch rollback and foreign ownership passed");
+    }
+
+    private static void CheckNavigationIsolation()
+    {
+        FeatureId[] extensions = { FeatureId.CharacterPanelNavigation, FeatureId.OptionsNavigation,
+            FeatureId.RewardNavigation, FeatureId.WorldMapKeyboardScrolling };
+        foreach (FeatureId owner in extensions)
+        {
+            FeatureFailure.Reset();
+            int attempts = 0;
+            Action fail = () => { attempts++; throw new NullReferenceException(); };
+            Require(!FeatureFailure.Run(owner, fail) && !FeatureFailure.Run(owner, fail) && attempts == 1,
+                "a failed navigation extension must stop until Mod reload");
+            Require(FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation) &&
+                extensions.Where(other => other != owner).All(FeatureFailure.IsAvailable),
+                "a page extension failure must preserve common focus and other pages");
+            Require(FeatureFailure.IsAvailable(FeatureId.Inventory) && FeatureFailure.IsAvailable(FeatureId.AutoCasting),
+                "character navigation does not own inventory or automatic casting gameplay");
+            Require(FeatureFailure.PendingNotices.SequenceEqual(new[] { owner }),
+                "navigation failure feedback must identify the affected capability");
+        }
+        FeatureFailure.Reset();
+        FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, new Exception());
+        Require(extensions.All(feature => !FeatureFailure.IsAvailable(feature)),
+            "extensions must stop when their shared navigation dependency fails");
+        Require(FeatureFailure.IsAvailable(FeatureId.Inventory) && FeatureFailure.IsAvailable(FeatureId.MapEnhancements),
+            "navigation dependency failure must not disable gameplay or the separate floor-map feature");
     }
 
     private static void CheckPatchRollback()

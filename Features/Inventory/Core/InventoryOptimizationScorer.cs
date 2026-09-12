@@ -22,9 +22,11 @@ namespace SephiriaEnhancements.Inventory
         // A scorer belongs to one search; scratch indexes never escape into its results.
         private readonly Dictionary<InventoryItemKey, ProjectedInventoryArtifactSettlement> observedArtifacts = new();
         private readonly Dictionary<InventoryPositionEffectKey, InventoryPositionEffectValue> candidateEffects = new();
-        private readonly Dictionary<InventoryItemKey, int> damageTargetOrders;
-        private readonly HashSet<InventoryItemKey> activeDamageTargets = new();
+        private readonly Dictionary<InventoryItemKey, int> priorityTargetOrders;
+        private readonly HashSet<InventoryItemKey> activePriorityTargets = new();
         private readonly HashSet<InventoryItemKey> redirectedDamageSources = new();
+        private readonly HashSet<InventoryItemKey> redirectedSupportSources = new();
+        private readonly HashSet<InventoryItemKey> enhancedPriorityTargets = new();
 
         internal InventoryOptimizationScorer(InventorySnapshot snapshot,
             ResolvedInventoryOptimizationPolicy policy)
@@ -47,7 +49,7 @@ namespace SephiriaEnhancements.Inventory
             comboTargets = policy.ComboRules.Values.Select(rule =>
                 (rule, ComboTarget(rule.CategoryId))).ToArray();
             baselineEffects = InventoryPositionEffectProjector.EvaluateCurrent(snapshot).ToDictionary(value => value.Key);
-            damageTargetOrders = policy.ArtifactInstanceRules.Values.Where(rule =>
+            priorityTargetOrders = policy.ArtifactInstanceRules.Values.Where(rule =>
                 rule.Level == InventoryPreferenceLevel.Priority && rule.PriorityOrder >= 0).
                 ToDictionary(rule => rule.ItemKey, rule => rule.PriorityOrder);
         }
@@ -68,8 +70,10 @@ namespace SephiriaEnhancements.Inventory
             int hardCompletion = 0;
             int[] orderedPriorityCompletionPoints =
                 new int[orderedPriorityCount];
-            activeDamageTargets.Clear();
+            activePriorityTargets.Clear();
             redirectedDamageSources.Clear();
+            redirectedSupportSources.Clear();
+            enhancedPriorityTargets.Clear();
 
             foreach (ProjectedInventoryArtifactSettlement artifact in settlement.Artifacts)
             {
@@ -80,7 +84,7 @@ namespace SephiriaEnhancements.Inventory
                 }
                 if (artifact.Enabled)
                 {
-                    if (damageTargetOrders.ContainsKey(artifact.ItemKey)) activeDamageTargets.Add(artifact.ItemKey);
+                    if (priorityTargetOrders.ContainsKey(artifact.ItemKey)) activePriorityTargets.Add(artifact.ItemKey);
                     enabledArtifactCount++;
                     cappedEffectiveArtifactLevelTotal +=
                         artifact.CappedEffectiveLevel;
@@ -185,14 +189,31 @@ namespace SephiriaEnhancements.Inventory
                 }
             }
 
-            double[] orderedDamage = settlement.PositionEffects.Count == 0 || damageTargetOrders.Count == 0
+            double[] orderedDamage = settlement.PositionEffects.Count == 0 || priorityTargetOrders.Count == 0
                 ? Array.Empty<double>() : new double[orderedPriorityCount];
+            double[] orderedSupport = new double[orderedDamage.Length];
             foreach (var effect in settlement.PositionEffects)
             {
-                if (effect.Key.Kind != InventoryPositionEffectKind.DependencyDamage ||
-                    !effect.Key.Target.HasValue || !activeDamageTargets.Contains(effect.Key.Target.Value)) continue;
-                orderedDamage[damageTargetOrders[effect.Key.Target.Value]] += effect.Value;
-                if (effect.Value > 0) redirectedDamageSources.Add(effect.Key.Source);
+                if (!effect.Key.Target.HasValue || !activePriorityTargets.Contains(effect.Key.Target.Value)) continue;
+                int order = priorityTargetOrders[effect.Key.Target.Value];
+                if (effect.Key.Kind == InventoryPositionEffectKind.DependencyDamage)
+                {
+                    orderedDamage[order] += effect.Value;
+                    if (effect.Value > 0) redirectedDamageSources.Add(effect.Key.Source);
+                }
+                else if (IsDirectedSupport(effect.Key.Kind) && !effect.Mode && effect.Value > 0)
+                {
+                    // The same source capacity used by the default layout preference
+                    // keeps percentages comparable without treating them as damage.
+                    // Planet enhancement is active once, even with multiple modules.
+                    if (effect.Key.Kind == InventoryPositionEffectKind.AdjacentPlanetEnhancement)
+                    {
+                        if (enhancedPriorityTargets.Add(effect.Key.Target.Value)) orderedSupport[order] += 1;
+                    }
+                    else if (positionEffectScales[effect.Key.Source] > 0)
+                        orderedSupport[order] += effect.Value / positionEffectScales[effect.Key.Source];
+                    redirectedSupportSources.Add(effect.Key.Source);
+                }
             }
 
             return new InventoryOptimizationScore(
@@ -218,8 +239,14 @@ namespace SephiriaEnhancements.Inventory
                 automaticLevelRegressions: CountAutomaticLevelRegressions(settlement),
                 hardConstraintViolations: hardViolations, hardConstraintCompletionPoints: hardCompletion,
                 orderedPriorityDamageBonuses: orderedDamage,
+                orderedPrioritySupportPoints: orderedSupport,
                 positionEffectUtilizationPoints: PositionEffectUtilizationPoints(settlement));
         }
+
+        private static bool IsDirectedSupport(InventoryPositionEffectKind kind) =>
+            kind == InventoryPositionEffectKind.MagicCooldownRecovery ||
+            kind == InventoryPositionEffectKind.MagicCostReduction ||
+            kind == InventoryPositionEffectKind.AdjacentPlanetEnhancement;
 
         // Each source contributes in its own units, normalized by a generous capacity.
         // This is a layout preference, not an estimate of DPS or build strength.
@@ -258,7 +285,6 @@ namespace SephiriaEnhancements.Inventory
 
         private int PositionEffectUtilizationPoints(ProjectedInventorySettlement settlement)
         {
-            if (policy.PositionEffectPreference == InventoryPositionEffectPreference.Preserve) return 0;
             double total = 0;
             foreach (var effect in settlement.PositionEffects)
             {
@@ -319,7 +345,7 @@ namespace SephiriaEnhancements.Inventory
                 if (key.Kind == InventoryPositionEffectKind.DependencyDamage &&
                     redirectedDamageSources.Contains(key.Source)) return false;
                 double current = after?.Value ?? 0;
-                if (policy.PositionEffectPreference == InventoryPositionEffectPreference.Redistribute &&
+                if (IsDirectedSupport(key.Kind) && redirectedSupportSources.Contains(key.Source) &&
                     !(before?.Mode ?? after?.Mode ?? false))
                     return current < Math.Min(0, before?.Value ?? 0);
                 return (before?.Mode ?? after?.Mode) == true

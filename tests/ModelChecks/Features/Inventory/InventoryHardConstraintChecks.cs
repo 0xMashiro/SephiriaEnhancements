@@ -174,7 +174,7 @@ internal static class InventoryHardConstraintChecks
         Check(InventoryOptimizationPreferencesCodec.TryDecode(encoded, InventorySearchEffort.Fast, true, out var restored) &&
             restored.ComboPreferences.Single().Strength == InventoryConstraintStrength.Hard && restored.ArtifactPreferences.Count == 0,
             "persistent combo strength must round-trip; run-specific artifact identities must not persist");
-        Check(!InventoryOptimizationPreferencesCodec.TryDecode("v5\nS|1|0\nC|ICE|1|2|99", InventorySearchEffort.Fast, true, out _),
+        Check(!InventoryOptimizationPreferencesCodec.TryDecode("v6\nM|0\nC|ICE|1|2|99", InventorySearchEffort.Fast, true, out _),
             "unknown strength must not silently become soft");
     }
 
@@ -195,7 +195,7 @@ internal static class InventoryHardConstraintChecks
         try
         {
             var board = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 6 }, new[] { 0 }, 6);
-            Check(InventoryOptimizationPreferencesCodec.TryDecode("v5\nS|1|0\nC|ABSENT|1|2|1",
+            Check(InventoryOptimizationPreferencesCodec.TryDecode("v6\nM|0\nC|ABSENT|1|2|1",
                 InventorySearchEffort.Balanced, true, out var saved), "fixture must decode");
             PersistentInventoryOptimizationPolicyStore.Replace(saved);
             WorldSessionInventoryIntentStore.Replace(Queue(board));

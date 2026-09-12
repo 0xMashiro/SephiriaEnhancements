@@ -587,7 +587,6 @@ namespace SephiriaEnhancements.Inventory
         {
             RefreshArrangementActions();
             title.text = Loc._(!preferencesExpanded ? InventoryOptimizationLocalization.HudTitle
-                : specialEffectsExpanded ? InventorySpecialEffectLocalization.Title
                 : detailsExpanded ? InventoryArrangementLocalization.ComboPriorities : InventoryArrangementLocalization.ArtifactPriorities);
             InventoryOptimizationPreferences preferences =
                 WorldSessionInventoryIntentStore.Capture();
@@ -616,7 +615,7 @@ namespace SephiriaEnhancements.Inventory
                 !NativeInventoryIntentDrop.HasHeldItem;
             previousPageText.text = "‹";
             nextPageText.text = "›";
-            if (!preferencesExpanded || !detailsExpanded || specialEffectsExpanded)
+            if (!preferencesExpanded || !detailsExpanded)
             {
                 return;
             }
@@ -1289,11 +1288,11 @@ namespace SephiriaEnhancements.Inventory
             close?.gameObject.SetActive(panelOpen);
             markPriorities?.gameObject.SetActive(panelOpen && preferencesExpanded && !detailsExpanded);
             optimize?.gameObject.SetActive(panelOpen);
-            bool showTargets = panelOpen && preferencesExpanded && detailsExpanded && !specialEffectsExpanded;
+            bool showTargets = panelOpen && preferencesExpanded && detailsExpanded;
             comboTargetsTitle?.gameObject.SetActive(showTargets);
-            previousPage?.gameObject.SetActive(panelOpen && preferencesExpanded && !specialEffectsExpanded);
-            nextPage?.gameObject.SetActive(panelOpen && preferencesExpanded && !specialEffectsExpanded);
-            status?.gameObject.SetActive(panelOpen && preferencesExpanded && !specialEffectsExpanded);
+            previousPage?.gameObject.SetActive(panelOpen && preferencesExpanded);
+            nextPage?.gameObject.SetActive(panelOpen && preferencesExpanded);
+            status?.gameObject.SetActive(panelOpen && preferencesExpanded);
             float pagingY = -(showTargets
                 ? InventoryOptimizationHudLayout.TargetPagingTop
                 : InventoryOptimizationHudLayout.BoardPagingTop);

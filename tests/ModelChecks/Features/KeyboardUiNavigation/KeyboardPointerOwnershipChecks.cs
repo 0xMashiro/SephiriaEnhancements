@@ -22,10 +22,14 @@ internal static class KeyboardPointerOwnershipChecks
         state.Update(true, false, false, true, 11, 10);
         Check(true, "One pixel of jitter does not take focus.");
         state.Update(true, false, false, true, 12, 10);
+        Check(true, "Two pixels of mouse jitter must not interrupt keyboard interaction.");
+        state.Update(true, false, false, true, 15, 10);
+        Check(true, "Sub-threshold movement preserves keyboard focus.");
+        state.Update(true, false, false, true, 16, 10);
         Check(false, "Slow accumulated mouse movement must take focus.");
-        state.Update(true, true, false, true, 12, 10);
+        state.Update(true, true, false, true, 16, 10);
         Check(true, "Keyboard can reclaim focus after mouse movement.");
-        state.Update(true, true, true, true, 12, 10);
+        state.Update(true, true, true, true, 16, 10);
         Check(false, "Mouse clicks, drag holds, releases and wheel input take priority.");
         state.Update(true, true, false, true, 30, 30);
         Check(false, "Simultaneous real movement wins over a key press.");
@@ -44,6 +48,8 @@ internal static class KeyboardPointerOwnershipChecks
         state.Update(true, true, false, true, 11, 10);
         Check(true, "Navigation and sub-threshold movement preserve keyboard focus.");
         state.Update(true, true, false, true, 12, 10);
+        Check(true, "Repeated keyboard input remains protected from small movement.");
+        state.Update(true, true, false, true, 16, 10);
         Check(false, "Repeated navigation must not erase accumulated mouse movement.");
         Console.WriteLine("KeyboardPointerOwnership: input priority, movement threshold, transitions and reset passed.");
     }

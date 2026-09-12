@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
+using SephiriaEnhancements.KeyboardUiNavigation;
 using SephiriaEnhancements.MapEnhancements.Core;
 using SephiriaEnhancements.MapEnhancements.Integration;
 using TMPro;
@@ -29,7 +30,7 @@ namespace SephiriaEnhancements.MapEnhancements
         private readonly float originalSensitivity;
         private readonly ScrollRect.MovementType originalMovementType;
         private Vector2 fittedViewportSize;
-        private GameObject centeredRoomSelection;
+        private GameObject lastSelection;
         private readonly MapZoomWheel wheel;
         private readonly NativeMapTravel travel;
         private readonly UI_HorayButton peopleButton, placesButton, fitButton, travelButton, minusButton, plusButton, browseButton, trackButton;
@@ -300,6 +301,47 @@ namespace SephiriaEnhancements.MapEnhancements
             panel.contentsParent.anchoredPosition += viewport.rect.center - (Vector2)viewport.InverseTransformPoint(worldPoint);
         }
 
+        private Rect GetRoomViewportBounds(UI_Map_Room room)
+        {
+            Vector2 center = room.GetIconCenterAnchoredPosition();
+            Vector2 halfSize = room.GetRoomIconSize() / 2;
+            Vector2 min = viewport.InverseTransformPoint(map.contentsChild.TransformPoint(center - halfSize));
+            Vector2 max = viewport.InverseTransformPoint(map.contentsChild.TransformPoint(center + halfSize));
+            return new Rect(min, max - min);
+        }
+
+        private void RevealRoom(UI_Map_Room room)
+        {
+            Rect safe = viewport.rect;
+            safe.xMin += 4; safe.xMax -= 4; safe.yMin += 4; safe.yMax -= 4;
+            Rect bounds = GetRoomViewportBounds(room);
+            float factor = Mathf.Min(1, Mathf.Min(safe.width / bounds.width, safe.height / bounds.height));
+            if (factor < 1)
+            {
+                Vector2 anchor = bounds.center;
+                zoom *= factor;
+                ApplyScale();
+                bounds = GetRoomViewportBounds(room);
+                panel.contentsParent.anchoredPosition += anchor - bounds.center;
+                bounds.center = anchor;
+                nativeScroll.StopMovement();
+            }
+            Vector2 shift = Vector2.zero;
+            if (!safe.Overlaps(bounds)) shift = safe.center - bounds.center;
+            else
+            {
+                if (bounds.xMin < safe.xMin) shift.x = safe.xMin - bounds.xMin;
+                else if (bounds.xMax > safe.xMax) shift.x = safe.xMax - bounds.xMax;
+                if (bounds.yMin < safe.yMin) shift.y = safe.yMin - bounds.yMin;
+                else if (bounds.yMax > safe.yMax) shift.y = safe.yMax - bounds.yMax;
+            }
+            if (shift != Vector2.zero)
+            {
+                nativeScroll.StopMovement();
+                panel.contentsParent.anchoredPosition += shift;
+            }
+        }
+
         private void FocusLocalPlayerIfPending()
         {
             if (!initialPlayerFocusPending) return;
@@ -371,18 +413,21 @@ namespace SephiriaEnhancements.MapEnhancements
                 initialRoomFocusPending = false;
                 FocusRooms();
             }
-            // Center on navigation changes, allowing subsequent panning and Fit to persist.
+            FocusLocalPlayerIfPending();
+            // Pointer hover must not move a room away from an intended click.
+            // Navigation reveals clipped rooms once, preserving later panning and Fit.
+            bool navigationOwnsFocus = KeyboardUiPointer.OwnsFocus ||
+                ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse == false;
             GameObject roomSelection = EventSystem.current?.currentSelectedGameObject;
-            if (geometry.Designed == null && roomSelection != centeredRoomSelection &&
-                ControlsChangeHandler.Current != null && !ControlsChangeHandler.Current.IsUsingKeyboardAndMouse)
+            if (geometry.Designed == null && roomSelection != null && roomSelection != lastSelection &&
+                navigationOwnsFocus)
                 foreach (var room in map.rooms)
                     if (room != null && room.GetSelectable() == roomSelection)
                     {
-                        Center(map.contentsChild.TransformPoint(room.GetIconCenterAnchoredPosition()));
+                        RevealRoom(room);
                         break;
                     }
-            centeredRoomSelection = roomSelection;
-            FocusLocalPlayerIfPending();
+            lastSelection = navigationOwnsFocus ? roomSelection : null;
             UIInputModule input = UIInputModule.current;
             InputAction trackAction = NativeInputActions.FindShortcut(PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.SwitchLockedTarget);
             if (trackAction?.WasPressedThisFrame() == true) ToggleTracking();

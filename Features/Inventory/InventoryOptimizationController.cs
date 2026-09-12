@@ -112,6 +112,9 @@ namespace SephiriaEnhancements.Inventory
             runtimeKernel = null;
         }
 
+        internal static bool OwnsKeyboardTab() =>
+            Current != null && Current.hud.OwnsKeyboardTab();
+
         internal static bool TryHandleKeyboardTab() =>
             Current?.hud.TryHandleKeyboardTab() == true;
 
@@ -244,7 +247,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 var persistent = new InventoryOptimizationPreferences(preferences.SearchEffort,
                     preferences.AllowStoneTabletRotation, Array.Empty<ArtifactOptimizationPreference>(),
-                    preferences.ComboPreferences.ToArray(), preferences.PositionEffectPreference, preferences.AllowAdditionalMagicCost);
+                    preferences.ComboPreferences.ToArray(), preferences.AllowAdditionalMagicCost);
                 PersistentInventoryOptimizationPolicyStore.Replace(persistent);
                 try
                 {

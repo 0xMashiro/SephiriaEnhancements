@@ -38,7 +38,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
             else if (__instance is UI_OptionsPanel options && KeyboardUiNavigationController.IsKeyboardModeActive())
             {
-                OptionsKeyboardNavigation.RequestEntry(options);
+                FeatureFailure.Run(FeatureId.OptionsNavigation, () => OptionsKeyboardNavigation.RequestEntry(options));
             }
         }
     }
@@ -122,7 +122,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static bool Prefix()
         {
-            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            if (!FeatureFailure.IsAvailable(FeatureId.OptionsNavigation))
             {
                 return true;
             }
@@ -133,7 +133,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
             catch (System.Exception exception)
             {
-                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                FeatureFailure.Disable(FeatureId.OptionsNavigation, exception);
                 return true;
             }
         }

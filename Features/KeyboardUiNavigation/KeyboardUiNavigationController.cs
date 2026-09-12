@@ -19,6 +19,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         private UIBase pendingPanel;
         private GameObject pendingSelectable;
         private int requestedFrame;
+        private bool wasEnabled;
 
         private void Awake()
         {
@@ -70,18 +71,23 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             ApplyNativeSelectionPolicy(ControlsChangeHandler.Current);
             if (!EnhancementsSettings.Enabled)
             {
-                RewardKeyboardNavigation.Reset();
+                if (wasEnabled)
+                {
+                    RewardKeyboardNavigation.Reset();
+                    CharacterPanelNavigationMemory.ResetAll();
+                    wasEnabled = false;
+                }
                 ClearPendingSelection();
                 return;
             }
+            wasEnabled = true;
 
             // A new navigation gesture on an existing control supersedes an
             // entry request still waiting for another panel's animation.
             if (WasKeyboardNavigationPressed() && KeyboardUiSelection.IsInControlStack(EventSystem.current?.currentSelectedGameObject))
                 ClearPendingSelection();
             InitializePendingSelection();
-            if (!OptionsKeyboardNavigation.SwitchTab() && !SephiriaEnhancements.Inventory.InventoryOptimizationController.TryHandleKeyboardTab() && !SephiriaEnhancements.AutoCasting.Integration.NativeSkillNavigation.TrySwitchRegion())
-                SwitchCombinedPanelWithTab();
+            HandleKeyboardTab();
             RestoreMissingKeyboardSelection();
         }
 
@@ -106,14 +112,14 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private void LateUpdateCore()
         {
-            QuestBoardKeyboardScroll.Update();
+            FeatureFailure.Run(FeatureId.WorldMapKeyboardScrolling, QuestBoardKeyboardScroll.Update);
             // Navigation and scroll/layout updates can run after a picker's Update.
             // Resolve its final position again before rendering the same frame.
             if (KeyboardUiPointer.SelectedTarget() != null)
             {
                 UI_NewItemPicker_Controller picker = UIManager.Instance.GetElement<UI_NewItemPicker_Controller>();
                 if (picker != null)
-                    KeyboardUiPointer.PositionCarriedItem(picker);
+                    FeatureFailure.Run(FeatureId.CharacterPanelNavigation, () => KeyboardUiPointer.PositionCarriedItem(picker));
             }
 
             KeyboardUiPointer.UpdateCursor();
@@ -122,6 +128,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
         private void OnDestroy()
         {
             SephiriaEnhancementsMod.CleanupFeature(FeatureId.KeyboardUiNavigation, () => RewardKeyboardNavigation.Reset());
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.CharacterPanelNavigation, () => CharacterPanelNavigationMemory.ResetAll(destroy: true));
             SephiriaEnhancementsMod.CleanupFeature(FeatureId.KeyboardUiNavigation, () => KeyboardUiPointer.Reset());
             SephiriaEnhancementsMod.CleanupFeature(FeatureId.KeyboardUiNavigation, () => SetKeyboardDefaultSelection(ControlsChangeHandler.Current, false));
             SephiriaEnhancementsMod.CleanupFeature(FeatureId.KeyboardUiNavigation, () => ClearPendingSelection());
@@ -133,6 +140,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
 
         internal void ResetGameplayContext()
         {
+            CharacterPanelNavigationMemory.ResetAll();
             RewardKeyboardNavigation.Reset();
             KeyboardUiPointer.Reset();
             ClearPendingSelection();
@@ -304,6 +312,41 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             return keyboard != null && keyboard.tabKey.wasPressedThisFrame;
         }
 
+        // Select the owner before invoking page-specific code. A failed owner
+        // consumes this gesture; it must not fall through to another action.
+        internal static void HandleKeyboardTab()
+        {
+            Keyboard keyboard = Keyboard.current;
+            UIManager manager = UIManager.Instance;
+            if (!IsKeyboardModeActive() || !KeyboardUiPointer.OwnsFocus ||
+                keyboard == null || !keyboard.tabKey.wasPressedThisFrame || EventSystem.current == null ||
+                manager == null || manager.CurrentControlStack == null || manager.CurrentControlStack.Count == 0)
+                return;
+            UIBase panel = manager.CurrentControlStack[0];
+            if (!KeyboardUiSelection.IsPanelReady(panel)) return;
+            if (panel is UI_OptionsPanel)
+            {
+                FeatureFailure.Run(FeatureId.OptionsNavigation, () => OptionsKeyboardNavigation.SwitchTab());
+                return;
+            }
+            if (manager.CurrentControlStack.Count > 1)
+            {
+                SwitchCombinedPanelWithTab();
+                return;
+            }
+            if (panel is UI_CharacterStatusPanel inventory)
+            {
+                bool reverse = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
+                FeatureFailure.Run(FeatureId.CharacterPanelNavigation, () =>
+                {
+                    if (Inventory.InventoryOptimizationController.OwnsKeyboardTab())
+                        Inventory.InventoryOptimizationController.TryHandleKeyboardTab();
+                    else
+                        CharacterPanelNavigation.SwitchRegion(inventory, reverse);
+                });
+            }
+        }
+
         private static void SwitchCombinedPanelWithTab()
         {
             Keyboard keyboard = Keyboard.current;
@@ -347,20 +390,33 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                 if (index == currentPanelIndex) continue;
 
                 UIBase targetPanel = manager.CurrentControlStack[index];
-                GameObject entry = targetPanel is UI_SephiriteRewardPanel rewardPanel
-                    ? RewardKeyboardNavigation.FindRememberedReward(rewardPanel) : null;
-                if (targetPanel is UI_CharacterStatusPanel inventory &&
-                    manager.GetElement<UI_NewItemPicker_Controller>()?.CurrentSephiriteReward != null)
-                    entry = RewardKeyboardNavigation.FindFirstEmptyInventorySlot(inventory);
+                GameObject entry = null;
+                FeatureFailure.Run(FeatureId.RewardNavigation, () =>
+                {
+                    if (targetPanel is UI_SephiriteRewardPanel rewardPanel)
+                        entry = RewardKeyboardNavigation.FindRememberedReward(rewardPanel);
+                    UI_NewItemPicker_Controller picker = manager.GetElement<UI_NewItemPicker_Controller>();
+                    if (targetPanel is UI_CharacterStatusPanel inventory && picker != null &&
+                        picker.CurrentSephiriteReward != null)
+                        entry = RewardKeyboardNavigation.FindFirstEmptyInventorySlot(inventory);
+                });
                 if (entry == null) entry = KeyboardUiSelection.FindPanelEntry(targetPanel);
                 if (entry != null && entry != selected)
                 {
-                    RewardKeyboardNavigation.RememberReward(selected);
+                    FeatureFailure.Run(FeatureId.RewardNavigation, () => RewardKeyboardNavigation.RememberReward(selected));
                     current?.ClearPendingSelection();
                     eventSystem.SetSelectedGameObject(entry);
                     return;
                 }
             }
+        }
+
+        internal void CancelFeatureSelection(FeatureId feature)
+        {
+            if ((feature == FeatureId.OptionsNavigation && pendingPanel is UI_OptionsPanel) ||
+                (feature == FeatureId.RewardNavigation && pendingPanel is UI_SephiriteRewardPanel) ||
+                (feature == FeatureId.CharacterPanelNavigation && pendingPanel is UI_CharacterStatusPanel))
+                ClearPendingSelection();
         }
 
         private void ClearPendingSelection()

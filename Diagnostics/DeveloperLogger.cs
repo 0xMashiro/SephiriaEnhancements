@@ -869,6 +869,7 @@ namespace SephiriaEnhancements.Diagnostics
                 ",\"priorityTargetCompletionPoints\":" +
                 score.PriorityTargetCompletionPoints +
                 ",\"orderedPriorityDamageBonuses\":[" + string.Join(",", score.OrderedPriorityDamageBonuses.Select(value => Number(value))) + "]" +
+                ",\"orderedPrioritySupportPoints\":[" + string.Join(",", score.OrderedPrioritySupportPoints.Select(value => Number(value))) + "]" +
                 ",\"avoidedActive\":" + score.AvoidedTargetsActive +
                 ",\"positionEffectRegressions\":" + score.PositionEffectRegressions +
                 ",\"positionEffectUtilizationPoints\":" + score.PositionEffectUtilizationPoints +

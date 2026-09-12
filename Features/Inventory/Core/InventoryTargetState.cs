@@ -2,7 +2,7 @@ using System;
 
 namespace SephiriaEnhancements.Inventory
 {
-    // Bounded level/activation goals; directional damage is compared separately.
+    // Bounded level/activation goals; received damage and support follow separately.
     internal readonly struct InventoryTargetState
     {
         internal const int TargetCompletionScale = 10_000;

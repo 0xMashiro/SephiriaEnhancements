@@ -8,14 +8,27 @@ namespace SephiriaEnhancements.Runtime
         {
             switch (patchType.FullName)
             {
+                case "SephiriaEnhancements.KeyboardUiNavigation.CharacterPanelNavigationMovePatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.CharacterPanelNavigationTogglePatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.KeyboardCarriedItemPositionPatch":
+                    return FeatureId.CharacterPanelNavigation;
+                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardCancelSelectionPatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardClosedSelectionPatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardControlSelectionPatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardGeneratedSelectionPatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardInventoryOpenedSelectionPatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardToggleSelectionPatch":
+                    return FeatureId.RewardNavigation;
+                case "SephiriaEnhancements.KeyboardUiNavigation.OptionsKeyboardEmptyFocusPatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.OptionsKeyboardMovePatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.OptionsKeyboardTabSelectionPatch":
+                    return FeatureId.OptionsNavigation;
                 case "SephiriaEnhancements.EffectStats.Integration.EffectStatsPanelPatch": return FeatureId.EffectStats;
                 case "SephiriaEnhancements.Integration.NativePresetSavePatch": return FeatureId.Inventory;
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingManualInputPatch":
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingOptionsPatch":
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingPanelPatch":
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingSubmitPatch":
-                case "SephiriaEnhancements.AutoCasting.Integration.SkillNavigationMovePatch":
-                case "SephiriaEnhancements.AutoCasting.Integration.SkillNavigationTogglePatch":
                     return FeatureId.AutoCasting;
                 case "SephiriaEnhancements.Integration.DamageDetailCapture":
                 case "SephiriaEnhancements.Integration.DamageFeedbackCapture":
@@ -93,7 +106,6 @@ namespace SephiriaEnhancements.Runtime
                     return FeatureId.Inventory;
                 case "SephiriaEnhancements.KeyboardUiNavigation.ItemBoxKeyboardSecondaryActionPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.ItemIconKeyboardSubmitPatch":
-                case "SephiriaEnhancements.KeyboardUiNavigation.KeyboardCarriedItemPositionPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.KeyboardControlsChangedPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.KeyboardCursorVisibilityPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.KeyboardMapSelectionPositionPatch":
@@ -102,15 +114,6 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.KeyboardUiNavigation.MenuKeyboardSelectionPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.MessageBoxKeyboardInitialSelectionPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.MessageBoxKeyboardRestoredSelectionPatch":
-                case "SephiriaEnhancements.KeyboardUiNavigation.OptionsKeyboardEmptyFocusPatch":
-                case "SephiriaEnhancements.KeyboardUiNavigation.OptionsKeyboardMovePatch":
-                case "SephiriaEnhancements.KeyboardUiNavigation.OptionsKeyboardTabSelectionPatch":
-                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardCancelSelectionPatch":
-                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardClosedSelectionPatch":
-                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardControlSelectionPatch":
-                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardGeneratedSelectionPatch":
-                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardInventoryOpenedSelectionPatch":
-                case "SephiriaEnhancements.KeyboardUiNavigation.RewardKeyboardToggleSelectionPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.TreeShopKeyboardSecondaryActionPatch":
                     return FeatureId.KeyboardUiNavigation;
                 case "SephiriaEnhancements.MapEnhancements.MapNavigationUpdatePatch":

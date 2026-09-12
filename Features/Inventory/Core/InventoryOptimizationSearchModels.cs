@@ -112,7 +112,7 @@ namespace SephiriaEnhancements.Inventory
         IComparable<InventoryOptimizationScore>
     {
         // Identifies the preference comparator, independently of game mechanisms.
-        internal const string ObjectiveId = "hard-feasible-special-effects-v5";
+        internal const string ObjectiveId = "hard-feasible-priority-support-v6";
         internal InventoryOptimizationScore(int priorityTargetsSatisfied,
             int priorityTargetCompletionPoints, int avoidedTargetsActive,
             int presetTargetsSatisfied,
@@ -125,7 +125,8 @@ namespace SephiriaEnhancements.Inventory
             int[] orderedPriorityCompletionPoints = null,
             int positionEffectRegressions = 0, int automaticLevelRegressions = 0,
             int hardConstraintViolations = 0, int hardConstraintCompletionPoints = 0,
-            double[] orderedPriorityDamageBonuses = null, int positionEffectUtilizationPoints = 0)
+            double[] orderedPriorityDamageBonuses = null, int positionEffectUtilizationPoints = 0,
+            double[] orderedPrioritySupportPoints = null)
         {
             PositionEffectUtilizationPoints = positionEffectUtilizationPoints;
             HardConstraintViolations = hardConstraintViolations;
@@ -153,6 +154,8 @@ namespace SephiriaEnhancements.Inventory
                     : (int[])orderedPriorityCompletionPoints.Clone());
             OrderedPriorityDamageBonuses = Array.AsReadOnly(orderedPriorityDamageBonuses == null
                 ? Array.Empty<double>() : (double[])orderedPriorityDamageBonuses.Clone());
+            OrderedPrioritySupportPoints = Array.AsReadOnly(orderedPrioritySupportPoints == null
+                ? Array.Empty<double>() : (double[])orderedPrioritySupportPoints.Clone());
         }
 
         internal int PositionEffectUtilizationPoints { get; }
@@ -175,6 +178,7 @@ namespace SephiriaEnhancements.Inventory
         internal int AutomaticLevelRegressions { get; }
         internal IReadOnlyList<int> OrderedPriorityCompletionPoints { get; }
         internal IReadOnlyList<double> OrderedPriorityDamageBonuses { get; }
+        internal IReadOnlyList<double> OrderedPrioritySupportPoints { get; }
         internal bool HasDefaultProtectionTradeoff => PositionEffectRegressions > 0 || AutomaticLevelRegressions > 0;
 
         public int CompareTo(InventoryOptimizationScore other)
@@ -249,6 +253,12 @@ namespace SephiriaEnhancements.Inventory
                 double candidateDamage = index < other.OrderedPriorityDamageBonuses.Count
                     ? other.OrderedPriorityDamageBonuses[index] : 0;
                 comparison = currentDamage.CompareTo(candidateDamage);
+                if (comparison != 0) return comparison;
+                double currentSupport = index < OrderedPrioritySupportPoints.Count
+                    ? OrderedPrioritySupportPoints[index] : 0;
+                double candidateSupport = index < other.OrderedPrioritySupportPoints.Count
+                    ? other.OrderedPrioritySupportPoints[index] : 0;
+                comparison = currentSupport.CompareTo(candidateSupport);
                 if (comparison != 0) return comparison;
             }
             comparison = PriorityTargetsSatisfied.CompareTo(

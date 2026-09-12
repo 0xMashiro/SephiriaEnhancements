@@ -96,7 +96,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Postfix(UIBase __instance)
         {
-            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            if (!FeatureFailure.IsAvailable(FeatureId.RewardNavigation))
             {
                 return;
             }
@@ -107,7 +107,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
             catch (System.Exception exception)
             {
-                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                FeatureFailure.Disable(FeatureId.RewardNavigation, exception);
                 return;
             }
         }
@@ -127,7 +127,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Postfix(UI_SephiriteRewardPanel __instance)
         {
-            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            if (!FeatureFailure.IsAvailable(FeatureId.RewardNavigation))
             {
                 return;
             }
@@ -138,7 +138,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
             catch (System.Exception exception)
             {
-                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                FeatureFailure.Disable(FeatureId.RewardNavigation, exception);
                 return;
             }
         }
@@ -156,7 +156,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Postfix()
         {
-            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            if (!FeatureFailure.IsAvailable(FeatureId.RewardNavigation))
             {
                 return;
             }
@@ -167,7 +167,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
             catch (System.Exception exception)
             {
-                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                FeatureFailure.Disable(FeatureId.RewardNavigation, exception);
                 return;
             }
         }
@@ -181,7 +181,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static bool Prefix(UIInputModule __instance)
         {
-            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            if (!FeatureFailure.IsAvailable(FeatureId.RewardNavigation))
             {
                 return true;
             }
@@ -192,7 +192,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
             catch (System.Exception exception)
             {
-                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                FeatureFailure.Disable(FeatureId.RewardNavigation, exception);
                 return true;
             }
         }
@@ -206,7 +206,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Postfix(UIBase __instance)
         {
-            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            if (!FeatureFailure.IsAvailable(FeatureId.RewardNavigation))
             {
                 return;
             }
@@ -217,7 +217,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             }
             catch (System.Exception exception)
             {
-                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                FeatureFailure.Disable(FeatureId.RewardNavigation, exception);
                 return;
             }
         }
@@ -236,7 +236,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
     {
         private static void Prefix(UI_NewItemPicker_Controller __instance, ref UI_SephiriteRewardElement instance)
         {
-            if (!FeatureFailure.IsAvailable(FeatureId.KeyboardUiNavigation))
+            if (!FeatureFailure.IsAvailable(FeatureId.RewardNavigation))
             {
                 return;
             }
@@ -249,7 +249,7 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
             catch (System.Exception exception)
             {
                 instance = original_instance;
-                FeatureFailure.Disable(FeatureId.KeyboardUiNavigation, exception);
+                FeatureFailure.Disable(FeatureId.RewardNavigation, exception);
                 return;
             }
         }

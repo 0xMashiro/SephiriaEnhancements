@@ -9,15 +9,18 @@ namespace SephiriaEnhancements.EffectStats.Integration
         {
             ("ItemCategory_FlameSword", new[] { "FLAME_SWORD_DAMAGE", "FLAME_SWORD_CRITICAL",
                 "FLAME_SWORD_MAX", "FLAME_SWORD_LUCK", "FLAME_SWORD_ADDITIONAL_ATTACK_FROM_WEAPON",
-                "FLAME_SWORD_ADDITIONAL_ATTACK_FROM_MAGIC", "FLAME_SWORD_MAGIC_DAMAGE" }),
+                "FLAME_SWORD_ADDITIONAL_ATTACK_FROM_MAGIC", "FLAME_SWORD_MAGIC_DAMAGE",
+                "FLAME_SWORD_IGNORE_DEFENSE", "FLAME_SWORD_PICK_BONUS" }),
             ("ItemCategory_Frost", new[] { "FROST_RELIC_DAMAGE", "FROST_RELIC_MP_DAMAGE",
-                "FROST_RELIC_MP_MAXMP_DAMAGE" }),
+                "FROST_RELIC_MP_MAXMP_DAMAGE", "CHARGING_CHARM_AMPLIFY",
+                "CHARGING_CHARM_RETRIGGER_BY_ATTACKSPEED" }),
             ("ItemCategory_DarkCloud", new[] { "DARK_CLOUD_DAMAGE", "DARK_CLOUD_SPEED",
                 "DARK_CLOUD_KEEP", "DARK_CLOUD_MULTISHOT", "DARK_CLOUD_RESTORE_DURING_BATTLE" }),
             ("ItemCategory_Planet", new[] { "PLANET_DAMAGE", "PLANET_ATTACK_SPEED" }),
             ("Status_Magic_Name", new[] { "MAGIC_COST_REDUCE", "MAGIC_MP", "MAGIC_QUICK_CAST" }),
-            ("Debuff_Burn", new[] { "BURN_DAMAGE", "BURN_DURATION", "BURN_SPEED", "BURN_STACK" }),
-            ("Debuff_Electric", new[] { "ELECTRIC_DAMAGE", "ELECTRIC_QUICKNESS", "ELECTRIC_STACK" })
+            ("Debuff_Burn", new[] { "BURN_DAMAGE", "BURN_DURATION", "BURN_SPEED", "BURN_STACK",
+                "BURN_ADD", "BURN_EVO", "BLUE_BURN_CHANGE" }),
+            ("Debuff_Electric", new[] { "ELECTRIC_DAMAGE", "ELECTRIC_QUICKNESS", "ELECTRIC_STACK", "ELECTRIC_LUCK" })
         };
 
         internal static StatusInstance_Custom CreateStatus(string id)
@@ -48,14 +51,5 @@ namespace SephiriaEnhancements.EffectStats.Integration
                 useColor: false, useSprite: false);
         }
 
-        internal static bool TrySolarBladeDamage(PlayerAvatar player, out float damage)
-        {
-            damage = 0;
-            var effect = player.Inventory?.FindComboEffect("FLAMESWORD") as ComboEffect_FlameSword;
-            if (effect == null || !effect.isEnabled || !effect.isFlameSwordEnabled ||
-                effect.Networkavatar != player) return false;
-            damage = effect.GetDamage(false);
-            return true;
-        }
     }
 }

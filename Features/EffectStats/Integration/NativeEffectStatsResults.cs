@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
 
@@ -5,8 +7,67 @@ namespace SephiriaEnhancements.EffectStats.Integration
 {
     internal static class NativeEffectStatsResults
     {
+        internal static IEnumerable<(string Id, string Text)> Read(PlayerAvatar player, string group)
+        {
+            switch (group)
+            {
+                case "ItemCategory_FlameSword":
+                    yield return ("solar-damage", SolarDamage(player));
+                    yield return ("solar-supply", SolarSupply(player));
+                    break;
+                case "ItemCategory_DarkCloud":
+                    yield return ("cloud-damage", CloudDamage(player));
+                    yield return ("cloud-supply", CloudSupply(player));
+                    break;
+                case "Status_Magic_Name":
+                    for (int slot = 0; slot < 8; slot++)
+                        yield return ("magic-" + slot, Magic(player, slot));
+                    break;
+                case "Debuff_Burn":
+                    yield return ("burn", Burn(player));
+                    break;
+                case "Debuff_Electric":
+                    yield return ("electric", Electric(player));
+                    break;
+                case "ItemCategory_Frost":
+                case "ItemCategory_Planet":
+                    if (player.Inventory == null) break;
+                    foreach (Charm_Basic charm in player.Inventory.charms.Values
+                        .Where(charm => charm != null && charm.NetworkAvatar == player && charm.IsEffectEnabled &&
+                            charm.netId != 0 && charm.Item?.Charm == charm).OrderBy(charm => charm.yIdx).ThenBy(charm => charm.xIdx))
+                    {
+                        string text = group == "ItemCategory_Frost" ? Frost(player, charm) : Planet(player, charm);
+                        if (text != null) yield return ("artifact-" + charm.Item.InstanceID, text);
+                    }
+                    break;
+            }
+        }
+
         private static string Format(string key, params object[] values) =>
             string.Format(ModLocalization.Get(key), values);
+
+        private static ComboEffect_FlameSword Solar(PlayerAvatar player)
+        {
+            var effect = player.Inventory?.FindComboEffect("FLAMESWORD") as ComboEffect_FlameSword;
+            return effect != null && effect.isEnabled && effect.isFlameSwordEnabled &&
+                effect.Networkavatar == player ? effect : null;
+        }
+
+        internal static string SolarDamage(PlayerAvatar player)
+        {
+            var solar = Solar(player);
+            return solar == null ? null : Format(EffectStatsLocalization.SolarDamage,
+                solar.GetDamage(false).ToString("0.#"), solar.GetDamage(true).ToString("0.#"),
+                Mathf.Clamp(player.GetCustomStatUnsafe("FLAMESWORDLUCK"), 0, 100));
+        }
+
+        internal static string SolarSupply(PlayerAvatar player)
+        {
+            var solar = Solar(player);
+            // OnStartServer replaces maxSword with defaultMaxSword; maxSword itself is not synced.
+            return solar == null ? null : Format(EffectStatsLocalization.SolarSupply,
+                solar.currentSword, solar.defaultMaxSword + player.GetCustomStatUnsafe("FLAMESWORDMAX"));
+        }
 
         private static ComboEffect_DarkCloud Cloud(PlayerAvatar player)
         {
@@ -68,18 +129,69 @@ namespace SephiriaEnhancements.EffectStats.Integration
 
         internal static string Burn(PlayerAvatar player)
         {
-            // A reference, not a claim that this build can apply the debuff.
-            if (player.GetCustomStatUnsafe("DIRECTATTACKBURN") <= 0 &&
-                player.GetCustomStatUnsafe("BLUEBURNCHANGE") <= 0 && player.GetCustomStatUnsafe("BURNEVO") <= 0 &&
-                player.GetCustomStatUnsafe("BURNDAMAGE") == 0 && player.GetCustomStatUnsafe("BURNSPEED") == 0 &&
-                player.GetCustomStatUnsafe("BURNSTACK") == 0 && player.GetCustomStatUnsafe("BURNDURATION") == 0)
-                return null;
+            // Sources also include artifact/projectile effects without a dedicated avatar stat.
+            // Always label this as a reference instead of inferring whether Burn can be applied.
             var prefab = CombatManager.Instance?.burnDebuffPrefab as CharacterDebuff_Burn;
             if (prefab == null) return null;
             float damage = CharacterDebuff_Burn.CalculateTickDamage(player, out _);
             return Format(EffectStatsLocalization.Burn, damage.ToString("0.#"),
                 Seconds(prefab.tickTimer.time, 1f + player.GetCustomStatUnsafe("BURNSPEED") / 100f),
                 2 + player.GetCustomStatUnsafe("BURNSTACK"));
+        }
+
+        internal static string Electric(PlayerAvatar player)
+        {
+            var prefab = CombatManager.Instance?.electricDebuffPrefab as CharacterDebuff_Electric;
+            if (prefab == null) return null;
+            float damage = player.GetCustomStat(ECustomStat.LightningDamage) * prefab.statDamagePercent * 0.01f;
+            damage *= 1f + player.GetCustomStatUnsafe("ELECTRICDAMAGE") / 100f;
+            return Format(EffectStatsLocalization.Electric, damage.ToString("0.#"),
+                2 + player.GetCustomStatUnsafe("ELECTRICSTACK"));
+        }
+
+        internal static string Frost(PlayerAvatar player, Charm_Basic charm)
+        {
+            if (charm is Charm_Guillotine guillotine)
+                return Format(EffectStatsLocalization.Guillotine, charm.Item.Name,
+                    Charm_Basic.CalculateDamage(charm).ToString("0.#"),
+                    Seconds(guillotine.triggerCooldown, 1f + player.GetCustomStatUnsafe("CHARGINGCHARMBONUS") / 100f),
+                    guillotine.bladeTargetCount, 1 + player.GetCustomStatUnsafe("CHARGINGCHARMAMPLIFY"),
+                    guillotine.shockCooldownReduction.ToString("0.##"));
+            ChargingCharm charging = charm is Charm_AirSlash slash ? slash.chargingCharm :
+                charm is Charm_IceBow bow ? bow.chargingCharm : null;
+            if (charging == null) return null;
+            float damage = Charm_Basic.CalculateDamage(charm);
+            int remainingMp = player.MP;
+            int cost = 0;
+            int mpDamage = player.GetCustomStatUnsafe("FROSTRELICMPDAMAGE");
+            float skillMultiplier = 1f + player.GetCustomStatUnsafe("MPSKILLDAMAGE") / 100f;
+            // Match the two sequential payments in ActivateChargingCharm without spending MP.
+            if (mpDamage > 0 && remainingMp >= ChargingCharm.MPCost)
+            {
+                remainingMp -= ChargingCharm.MPCost;
+                cost += ChargingCharm.MPCost;
+                damage *= (1f + mpDamage / 100f) * skillMultiplier;
+            }
+            if (player.GetCustomStatUnsafe("FROSTRELICMPMAXMPDAMAGE") > 0 && remainingMp >= ChargingCharm.MPCost)
+            {
+                cost += ChargingCharm.MPCost;
+                damage += Mathf.Max(0, player.MaxMp - KeywordDatabase.GetConstValue("PLAYERDEFAULTMP")) * skillMultiplier;
+            }
+            int projectiles = 1 + player.GetCustomStatUnsafe("CHARGINGCHARMAMPLIFY");
+            if (charm is Charm_IceBow iceBow) projectiles *= iceBow.readyArrowCount;
+            return Format(EffectStatsLocalization.Frost, charm.Item.Name, damage.ToString("0.#"), cost,
+                Seconds(charging.GetChargeTimer(), 1f + player.GetCustomStatUnsafe("CHARGINGCHARMBONUS") / 100f),
+                projectiles);
+        }
+
+        internal static string Planet(PlayerAvatar player, Charm_Basic charm)
+        {
+            if (!(charm is Charm_SummonGreenBat planet)) return null;
+            float damage = planet.GetBatDamage() * (1f + player.GetCustomStatUnsafe("PLANETDAMAGE") / 100f);
+            // Enhancement is held by the spawned projectile source, whose owner is not synced.
+            // Present both damage references; do not read the server-only source as client state.
+            return Format(EffectStatsLocalization.Planet, charm.Item.Name, damage.ToString("0.#"),
+                (damage * 1.5f).ToString("0.#"));
         }
     }
 }

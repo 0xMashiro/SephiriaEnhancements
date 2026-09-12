@@ -25,9 +25,18 @@ namespace SephiriaEnhancements.MultiplayerRules
             int participantCount, bool multiplayerExtensionPresent,
             bool allowExternalRuleStacking)
         {
-            return serverActive && explorationActive && integrationAvailable &&
-                participantCount >= 1 && participantCount <= 4 &&
-                (!multiplayerExtensionPresent || allowExternalRuleStacking);
+            return serverActive && explorationActive && ResolveAvailability(true, integrationAvailable,
+                participantCount, multiplayerExtensionPresent, allowExternalRuleStacking) == MultiplayerRulesAvailability.Available;
+        }
+
+        internal static MultiplayerRulesAvailability ResolveAvailability(bool enabled, bool integrationAvailable,
+            int participantCount, bool multiplayerExtensionPresent, bool allowExternalRuleStacking)
+        {
+            if (!enabled) return MultiplayerRulesAvailability.Disabled;
+            if (!integrationAvailable) return MultiplayerRulesAvailability.Unavailable;
+            if (participantCount < 1 || participantCount > 4) return MultiplayerRulesAvailability.UnsupportedTeam;
+            if (multiplayerExtensionPresent && !allowExternalRuleStacking) return MultiplayerRulesAvailability.ExternalExtension;
+            return MultiplayerRulesAvailability.Available;
         }
     }
 }

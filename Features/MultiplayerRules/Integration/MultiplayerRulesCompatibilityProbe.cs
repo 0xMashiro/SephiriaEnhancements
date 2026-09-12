@@ -17,6 +17,10 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 nameof(DungeonManager.LoadStageAndMove), missing, typeof(string));
             NativeContractProbe.RequireField(typeof(DungeonManager),
                 nameof(DungeonManager.isRunStarted), missing);
+            NativeContractProbe.RequireField(typeof(DungeonManager), nameof(DungeonManager.sessionSerial), missing);
+            NativeContractProbe.RequireField(typeof(DungeonManager), nameof(DungeonManager.constValueDictionary), missing);
+            NativeContractProbe.RequireMethod(typeof(DungeonManager), "RpcChat", missing,
+                typeof(PlayerAvatar), typeof(string), typeof(string));
             NativeContractProbe.RequireMethod(typeof(Money), "AddToInventory", missing,
                 typeof(PlayerAvatar));
             NativeContractProbe.RequireMethod(typeof(SeedBossSpawner),

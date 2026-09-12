@@ -93,12 +93,14 @@ namespace SephiriaEnhancements.MultiplayerRules.Presentation
                     texts.Add(CommonTextKeys[index], language.Value[index]);
                 for (int index = 0; index < EditorKeys.Length; index++)
                     texts.Add(EditorKeys[index], EditorTexts[language.Key][index]);
-                for (int index = 0; index < LobbyKeys.Length; index++)
-                    texts.Add(LobbyKeys[index], LobbyTexts[language.Key][index]);
+                for (int index = 0; index < PanelKeys.Length; index++)
+                    texts.Add(PanelKeys[index], PanelTexts[language.Key][index]);
                 for (int index = 0; index < BroadcastKeys.Length; index++)
                     texts.Add(BroadcastKeys[index], BroadcastTexts[language.Key][index]);
                 for (int index = 0; index < ReviewKeys.Length; index++)
                     texts.Add(ReviewKeys[index], ReviewTexts[language.Key][index]);
+                for (int index = 0; index < StateKeys.Length; index++)
+                    texts.Add(StateKeys[index], StateTexts[language.Key][index]);
                 if (RuleTexts.TryGetValue(language.Key, out var rules))
                     foreach (MultiplayerRuleDefinition definition in MultiplayerRuleCatalog.All)
                         if (rules.TryGetValue(definition.Id, out var ruleText) && ruleText.Length == 2)

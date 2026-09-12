@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SephiriaEnhancements.MultiplayerRules
 {
@@ -31,12 +33,12 @@ namespace SephiriaEnhancements.MultiplayerRules
             Preset = MultiplayerRulesPreset.Custom;
         }
 
-        internal void RestoreParticipant(int participants)
+        internal void RestoreGroup(int participants, IReadOnlyList<MultiplayerRuleId> ids)
         {
             CheckParticipants(participants);
             BeginCustom();
             var before = Rules;
-            Rules = MultiplayerRuleSnapshot.Create((key, count) => count == participants
+            Rules = MultiplayerRuleSnapshot.Create((key, count) => count == participants && ids.Contains(key)
                 ? MultiplayerRuleValue<float>.UseGameBehavior() : before.Get(key, count));
             Preset = MultiplayerRulesPreset.Custom;
         }
@@ -51,13 +53,13 @@ namespace SephiriaEnhancements.MultiplayerRules
             Preset = MultiplayerRulesPreset.Custom;
         }
 
-        internal MultiplayerRuleSnapshot RulesForCurrentTeam(int participants, PreferredMultiplayerRules saved)
+        internal int CountChanges(ActiveExplorationMultiplayerRules saved, bool externalStacking)
         {
-            CheckParticipants(participants);
-            var previous = saved.Freeze().Rules;
-            var edited = ToPreferred().Freeze().Rules;
-            return MultiplayerRuleSnapshot.Create((id, count) => count == participants
-                ? edited.Get(id, count) : previous.Get(id, count));
+            var edited = ToPreferred().Freeze();
+            return Enumerable.Range(1, 4).Sum(count => MultiplayerRuleCatalog.All.Count(d =>
+                !edited.Rules.Get(d.Id, count).Equals(saved.Rules.Get(d.Id, count)))) +
+                (edited.HealthModifierCombination != saved.HealthModifierCombination ? 1 : 0) +
+                (AllowExternalStacking != externalStacking ? 1 : 0);
         }
 
         internal bool HasChanges(PreferredMultiplayerRules preferred, bool externalStacking) =>

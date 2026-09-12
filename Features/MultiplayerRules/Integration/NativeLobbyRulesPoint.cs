@@ -12,7 +12,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         internal void Update()
         {
-            if (!MultiplayerRulesLobbyContext.IsInLobby)
+            if (!MultiplayerRulesContext.IsInLobby)
             {
                 Dispose();
                 return;
@@ -61,7 +61,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             collider.offset = sourceCollider.offset;
             collider.isTrigger = true;
             var interaction = root.AddComponent<NativeLobbyRulesInteraction>();
-            interaction.interactionDescription = new LocalizedString(MultiplayerRulesLocalization.LobbyTitle);
+            interaction.interactionDescription = new LocalizedString(MultiplayerRulesLocalization.PanelTitle);
             interaction.applyCustomHeight = true;
             interaction.customHeight = source.GetComponent<Interactable>().Height;
             root.SetActive(true);
@@ -82,13 +82,13 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
     internal sealed class NativeLobbyRulesInteraction : Interactable
     {
         public override bool IsInteractable(GameObject actor) =>
-            base.IsInteractable(actor) && MultiplayerRulesLobbyContext.IsInLobby &&
+            base.IsInteractable(actor) && MultiplayerRulesContext.IsInLobby &&
             LocalPlayerResolver.Resolve()?.gameObject == actor;
 
         public override void Interactive(GameObject actor)
         {
             if (IsInteractable(actor) && UIManager.Instance?.CurrentControlStack == null)
-                NativeLobbyRulesPanel.Show();
+                NativeMultiplayerRulesPanel.Show();
         }
     }
 }

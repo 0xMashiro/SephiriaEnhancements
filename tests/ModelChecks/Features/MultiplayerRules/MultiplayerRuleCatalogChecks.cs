@@ -102,16 +102,21 @@ internal static class MultiplayerRuleCatalogChecks
             throw new InvalidOperationException("Editing must isolate the draft from saved preferences");
         var frozen = draft.ToPreferred().Freeze();
         draft.Set(id, 3, MultiplayerRuleValue<float>.Override(2));
-        draft.RestoreParticipant(2);
+        draft.RestoreGroup(2, new[] { id });
         if (draft.Rules.Get(id, 2).TryGetOverride(out _) ||
             !draft.Rules.Get(id, 3).TryGetOverride(out float configured) || configured != 2 ||
             !frozen.Rules.Get(id, 2).TryGetOverride(out float retained) || retained != 2)
             throw new InvalidOperationException("Restoring the current team must preserve other team sizes and frozen rules");
         draft.Set(id, 2, MultiplayerRuleValue<float>.Override(4));
-        var forCurrentTeam = draft.RulesForCurrentTeam(3, preferred);
-        if (forCurrentTeam.Get(id, 2).TryGetOverride(out _) ||
-            !forCurrentTeam.Get(id, 3).TryGetOverride(out float current) || current != 2)
-            throw new InvalidOperationException("Applying after a team-size change must not save edits for the previous team");
+        var allCounts = draft.ToPreferred().Freeze().Rules;
+        if (!allCounts.Get(id, 2).TryGetOverride(out float previousCount) || previousCount != 4 ||
+            !allCounts.Get(id, 3).TryGetOverride(out float current) || current != 2 || draft.CountChanges(preferred.Freeze(), false) != 2)
+            throw new InvalidOperationException("Review and save must retain edits across player counts");
+        draft.Set(MultiplayerRuleId.BossEncounterDamageBonus, 2, MultiplayerRuleValue<float>.Override(50));
+        draft.RestoreGroup(2, new[] { id });
+        if (!draft.Rules.Get(MultiplayerRuleId.BossEncounterDamageBonus, 2).TryGetOverride(out _) ||
+            !draft.Rules.Get(id, 3).TryGetOverride(out _) || draft.Rules.Get(id, 2).TryGetOverride(out _))
+            throw new InvalidOperationException("Group reset must preserve other groups and player counts");
         var originalDraft = new MultiplayerRulesDraft(new PreferredMultiplayerRules(MultiplayerRulesPreset.Original,
             MultiplayerRuleSnapshot.Optimized(), EnemyHealthModifierCombination.ParticipantRuleOnly), false);
         originalDraft.Set(id, 2, MultiplayerRuleValue<float>.Override(2));

@@ -213,7 +213,7 @@ namespace SephiriaEnhancements.Configuration
             {
                 "Option_SephiriaEnhancements_MidRunAdmission",
                 "Option_SephiriaEnhancements_ReconnectSupport",
-                "Option_SephiriaEnhancements_MultiplayerRulesLobby"
+                "Option_SephiriaEnhancements_MultiplayerRules"
             };
             foreach (string rowName in multiplayerRows)
             {

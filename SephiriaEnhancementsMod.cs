@@ -364,7 +364,7 @@ namespace SephiriaEnhancements
                     UniqueEffectRegistrationTracePatch),
                 typeof(MultiplayerRulesNetworkSessionEndPatch),
                 typeof(MultiplayerRulesLobbyDeparturePatch),
-                typeof(NativeLobbyRulesEntryPatch),
+                typeof(NativeMultiplayerRulesEntryPatch),
                 typeof(MultiplayerRulesExplorationStartPatch)
             })
             {
@@ -519,7 +519,7 @@ namespace SephiriaEnhancements
             FeatureFailure.Run(FeatureId.AutoCasting, () => autoCasting?.ResetWorld());
             FeatureFailure.Run(FeatureId.DefeatRetry, () => DefeatRetryClientRestore.ObserveWorldSession(isSavedSession));
             FeatureFailure.Run(FeatureId.DeveloperTools, () => GameLoadProfiler.ObserveClientSessionStarted(isSavedSession));
-            FeatureFailure.Run(FeatureId.MultiplayerRules, MultiplayerRulesLobbySnapshotCoordinator.ReadHostSnapshot);
+            FeatureFailure.Run(FeatureId.MultiplayerRules, MultiplayerRulesBridge.ObserveWorld);
             FeatureFailure.Run(FeatureId.Inventory, () => inventoryOptimization?.ResetWorldSession());
             FeatureFailure.Run(FeatureId.Gameplay, () => runtimeKernel?.BeginWorldSession());
         }
@@ -527,7 +527,6 @@ namespace SephiriaEnhancements
         private void OnFloorAllocatedClientside(string guid, string floorName, FloorGenerator generator)
         {
             FeatureFailure.Run(FeatureId.DeveloperTools, () => GameLoadProfiler.ObserveFloorAllocated(guid, floorName));
-            FeatureFailure.Run(FeatureId.MultiplayerRules, MultiplayerRulesLobbySnapshotCoordinator.ReadHostSnapshot);
         }
 
         private void OnLocalGameplayContextChanged(LocalGameplayContextChange change)
@@ -567,7 +566,7 @@ namespace SephiriaEnhancements
         }
 
         private void OnFloorAllocatedServerside(string guid, string floorName, FloorGenerator generator) =>
-            FeatureFailure.Run(FeatureId.MultiplayerRules, () => multiplayerRules?.PublishActiveRulesForLobbyDisplay());
+            FeatureFailure.Run(FeatureId.MultiplayerRules, MultiplayerRulesBridge.Publish);
 
         private static float ElapsedMilliseconds(long startedAt)
         {
@@ -580,9 +579,9 @@ namespace SephiriaEnhancements
         {
             if (!isSavedSession && !EnhancementsSettings.Enabled) return false;
             MultiplayerRulesPreset preset;
-            if (isSavedSession && ActiveExplorationRulesStore.TryRead(
-                    out ActiveExplorationMultiplayerRules restoredRules))
+            if (isSavedSession)
             {
+                if (!ActiveExplorationRulesStore.TryRead(out ActiveExplorationMultiplayerRules restoredRules, out _)) return false;
                 preset = restoredRules.Preset;
             }
             else

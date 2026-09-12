@@ -8,10 +8,13 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Features/MultiplayerRules/Core/MultiplayerRulesState.cs" />
+    <Compile Include="../../Features/MultiplayerRules/Presentation/MultiplayerRulesSummary.cs" />
+    <Compile Include="../../Features/MultiplayerRules/Presentation/MultiplayerRulesLocalization.State.cs" />
     <Compile Include="../../Features/MultiplayerRules/Presentation/MultiplayerRulesLocalization.Review.cs" />
     <Compile Include="../../Features/MultiplayerRules/Presentation/MultiplayerRulesLocalization.Broadcast.cs" />
     <Compile Include="../../Features/MultiplayerRules/Presentation/MultiplayerRulesLocalization.Editor.cs" Link="MultiplayerRules/MultiplayerRulesLocalization.Editor.cs" />
-    <Compile Include="../../Features/MultiplayerRules/Presentation/MultiplayerRulesLocalization.Lobby.cs" Link="MultiplayerRules/MultiplayerRulesLocalization.Lobby.cs" />
+    <Compile Include="../../Features/MultiplayerRules/Presentation/MultiplayerRulesLocalization.Panel.cs" Link="MultiplayerRules/MultiplayerRulesLocalization.Panel.cs" />
     <Compile Include="../../Features/MultiplayerRules/Core/MultiplayerRulesDraft.cs" Link="MultiplayerRules/MultiplayerRulesDraft.cs" />
     <Compile Include="../../Features/MultiplayerRules/Core/MultiplayerRuleExample.cs" Link="MultiplayerRules/MultiplayerRuleExample.cs" />
     <Compile Include="../../Features/MultiplayerRules/Core/MultiplayerRuleInput.cs" Link="MultiplayerRules/MultiplayerRuleInput.cs" />

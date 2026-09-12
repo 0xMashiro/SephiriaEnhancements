@@ -49,8 +49,19 @@ Search is bounded and does not guarantee an optimal layout or maximum combat dam
 Most display and control improvements start enabled. Retry after defeat, hidden-room display, mouse aim assist
 and the combat companion start **off**. Multiplayer rules start at **Original**, camera distance at **100%**.
 
-In the multiplayer lobby, approach the **Team rules** stone beside Roots’ Retreat and use the game’s interaction action to open the panel. The host edits a draft and applies it together. Applying changes broadcasts a summary through game chat; entering exploration announces the final rules once. These ordinary chat messages also reach players without the Mod and use the host’s game language; closing without applying discards it. Starting an exploration locks its rules,
-and continuing a saved exploration keeps its saved rules. The panel detects the current team size. Adjust enemy health, damage, spawning, rewards and supplies directly without choosing a preset first. Explanations compare original player scaling with the adjustment and include applicable calculation examples. Reset names the current team size. Joining or leaving updates the display with a notice; applying saves numerical changes for the current team size only. Other players view the host's applied rules.
+Open **Team rules** from the multiplayer menu or Mod settings, or interact with its stone beside Roots’ Retreat in the multiplayer lobby.
+Before departure, the host can select rules for **1–4 players** and adjust enemy health, damage, spawning, rewards and supplies.
+Selecting a player count edits that count's rules without changing the team size. **Review changes** compares all unsaved edits;
+**Save and close** saves them together for future explorations. **Reset this group** restores only the selected group's values for the selected count.
+Numeric fields support direct input, step buttons and **Use game default**, with a number pad for gamepad controls.
+If someone joins or leaves while editing, edits remain and saving pauses until the host reviews the new team size.
+
+Departure locks the full rules table and the permission to combine it with another multiplayer extension for that exploration.
+Later spawns and rewards use the applicable rules for the current team size. During exploration, the panel remains available to inspect the host's rules.
+Saving, departure and team-size changes send short chat summaries; joining and reconnecting players receive the current rules.
+The host can also share a summary manually, with a 10-second cooldown. Players using a compatible Mod version receive details and notifications in their own game language.
+Players without a compatible Mod receive ordinary chat summaries in the host's language. The panel distinguishes unavailable host details and rules controlled by another multiplayer extension.
+Continuing an exploration preserves its saved rules and extension setting. Start a new exploration when updating from the earlier rule-save format; old rule records are not migrated.
 The Mod's main switch is locked during exploration,
 while connected to another host, and while a reconnect is pending. Display options remain individually adjustable.
 **New players during exploration** and **Reconnect support** are separate settings; disabling new arrivals does
@@ -125,7 +136,10 @@ Standalone Mod notices use the `[Sephiria Enhancements]` prefix. Errors and impo
 
 Settings are grouped into **General**, **Combat and Display**, **Bars and Numbers**, **Controls and Camera**, **Multiplayer**, and **About and Updates**. Version information and update checks are in the last category.
 
-When the Mod is off, its settings categories are hidden and saved choices are retained; the log-folder and problem-report actions remain available. In custom multiplayer rules, click a numeric value or use the confirm action to open an input dialog; numeric rows no longer use adjustment arrows. Enter confirms input, Esc cancels, and Tab / Shift+Tab move between the field and buttons; controllers can use the on-screen number pad. Confirmation updates the draft; apply it from the main panel. The panel compares original, applied and draft values and counts unapplied changes. The dialog shows the current team size, available game references, range and step. Clear the input to restore that rule to game behavior. Reference values describe the part controlled by the setting, not final enemy statistics.
+When the Mod is off, its settings categories are hidden and saved choices are retained; the log-folder and problem-report actions remain available.
+In Team rules, click a numeric value or use Confirm to open its editor. Enter confirms input, Esc cancels, and Tab / Shift+Tab move between controls.
+Confirmation keeps an unsaved edit; save it from the main panel. The panel compares original, saved and edited values.
+The editor shows the selected player count, available game references, range and step. References describe the part controlled by the setting, not final enemy statistics.
 
 On first entering a game after launch, the Mod shows the Mod and game versions and official Nexus Mods / GitHub links
 in the local chat log. **About and Updates** settings include the version, both download pages, a welcome-message

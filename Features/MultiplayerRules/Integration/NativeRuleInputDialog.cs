@@ -5,7 +5,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 {
     internal static class NativeRuleInputDialog
     {
-        internal static UI_MessageBox_InputYesNo Open(string prompt, string initial, MultiplayerRuleDefinition definition,
+        internal static UI_MessageBox_InputYesNo Open(string prompt, string initial, MultiplayerRuleDefinition definition, float originalValue,
             Func<bool> canEdit, Action<MultiplayerRuleValue<float>> save,
             UnityEngine.GameObject returnSelection)
         {
@@ -16,9 +16,11 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 {
                     if (canEdit() && MultiplayerRuleInput.TryParse(text, definition, out var value)) save(value);
                 }, null, initial, "", true);
+            int characterLimit = dialog.input.characterLimit;
+            var defaultSelectable = dialog.defaultSelectable;
             dialog.input.characterLimit = 16;
             var navigation = dialog.gameObject.AddComponent<NativeRuleInputNavigation>();
-            navigation.Configure(dialog, definition, () => dialog.yesButton.onClick.Invoke());
+            navigation.Configure(dialog, definition, originalValue, () => dialog.yesButton.onClick.Invoke());
             UnityEngine.Events.UnityAction<string> submit = navigation.Submit;
             dialog.input.onSubmit.AddListener(submit);
             UnityEngine.Events.UnityAction<string> validate = text =>
@@ -39,6 +41,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 navigation.Release();
                 dialog.onCloseMessageBox -= closed;
                 dialog.yesButton.interactable = true;
+                dialog.input.characterLimit = characterLimit;
+                dialog.defaultSelectable = defaultSelectable;
                 if (returnSelection != null && returnSelection.activeInHierarchy && EventSystem.current != null)
                     EventSystem.current.SetSelectedGameObject(returnSelection);
             };

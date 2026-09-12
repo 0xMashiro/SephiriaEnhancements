@@ -21,6 +21,18 @@ using SephiriaEnhancements.ModelChecks.Runtime.State;
 using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
 SephiriaEnhancements.ModelChecks.Runtime.FeatureFailureChecks.Run();
+if (args.Contains("--multiplayer-rules-only"))
+{
+    MultiplayerRulesStateChecks.Run();
+    MultiplayerRuleCatalogChecks.Run();
+    MultiplayerRulesSessionChecks.Run();
+    Console.WriteLine(MultiplayerRulesLifecycleChecks.Run());
+    ActiveExplorationRulesPayloadCodecChecks.Run();
+    MultiplayerRulesLocalizationChecks.Run();
+    MultiplayerRulePresentationGroupsChecks.Run();
+    LocalizationChecks.Run();
+    return;
+}
 if (args.Contains("--feature-isolation-only")) return;
 SephiriaEnhancements.ModelChecks.Features.ModInformation.ModInformationChecks.Run();
 if (args.Contains("--mod-information-only"))
@@ -181,6 +193,7 @@ MultiplayerRulesLocalizationChecks.Run();
 OptionsCategoryChecks.Run();
 MultiplayerRulePresentationGroupsChecks.Run();
 MultiplayerRuleCatalogChecks.Run();
+MultiplayerRulesStateChecks.Run();
 ActiveExplorationRulesPayloadCodecChecks.Run();
 if (args.Contains("--multiplayer-rules-only"))
     return;

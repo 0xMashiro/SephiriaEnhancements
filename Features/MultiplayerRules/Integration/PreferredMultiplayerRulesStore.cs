@@ -73,9 +73,9 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             OptionsBinding.Instance?.DeviceOptions?.Save();
         }
 
-        internal static void Apply(MultiplayerRulesDraft draft, int participants)
+        internal static void SaveDraft(MultiplayerRulesDraft draft)
         {
-            var rules = draft.RulesForCurrentTeam(participants, Read());
+            var rules = draft.ToPreferred().Freeze().Rules;
             WritePreset(draft.Preset);
             WriteCustomHealthCombination(draft.HealthCombination);
             WriteAllowExternalRuleStacking(draft.AllowExternalStacking);

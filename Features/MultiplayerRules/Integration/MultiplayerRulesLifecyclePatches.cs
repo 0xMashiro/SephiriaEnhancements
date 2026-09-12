@@ -22,7 +22,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static bool PrefixCore() => !NativeLobbyRulesPanel.IsEditing;
+        private static bool PrefixCore() => !NativeMultiplayerRulesPanel.IsEditing;
     }
 
     [HarmonyPatch(typeof(DungeonManager), nameof(DungeonManager.LoadStageAndMove))]

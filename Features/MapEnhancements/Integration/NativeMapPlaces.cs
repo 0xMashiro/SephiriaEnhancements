@@ -113,7 +113,7 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
                 MapPlaceKind.MultiplayerGate => MapNavigationLocalization.MultiplayerGate,
                 MapPlaceKind.TownReturnPortal => MapNavigationLocalization.TownReturnPortal,
                 MapPlaceKind.Tree => MapNavigationLocalization.Tree,
-                MapPlaceKind.TeamRules => MultiplayerRules.Presentation.MultiplayerRulesLocalization.LobbyTitle,
+                MapPlaceKind.TeamRules => MultiplayerRules.Presentation.MultiplayerRulesLocalization.PanelTitle,
                 _ => null
             };
             if (modKey != null) return ModLocalization.Get(modKey);

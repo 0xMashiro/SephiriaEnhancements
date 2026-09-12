@@ -2,15 +2,17 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 {
     internal static class ActiveExplorationRulesStore
     {
-        private const int CurrentSchemaVersion = 4;
+        private const int CurrentSchemaVersion = 5;
         private const string SchemaVersionKey =
             "SephiriaEnhancements.MultiplayerRules.ActiveExploration.SchemaVersion";
         private const string PresetKey =
             "SephiriaEnhancements.MultiplayerRules.ActiveExploration.Preset";
         private const string HealthCombinationKey =
             "SephiriaEnhancements.MultiplayerRules.ActiveExploration.HealthCombination";
+        private const string ExternalStackingKey =
+            "SephiriaEnhancements.MultiplayerRules.ActiveExploration.AllowExternalStacking";
 
-        internal static void Write(ActiveExplorationMultiplayerRules activeRules)
+        internal static void Write(ActiveExplorationMultiplayerRules activeRules, bool allowExternalStacking)
         {
             SaveData currentRun = SaveManager.CurrentRun;
             if (currentRun == null || activeRules == null)
@@ -22,6 +24,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             currentRun.SetInt(PresetKey, (int)activeRules.Preset);
             currentRun.SetInt(HealthCombinationKey,
                 (int)activeRules.HealthModifierCombination);
+            currentRun.SetBool(ExternalStackingKey, allowExternalStacking);
             foreach (MultiplayerRuleDefinition definition in MultiplayerRuleCatalog.All)
             {
                 for (int participantCount = 1; participantCount <= 4;
@@ -42,9 +45,10 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             }
         }
 
-        internal static bool TryRead(out ActiveExplorationMultiplayerRules activeRules)
+        internal static bool TryRead(out ActiveExplorationMultiplayerRules activeRules, out bool allowExternalStacking)
         {
             activeRules = null;
+            allowExternalStacking = false;
             SaveData currentRun = SaveManager.CurrentRun;
             if (currentRun == null || !currentRun.ContainsKey(SchemaVersionKey) ||
                 currentRun.GetInt(SchemaVersionKey, 0) != CurrentSchemaVersion)
@@ -76,6 +80,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             }
             activeRules = new ActiveExplorationMultiplayerRules(preset, rules,
                 combination);
+            allowExternalStacking = currentRun.GetBool(ExternalStackingKey, false);
             return true;
         }
 

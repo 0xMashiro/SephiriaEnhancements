@@ -15,9 +15,9 @@ using UnityEngine.UI;
 
 namespace SephiriaEnhancements.MultiplayerRules.Integration
 {
-    internal sealed class NativeLobbyRulesPanel : UIBase
+    internal sealed class NativeMultiplayerRulesPanel : UIBase
     {
-        private static NativeLobbyRulesPanel current;
+        private static NativeMultiplayerRulesPanel current;
         internal static void CloseCurrent() { if (current != null) current.Close(); }
         internal static bool IsEditing => current != null && current.CanEdit;
         private sealed class Row
@@ -37,14 +37,20 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private int participants = 1;
         private int group;
         private bool teamChanged;
+        private int observedParticipants;
+        private bool reviewingChanges;
+        private bool savedStacking;
+        private static float nextManualAnnouncement;
         private TextMeshProUGUI heading;
         private TextMeshProUGUI preview;
         private TextMeshProUGUI status;
-        private ActiveExplorationMultiplayerRules applied;
+        private ActiveExplorationMultiplayerRules saved;
         private TextMeshProUGUI fontTemplate;
         private UI_OptionBox_PartyMemberDamage rowTemplate;
         private RectTransform content;
         private ScrollRect scroll;
+        private ScrollRect previewScroll;
+        private Scrollbar detailsScrollbar;
         private GameObject returnSelection;
         private MultiplayerRuleId selectedRule;
         private float nextRefresh;
@@ -56,7 +62,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         public override bool MarksPlayerAsPreparing => editing;
 
-        internal static NativeLobbyRulesPanel Show()
+        internal static NativeMultiplayerRulesPanel Show()
         {
             try { return ShowCore(); }
             catch (System.Exception exception)
@@ -68,10 +74,10 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static NativeLobbyRulesPanel ShowCore()
+        private static NativeMultiplayerRulesPanel ShowCore()
         {
             if (current != null) return current;
-            if (!MultiplayerRulesLobbyContext.IsInLobby) return null;
+            if (!MultiplayerRulesContext.CanInspect) return null;
             var options = UIManager.Instance?.GetElement<UI_OptionsPanel>();
             var template = options?.GetComponentInChildren<UI_OptionBox_PartyMemberDamage>(true);
             if (template == null || options.ParentRoot == null) return null;
@@ -82,31 +88,33 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             rect.anchorMin = new Vector2(.06f, .05f);
             rect.anchorMax = new Vector2(.94f, .95f);
             rect.offsetMin = rect.offsetMax = Vector2.zero;
-            var panel = root.AddComponent<NativeLobbyRulesPanel>();
+            var panel = root.AddComponent<NativeMultiplayerRulesPanel>();
             current = panel;
             panel.SetRoot(options.ParentRoot);
             panel.hasControl = true;
             panel.isPlayerUITHing = true;
             panel.owner = LocalPlayerResolver.Resolve();
             panel.world = DungeonManager.Instance;
-            panel.editing = MultiplayerRulesLobbyContext.CanEdit;
-            panel.participants = MultiplayerRulesLobbyContext.ParticipantCount;
+            panel.editing = MultiplayerRulesContext.CanEdit;
+            panel.observedParticipants = MultiplayerRulesContext.ParticipantCount;
+            panel.participants = Mathf.Clamp(panel.observedParticipants, 1, 4);
             panel.selectedRule = MultiplayerRulePresentationGroups.All[0].RuleIds[0];
             panel.returnSelection = EventSystem.current?.currentSelectedGameObject;
             panel.draft = new MultiplayerRulesDraft(PreferredMultiplayerRulesStore.Read(),
                 PreferredMultiplayerRulesStore.ReadAllowExternalRuleStacking());
             panel.rowTemplate = template;
             panel.fontTemplate = template.valueText.text;
-            panel.applied = PreferredMultiplayerRulesStore.Read().Freeze();
+            panel.saved = PreferredMultiplayerRulesStore.Read().Freeze();
+            panel.savedStacking = PreferredMultiplayerRulesStore.ReadAllowExternalRuleStacking();
             panel.Build();
             panel.Open();
             return panel;
         }
 
         private bool CanEdit => editing && IsOpened && owner == LocalPlayerResolver.Resolve() &&
-            world == DungeonManager.Instance && MultiplayerRulesLobbyContext.CanEdit;
+            world == DungeonManager.Instance && MultiplayerRulesContext.CanEdit;
         private bool SupportedTeam => participants >= 1 && participants <= 4;
-        private bool CanChangeRules => CanEdit && SupportedTeam && participants == MultiplayerRulesLobbyContext.ParticipantCount;
+        private bool CanChangeRules => CanEdit && SupportedTeam && !teamChanged;
 
         private ActiveExplorationMultiplayerRules Displayed => displayed;
 
@@ -138,8 +146,17 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             content.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             scroll.content = content;
 
+            Choice(MultiplayerRulesLocalization.ParticipantsSetting, 4, () => participants - 1,
+                n => { participants = n + 1; reviewingChanges = false; Refresh(); },
+                () => string.Format(T(MultiplayerRulesLocalization.ParticipantsValue), participants), () => true);
+            ActionRow(MultiplayerRulesLocalization.ReviewTeamChange, () =>
+            {
+                participants = Mathf.Clamp(observedParticipants, 1, 4);
+                teamChanged = false;
+                Refresh();
+            }, () => true, () => teamChanged);
             Choice(MultiplayerRulesLocalization.RuleGroupSetting, MultiplayerRulePresentationGroups.All.Count,
-                () => group, n => { group = n; selectedRule = MultiplayerRulePresentationGroups.All[group].RuleIds[0]; Refresh(); },
+                () => group, n => { group = n; reviewingChanges = false; selectedRule = MultiplayerRulePresentationGroups.All[group].RuleIds[0]; Refresh(); },
                 () => T(MultiplayerRulePresentationGroups.All[group].LocalizationKey), () => true);
             Choice(MultiplayerRulesLocalization.HealthCombinationSetting, 3,
                 () => (int)(Displayed?.HealthModifierCombination ?? EnemyHealthModifierCombination.ParticipantRuleOnly),
@@ -155,17 +172,65 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 () => T(draft.AllowExternalStacking ? MultiplayerRulesLocalization.ToggleEnabled : MultiplayerRulesLocalization.ToggleDisabled),
                 () => CanChangeRules, visible: () => editing && MultiplayerExtensionDiscovery.HasDetectedExtension);
             foreach (var definition in MultiplayerRuleCatalog.All) AddRule(definition);
-            preview = Text(transform, "Preview", new Vector2(.64f, .21f), new Vector2(.975f, .90f));
+            ActionRow(MultiplayerRulesLocalization.PanelResetGroup, () =>
+            {
+                draft.RestoreGroup(participants, MultiplayerRulePresentationGroups.All[group].RuleIds);
+                Refresh();
+            }, () => CanChangeRules, () => editing);
+            ActionRow(MultiplayerRulesLocalization.AnnounceSummary, () =>
+            {
+                nextManualAnnouncement = Time.unscaledTime + 10f;
+                MultiplayerRulesBridge.Announce(MultiplayerRulesNotice.Summary);
+            }, () => NetworkServer.active && Time.unscaledTime >= nextManualAnnouncement, () => NetworkServer.active);
+            var previewViewport = Rect(transform, "Details", new Vector2(.64f, .21f), new Vector2(.955f, .90f));
+            previewViewport.gameObject.AddComponent<RectMask2D>();
+            previewViewport.gameObject.AddComponent<Image>().color = Color.clear;
+            previewScroll = previewViewport.gameObject.AddComponent<ScrollRect>();
+            previewScroll.viewport = previewViewport;
+            previewScroll.horizontal = false;
+            previewScroll.movementType = ScrollRect.MovementType.Clamped;
+            preview = Text(previewViewport, "Preview", new Vector2(0, 1), Vector2.one);
+            preview.rectTransform.pivot = new Vector2(.5f, 1);
+            preview.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            previewScroll.content = preview.rectTransform;
+            var scrollbarRect = Rect(transform, "Details Scroll", new Vector2(.963f, .21f), new Vector2(.978f, .90f));
+            scrollbarRect.gameObject.AddComponent<Image>().color = new Color(.23f, .25f, .34f);
+            detailsScrollbar = scrollbarRect.gameObject.AddComponent<Scrollbar>();
+            var handle = Rect(scrollbarRect, "Handle", Vector2.zero, Vector2.one);
+            detailsScrollbar.targetGraphic = handle.gameObject.AddComponent<Image>();
+            detailsScrollbar.handleRect = handle;
+            detailsScrollbar.direction = Scrollbar.Direction.BottomToTop;
+            previewScroll.verticalScrollbar = detailsScrollbar;
             preview.alignment = TextAlignmentOptions.TopLeft;
             status = Text(transform, "Review", new Vector2(.025f, .08f), new Vector2(.975f, .20f));
-            Button(MultiplayerRulesLocalization.LobbyApply, .02f, .32f, Apply);
-            Button(MultiplayerRulesLocalization.LobbyRestore, .35f, .65f, () =>
+            Button(MultiplayerRulesLocalization.PanelSave, .02f, .32f, Save);
+            Button(MultiplayerRulesLocalization.ReviewChangesAction, .35f, .65f, () =>
             {
-                if (CanChangeRules) { draft.RestoreParticipant(participants); Refresh(); }
+                reviewingChanges = true;
+                previewScroll.verticalNormalizedPosition = 1;
+                RefreshPreview();
+                EventSystem.current?.SetSelectedGameObject(detailsScrollbar.gameObject);
             });
-            Button(MultiplayerRulesLocalization.LobbyCancel, .68f, .98f, Close);
+            Button(MultiplayerRulesLocalization.PanelDiscard, .68f, .98f, Close);
             defaultSelectable = rows[0].Box.gameObject;
             Refresh();
+        }
+
+        private void ActionRow(string key, Action action, Func<bool> enabled, Func<bool> visible)
+        {
+            var row = MakeRow(key);
+            row.Box.numberOfElements = 1;
+            row.Box.gameObject.AddComponent<NativeOptionActivation>().Configure(() =>
+            { if (enabled()) action(); });
+            row.Refresh = () =>
+            {
+                row.Root.SetActive(visible());
+                row.Label.text = T(key);
+                row.Value.text = "";
+                row.Box.interactable = enabled();
+                foreach (var arrow in row.Root.GetComponentsInChildren<UI_HorizontalSelectionBox_Arrow>(true))
+                    arrow.gameObject.SetActive(false);
+            };
         }
 
 
@@ -183,7 +248,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 row.Label.text = T(key);
                 row.Value.text = value();
                 if (EventSystem.current?.currentSelectedGameObject == row.Box.gameObject)
-                    selectedHelp = key == MultiplayerRulesLocalization.HealthCombinationSetting ? MultiplayerRulesLocalization.HealthCombinationHelp
+                    selectedHelp = key == MultiplayerRulesLocalization.ParticipantsSetting ? MultiplayerRulesLocalization.ParticipantsHelp
+                        : key == MultiplayerRulesLocalization.HealthCombinationSetting ? MultiplayerRulesLocalization.HealthCombinationHelp
                         : key == MultiplayerRulesLocalization.ExternalRuleStackingSetting ? MultiplayerRulesLocalization.ExternalRuleStackingHelp
                         : MultiplayerRulesLocalization.RuleGroupHelp;
                 foreach (var arrow in row.Root.GetComponentsInChildren<UI_HorizontalSelectionBox_Arrow>(true))
@@ -209,16 +275,23 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             row.Box.gameObject.AddComponent<NativeOptionActivation>().Configure(() =>
             {
                 selectedRule = definition.Id;
+                reviewingChanges = false;
                 selectedHelp = null;
                 RefreshPreview();
-                if (!CanChangeRules || definition.Unit == MultiplayerRuleUnit.Toggle) return;
+                if (!CanChangeRules || definition.Unit == MultiplayerRuleUnit.Toggle)
+                {
+                    EventSystem.current?.SetSelectedGameObject(detailsScrollbar.gameObject);
+                    return;
+                }
                 int count = participants;
                 var current = Displayed.Rules.Get(definition.Id, count);
                 string initial = current.TryGetOverride(out float number) ? number.ToString("0.##", CultureInfo.InvariantCulture) : "";
                 ownedDialog = NativeRuleInputDialog.Open(string.Format(T(MultiplayerRulesLocalization.EditorPrompt),
                     T(MultiplayerRulesLocalization.RuleLabelKey(definition.Id)), count,
                     NativeRuleReference.Describe(definition, count), MultiplayerRulesLocalization.FormatValue(definition.Minimum, definition.Unit), MultiplayerRulesLocalization.FormatValue(definition.Maximum, definition.Unit), MultiplayerRulesLocalization.FormatValue(definition.Step, definition.Unit)),
-                    initial, definition, () => CanChangeRules && count == MultiplayerRulesLobbyContext.ParticipantCount, value => { draft.Set(definition.Id, count, value); Refresh(); }, row.Box.gameObject);
+                    initial, definition, NativeRuleReference.TryRead(definition.Id, count, out float originalValue) ? originalValue : definition.Minimum,
+                    () => CanChangeRules && observedParticipants == MultiplayerRulesContext.ParticipantCount,
+                    value => { draft.Set(definition.Id, count, value); Refresh(); }, row.Box.gameObject);
                 if (ownedDialog != null)
                 {
                     var opened = ownedDialog;
@@ -236,8 +309,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 row.Root.SetActive(MultiplayerRulePresentationGroups.All[group].RuleIds.Contains(definition.Id));
                 var displayed = Displayed;
                 var configured = displayed?.Rules.Get(definition.Id, participants) ?? MultiplayerRuleValue<float>.UseGameBehavior();
-                bool hasNumber = configured.TryGetOverride(out float number);
-                if (!hasNumber && SupportedTeam) hasNumber = NativeRuleReference.TryRead(definition.Id, participants, out number);
+                float number;
                 row.Box.ChangeValueWithoutNotify(definition.Unit == MultiplayerRuleUnit.Toggle && configured.TryGetOverride(out number) ? (number > 0 ? 2 : 1) : 0);
                 // Read-only rows remain selectable to inspect their explanation.
                 row.Box.interactable = true;
@@ -249,10 +321,10 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                     : T(MultiplayerRulesLocalization.UseGameBehavior);
                 if (CanChangeRules && definition.Unit != MultiplayerRuleUnit.Toggle)
                     row.Value.text += " · " + T(MultiplayerRulesLocalization.EditAction);
-                if (editing && applied != null && !configured.Equals(applied.Rules.Get(definition.Id, participants)))
+                if (editing && saved != null && !configured.Equals(saved.Rules.Get(definition.Id, participants)))
                     row.Label.text = "* " + row.Label.text;
                 if (EventSystem.current?.currentSelectedGameObject == row.Box.gameObject)
-                { selectedRule = definition.Id; selectedHelp = null; }
+                    { selectedRule = definition.Id; selectedHelp = null; reviewingChanges = false; }
                 foreach (var arrow in row.Root.GetComponentsInChildren<UI_HorizontalSelectionBox_Arrow>(true))
                     arrow.gameObject.SetActive(CanChangeRules && definition.Unit == MultiplayerRuleUnit.Toggle);
             };
@@ -279,11 +351,11 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         {
             if (heading == null) return;
             SynchronizeTeam();
-            displayed = !SupportedTeam ? null : editing ? draft.ToPreferred().Freeze() : MultiplayerRulesLobbyContext.ReadDisplayed();
-            if (!editing) applied = displayed;
-            heading.text = string.Format(T(MultiplayerRulesLocalization.LobbyTeamHeading), participants) + " · " + T(editing
-                ? MultiplayerRulesLocalization.LobbyDraft : MultiplayerRulesLocalization.LobbyReadOnly);
-            if (teamChanged) heading.text += "\n" + T(MultiplayerRulesLocalization.LobbyTeamChanged);
+            displayed = !SupportedTeam ? null : editing ? draft.ToPreferred().Freeze() : MultiplayerRulesContext.ReadDisplayed();
+            if (!editing) saved = displayed;
+            heading.text = string.Format(T(MultiplayerRulesLocalization.PanelTeamHeading), observedParticipants) + " · " + T(editing
+                ? MultiplayerRulesLocalization.PanelEditing : MultiplayerRulesLocalization.PanelReadOnly);
+            if (teamChanged) heading.text += "\n" + T(MultiplayerRulesLocalization.PanelTeamChanged);
             var position = content.anchoredPosition;
             foreach (var row in rows)
             {
@@ -293,12 +365,19 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             }
             foreach (var item in buttons)
             {
-                item.label.text = item.key == MultiplayerRulesLocalization.LobbyRestore
-                    ? string.Format(T(item.key), participants) : T(item.key);
+                bool close = item.key == MultiplayerRulesLocalization.PanelDiscard;
+                item.button.gameObject.SetActive(editing || close);
+                item.label.text = close && (!editing || Changes() == 0) ? T(MultiplayerRulesLocalization.CloseAction) : T(item.key);
                 NativeLocalizedText.MatchFontSize(item.label, fontTemplate);
-                item.button.interactable = item.key == MultiplayerRulesLocalization.LobbyCancel || (CanChangeRules && (item.key != MultiplayerRulesLocalization.LobbyApply || Changes() > 0));
+                item.button.interactable = close || (item.key == MultiplayerRulesLocalization.ReviewChangesAction && Changes() > 0)
+                    || (CanChangeRules && item.key == MultiplayerRulesLocalization.PanelSave && Changes() > 0);
             }
-            status.text = editing ? string.Format(T(MultiplayerRulesLocalization.ReviewChanges), Changes()) + "\n" + string.Format(T(MultiplayerRulesLocalization.ReviewScope), participants) : T(MultiplayerRulesLocalization.LobbyReadOnly);
+            var state = MultiplayerRulesContext.ReadState();
+            string stateText = state == null ? T(MultiplayerRulesBridge.HostSupportsRules ? MultiplayerRulesLocalization.StateWaiting : MultiplayerRulesLocalization.HostRulesUnavailable)
+                : T(MultiplayerRulesSummary.AvailabilityKey(state.Availability));
+            status.text = editing ? string.Format(T(MultiplayerRulesLocalization.ReviewChanges), Changes()) + "\n" +
+                (state?.Availability != MultiplayerRulesAvailability.Available ? stateText : T(MultiplayerRulesLocalization.ReviewScope))
+                : stateText + "\n" + T(MultiplayerRulesLocalization.ParticipantsHelp);
             NativeLocalizedText.MatchFontSize(status, fontTemplate);
             NativeLocalizedText.MatchFontSize(heading, fontTemplate);
             LayoutRebuilder.ForceRebuildLayoutImmediate(content);
@@ -310,31 +389,63 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private void RefreshPreview()
         {
             if (preview == null) return;
+            if (reviewingChanges)
+            {
+                var lines = new List<string>();
+                for (int count = 1; count <= 4; count++)
+                    foreach (var rule in MultiplayerRuleCatalog.All)
+                        if (!Displayed.Rules.Get(rule.Id, count).Equals(saved.Rules.Get(rule.Id, count)))
+                            lines.Add(string.Format(T(MultiplayerRulesLocalization.ParticipantsValue), count) + " · " +
+                                T(MultiplayerRulesLocalization.RuleLabelKey(rule.Id)) + "\n" +
+                                Describe(saved.Rules.Get(rule.Id, count), rule) + " → " + Describe(Displayed.Rules.Get(rule.Id, count), rule));
+                if (Displayed.HealthModifierCombination != saved.HealthModifierCombination)
+                    lines.Add(T(MultiplayerRulesLocalization.HealthCombinationSetting) + "\n" +
+                        T(MultiplayerRulesLocalization.HealthCombinationKeys[(int)saved.HealthModifierCombination]) + " → " +
+                        T(MultiplayerRulesLocalization.HealthCombinationKeys[(int)Displayed.HealthModifierCombination]));
+                if (draft.AllowExternalStacking != savedStacking)
+                    lines.Add(T(MultiplayerRulesLocalization.ExternalRuleStackingSetting) + "\n" +
+                        T(savedStacking ? MultiplayerRulesLocalization.ToggleEnabled : MultiplayerRulesLocalization.ToggleDisabled) + " → " +
+                        T(draft.AllowExternalStacking ? MultiplayerRulesLocalization.ToggleEnabled : MultiplayerRulesLocalization.ToggleDisabled));
+                SetPreview(string.Join("\n\n", lines));
+                return;
+            }
             var definition = MultiplayerRuleCatalog.Get(selectedRule);
             if (Displayed == null)
             {
-                preview.text = T(SupportedTeam ? MultiplayerRulesLocalization.LobbyUnavailable : MultiplayerRulesLocalization.LobbyTeamUnsupported);
-                NativeLocalizedText.MatchFontSize(preview, fontTemplate);
+                SetPreview(T(SupportedTeam ? MultiplayerRulesLocalization.HostRulesUnavailable : MultiplayerRulesLocalization.TeamUnsupported));
                 return;
             }
             if (selectedHelp != null)
             {
-                preview.text = T(selectedHelp);
-                NativeLocalizedText.MatchFontSize(preview, fontTemplate);
+                SetPreview(T(selectedHelp));
                 return;
             }
-            preview.text = T(MultiplayerRulesLocalization.RuleHelpKey(selectedRule)) + "\n" +
-                  string.Format(T(MultiplayerRulesLocalization.ReviewValues), NativeRuleReference.Describe(definition, participants),
-                      Describe(applied?.Rules.Get(selectedRule, participants) ?? Displayed.Rules.Get(selectedRule, participants), definition),
+            string text = T(MultiplayerRulesLocalization.RuleHelpKey(selectedRule)) + "\n" +
+                  string.Format(T(editing ? MultiplayerRulesLocalization.ReviewValues : MultiplayerRulesLocalization.ReadOnlyValues), NativeRuleReference.Describe(definition, participants),
+                      Describe(saved?.Rules.Get(selectedRule, participants) ?? Displayed.Rules.Get(selectedRule, participants), definition),
                       Describe(Displayed.Rules.Get(selectedRule, participants), definition));
             if (definition.Unit != MultiplayerRuleUnit.Toggle)
-                preview.text += "\n" + string.Format(T(MultiplayerRulesLocalization.InvalidRange),
+                text += "\n" + string.Format(T(MultiplayerRulesLocalization.InvalidRange),
                     MultiplayerRulesLocalization.FormatValue(definition.Minimum, definition.Unit), MultiplayerRulesLocalization.FormatValue(definition.Maximum, definition.Unit));
             if (MultiplayerRuleExample.TryCalculate(Displayed, selectedRule, participants, out float result, out bool health))
-                preview.text += "\n" + string.Format(T(health ? MultiplayerRulesLocalization.LobbyHealthExample
-                    : MultiplayerRulesLocalization.LobbyDamageExample), result.ToString("0.##", CultureInfo.CurrentCulture));
+                text += "\n" + string.Format(T(health ? MultiplayerRulesLocalization.PanelHealthExample
+                    : MultiplayerRulesLocalization.PanelDamageExample), result.ToString("0.##", CultureInfo.CurrentCulture));
+            if (selectedRule == MultiplayerRuleId.TargetedExperienceOrbDivisor &&
+                Displayed.Rules.Get(selectedRule, participants).TryGetOverride(out float divisor))
+                text += "\n" + string.Format(T(MultiplayerRulesLocalization.ExperienceResult), (100f / divisor).ToString("0.##", CultureInfo.CurrentCulture));
             if (CanChangeRules && definition.Unit != MultiplayerRuleUnit.Toggle)
-                preview.text += "\n" + T(MultiplayerRulesLocalization.EditorHint);
+                text += "\n" + T(MultiplayerRulesLocalization.EditorHint);
+            SetPreview(text);
+        }
+
+        private void SetPreview(string text)
+        {
+            if (preview.text != text)
+            {
+                preview.text = text;
+                previewScroll.StopMovement();
+                previewScroll.verticalNormalizedPosition = 1;
+            }
             NativeLocalizedText.MatchFontSize(preview, fontTemplate);
         }
 
@@ -345,29 +456,26 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         private int Changes()
         {
-            if (!SupportedTeam || Displayed == null || applied == null) return 0;
-            return MultiplayerRuleCatalog.All.Count(d => !Displayed.Rules.Get(d.Id, participants).Equals(applied.Rules.Get(d.Id, participants)))
-                + (Displayed.HealthModifierCombination != applied.HealthModifierCombination ? 1 : 0)
-                + (draft.AllowExternalStacking != PreferredMultiplayerRulesStore.ReadAllowExternalRuleStacking() ? 1 : 0);
+            return !editing || saved == null ? 0 : draft.CountChanges(saved, savedStacking);
         }
 
-        private void Apply()
+        private void Save()
         {
             if (SynchronizeTeam()) { Refresh(); return; }
             if (!CanChangeRules) return;
-            PreferredMultiplayerRulesStore.Apply(draft, participants);
-            MultiplayerRulesLobbySnapshotCoordinator.PublishLobbyRules();
-            NativeRulesBroadcast.Send(PreferredMultiplayerRulesStore.Read().Freeze(), participants, applied);
+            int changes = Changes();
+            PreferredMultiplayerRulesStore.SaveDraft(draft);
+            MultiplayerRulesBridge.Announce(MultiplayerRulesNotice.Saved, changes);
             Close();
         }
 
         private bool SynchronizeTeam()
         {
-            int currentCount = MultiplayerRulesLobbyContext.ParticipantCount;
-            if (participants == currentCount) return false;
+            int currentCount = MultiplayerRulesContext.ParticipantCount;
+            if (observedParticipants == currentCount) return false;
             if (ownedDialog != null) { ownedDialog.ForceClose(); ownedDialog = null; }
-            participants = currentCount;
-            teamChanged = true;
+            observedParticipants = currentCount;
+            teamChanged = editing;
             return true;
         }
 
@@ -382,7 +490,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private void UpdateCore()
         {
             if (owner != LocalPlayerResolver.Resolve() || world != DungeonManager.Instance ||
-                !MultiplayerRulesLobbyContext.IsInLobby || (editing && !CanEdit)) { Close(); return; }
+                !MultiplayerRulesContext.CanInspect || (editing && !CanEdit)) { Close(); return; }
             NavigateWithTab();
             ScrollToNewSelection();
             if (Time.unscaledTime < nextRefresh) return;
@@ -423,26 +531,29 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         }
 
         private List<Selectable> NavigationControls() => rows.Where(r => r.Root.activeSelf && r.Box.IsInteractable())
-            .Select(r => (Selectable)r.Box).Concat(buttons.Where(b => b.button.IsInteractable()).Select(b => (Selectable)b.button)).ToList();
+            .Select(r => (Selectable)r.Box).Concat(new[] { (Selectable)detailsScrollbar })
+            .Concat(buttons.Where(b => b.button.gameObject.activeSelf && b.button.IsInteractable()).Select(b => (Selectable)b.button)).ToList();
 
         private void RefreshNavigation()
         {
             var settings = rows.Where(r => r.Root.activeSelf && r.Box.IsInteractable()).Select(r => (Selectable)r.Box).ToList();
-            var actions = buttons.Where(b => b.button.IsInteractable()).Select(b => (Selectable)b.button).ToList();
+            var actions = buttons.Where(b => b.button.gameObject.activeSelf && b.button.IsInteractable()).Select(b => (Selectable)b.button).ToList();
             for (int i = 0; i < settings.Count; i++)
                 settings[i].navigation = new Navigation
                 {
                     mode = Navigation.Mode.Explicit,
                     selectOnUp = i > 0 ? settings[i - 1] : null,
-                    selectOnDown = i + 1 < settings.Count ? settings[i + 1] : actions.FirstOrDefault()
+                    selectOnDown = i + 1 < settings.Count ? settings[i + 1] : detailsScrollbar
                 };
+            detailsScrollbar.navigation = new Navigation { mode = Navigation.Mode.Explicit,
+                selectOnLeft = settings.LastOrDefault(), selectOnRight = actions.FirstOrDefault() };
             for (int i = 0; i < actions.Count; i++)
                 actions[i].navigation = new Navigation
                 {
                     mode = Navigation.Mode.Explicit,
                     selectOnLeft = i > 0 ? actions[i - 1] : null,
                     selectOnRight = i + 1 < actions.Count ? actions[i + 1] : null,
-                    selectOnUp = settings.LastOrDefault()
+                    selectOnUp = detailsScrollbar
                 };
             var selected = EventSystem.current?.currentSelectedGameObject;
             if (ownedDialog == null && IsControlEnabled && selected != null && selected.transform.IsChildOf(transform) &&

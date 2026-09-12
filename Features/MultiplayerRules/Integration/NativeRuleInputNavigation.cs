@@ -18,13 +18,19 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private TextMeshProUGUI feedback;
         private MultiplayerRuleDefinition definition;
         private GameObject keypad;
+        private GameObject adjustments;
+        private Button[] keys;
+        private Button decrease, useOriginal, increase;
+        private bool usingKeypad;
+        private float originalValue;
         internal GameObject InitialSelection { get; private set; }
         private readonly System.Collections.Generic.List<Action> restore = new();
 
-        internal void Configure(UI_MessageBox_InputYesNo value, MultiplayerRuleDefinition rule, Action submit)
+        internal void Configure(UI_MessageBox_InputYesNo value, MultiplayerRuleDefinition rule, float nativeValue, Action submit)
         {
             dialog = value;
             definition = rule;
+            originalValue = nativeValue;
             confirm = submit;
             var originalValidation = dialog.input.onValidateInput;
             dialog.input.onValidateInput = MultiplayerRuleInput.ValidateCharacter;
@@ -35,7 +41,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             var size = dialog.rectTransform.sizeDelta;
             restore.Add(() => dialog.rectTransform.sizeDelta = size);
             var parent = (RectTransform)dialog.transform.parent;
-            dialog.rectTransform.sizeDelta = new Vector2(Mathf.Min(320, parent.rect.width * .9f), Mathf.Min(290, parent.rect.height * .9f));
+            dialog.rectTransform.sizeDelta = new Vector2(Mathf.Min(350, parent.rect.width * .9f), Mathf.Min(320, parent.rect.height * .9f));
             Place(dialog.text.rectTransform, new Vector2(.05f, .73f), new Vector2(.95f, .96f));
             Place((RectTransform)dialog.input.transform, new Vector2(.15f, .62f), new Vector2(.85f, .71f));
             var go = new GameObject("Input Feedback", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -58,6 +64,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                     selectOnRight = i == 0 ? null : controls[i == 1 ? 2 : 1] };
             }
             BuildKeypad();
+            BuildAdjustments();
+            RefreshInputMode();
             if (ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse != false)
                 dialog.input.ActivateInputField();
         }
@@ -66,9 +74,9 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         {
             keypad = new GameObject("Number Pad", typeof(RectTransform));
             keypad.transform.SetParent(dialog.transform, false);
-            Place((RectTransform)keypad.transform, new Vector2(.22f, .14f), new Vector2(.78f, .41f), false);
+            Place((RectTransform)keypad.transform, new Vector2(.22f, .12f), new Vector2(.78f, .44f), false);
             string[] symbols = { "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "⌫" };
-            var keys = new Button[symbols.Length];
+            keys = new Button[symbols.Length];
             for (int i = 0; i < symbols.Length; i++)
             {
                 string symbol = symbols[i];
@@ -114,6 +122,71 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             }
         }
 
+        private void BuildAdjustments()
+        {
+            adjustments = new GameObject("Adjust Value", typeof(RectTransform));
+            adjustments.transform.SetParent(dialog.transform, false);
+            decrease = AdjustmentButton("−", 0, .18f, () => Adjust(-1));
+            useOriginal = AdjustmentButton(T(MultiplayerRulesLocalization.UseOriginalAction), .20f, .80f, () =>
+            {
+                dialog.input.text = "";
+                if (dialog.yesButton.interactable) confirm();
+            });
+            increase = AdjustmentButton("+", .82f, 1, () => Adjust(1));
+        }
+
+        private Button AdjustmentButton(string label, float left, float right, Action clicked)
+        {
+            var go = new GameObject("Value Action", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(adjustments.transform, false);
+            Place((RectTransform)go.transform, new Vector2(left, 0), new Vector2(right, 1), false);
+            go.GetComponent<Image>().color = new Color(.3f, .32f, .44f);
+            var button = go.GetComponent<Button>();
+            button.onClick.AddListener(() => clicked());
+            var textObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+            textObject.transform.SetParent(go.transform, false);
+            var text = textObject.GetComponent<TextMeshProUGUI>();
+            Place(text.rectTransform, Vector2.zero, Vector2.one, false);
+            text.text = label;
+            text.alignment = TextAlignmentOptions.Center;
+            text.raycastTarget = false;
+            NativeLocalizedText.BindFont(text, dialog.text);
+            NativeLocalizedText.MatchFontSize(text, dialog.text);
+            return button;
+        }
+
+        private void Adjust(int direction) => dialog.input.text = MultiplayerRuleInput.Adjust(dialog.input.text, definition, originalValue, direction);
+
+        private void RefreshInputMode()
+        {
+            usingKeypad = ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse == false;
+            keypad.SetActive(usingKeypad);
+            Place(dialog.text.rectTransform, new Vector2(.05f, usingKeypad ? .74f : .65f), new Vector2(.95f, .97f), false);
+            Place((RectTransform)dialog.input.transform, new Vector2(.15f, usingKeypad ? .65f : .56f), new Vector2(.85f, usingKeypad ? .72f : .63f), false);
+            Place((RectTransform)adjustments.transform, new Vector2(.08f, usingKeypad ? .46f : .15f), new Vector2(.92f, usingKeypad ? .53f : .24f), false);
+            Place(feedback.rectTransform, new Vector2(.05f, usingKeypad ? .55f : .26f), new Vector2(.95f, usingKeypad ? .63f : .54f), false);
+            var actions = new[] { decrease, useOriginal, increase };
+            for (int i = 0; i < actions.Length; i++)
+                actions[i].navigation = new Navigation { mode = Navigation.Mode.Explicit,
+                    selectOnLeft = actions[(i + 2) % 3], selectOnRight = actions[(i + 1) % 3],
+                    selectOnUp = dialog.input, selectOnDown = usingKeypad ? keys[0] : dialog.yesButton };
+            var inputNavigation = dialog.input.navigation;
+            inputNavigation.selectOnDown = decrease;
+            dialog.input.navigation = inputNavigation;
+            for (int i = 0; i < 3; i++)
+            {
+                var nav = keys[i].navigation; nav.selectOnUp = actions[i]; keys[i].navigation = nav;
+            }
+            foreach (var button in new[] { dialog.yesButton, dialog.noButton })
+            {
+                var nav = button.navigation; nav.selectOnUp = usingKeypad ? keys[10] : useOriginal; button.navigation = nav;
+            }
+            InitialSelection = usingKeypad ? decrease.gameObject : dialog.input.gameObject;
+            if (EventSystem.current?.currentSelectedGameObject is GameObject selected &&
+                !selected.activeInHierarchy && selected.transform.IsChildOf(keypad.transform))
+                EventSystem.current.SetSelectedGameObject(InitialSelection);
+        }
+
         private void Place(RectTransform rect, Vector2 min, Vector2 max, bool save = true)
         {
             var oldMin = rect.anchorMin; var oldMax = rect.anchorMax;
@@ -131,7 +204,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 MultiplayerRuleInputError.Number => T(MultiplayerRulesLocalization.InvalidNumber),
                 MultiplayerRuleInputError.Range => string.Format(T(MultiplayerRulesLocalization.InvalidRange), Format(definition.Minimum), Format(definition.Maximum)),
                 MultiplayerRuleInputError.Step => string.Format(T(MultiplayerRulesLocalization.InvalidStep), Format(definition.Step), Format(definition.Minimum)),
-                _ => T(string.IsNullOrWhiteSpace(text) ? MultiplayerRulesLocalization.InputDefault : MultiplayerRulesLocalization.InputSaved)
+                _ => T(string.IsNullOrWhiteSpace(text) ? MultiplayerRulesLocalization.InputDefault : MultiplayerRulesLocalization.InputValid)
             };
             var keyboard = Keyboard.current;
             if (keyboard != null && ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse != false)
@@ -144,9 +217,14 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private void Update()
         {
             if (dialog == null || !dialog.IsOpened || !dialog.IsControlEnabled) return;
+            if (usingKeypad != (ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse == false))
+            {
+                RefreshInputMode();
+                RefreshFeedback(dialog.input.text);
+            }
             var keyboard = Keyboard.current;
             if (keyboard == null || !keyboard.tabKey.wasPressedThisFrame || EventSystem.current == null) return;
-            var controls = new Selectable[] { dialog.input, dialog.yesButton, dialog.noButton }
+            var controls = new Selectable[] { dialog.input, decrease, useOriginal, increase, dialog.yesButton, dialog.noButton }
                 .Where(c => c.IsInteractable()).ToArray();
             int index = Array.FindIndex(controls, c => c.gameObject == EventSystem.current.currentSelectedGameObject);
             int direction = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed ? -1 : 1;
@@ -182,6 +260,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             restore.Clear();
             if (feedback != null) Destroy(feedback.gameObject);
             if (keypad != null) Destroy(keypad);
+            if (adjustments != null) Destroy(adjustments);
             Destroy(this);
         }
 

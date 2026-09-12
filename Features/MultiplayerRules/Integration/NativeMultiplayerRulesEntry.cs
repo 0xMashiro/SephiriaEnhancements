@@ -11,7 +11,7 @@ using UnityEngine.UI;
 namespace SephiriaEnhancements.MultiplayerRules.Integration
 {
     [HarmonyPatch]
-    internal static class NativeLobbyRulesEntryPatch
+    internal static class NativeMultiplayerRulesEntryPatch
     {
         private static IEnumerable<MethodBase> TargetMethods()
         {
@@ -31,7 +31,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         {
                 Button template = __instance is UI_MultiplayerPanel steam ? steam.enterMultiZoneButton
                     : ((UI_MultiplayerPanel_E)__instance).enterMultiZoneButton;
-                var existing = __instance.GetComponentInChildren<NativeLobbyRulesEntry>(true);
+                var existing = __instance.GetComponentInChildren<NativeMultiplayerRulesEntry>(true);
                 if (existing != null) { existing.Refresh(); return; }
                 if (template == null) return;
                 var button = UnityEngine.Object.Instantiate(template, template.transform.parent, false);
@@ -46,17 +46,17 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                     native.SetForceNavRight(null);
                 }
                 button.onClick = new Button.ButtonClickedEvent();
-                button.onClick.AddListener(() => NativeLobbyRulesPanel.Show());
+                button.onClick.AddListener(() => NativeMultiplayerRulesPanel.Show());
                 foreach (var label in button.GetComponentsInChildren<UI_LocalizationStringText>(true))
-                    label.UpdateKey(MultiplayerRulesLocalization.LobbyTitle);
+                    label.UpdateKey(MultiplayerRulesLocalization.PanelTitle);
                 NativeOptionsLifetime.Track(button.gameObject);
-                button.gameObject.AddComponent<NativeLobbyRulesEntry>().Refresh();
+                button.gameObject.AddComponent<NativeMultiplayerRulesEntry>().Refresh();
         }
     }
 
-    internal sealed class NativeLobbyRulesEntry : MonoBehaviour
+    internal sealed class NativeMultiplayerRulesEntry : MonoBehaviour
     {
-        internal void Refresh() => gameObject.SetActive(MultiplayerRulesLobbyContext.IsInLobby);
+        internal void Refresh() => gameObject.SetActive(MultiplayerRulesContext.CanInspect);
         private void Update() => Refresh();
     }
 }

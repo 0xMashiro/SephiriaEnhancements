@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 
 namespace SephiriaEnhancements.MultiplayerRules
@@ -5,6 +6,15 @@ namespace SephiriaEnhancements.MultiplayerRules
     internal enum MultiplayerRuleInputError { None, Number, Range, Step }
     internal static class MultiplayerRuleInput
     {
+        internal static string Adjust(string text, MultiplayerRuleDefinition definition, float originalValue, int direction)
+        {
+            float number = TryParse(text, definition, out var parsed) && parsed.TryGetOverride(out float value)
+                ? value : originalValue;
+            double steps = Math.Round((number - definition.Minimum) / definition.Step) + direction;
+            double adjusted = Math.Max(definition.Minimum, Math.Min(definition.Maximum, definition.Minimum + steps * definition.Step));
+            return adjusted.ToString("0.##", CultureInfo.InvariantCulture);
+        }
+
         internal static char ValidateCharacter(string text, int index, char character) =>
             character >= '0' && character <= '9' ? character
                 : (character == '.' || character == ',') && !text.Contains(".") && !text.Contains(",") ? '.' : '\0';

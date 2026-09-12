@@ -14,15 +14,16 @@ namespace SephiriaEnhancements.MultiplayerRules
         private static bool integrationAvailable;
         private static bool allowExternalRuleStackingForExploration;
         private readonly MultiplayerRulesSession session = new MultiplayerRulesSession();
-        private float nextLobbyPublish;
         private bool announceExploration;
         private readonly NativeLobbyRulesPoint lobbyPoint = new();
 
         private void Update()
         {
+            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerRules)) return;
             try
             {
                 lobbyPoint.Update();
+                MultiplayerRulesBridge.Tick();
                 if (announceExploration && NetworkServer.active && currentActiveRules != null)
                 {
                     var player = SephiriaEnhancements.Integration.LocalPlayerResolver.Resolve();
@@ -31,7 +32,7 @@ namespace SephiriaEnhancements.MultiplayerRules
                         !string.IsNullOrEmpty(floor.DataOnServer.stageName) && !DungeonManager.Instance.IsInMultiZone(player))
                     {
                         announceExploration = false;
-                        NativeRulesBroadcast.Send(currentActiveRules, ServerParticipantCountReader.Read());
+                        MultiplayerRulesBridge.Announce(MultiplayerRulesNotice.Started);
                     }
                 }
             }
@@ -40,11 +41,6 @@ namespace SephiriaEnhancements.MultiplayerRules
                 lobbyPoint.Dispose();
                 FeatureFailure.Disable(FeatureId.MultiplayerRules, exception);
             }
-            if (!NetworkServer.active || Time.unscaledTime < nextLobbyPublish ||
-                !FeatureFailure.IsAvailable(FeatureId.MultiplayerRules)) return;
-            nextLobbyPublish = Time.unscaledTime + 2f;
-            try { MultiplayerRulesLobbySnapshotCoordinator.PublishLobbyRules(); }
-            catch (System.Exception exception) { FeatureFailure.Disable(FeatureId.MultiplayerRules, exception); }
         }
 
         private void OnEnable()
@@ -66,11 +62,16 @@ namespace SephiriaEnhancements.MultiplayerRules
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnEnableCore() => currentController = this;
+        private void OnEnableCore()
+        {
+            currentController = this;
+            MultiplayerRulesBridge.Initialize();
+        }
 
         private void OnDisable()
         {
             lobbyPoint.Dispose();
+            MultiplayerRulesBridge.Shutdown();
             if (currentController == this) currentController = null;
         }
 
@@ -129,14 +130,26 @@ namespace SephiriaEnhancements.MultiplayerRules
 
         internal static void ClearHostRulesForClientDisplay()
         {
-            currentActiveRules = null;
+            if (!NetworkServer.active) currentActiveRules = null;
+        }
+
+        internal static MultiplayerRulesState ReadServerState()
+        {
+            var multiplayer = NativeMultiplayerSessionReader.Read();
+            bool active = currentActiveRules != null;
+            bool allowStacking = active ? allowExternalRuleStackingForExploration : PreferredMultiplayerRulesStore.ReadAllowExternalRuleStacking();
+            int participants = ServerParticipantCountReader.Read();
+            var availability = MultiplayerRulesLifecyclePolicy.ResolveAvailability(active || Configuration.EnhancementsSettings.Enabled,
+                integrationAvailable && FeatureFailure.IsAvailable(FeatureId.MultiplayerRules), participants,
+                multiplayer.HasMultiplayerExtension, allowStacking);
+            return new MultiplayerRulesState(currentActiveRules ?? PreferredMultiplayerRulesStore.Read().Freeze(),
+                participants, active, availability, allowStacking);
         }
 
         internal static void EndExploration()
         {
             DeveloperLogger.RecordMultiplayerRulesLifecycle("end",
                 currentActiveRules);
-            MultiplayerRulesLobbySnapshotCoordinator.ClearPublishedSnapshot();
             EnemyHealthAdjustmentBridge.SetResolver(null);
             currentController?.session.EndExploration();
             if (currentController != null) currentController.announceExploration = false;
@@ -147,69 +160,39 @@ namespace SephiriaEnhancements.MultiplayerRules
         internal void BeginServerExploration(bool isSavedExploration)
         {
             announceExploration = true;
-            allowExternalRuleStackingForExploration =
-                PreferredMultiplayerRulesStore.ReadAllowExternalRuleStacking();
-            MultiplayerSessionSnapshot multiplayer =
-                NativeMultiplayerSessionReader.Read();
-            bool compatibilityPassThrough =
-                multiplayer.ConnectedHumanParticipantCount > 4 ||
-                (multiplayer.HasMultiplayerExtension &&
-                 !allowExternalRuleStackingForExploration);
-            if (!integrationAvailable || compatibilityPassThrough)
-            {
-                ActiveExplorationMultiplayerRules passThroughRules =
-                    ActiveExplorationMultiplayerRules.FromPreset(
-                        MultiplayerRulesPreset.Original);
-                session.ResumeExploration(passThroughRules);
-                ActiveExplorationRulesStore.Write(passThroughRules);
-                currentActiveRules = passThroughRules;
-                DeveloperLogger.RecordMultiplayerRulesLifecycle(
-                    integrationAvailable
-                        ? "begin_external_multiplayer_pass_through"
-                        : "begin_compatibility_pass_through", passThroughRules);
-                MultiplayerRulesLobbySnapshotCoordinator.Publish(passThroughRules);
-                return;
-            }
-
+            ActiveExplorationMultiplayerRules rules;
             if (isSavedExploration)
             {
-                ActiveExplorationMultiplayerRules restoredRules;
-                if (!ActiveExplorationRulesStore.TryRead(out restoredRules))
+                if (!ActiveExplorationRulesStore.TryRead(out rules, out allowExternalRuleStackingForExploration))
                 {
-                    restoredRules = ActiveExplorationMultiplayerRules.FromPreset(
-                        MultiplayerRulesPreset.Original);
-                    ActiveExplorationRulesStore.Write(restoredRules);
+                    rules = ActiveExplorationMultiplayerRules.FromPreset(MultiplayerRulesPreset.Original);
+                    allowExternalRuleStackingForExploration = false;
                 }
-
-                session.ResumeExploration(restoredRules);
-                currentActiveRules = restoredRules;
-                DeveloperLogger.RecordMultiplayerRulesLifecycle("resume",
-                    restoredRules);
-                ConfigureHealthAdjustment(restoredRules);
-                MultiplayerRulesLobbySnapshotCoordinator.Publish(restoredRules);
-                return;
+                session.ResumeExploration(rules);
+            }
+            else
+            {
+                allowExternalRuleStackingForExploration = PreferredMultiplayerRulesStore.ReadAllowExternalRuleStacking();
+                var multiplayer = NativeMultiplayerSessionReader.Read();
+                var availability = MultiplayerRulesLifecyclePolicy.ResolveAvailability(Configuration.EnhancementsSettings.Enabled,
+                    integrationAvailable, ServerParticipantCountReader.Read(), multiplayer.HasMultiplayerExtension,
+                    allowExternalRuleStackingForExploration);
+                rules = session.BeginNewExploration(PreferredMultiplayerRulesStore.Read(),
+                    availability == MultiplayerRulesAvailability.Available);
             }
 
-            ActiveExplorationMultiplayerRules activeRules =
-                session.BeginNewExploration(PreferredMultiplayerRulesStore.Read(),
-                    Configuration.EnhancementsSettings.Enabled);
-            ActiveExplorationRulesStore.Write(activeRules);
-            currentActiveRules = activeRules;
-            DeveloperLogger.RecordMultiplayerRulesLifecycle("begin", activeRules);
-            ConfigureHealthAdjustment(activeRules);
-            MultiplayerRulesLobbySnapshotCoordinator.Publish(activeRules);
-        }
-
-        internal void PublishActiveRulesForLobbyDisplay()
-        {
-            if (session.TryGetActive(out ActiveExplorationMultiplayerRules activeRules))
-                MultiplayerRulesLobbySnapshotCoordinator.Publish(activeRules);
+            currentActiveRules = rules;
+            ActiveExplorationRulesStore.Write(rules, allowExternalRuleStackingForExploration);
+            DeveloperLogger.RecordMultiplayerRulesLifecycle(isSavedExploration ? "resume" : "begin", rules);
+            ConfigureHealthAdjustment(rules);
+            MultiplayerRulesBridge.Publish();
         }
 
         internal void Shutdown()
         {
             lobbyPoint.Dispose();
-            NativeLobbyRulesPanel.CloseCurrent();
+            NativeMultiplayerRulesPanel.CloseCurrent();
+            MultiplayerRulesBridge.Shutdown();
             EndExploration();
         }
 

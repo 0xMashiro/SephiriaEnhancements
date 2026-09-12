@@ -9,18 +9,18 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         internal static void Inject(UI_OptionsPanel panel, UI_OptionBox_PartyMemberDamage template,
             Transform section, OptionsCategoryController categoryController)
         {
-            if (panel.GetComponentInChildren<MultiplayerRulesLobbyEntry>(true) != null) return;
+            if (panel.GetComponentInChildren<MultiplayerRulesEntry>(true) != null) return;
             var row = NativeOptionsRows.CloneRow(template, section,
-                "Option_SephiriaEnhancements_MultiplayerRulesLobby",
-                MultiplayerRulesLocalization.LobbyTitle, MultiplayerRulesLocalization.LobbyEntryHelp, 2,
+                "Option_SephiriaEnhancements_MultiplayerRules",
+                MultiplayerRulesLocalization.PanelTitle, MultiplayerRulesLocalization.PanelEntryHelp, 2,
                 out var box, out var value);
-            row.AddComponent<MultiplayerRulesLobbyEntry>().Configure(box, value);
+            row.AddComponent<MultiplayerRulesEntry>().Configure(box, value);
             NativeOptionsRows.MarkCategory(row, OptionsCategory.Multiplayer);
             row.SetActive(true);
         }
     }
 
-    internal sealed class MultiplayerRulesLobbyEntry : MonoBehaviour
+    internal sealed class MultiplayerRulesEntry : MonoBehaviour
     {
         private UI_HorizontalSelectionBox box;
         private UI_LocalizationStringText value;
@@ -29,12 +29,12 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             box = selection;
             value = text;
             box.numberOfElements = 1;
-            box.gameObject.AddComponent<NativeOptionActivation>().Configure(() => NativeLobbyRulesPanel.Show());
+            box.gameObject.AddComponent<NativeOptionActivation>().Configure(() => NativeMultiplayerRulesPanel.Show());
         }
         private void Update()
         {
-            NativeHorizontalSelectionOptionState.Apply(gameObject, box, MultiplayerRulesLobbyContext.IsInLobby);
-            value.UpdateKey(MultiplayerRulesLocalization.LobbyTitle);
+            NativeHorizontalSelectionOptionState.Apply(gameObject, box, MultiplayerRulesContext.CanInspect);
+            value.UpdateKey(MultiplayerRulesLocalization.PanelTitle);
         }
     }
 

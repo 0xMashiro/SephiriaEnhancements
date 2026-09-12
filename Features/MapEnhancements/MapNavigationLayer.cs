@@ -182,7 +182,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 interactions = Object.FindObjectsByType<Interactable>(FindObjectsSortMode.None);
                 nextInteractionScanAt = Time.unscaledTime + 1f;
             }
-            foreach (var place in NativeMapPlaces.Collect(geometry, player, interactions))
+            foreach (var place in NativeMapPlaces.Collect(geometry, interactions))
                 Label(place.Target, NativeMapPlaces.Name(place.Kind), destination: place.Destination,
                     worldPosition: place.Position,
                     mapPosition: place.Destination?.MapPosition(map.contentsChild, geometry));

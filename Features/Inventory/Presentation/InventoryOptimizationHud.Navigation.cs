@@ -166,7 +166,7 @@ namespace SephiriaEnhancements.Inventory
 
             if (panelOpen && !preferencesExpanded && KeyboardUiSelection.IsNavigable(optimize?.gameObject)) return optimize.gameObject;
 
-            Button[] preferred = { preferencesToggle, moveMark, close, markPriorities,
+            Button[] preferred = { preferencesToggle, editGoals, close, markPriorities,
                 optimize, previousPage, nextPage };
             return preferred.FirstOrDefault(button => button != null &&
                 button.gameObject.activeInHierarchy && button.IsInteractable())?.gameObject;

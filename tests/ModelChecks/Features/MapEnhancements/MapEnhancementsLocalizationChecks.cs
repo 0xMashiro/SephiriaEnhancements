@@ -39,6 +39,10 @@ internal static class MapEnhancementsLocalizationChecks
             SephiriaEnhancements.Configuration.LocalizationLanguages.All.Concat(new[] { "und" }));
         foreach (string language in SephiriaEnhancements.Configuration.LocalizationLanguages.All)
         {
+            if (string.IsNullOrWhiteSpace(navigation[(language, MapNavigationLocalization.FloorEntrance)]) ||
+                string.IsNullOrWhiteSpace(navigation[(language, MapNavigationLocalization.FloorExit)]) ||
+                navigation[(language, MapNavigationLocalization.FloorEntrance)] == navigation[(language, MapNavigationLocalization.FloorExit)])
+                throw new InvalidOperationException("Floor entrances and exits must have distinct localized labels.");
             if (navigation[(language, MapNavigationLocalization.Travel)] == navigation[(language, MapNavigationLocalization.DestinationTravel)] ||
                 navigation[(language, MapNavigationLocalization.TravelUnavailable)] == navigation[(language, MapNavigationLocalization.NoLanding)] ||
                 navigation[(language, MapNavigationLocalization.MapNotReady)] == navigation[(language, MapNavigationLocalization.NoLanding)])

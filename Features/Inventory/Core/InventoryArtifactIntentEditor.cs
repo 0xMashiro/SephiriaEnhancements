@@ -203,6 +203,9 @@ namespace SephiriaEnhancements.Inventory
                 : ReplaceArtifacts(preferences, rules);
         }
 
+        internal static InventoryOptimizationPreferences Clear(InventoryOptimizationPreferences preferences) =>
+            ReplaceArtifacts(preferences, Array.Empty<ArtifactOptimizationPreference>());
+
         private static InventoryOptimizationPreferences ReplaceArtifacts(
             InventoryOptimizationPreferences preferences,
             ArtifactOptimizationPreference[] rules) => new(

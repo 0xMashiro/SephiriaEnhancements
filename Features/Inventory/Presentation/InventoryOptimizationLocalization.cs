@@ -202,8 +202,6 @@ namespace SephiriaEnhancements.Inventory
             ArtifactSnapshot artifact, Func<string, string> localize, bool allowAdditionalMagicCost = false) =>
             string.Format(localize(rule.Strength == InventoryConstraintStrength.Hard
                 ? HudGoalHardSummary : HudGoalSoftSummary), FormatArtifactTarget(rule, artifact, localize, allowAdditionalMagicCost: allowAdditionalMagicCost));
-
-        internal const string HudMoveMark = "SephiriaEnhancements.InventoryHud.MoveMark";
         internal const string HudArtifactPersistence = "SephiriaEnhancements.InventoryHud.ArtifactPersistence";
         internal const string HudGoalTitle = "SephiriaEnhancements.InventoryHud.GoalTitle";
         internal const string HudGoalTarget = "SephiriaEnhancements.InventoryHud.GoalTarget";
@@ -298,7 +296,6 @@ namespace SephiriaEnhancements.Inventory
             HudGoalBack,
             OperationStopped,
             ApplicationMayHaveChanged,
-            HudMoveMark,
             HudArtifactPersistence,
             StartUnavailable,
             ObservationUnavailable,

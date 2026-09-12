@@ -55,8 +55,8 @@ namespace SephiriaEnhancements.Inventory
         private Image panelBackground;
         private TextMeshProUGUI title;
         private TextMeshProUGUI status;
-        private Button moveMark;
-        private TextMeshProUGUI moveMarkText;
+        private Button editGoals;
+        private TextMeshProUGUI editGoalsText;
         private InventoryItemKey? previewItemKey;
         private Button launcher;
         private Image launcherIcon;
@@ -302,11 +302,11 @@ namespace SephiriaEnhancements.Inventory
             launcher = CreateNativeLauncher(rect, template, OpenPanel,
                 out TextMeshProUGUI launcherText, out launcherIcon);
             launcherText.gameObject.SetActive(false);
-            moveMark = controls.CreateButton("MoveMark", rect, template,
+            editGoals = controls.CreateButton("EditGoals", rect, template,
                 new Vector2(24f, -InventoryOptimizationHudLayout.DetailsTop),
                 new Vector2(148f, InventoryOptimizationHudLayout.DetailsHeight),
-                MovePreviewedMark, out moveMarkText);
-            moveMark.interactable = false;
+                EditPreviewedGoals, out editGoalsText);
+            editGoals.interactable = false;
             close = controls.CreateButton("Close", rect, template,
                 new Vector2(308f, -20f), new Vector2(28f, 28f),
                 ClosePanel, out closeText);
@@ -475,11 +475,11 @@ namespace SephiriaEnhancements.Inventory
             EditArtifactGoals(slot, action.activeControl?.device is not Mouse);
         }
 
-        private void MovePreviewedMark()
+        private void EditPreviewedGoals()
         {
             var slot = prioritySlots.Concat(avoidSlots).FirstOrDefault(candidate =>
                 previewItemKey.HasValue && candidate.Preference?.ItemKey == previewItemKey);
-            BeginArtifactPickup(slot, dragging: false);
+            EditArtifactGoals(slot, true);
         }
 
         private void EditArtifactGoals(IntentSlot slot, bool selectEditor)
@@ -522,7 +522,8 @@ namespace SephiriaEnhancements.Inventory
             status.gameObject.SetActive(!show);
             markPriorities.gameObject.SetActive(!show);
             boardHint.gameObject.SetActive(!show);
-            moveMark.gameObject.SetActive(!show && moveMark.interactable);
+            editGoals.gameObject.SetActive(!show && editGoals.interactable);
+            clearArtifactPriorities.gameObject.SetActive(panelOpen && preferencesExpanded && !detailsExpanded && !show);
             if (!show) return;
             goalEditor.Render(rule, item, interaction.Editable, preferences.AllowAdditionalMagicCost, resultFeedback?.Find(rule.ItemKey));
         }
@@ -594,7 +595,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 ProjectIntentBoard(preferences);
             }
-            moveMarkText.text = Loc._(InventoryOptimizationLocalization.HudMoveMark);
+            editGoalsText.text = Loc._(InventoryOptimizationLocalization.HudEditGoals);
             if (!panelOpen)
             {
                 return;
@@ -750,7 +751,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void ProjectHoveredGoal()
         {
-            bool canMove = false;
+            bool canEdit = false;
             string hint = null;
             if (!interaction.HasPickup && !NativeInventoryIntentDrop.HasHeldItem &&
                 !goalEditor.Visible)
@@ -767,7 +768,7 @@ namespace SephiriaEnhancements.Inventory
                 hovered ??= slots.FirstOrDefault(slot =>
                     EventSystem.current?.currentSelectedGameObject == slot.Root);
                 if (hovered?.Preference != null) previewItemKey = hovered.Preference.ItemKey;
-                // Retain the preview while moving from the item to its Move mark button.
+                // Retain the preview while moving from the item to its Edit goals button.
                 var rule = slots.FirstOrDefault(slot => slot.Root.activeInHierarchy &&
                     previewItemKey.HasValue && slot.Preference?.ItemKey == previewItemKey)?.Preference;
                 var item = currentSnapshot?.Items.FirstOrDefault(candidate => candidate.ItemKey == rule?.ItemKey);
@@ -777,7 +778,7 @@ namespace SephiriaEnhancements.Inventory
                 }
                 else
                 {
-                    canMove = interaction.Editable && HasInventoryArtifact(rule.InstanceId, rule.EntityId);
+                    canEdit = interaction.Editable && HasInventoryArtifact(rule.InstanceId, rule.EntityId);
                     hint = item.Name + "\n" + InventoryOptimizationLocalization.FormatArtifactFeedback(rule, item.Artifact,
                         resultFeedback?.Find(rule.ItemKey), key => Loc._(key), WorldSessionInventoryIntentStore.Capture().AllowAdditionalMagicCost);
                 }
@@ -786,8 +787,8 @@ namespace SephiriaEnhancements.Inventory
             // Assign the final state once. Toggling interactable off and on in the
             // same projection can make the controller treat the button as disabled
             // and recover to the native inventory default selection.
-            moveMark.interactable = canMove;
-            moveMark.gameObject.SetActive(panelOpen && preferencesExpanded && !detailsExpanded && canMove);
+            editGoals.interactable = canEdit;
+            editGoals.gameObject.SetActive(panelOpen && preferencesExpanded && !detailsExpanded && canEdit);
             if (hint != null) boardHint.text = hint;
             ConfigureIntentNavigation();
         }
@@ -802,9 +803,9 @@ namespace SephiriaEnhancements.Inventory
 
         private void ConfigureIntentNavigation()
         {
-            if (moveMark == null) return;
-            UI_HorayButton move = moveMark as UI_HorayButton;
-            if (move == null) return;
+            if (editGoals == null) return;
+            UI_HorayButton edit = editGoals as UI_HorayButton;
+            if (edit == null) return;
 
             UI_HorayButton markButton = markPriorities as UI_HorayButton;
             UI_HorayButton optimizeButton = optimize as UI_HorayButton;
@@ -814,19 +815,23 @@ namespace SephiriaEnhancements.Inventory
                 UI_HorayButton avoid = avoidSlots[index].Button as UI_HorayButton;
                 priority?.SetForceNavDown(avoid);
                 priority?.SetForceNavUp(index < IntentSlots / 2 ? preferencesToggle : markPriorities);
-                avoid?.SetForceNavDown(move.interactable ? move : null);
+                avoid?.SetForceNavDown(edit.interactable ? edit : null);
             }
 
             IntentSlot preview = prioritySlots.Concat(avoidSlots).FirstOrDefault(slot =>
                 slot.Root.activeInHierarchy && previewItemKey.HasValue &&
                 slot.Preference?.ItemKey == previewItemKey);
-            move.SetForceNavUp(preview?.Button);
-            move.SetForceNavRight(null);
-            move.SetForceNavDown(undoArrangement.interactable ? undoArrangement : optimize);
+            edit.SetForceNavUp(preview?.Button);
+            edit.SetForceNavRight(clearArtifactPriorities.IsInteractable() ? clearArtifactPriorities : null);
+            edit.SetForceNavDown(undoArrangement.interactable ? undoArrangement : optimize);
+            var clear = (UI_HorayButton)clearArtifactPriorities;
+            clear.SetForceNavLeft(edit.interactable ? edit : null);
+            clear.SetForceNavUp(preview?.Button ?? avoidSlots[IntentSlots - 1].Button);
+            clear.SetForceNavDown(optimize);
             markButton?.SetForceNavLeft(preferencesToggle);
             markButton?.SetForceNavDown(prioritySlots[0].Button);
             optimizeButton?.SetForceNavLeft(undoArrangement.interactable ? undoArrangement : null);
-            optimizeButton?.SetForceNavUp(move.interactable ? move : preferencesToggle);
+            optimizeButton?.SetForceNavUp(clear.IsInteractable() ? clear : edit.interactable ? edit : preferencesToggle);
         }
 
         private void ActivateIntentSlot(IntentSlot slot)
@@ -852,7 +857,7 @@ namespace SephiriaEnhancements.Inventory
             }
             else
             {
-                EditArtifactGoals(slot, true);
+                BeginArtifactPickup(slot, dragging: false);
             }
         }
 
@@ -962,7 +967,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 optimize.interactable = false;
             }
-            if (moveMark != null && !canRun) moveMark.interactable = false;
+            if (editGoals != null && !canRun) editGoals.interactable = false;
             nextProjectionAt = 0f;
         }
 
@@ -1272,7 +1277,7 @@ namespace SephiriaEnhancements.Inventory
             launcher?.gameObject.SetActive(!panelOpen);
             RefreshArrangementActions();
             bool showBoard = panelOpen && preferencesExpanded && !detailsExpanded;
-            moveMark?.gameObject.SetActive(showBoard && moveMark.interactable);
+            editGoals?.gameObject.SetActive(showBoard && editGoals.interactable);
             priorityQueueTitle?.gameObject.SetActive(showBoard);
             avoidZoneTitle?.gameObject.SetActive(showBoard);
             boardHint?.gameObject.SetActive(showBoard);
@@ -1474,8 +1479,10 @@ namespace SephiriaEnhancements.Inventory
             panelBackground = null;
             title = null;
             status = null;
-            moveMark = null;
-            moveMarkText = null;
+            editGoals = null;
+            editGoalsText = null;
+            clearArtifactPriorities = null;
+            clearArtifactPrioritiesText = null;
             previewItemKey = null;
             launcher = null;
             launcherIcon = null;

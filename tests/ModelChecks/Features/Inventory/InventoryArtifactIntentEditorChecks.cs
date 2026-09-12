@@ -8,6 +8,7 @@ internal static class InventoryArtifactIntentEditorChecks
     internal static string Run()
     {
         VerifyQueueLevelOwnership();
+        VerifyClearScope();
         InventoryOptimizationPreferences original =
             InventoryOptimizationPreferences.Default;
         InventoryOptimizationPreferences marked =
@@ -71,6 +72,30 @@ internal static class InventoryArtifactIntentEditorChecks
         }
 
         return "ordered priority, exclusion and stale intent pruning passed";
+    }
+
+    private static void VerifyClearScope()
+    {
+        var combo = new ComboOptimizationPreference("combo", InventoryPreferenceLevel.Priority, 2,
+            InventoryConstraintStrength.Hard);
+        var original = new InventoryOptimizationPreferences(InventorySearchEffort.Fast, false,
+            Array.Empty<ArtifactOptimizationPreference>(), new[] { combo }, true);
+        original = InventoryArtifactIntentEditor.PlacePriority(original, 501, 10, 0);
+        original = InventoryArtifactIntentEditor.PlacePriority(original, 502, 11, 8);
+        original = InventoryArtifactIntentEditor.PlaceAvoid(original, 503, 12, 14);
+        var cleared = InventoryArtifactIntentEditor.Clear(original);
+        foreach (var result in new[] { cleared, InventoryArtifactIntentEditor.Clear(cleared) })
+        {
+            if (result.ArtifactPreferences.Count != 0 || result.ComboPreferences.Single() != combo ||
+                result.SearchEffort != InventorySearchEffort.Fast || result.AllowStoneTabletRotation ||
+                !result.AllowAdditionalMagicCost)
+                throw new InvalidOperationException("clear must remove both artifact rows across all pages and retain other settings");
+        }
+        if (original.ArtifactPreferences.Count != 3)
+            throw new InvalidOperationException("clear must not mutate the original preferences");
+        var markedAgain = InventoryArtifactIntentEditor.Toggle(cleared, 504, 13).ArtifactPreferences.Single();
+        if (markedAgain.IntentSlotIndex != 0 || markedAgain.TargetMode != ArtifactLevelTargetMode.Automatic)
+            throw new InvalidOperationException("marking after clear must start with the initial slot and goal");
     }
 
     private static void VerifyQueueLevelOwnership()

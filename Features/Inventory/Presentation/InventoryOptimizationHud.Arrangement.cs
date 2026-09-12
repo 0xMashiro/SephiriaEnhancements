@@ -13,6 +13,8 @@ namespace SephiriaEnhancements.Inventory
         private Button preferencesToggle;
         private Button comboPreferences;
         private Button undoArrangement;
+        private Button clearArtifactPriorities;
+        private TextMeshProUGUI clearArtifactPrioritiesText;
         private TextMeshProUGUI preferencesToggleText;
         private TextMeshProUGUI comboPreferencesText;
         private TextMeshProUGUI undoArrangementText;
@@ -36,11 +38,30 @@ namespace SephiriaEnhancements.Inventory
             comboPreferences = controls.CreateButton("ComboPreferences", parent, template, new Vector2(188f, -56f),
                 new Vector2(148f, 32f), () => SetPreferencesView(true, true), out comboPreferencesText);
             CreateMagicCostToggle(parent, template);
+            clearArtifactPriorities = controls.CreateButton("ClearArtifactPriorities", parent, template,
+                new Vector2(188f, -InventoryOptimizationHudLayout.DetailsTop),
+                new Vector2(148f, InventoryOptimizationHudLayout.DetailsHeight),
+                ClearArtifactPriorities, out clearArtifactPrioritiesText);
             undoArrangement = controls.CreateButton("UndoArrangement", parent, template, new Vector2(24f, -ActionsTop),
                 new Vector2(148f, 36f), () => requestUndo?.Invoke(), out undoArrangementText);
         }
 
         private void TogglePreferences() => SetPreferencesView(!preferencesExpanded, false);
+
+        private void ClearArtifactPriorities()
+        {
+            if (!panelOpen || !preferencesExpanded || detailsExpanded || goalEditor.Visible ||
+                !interaction.Editable || interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem) return;
+            endPriorityMarking?.Invoke();
+            ReplacePreferences(InventoryArtifactIntentEditor.Clear(WorldSessionInventoryIntentStore.Capture()));
+            previewItemKey = null;
+            intentPage = 0;
+            ProjectIntentBoard(WorldSessionInventoryIntentStore.Capture());
+            RefreshArrangementActions();
+            RefreshPageNavigation();
+            EventSystem.current?.SetSelectedGameObject(prioritySlots[0].Root);
+            nextProjectionAt = 0f;
+        }
 
         private void SetPreferencesView(bool expanded, bool showCombos)
         {
@@ -65,6 +86,11 @@ namespace SephiriaEnhancements.Inventory
                 ? InventoryArrangementLocalization.BackToArrangement : InventoryArrangementLocalization.ArtifactPriorities);
             comboPreferencesText.text = Loc._(InventoryArrangementLocalization.ComboPriorities);
             undoArrangementText.text = Loc._(InventoryArrangementLocalization.Undo);
+            clearArtifactPrioritiesText.text = Loc._(InventoryArrangementLocalization.ClearArtifactPriorities);
+            clearArtifactPrioritiesText.color = SecondaryText;
+            clearArtifactPriorities.gameObject.SetActive(panelOpen && preferencesExpanded && !detailsExpanded && !goalEditor.Visible);
+            clearArtifactPriorities.interactable = interaction.Editable && !interaction.HasPickup &&
+                !NativeInventoryIntentDrop.HasHeldItem && WorldSessionInventoryIntentStore.Capture().ArtifactPreferences.Count > 0;
             preferencesToggleText.color = SecondaryText;
             comboPreferencesText.color = SecondaryText;
             undoArrangementText.color = SecondaryText;
@@ -87,7 +113,7 @@ namespace SephiriaEnhancements.Inventory
             var toggle = (UI_HorayButton)preferencesToggle;
             var undo = (UI_HorayButton)undoArrangement;
             undo.SetForceNavRight(optimize);
-            undo.SetForceNavUp(preferencesExpanded && !detailsExpanded && moveMark.interactable ? moveMark : preferencesToggle);
+            undo.SetForceNavUp(preferencesExpanded && !detailsExpanded && editGoals.interactable ? editGoals : preferencesToggle);
             Button below = !preferencesExpanded ? optimize : detailsExpanded
                 ? rows.FirstOrDefault(row => row.Root.activeInHierarchy)?.Choice ?? optimize : prioritySlots[0].Button;
             toggle.SetForceNavDown(!preferencesExpanded && undoArrangement.interactable ? undoArrangement : below);

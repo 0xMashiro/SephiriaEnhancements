@@ -8,7 +8,7 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
     internal static class NativeMapPlaces
     {
         internal static IEnumerable<(Transform Target, MapPlaceKind Kind, Vector3 Position, NativeMapDestination Destination)>
-            Collect(NativeMapGeometry geometry, PlayerAvatar player, IEnumerable<Interactable> interactions)
+            Collect(NativeMapGeometry geometry, IEnumerable<Interactable> interactions)
         {
             var facilities = new Dictionary<Transform, (MapPlaceKind Kind, Vector3 Position, int Count)>();
             foreach (Interactable interaction in interactions)
@@ -20,7 +20,9 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
                 FloorGenerator owner = interaction.GetComponentInParent<FloorGenerator>();
                 if (owner != null && owner != geometry.Floor) continue;
                 MapPlaceKind kind = FacilityKind(interaction);
-                if (kind == MapPlaceKind.None || !interaction.IsInteractable(player.gameObject)) continue;
+                // Interaction readiness does not determine whether a place exists.
+                // For example, native floor entrances deliberately reject interaction.
+                if (kind == MapPlaceKind.None) continue;
                 Transform target = FacilityTarget(interaction);
                 Vector3 position = interaction.transform.position;
                 int count = 1;
@@ -75,6 +77,14 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
 
         internal static MapPlaceKind FacilityKind(Interactable target)
         {
+            if (target.GetComponent<QuestSelectionBoard>() != null) return MapPlaceKind.QuestBoard;
+            if (target.GetComponent<DungeonStair>() is DungeonStair stair)
+                return stair.stairDir switch
+                {
+                    EStairDir.Up => MapPlaceKind.FloorEntrance,
+                    EStairDir.Down => MapPlaceKind.FloorExit,
+                    _ => MapPlaceKind.None
+                };
             if (target is MultiplayerRules.Integration.NativeLobbyRulesInteraction) return MapPlaceKind.TeamRules;
             if (target.GetComponent<OpenMultiplayerPanel>() != null) return MapPlaceKind.MultiplayerGate;
             if (target.GetComponent<NetConnectedPortal>() is NetConnectedPortal portal &&
@@ -113,6 +123,8 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
                 MapPlaceKind.MultiplayerGate => MapNavigationLocalization.MultiplayerGate,
                 MapPlaceKind.TownReturnPortal => MapNavigationLocalization.TownReturnPortal,
                 MapPlaceKind.Tree => MapNavigationLocalization.Tree,
+                MapPlaceKind.FloorEntrance => MapNavigationLocalization.FloorEntrance,
+                MapPlaceKind.FloorExit => MapNavigationLocalization.FloorExit,
                 MapPlaceKind.TeamRules => MultiplayerRules.Presentation.MultiplayerRulesLocalization.PanelTitle,
                 _ => null
             };
@@ -130,6 +142,7 @@ namespace SephiriaEnhancements.MapEnhancements.Integration
                 MapPlaceKind.Town => "Message_TheRabbittown",
                 MapPlaceKind.RootsRetreat => "UI_HardModePanel_Title",
                 MapPlaceKind.DestinyInscription => "UI_TreeShopPanel_Title",
+                MapPlaceKind.QuestBoard => "UI_WorldMap_QuestBoard_Title",
                 _ => null
             };
             return nativeKey == null ? null : KeywordDatabase.Convert(Loc._(nativeKey),

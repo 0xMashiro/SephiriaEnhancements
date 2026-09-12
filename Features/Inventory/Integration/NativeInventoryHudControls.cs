@@ -2,6 +2,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using SephiriaEnhancements.Integration;
 using SephiriaEnhancements.Runtime;
 
@@ -9,6 +10,17 @@ namespace SephiriaEnhancements.Inventory
 {
     internal sealed class NativeInventoryHudControls
     {
+        internal static string MagicCostChangeBinding
+        {
+            get
+            {
+                var input = PlayerInputController.Instance?.playerInput;
+                var action = NativeInputActions.FindAction(input?.actions,
+                    NativeInventoryIntentPickupView.UsesSelection ? NativeUiActions.Submit : NativeUiActions.Click);
+                return action?.GetBindingDisplayString(group: input?.currentControlScheme) ?? string.Empty;
+            }
+        }
+
         private readonly NativeInventoryOptimizationViewTemplates nativeTemplates;
         private readonly Action cancelPickup;
         private readonly Action<int> changePage;

@@ -30,7 +30,6 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             RequireFieldType(typeof(AltarOfEnchant), "remainingByGuid", typeof(Dictionary<string, int>), missing);
             RequireFieldType(typeof(MaxHPDispenser), "usedGuids", typeof(HashSet<string>), missing);
             RequireFieldType(typeof(Anvil), "localWeaponListInitialized", typeof(bool), missing);
-            NativeContractProbe.RequireMethod(typeof(PlayerAvatar), "RpcOpenSephiriteUI_Null", missing);
             NativeContractProbe.RequireMethod(typeof(MiracleSelector2), "GenerateMiracles", missing,
                 typeof(NetworkIdentity), typeof(int), typeof(UnitAvatar));
             NativeContractProbe.RequireMethod(typeof(MiracleSelector2), "UserCode_CmdHandleMiracleAcquired__MiracleController", missing,

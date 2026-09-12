@@ -7,7 +7,7 @@ namespace SephiriaEnhancements.MultiplayerAccess
 {
     internal enum JoiningSupplyKind
     {
-        LevelReward, ArtifactReward, MiracleChoice, InventorySpace,
+        ArtifactReward = 1, MiracleChoice, InventorySpace,
         MaximumHealth, RerollDice, TabletAltar, EnchantAltar, Anvil
     }
 

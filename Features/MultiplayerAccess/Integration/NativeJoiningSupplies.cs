@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Mirror;
-using HarmonyLib;
 using SephiriaEnhancements.Diagnostics;
 using UnityEngine;
 
@@ -13,7 +12,6 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
     {
         private const string SaveKey = "SephiriaEnhancements.JoiningSupplies";
         internal static NativeJoiningSupplies Instance { get; private set; }
-        internal static LevelController AdvancingLevel { get; private set; }
         internal static AltarOfTablet SelectingTablet;
         internal static bool SpawningFacilityDice;
         private SaveData run;
@@ -23,7 +21,6 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
         private readonly Dictionary<int, Grant> grants = new Dictionary<int, Grant>();
         private bool creating, dirty, loadFailed;
         private float nextPoll;
-        private static readonly System.Reflection.MethodInfo CloseReward = AccessTools.Method(typeof(PlayerAvatar), "RpcOpenSephiriteUI_Null");
         internal int Revision { get; private set; }
 
         private sealed class Grant
@@ -32,6 +29,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             internal JoiningSupplyClaim Claim;
             internal GameObject Object;
             internal JoiningSupplyOpportunity Child;
+            internal string Floor;
         }
 
         private void Awake()
@@ -64,7 +62,6 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             SephiriaEnhancementsMod.CleanupFeature(FeatureId.MultiplayerAccess, Flush);
             SephiriaEnhancementsMod.CleanupFeature(FeatureId.MultiplayerAccess, SuspendAll);
             SephiriaEnhancementsMod.CleanupFeature(FeatureId.MultiplayerAccess, JoiningSupplyBridge.Shutdown);
-            SephiriaEnhancementsMod.CleanupFeature(FeatureId.MultiplayerAccess, JoiningSupplyPauseButton.DisposeAll);
         }
 
         internal void BindRun(bool newExploration = false)
@@ -82,9 +79,9 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             {
                 if (!string.IsNullOrEmpty(saved)) ledger = JsonUtility.FromJson<JoiningSupplyLedger>(saved);
                 if (ledger == null || ledger.Opportunities == null || ledger.Participants == null ||
-                    ledger.Opportunities.Any(item => item == null || item.Recipients == null) ||
+                    ledger.Opportunities.Any(item => item == null || item.Recipients == null || !Enum.IsDefined(typeof(JoiningSupplyKind), item.Kind)) ||
                     ledger.Participants.Any(item => item == null || item.Claims == null ||
-                        item.Claims.Any(claim => claim == null || claim.Opportunity == null)))
+                        item.Claims.Any(claim => claim == null || claim.Opportunity == null || !Enum.IsDefined(typeof(JoiningSupplyKind), claim.Opportunity.Kind))))
                     throw new InvalidOperationException("Invalid joining supply save data.");
             }
             catch (Exception error)
@@ -169,19 +166,6 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             dirty = true;
         }
 
-        internal bool DeferLevelReward(LevelController controller, int seed)
-        {
-            if (controller != AdvancingLevel) return false;
-            var participant = ledger.Find(controller.GetComponent<PlayerSpawner>().currentPlayerIdxForSave);
-            int index = participant.Claims.FindLastIndex(claim => claim.Opportunity.Kind == JoiningSupplyKind.LevelReward) + 1;
-            participant.Claims.Insert(index, new JoiningSupplyClaim { Opportunity = new JoiningSupplyOpportunity
-            {
-                Id = "level/" + controller.currentLevel, Kind = JoiningSupplyKind.LevelReward, Seed = seed
-            } });
-            dirty = true;
-            return true;
-        }
-
         internal void ObservedEmbeddedReward(NetworkBehaviour source, NetworkIdentity recipient)
         {
             if (!NetworkServer.active || !MidRunAdmissionRuntime.IsAvailable || source == null || recipient == null ||
@@ -252,17 +236,10 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                         var level = player.GetComponent<LevelController>();
                         if (level.currentLevel < participant.TargetLevel)
                         {
-                            AdvancingLevel = level;
-                            try
-                            {
-                                level.NetworkcurrentLevel = level.currentLevel + 1;
-                                level.NetworkcurrentExp = Math.Max(level.currentExp, LevelController.ExpTableByLevel[level.currentLevel - 1]);
-                                level.LevelUpOnServer();
-                            }
-                            finally
-                            {
-                                AdvancingLevel = null;
-                            }
+                            level.NetworkcurrentLevel = level.currentLevel + 1;
+                            level.NetworkcurrentExp = Math.Max(level.currentExp, LevelController.ExpTableByLevel[level.currentLevel - 1]);
+                            // Native level rewards stay in levelUpQueue, including its save and consecutive-choice flow.
+                            level.LevelUpOnServer();
                         }
                         else
                             participant.BasicsComplete = true;
@@ -289,6 +266,12 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                 if (grant.Owner == null || grant.Object == null) { Suspend(pair.Key); continue; }
                 if (NativeJoiningSupplyRecipes.Acquired(grant.Object, grant.Owner))
                 { grant.Claim.Completed = true; Suspend(pair.Key); }
+                else
+                {
+                    var avatar = grant.Owner.GetComponent<PlayerAvatar>();
+                    if (!NativeJoiningSupplyRecipes.Loaded(avatar) || avatar.currentFloorGuid != grant.Floor)
+                        Suspend(pair.Key);
+                }
             }
         }
 
@@ -355,15 +338,14 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             return true;
         }
 
-        internal bool Request(PlayerSpawner player, int revision)
+        internal bool PrepareNext(PlayerSpawner player, int revision, string floor)
         {
             if (!MidRunAdmissionRuntime.IsAvailable || revision != Revision || !Prepared(player) || HasFailure(player) ||
-                !NativeJoiningSupplyRecipes.Ready(player.GetComponent<PlayerAvatar>())) return false;
+                !NativeJoiningSupplyRecipes.Ready(player.GetComponent<PlayerAvatar>()) ||
+                player.GetComponent<PlayerAvatar>().currentFloorGuid != floor ||
+                player.GetComponent<LevelController>().levelUpQueue.Count > 0) return false;
             int slot = player.currentPlayerIdxForSave;
-            if (grants.TryGetValue(slot, out var existing))
-            {
-                Suspend(slot);
-            }
+            if (grants.ContainsKey(slot)) return true;
             var claim = ledger.Find(slot)?.Next;
             if (claim == null) return false;
             var avatar = player.GetComponent<PlayerAvatar>();
@@ -395,7 +377,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                 if (player.isLocalPlayer && obj.TryGetComponent<Anvil>(out var anvil) && !string.IsNullOrEmpty(claim.ClientSelection))
                     JsonUtility.FromJson<NativeJoiningSupplyAnvil>(claim.ClientSelection).Restore(anvil);
                 NetworkServer.Spawn(obj, player.connectionToClient);
-                grants.Add(slot, new Grant { Owner = player, Claim = claim, Object = obj, Child = state?.Child });
+                grants.Add(slot, new Grant { Owner = player, Claim = claim, Object = obj, Child = state?.Child, Floor = floor });
                 dirty = true;
                 return true;
             }
@@ -415,16 +397,15 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                 NativeJoiningSupplyRecipes.Ready(grant.Owner.GetComponent<PlayerAvatar>());
         }
 
-        internal bool Finish(PlayerAvatar player, Sephirite reward)
+        internal bool AllowNativeFinish(PlayerAvatar player, Sephirite reward)
         {
             var grant = grants.Values.FirstOrDefault(item => item.Object == reward.gameObject);
-            if (grant == null) return false;
-            if (grant.Owner != player.GetComponent<PlayerSpawner>()) return true;
+            if (grant == null) return true;
+            if (grant.Owner != player.GetComponent<PlayerSpawner>()) return false;
             grant.Claim.Completed = true;
-            reward.AcquireAndDestroy();
-            CloseReward.Invoke(player, null);
             grants.Remove(grant.Owner.currentPlayerIdxForSave);
             dirty = true;
+            // Let the game finish this reward and open any pending native level reward.
             return true;
         }
 
@@ -441,7 +422,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
             run = null;
             ledger = new JoiningSupplyLedger();
             initialized.Clear(); available.Clear(); grants.Clear();
-            AdvancingLevel = null; SelectingTablet = null; SpawningFacilityDice = false;
+            SelectingTablet = null; SpawningFacilityDice = false;
         }
 
         internal void Despawning(GameObject obj)

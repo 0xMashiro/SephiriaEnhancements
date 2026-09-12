@@ -72,10 +72,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
 
         internal static GameObject Create(JoiningSupplyOpportunity recipe, PlayerAvatar player, Vector3 position)
         {
-            GameObject prefab;
-            if (recipe.Kind == JoiningSupplyKind.LevelReward)
-                prefab = Resources.Load<GameObject>("Sephirite/Sephirite_LVUP");
-            else if (!NetworkClient.prefabs.TryGetValue(recipe.Prefab, out prefab))
+            if (!NetworkClient.prefabs.TryGetValue(recipe.Prefab, out var prefab))
                 throw new InvalidOperationException("The native reward prefab is not registered.");
             if (prefab == null) throw new InvalidOperationException("The native reward prefab is missing.");
             GameObject obj = UnityEngine.Object.Instantiate(prefab, position, Quaternion.identity);
@@ -83,8 +80,8 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
                 random.SetRandomID(recipe.Seed);
             if (obj.TryGetComponent<Sephirite>(out var reward))
             {
-                reward.type = recipe.Kind == JoiningSupplyKind.LevelReward ? Sephirite.Type.NORMAL : (Sephirite.Type)recipe.Variant;
-                reward.Initialize(recipe.Kind == JoiningSupplyKind.LevelReward ? recipe.Seed : unchecked(recipe.Seed + player.RandomID));
+                reward.type = (Sephirite.Type)recipe.Variant;
+                reward.Initialize(unchecked(recipe.Seed + player.RandomID));
             }
             if (obj.TryGetComponent<InventoryOrb>(out var storage)) storage.storage = checked((short)recipe.Amount);
             if (obj.TryGetComponent<MaxHPDispenser>(out var health)) health.increaseHp = recipe.Amount;
@@ -122,7 +119,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
 
         internal static bool Loaded(PlayerAvatar player) => player != null &&
             player.loadingScreenType == -1 && !string.IsNullOrEmpty(player.currentFloorGuid) &&
-            FloorGenerator.FloorGenerators.Any(floor => floor != null && floor.guid == player.currentFloorGuid && floor.GenerateSuccess);
+            FloorAt(player.transform.position) is FloorGenerator floor && floor.guid == player.currentFloorGuid && floor.GenerateSuccess;
 
         internal static bool CanOpen(PlayerAvatar player) => Ready(player) && UIManager.Instance != null &&
             !UIManager.Instance.IsHidden && UIManager.Instance.IsPausePanelOpeningAllowed &&

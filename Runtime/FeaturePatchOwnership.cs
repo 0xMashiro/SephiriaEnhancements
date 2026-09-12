@@ -139,8 +139,6 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.MultiplayerAccess.Integration.JoiningSupplyFinishPatch":
                 case "SephiriaEnhancements.MultiplayerAccess.Integration.JoiningSupplyInitializationPatch":
                 case "SephiriaEnhancements.MultiplayerAccess.Integration.JoiningSupplyInteractionOwnershipPatch":
-                case "SephiriaEnhancements.MultiplayerAccess.Integration.JoiningSupplyLevelFeedbackPatch":
-                case "SephiriaEnhancements.MultiplayerAccess.Integration.JoiningSupplyLevelRewardPatch":
                 case "SephiriaEnhancements.MultiplayerAccess.Integration.JoiningSupplyLoadPatch":
                 case "SephiriaEnhancements.MultiplayerAccess.Integration.JoiningSupplyMiracleConfirmationPatch":
                 case "SephiriaEnhancements.MultiplayerAccess.Integration.JoiningSupplyRewardOwnershipPatch":
@@ -154,7 +152,6 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.MultiplayerAccess.Integration.MidRunLobbyAvailabilityPatch":
                 case "SephiriaEnhancements.MultiplayerAccess.Integration.MidRunReconnectSupportPatch":
                 case "SephiriaEnhancements.MultiplayerAccess.Integration.MidRunServerCleanupPatch":
-                case "SephiriaEnhancements.MultiplayerAccess.Integration.NativeJoiningSupplyPauseEntry":
                     return FeatureId.MultiplayerAccess;
                 case "SephiriaEnhancements.MultiplayerRules.Integration.AvatarSpawnOriginCapturePatch":
                 case "SephiriaEnhancements.MultiplayerRules.Integration.DirectMerchantInventoryRulePatch":

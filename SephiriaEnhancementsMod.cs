@@ -78,8 +78,6 @@ namespace SephiriaEnhancements
             typeof(JoiningSupplyExplorationPatch),
             typeof(JoiningSupplyLoadPatch),
             typeof(JoiningSupplySpawnPatch),
-            typeof(JoiningSupplyLevelRewardPatch),
-            typeof(JoiningSupplyLevelFeedbackPatch),
             typeof(JoiningSupplyFinishPatch),
             typeof(JoiningSupplyTabletPatch),
             typeof(JoiningSupplyCheckpointPatch),
@@ -96,8 +94,7 @@ namespace SephiriaEnhancements
             typeof(JoiningSupplyMiracleConfirmationPatch),
             typeof(JoiningSupplyAnvilSelectionPatch),
             typeof(JoiningSupplyAnvilConfirmationPatch),
-            typeof(JoiningSupplyEnchantConfirmationPatch),
-            typeof(NativeJoiningSupplyPauseEntry)
+            typeof(JoiningSupplyEnchantConfirmationPatch)
         };
 
         private GameObject controllerObject;

@@ -58,15 +58,19 @@ not disable reconnect support. Reconnection still depends on the game's room, ch
 
 With the same Mod version on the host and joining player, a new arrival receives the positive difference up to
 the other players' average level and current gold, rounded down. Level gains use the game's growth rules;
-starting at level 1 and catching up to level 30 provides 29 level reward choices. Use **Claim joining supplies**
-in the pause menu outside combat to claim one reward at a time. Choice rewards use the game's own interfaces,
-including miracle choices; choosing another miracle follows the game's replacement rules.
+starting at level 1 and catching up to level 30 provides 29 level reward choices through the game's normal
+level-up reward entry, continuing to the next choice after each claim. Once these choices are finished,
+recorded route supplies arrive automatically outside combat and loading, while no other menu is open.
+Choice rewards appear nearby one at a time for normal interaction; other supplies are applied directly.
+Choosing another miracle follows the game's replacement rules. No pause-menu claiming is required.
 
 Joining supplies include recorded reward opportunities on one existing teammate's route. They do not copy
 another player's equipment, reimburse purchases, grant permanent unlocks or reconstruct rewards from before
 recording began. Keep the Mod installed to claim pending supplies. Reconnecting resumes the same allowance
 and remaining choices; it does not award another joining allowance. Saved exploration and defeat retry restore
-the corresponding supply progress.
+the corresponding supply progress. Pending level-up rewards follow the game's own save behavior, which
+stores their count and seeds; it does not preserve every previously displayed choice or reroll state.
+When updating from the pause-menu level-reward system, start a new exploration; its old supply records are not migrated.
 
 Under Bars and Numbers settings, teammate HP/MP, companion HUD numbers and extra mana-reservation numbers start off.
 Companion HUD numbers and ordinary creatures' world-space numbers have separate controls.

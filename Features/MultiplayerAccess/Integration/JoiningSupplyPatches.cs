@@ -120,56 +120,6 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
         }
     }
 
-    [HarmonyPatch(typeof(LevelController), nameof(LevelController.GenerateItem))]
-    internal static class JoiningSupplyLevelRewardPatch
-    {
-        private static bool Prefix(LevelController __instance, int seed)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
-            {
-                return true;
-            }
-
-            try
-            {
-                return PrefixCore(__instance, seed);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
-                return true;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static bool PrefixCore(LevelController __instance, int seed) => !(NativeJoiningSupplies.Instance?.DeferLevelReward(__instance, seed) ?? false);
-    }
-
-    [HarmonyPatch(typeof(LevelController), "TargetLevelUp")]
-    internal static class JoiningSupplyLevelFeedbackPatch
-    {
-        private static bool Prefix(LevelController __instance)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.MultiplayerAccess))
-            {
-                return true;
-            }
-
-            try
-            {
-                return PrefixCore(__instance);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.MultiplayerAccess, exception);
-                return true;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static bool PrefixCore(LevelController __instance) => NativeJoiningSupplies.AdvancingLevel != __instance;
-    }
-
     [HarmonyPatch(typeof(PlayerAvatar), "FinishSephiriteAcquire")]
     internal static class JoiningSupplyFinishPatch
     {
@@ -192,7 +142,7 @@ namespace SephiriaEnhancements.MultiplayerAccess.Integration
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static bool PrefixCore(PlayerAvatar __instance, Sephirite sephirite) => sephirite == null || !(NativeJoiningSupplies.Instance?.Finish(__instance, sephirite) ?? false);
+        private static bool PrefixCore(PlayerAvatar __instance, Sephirite sephirite) => sephirite == null || (NativeJoiningSupplies.Instance?.AllowNativeFinish(__instance, sephirite) ?? true);
     }
 
     [HarmonyPatch(typeof(AltarOfTablet), "UserCode_CmdSpawnReward__AltarOfTabletInteractable__PlayerSpawner")]

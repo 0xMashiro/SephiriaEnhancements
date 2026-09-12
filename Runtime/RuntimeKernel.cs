@@ -44,6 +44,7 @@ namespace SephiriaEnhancements.Runtime
         private bool initialized;
 
         internal RuntimeStateSnapshot State => stateHub?.Current;
+        internal bool InventoryCapturePending => inventoryCapturePending;
         internal EncounterLifecycleEvent LastEncounterLifecycleEvent =>
             encounterLifecycleHub.Current;
 

@@ -26,7 +26,7 @@ namespace SephiriaEnhancements.Inventory
                 "Inventory arrangement is already in progress.",
                 "Place or cancel the item you are holding first.",
                 "Arrangement stopped because you picked up an item.",
-                "Arrangement failed and has been disabled. See the Mod log.",
+                "Arrangement failed and has been disabled. See the Mod log.\nOpen the logs in settings → About and Updates → Open Mod log folder.",
                 "SMART ARRANGE",
                 "Combo targets",
                 "ARRANGE",
@@ -91,6 +91,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nItems may have moved and will not return automatically. Check your backpack.",
                 "Move mark",
                 "Artifact rules are not saved with your game.",
+                "{0}\nIf this continues: Open the logs in settings → About and Updates → Open Mod log folder.",
+                "Could not read the backpack data. Arrangement did not start.",
             },
             ["zh-CN"] = new[]
             {
@@ -113,7 +115,7 @@ namespace SephiriaEnhancements.Inventory
                 "正在整理背包。",
                 "请先放下或取消当前拿起的物品。",
                 "你拿起了物品，本次整理已停止。",
-                "整理出错，已停用。详情请查看 Mod 日志。",
+                "整理出错，已停用。详情请查看 Mod 日志。\n日志入口：设置 → 关于与更新 → 打开 Mod 日志文件夹。",
                 "智能整理",
                 "连招目标",
                 "整理",
@@ -178,6 +180,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\n物品可能已移动，不会自动归位，请检查背包。",
                 "移动标记",
                 "神器规则不随存档保存。",
+                "{0}\n若持续出现，日志入口：设置 → 关于与更新 → 打开 Mod 日志文件夹。",
+                "无法读取背包数据，本次未开始整理。",
             },
             ["zh-TW"] = new[]
             {
@@ -200,7 +204,7 @@ namespace SephiriaEnhancements.Inventory
                 "正在整理背包。",
                 "請先放下或取消目前拿起的物品。",
                 "你拿起了物品，本次整理已停止。",
-                "整理出錯，已停用。詳情請查看 Mod 日誌。",
+                "整理出錯，已停用。詳情請查看 Mod 日誌。\n日誌入口：設定 → 關於與更新 → 開啟 Mod 日誌資料夾。",
                 "智慧整理",
                 "連招目標",
                 "整理",
@@ -265,6 +269,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\n物品可能已移動，不會自動歸位，請檢查背包。",
                 "移動標記",
                 "神器規則不隨存檔儲存。",
+                "{0}\n若持續出現，日誌入口：設定 → 關於與更新 → 開啟 Mod 日誌資料夾。",
+                "無法讀取背包資料，本次未開始整理。",
             },
             ["ja-JP"] = new[]
             {
@@ -287,7 +293,7 @@ namespace SephiriaEnhancements.Inventory
                 "インベントリの最適化は既に進行中です。",
                 "手に持っているアイテムを置くか、操作をキャンセルしてください。",
                 "アイテムを持ち上げたため、最適化を停止しました。",
-                "整理中にエラーが発生したため無効にしました。Mod ログをご確認ください。",
+                "整理中にエラーが発生したため無効にしました。Mod ログをご確認ください。\nログは設定 → 情報と更新 → Mod ログフォルダーを開く から開けます。",
                 "インベントリの最適化",
                 "コンボ目標",
                 "インベントリを最適化",
@@ -352,6 +358,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nアイテムが移動済みの可能性があります。自動では元に戻りません。バッグを確認してください。",
                 "マークを移動",
                 "アーティファクトのルールはセーブデータに保存されません。",
+                "{0}\n続く場合はログをご確認ください。ログは設定 → 情報と更新 → Mod ログフォルダーを開く から開けます。",
+                "バッグのデータを読み取れなかったため、整理を開始できませんでした。",
             },
             ["ko-KR"] = new[]
             {
@@ -374,7 +382,7 @@ namespace SephiriaEnhancements.Inventory
                 "이미 인벤토리 최적화가 진행 중입니다.",
                 "들고 있는 아이템을 먼저 놓거나 이동을 취소해 주세요.",
                 "아이템을 집어 들어 최적화를 중단했습니다.",
-                "정리 중 오류가 발생하여 비활성화되었습니다. Mod 로그를 확인하세요.",
+                "정리 중 오류가 발생하여 비활성화되었습니다. Mod 로그를 확인하세요.\n로그 위치: 설정 → 정보 및 업데이트 → Mod 로그 폴더 열기.",
                 "인벤토리 최적화",
                 "콤보 목표",
                 "인벤토리 최적화",
@@ -439,6 +447,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\n아이템이 이미 이동했을 수 있으며 자동으로 복원되지 않습니다. 가방을 확인하세요.",
                 "표시 이동",
                 "아티팩트 규칙은 저장 파일에 보관되지 않습니다.",
+                "{0}\n계속되면 확인하세요. 로그 위치: 설정 → 정보 및 업데이트 → Mod 로그 폴더 열기.",
+                "가방 데이터를 읽을 수 없어 정리를 시작하지 못했습니다.",
             },
             ["de-DE"] = new[]
             {
@@ -461,7 +471,7 @@ namespace SephiriaEnhancements.Inventory
                 "Die Inventaroptimierung läuft bereits.",
                 "Lege zuerst den gehaltenen Gegenstand ab oder brich das Verschieben ab.",
                 "Du hast einen Gegenstand aufgenommen. Optimierung gestoppt.",
-                "Die Anordnung ist fehlgeschlagen und wurde deaktiviert. Siehe Mod-Protokoll.",
+                "Die Anordnung ist fehlgeschlagen und wurde deaktiviert. Siehe Mod-Protokoll.\nProtokolle öffnen: Einstellungen → Info und Updates → Mod-Protokollordner öffnen.",
                 "Inventaroptimierung",
                 "Kombo-Ziele",
                 "Inventar optimieren",
@@ -526,6 +536,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nGegenstände wurden möglicherweise verschoben und werden nicht automatisch zurückgelegt. Prüfe den Rucksack.",
                 "Markierung bewegen",
                 "Artefaktregeln werden nicht im Spielstand gespeichert.",
+                "{0}\nFalls dies anhält: Protokolle öffnen: Einstellungen → Info und Updates → Mod-Protokollordner öffnen.",
+                "Die Rucksackdaten konnten nicht gelesen werden. Die Anordnung wurde nicht gestartet.",
             },
             ["fr-FR"] = new[]
             {
@@ -548,7 +560,7 @@ namespace SephiriaEnhancements.Inventory
                 "L’optimisation de l’inventaire est déjà en cours.",
                 "Posez d’abord l’objet tenu ou annulez son déplacement.",
                 "Vous avez pris un objet. Optimisation arrêtée.",
-                "Le rangement a échoué et a été désactivé. Consultez le journal du Mod.",
+                "Le rangement a échoué et a été désactivé. Consultez le journal du Mod.\nOuvrez les journaux dans Paramètres → Informations et mises à jour → Ouvrir le dossier des journaux du Mod.",
                 "Optimisation de l’inventaire",
                 "Objectifs de combo",
                 "Optimiser l’inventaire",
@@ -613,6 +625,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nDes objets ont peut-être été déplacés et ne reviendront pas automatiquement à leur place. Vérifie le sac.",
                 "Déplacer le repère",
                 "Les règles des artefacts ne sont pas sauvegardées.",
+                "{0}\nSi cela persiste : Ouvrez les journaux dans Paramètres → Informations et mises à jour → Ouvrir le dossier des journaux du Mod.",
+                "Impossible de lire les données du sac. Le rangement n’a pas démarré.",
             },
             ["es-ES"] = new[]
             {
@@ -635,7 +649,7 @@ namespace SephiriaEnhancements.Inventory
                 "La optimización del inventario ya está en curso.",
                 "Coloca primero el objeto que sostienes o cancela su movimiento.",
                 "Has recogido un objeto. Optimización detenida.",
-                "La organización falló y se ha desactivado. Consulta el registro del Mod.",
+                "La organización falló y se ha desactivado. Consulta el registro del Mod.\nAbre los registros en Ajustes → Información y actualizaciones → Abrir carpeta de registros del Mod.",
                 "Optimización del inventario",
                 "Objetivos de combo",
                 "Optimizar inventario",
@@ -700,6 +714,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nPuede que se hayan movido objetos. No volverán automáticamente a su sitio. Revisa la mochila.",
                 "Mover marca",
                 "Las reglas de artefactos no se guardan con la partida.",
+                "{0}\nSi sigue ocurriendo: Abre los registros en Ajustes → Información y actualizaciones → Abrir carpeta de registros del Mod.",
+                "No se pudieron leer los datos de la mochila. No se inició la organización.",
             },
             ["it-IT"] = new[]
             {
@@ -722,7 +738,7 @@ namespace SephiriaEnhancements.Inventory
                 "L’ottimizzazione dell’inventario è già in corso.",
                 "Prima posa l’oggetto che tieni o annulla lo spostamento.",
                 "Hai preso un oggetto. Ottimizzazione interrotta.",
-                "Il riordino è fallito ed è stato disattivato. Consulta il registro del Mod.",
+                "Il riordino è fallito ed è stato disattivato. Consulta il registro del Mod.\nApri i registri da Impostazioni → Informazioni e aggiornamenti → Apri cartella dei registri del Mod.",
                 "Ottimizzazione inventario",
                 "Obiettivi combo",
                 "Ottimizza inventario",
@@ -787,6 +803,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nAlcuni oggetti potrebbero essere stati spostati e non torneranno automaticamente al loro posto. Controlla lo zaino.",
                 "Sposta segno",
                 "Le regole degli artefatti non vengono salvate con la partita.",
+                "{0}\nSe il problema persiste: Apri i registri da Impostazioni → Informazioni e aggiornamenti → Apri cartella dei registri del Mod.",
+                "Impossibile leggere i dati dello zaino. L’organizzazione non è iniziata.",
             },
             ["pt-BR"] = new[]
             {
@@ -809,7 +827,7 @@ namespace SephiriaEnhancements.Inventory
                 "A otimização do inventário já está em andamento.",
                 "Primeiro coloque o item que está segurando ou cancele o movimento.",
                 "Você pegou um item. Otimização interrompida.",
-                "A organização falhou e foi desativada. Consulte o registro do Mod.",
+                "A organização falhou e foi desativada. Consulte o registro do Mod.\nAbra os registros em Configurações → Informações e atualizações → Abrir pasta de registros do Mod.",
                 "Otimização do inventário",
                 "Metas de combo",
                 "Otimizar inventário",
@@ -874,6 +892,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nItens podem ter sido movidos e não voltarão automaticamente ao lugar. Confira a mochila.",
                 "Mover marca",
                 "As regras de artefatos não são salvas com a partida.",
+                "{0}\nSe continuar: Abra os registros em Configurações → Informações e atualizações → Abrir pasta de registros do Mod.",
+                "Não foi possível ler os dados da mochila. A organização não começou.",
             },
             ["pl-PL"] = new[]
             {
@@ -896,7 +916,7 @@ namespace SephiriaEnhancements.Inventory
                 "Optymalizacja ekwipunku już trwa.",
                 "Najpierw odłóż trzymany przedmiot lub anuluj przenoszenie.",
                 "Podniesiono przedmiot. Optymalizacja zatrzymana.",
-                "Porządkowanie nie powiodło się i zostało wyłączone. Sprawdź dziennik Modu.",
+                "Porządkowanie nie powiodło się i zostało wyłączone. Sprawdź dziennik Modu.\nOtwórz dzienniki: Ustawienia → Informacje i aktualizacje → Otwórz folder dzienników Modu.",
                 "Optymalizacja ekwipunku",
                 "Cele kombinacji",
                 "Optymalizuj ekwipunek",
@@ -961,6 +981,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nPrzedmioty mogły zostać przeniesione i nie wrócą automatycznie na miejsce. Sprawdź plecak.",
                 "Przenieś znacznik",
                 "Reguły artefaktów nie są zapisywane z grą.",
+                "{0}\nJeśli problem się powtarza: Otwórz dzienniki: Ustawienia → Informacje i aktualizacje → Otwórz folder dzienników Modu.",
+                "Nie udało się odczytać danych plecaka. Układanie nie zostało rozpoczęte.",
             },
             ["ru-RU"] = new[]
             {
@@ -983,7 +1005,7 @@ namespace SephiriaEnhancements.Inventory
                 "Оптимизация инвентаря уже выполняется.",
                 "Сначала положите удерживаемый предмет или отмените его перемещение.",
                 "Вы взяли предмет. Оптимизация остановлена.",
-                "Расстановка завершилась ошибкой и отключена. См. журнал мода.",
+                "Расстановка завершилась ошибкой и отключена. См. журнал мода.\nЖурналы: Настройки → Информация и обновления → Открыть папку журналов мода.",
                 "Оптимизация инвентаря",
                 "Цели комбо",
                 "Оптимизировать инвентарь",
@@ -1048,6 +1070,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nПредметы могли переместиться и не вернутся на место автоматически. Проверьте рюкзак.",
                 "Переместить метку",
                 "Правила артефактов не записываются в сохранение игры.",
+                "{0}\nЕсли проблема повторяется: Журналы: Настройки → Информация и обновления → Открыть папку журналов мода.",
+                "Не удалось прочитать данные рюкзака. Расстановка не началась.",
             },
             ["sv-SE"] = new[]
             {
@@ -1070,7 +1094,7 @@ namespace SephiriaEnhancements.Inventory
                 "Inventarieoptimering pågår redan.",
                 "Placera först föremålet du håller eller avbryt flytten.",
                 "Du plockade upp ett föremål. Optimeringen stoppades.",
-                "Sorteringen misslyckades och har inaktiverats. Se moddens logg.",
+                "Sorteringen misslyckades och har inaktiverats. Se moddens logg.\nÖppna loggarna via Inställningar → Om och uppdateringar → Öppna moddens loggmapp.",
                 "Inventarieoptimering",
                 "Kombinationsmål",
                 "Optimera inventariet",
@@ -1135,6 +1159,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nFöremål kan ha flyttats och återställs inte automatiskt. Kontrollera ryggsäcken.",
                 "Flytta markering",
                 "Artefaktregler sparas inte med spelet.",
+                "{0}\nOm det fortsätter: Öppna loggarna via Inställningar → Om och uppdateringar → Öppna moddens loggmapp.",
+                "Det gick inte att läsa ryggsäckens data. Ordningen ändrades inte.",
             },
             ["tr-TR"] = new[]
             {
@@ -1157,7 +1183,7 @@ namespace SephiriaEnhancements.Inventory
                 "Envanter iyileştirmesi zaten sürüyor.",
                 "Önce tuttuğunuz eşyayı bırakın veya taşıma işlemini iptal edin.",
                 "Bir eşya aldınız. İyileştirme durduruldu.",
-                "Düzenleme başarısız oldu ve devre dışı bırakıldı. Mod günlüğüne bakın.",
+                "Düzenleme başarısız oldu ve devre dışı bırakıldı. Mod günlüğüne bakın.\nGünlükleri açın: Ayarlar → Hakkında ve güncellemeler → Mod günlük klasörünü aç.",
                 "Envanter iyileştirmesi",
                 "Kombo hedefleri",
                 "Envanteri iyileştir",
@@ -1222,6 +1248,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nEşyalar taşınmış olabilir ve otomatik olarak eski yerlerine dönmez. Çantanı kontrol et.",
                 "İşareti taşı",
                 "Eser kuralları oyun kaydına yazılmaz.",
+                "{0}\nDevam ederse: Günlükleri açın: Ayarlar → Hakkında ve güncellemeler → Mod günlük klasörünü aç.",
+                "Sırt çantası verileri okunamadı. Düzenleme başlamadı.",
             },
             ["th-TH"] = new[]
             {
@@ -1244,7 +1272,7 @@ namespace SephiriaEnhancements.Inventory
                 "กำลังปรับช่องเก็บของอยู่แล้ว",
                 "โปรดวางไอเทมที่ถืออยู่หรือยกเลิกการย้ายก่อน",
                 "คุณหยิบไอเทมขึ้นมา จึงหยุดการปรับช่องเก็บของ",
-                "เกิดข้อผิดพลาดในการจัดเรียงและปิดใช้งานแล้ว ดูบันทึก Mod",
+                "เกิดข้อผิดพลาดในการจัดเรียงและปิดใช้งานแล้ว ดูบันทึก Mod\nเปิดบันทึกได้ที่ การตั้งค่า → ข้อมูลและอัปเดต → เปิดโฟลเดอร์บันทึก Mod",
                 "ปรับช่องเก็บของ",
                 "เป้าหมายคอมโบ",
                 "ปรับช่องเก็บของให้เหมาะสม",
@@ -1309,6 +1337,8 @@ namespace SephiriaEnhancements.Inventory
                 "{0}\nไอเทมอาจถูกย้ายแล้วและจะไม่กลับที่เดิมโดยอัตโนมัติ โปรดตรวจสอบกระเป๋า",
                 "ย้ายเครื่องหมาย",
                 "กฎอาร์ติแฟกต์จะไม่ถูกบันทึกลงไฟล์เซฟ",
+                "{0}\nหากยังเกิดขึ้น: เปิดบันทึกได้ที่ การตั้งค่า → ข้อมูลและอัปเดต → เปิดโฟลเดอร์บันทึก Mod",
+                "อ่านข้อมูลกระเป๋าไม่ได้ จึงยังไม่ได้เริ่มจัดเรียง",
             },
         };
     }

@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using SephiriaEnhancements.Integration;
+using SephiriaEnhancements.Runtime;
 
 namespace SephiriaEnhancements.Inventory
 {
@@ -40,7 +41,7 @@ namespace SephiriaEnhancements.Inventory
             image.sprite = nativeTemplates.Slot.defaultBGSprite;
             image.color = Color.white;
             button.targetGraphic = image;
-            button.onClick.AddListener(() => onClick?.Invoke());
+            button.onClick.AddListener(() => FeatureFailure.Run(FeatureId.Inventory, () => onClick?.Invoke()));
             buttonObject.AddComponent<InventoryIntentPanelDropTarget>().Configure(
                 cancelPickup, changePage, cancelOnLeft: false);
             label = CreateText("Label", rect, template, Vector2.zero, size,

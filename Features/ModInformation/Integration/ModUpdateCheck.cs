@@ -26,6 +26,13 @@ namespace SephiriaEnhancements.ModInformation
         internal const string Nexus = "https://www.nexusmods.com/sephiria/mods/24";
         internal const string GitHub = "https://github.com/0xMashiro/SephiriaEnhancements/releases";
         internal const string ReleasesApi = "https://api.github.com/repos/0xMashiro/SephiriaEnhancements/releases?per_page=100";
+
+        internal static string ReportIssue(string language, string gameVersion, string modVersion, string buildFlavor)
+        {
+            string template = language == "zh-CN" || language == "zh-TW" ? "bug-report.zh-CN.yml" : "bug-report.en.yml";
+            return "https://github.com/0xMashiro/SephiriaEnhancements/issues/new?template=" + template +
+                "&versions=" + Uri.EscapeDataString("Sephiria " + gameVersion + " / Sephiria Enhancements " + modVersion + " / " + buildFlavor);
+        }
     }
 
     internal static class ModUpdateCheck

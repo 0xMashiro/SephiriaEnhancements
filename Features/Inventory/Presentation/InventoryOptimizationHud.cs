@@ -2,6 +2,7 @@ using static SephiriaEnhancements.Inventory.NativeInventoryHudControls;
 #nullable disable
 using SephiriaEnhancements.Runtime.Inventory;
 using SephiriaEnhancements.Integration;
+using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.KeyboardUiNavigation;
 using UnityEngine.InputSystem;
 
@@ -610,7 +611,8 @@ namespace SephiriaEnhancements.Inventory
             markPriorities.interactable = editable && !interaction.HasPickup &&
                 !NativeInventoryIntentDrop.HasHeldItem;
             SetSelected(markPriorities, priorityMarking);
-            optimize.interactable = editable && !interaction.HasPickup && snapshot?.Items.Count > 0 &&
+            // Keep unavailable/empty inventory requests reachable so the controller can explain why.
+            optimize.interactable = editable && !interaction.HasPickup &&
                 !NativeInventoryIntentDrop.HasHeldItem;
             previousPageText.text = "‹";
             nextPageText.text = "›";
@@ -1399,7 +1401,7 @@ namespace SephiriaEnhancements.Inventory
             ApplyImageStyle(background,
                 nativeButton?.targetGraphic as Image, ButtonColor);
             button.targetGraphic = background;
-            button.onClick.AddListener(() => onClick?.Invoke());
+            button.onClick.AddListener(() => FeatureFailure.Run(FeatureId.Inventory, () => onClick?.Invoke()));
             buttonObject.AddComponent<InventoryIntentPanelDropTarget>().Configure(
                 ClearArtifactPickup, ChangePage, cancelOnLeft: false);
 

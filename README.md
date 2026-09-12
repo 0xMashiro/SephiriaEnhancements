@@ -125,7 +125,7 @@ Standalone Mod notices use the `[Sephiria Enhancements]` prefix. Errors and impo
 
 Settings are grouped into **General**, **Combat and Display**, **Bars and Numbers**, **Controls and Camera**, **Multiplayer**, and **About and Updates**. Version information and update checks are in the last category.
 
-When the Mod is off, its settings categories are hidden and saved choices are retained. In custom multiplayer rules, click a numeric value or use the confirm action to open an input dialog; numeric rows no longer use adjustment arrows. Enter confirms input, Esc cancels, and Tab / Shift+Tab move between the field and buttons; controllers can use the on-screen number pad. Confirmation updates the draft; apply it from the main panel. The panel compares original, applied and draft values and counts unapplied changes. The dialog shows the current team size, available game references, range and step. Clear the input to restore that rule to game behavior. Reference values describe the part controlled by the setting, not final enemy statistics.
+When the Mod is off, its settings categories are hidden and saved choices are retained; the log-folder and problem-report actions remain available. In custom multiplayer rules, click a numeric value or use the confirm action to open an input dialog; numeric rows no longer use adjustment arrows. Enter confirms input, Esc cancels, and Tab / Shift+Tab move between the field and buttons; controllers can use the on-screen number pad. Confirmation updates the draft; apply it from the main panel. The panel compares original, applied and draft values and counts unapplied changes. The dialog shows the current team size, available game references, range and step. Clear the input to restore that rule to game behavior. Reference values describe the part controlled by the setting, not final enemy statistics.
 
 On first entering a game after launch, the Mod shows the Mod and game versions and official Nexus Mods / GitHub links
 in the local chat log. **About and Updates** settings include the version, both download pages, a welcome-message
@@ -149,7 +149,14 @@ Read the corresponding setting's help before using these features.
 
 ## Feedback
 
-Report bugs or suggestions through [GitHub Issues](https://github.com/0xMashiro/SephiriaEnhancements/issues).
+Report bugs or suggestions on the [Nexus Mods page](https://www.nexusmods.com/sephiria/mods/24?tab=posts) or through [GitHub Issues](https://github.com/0xMashiro/SephiriaEnhancements/issues).
+In the Mod's **About and Updates** settings:
+
+1. Choose **Open Mod log folder**, find the `support*.log` files.
+2. Choose **Copy report details**, paste the outline with your versions on Nexus Mods or where you already contact the author, and add what happened. Attach logs where attachments are supported. Copying sends nothing.
+
+If you have a GitHub account, **Report on GitHub** opens a form with the game and Mod versions filled in. Chinese game languages open the Chinese form; other languages open the English form.
+All three actions remain visible when the Mod's main switch is off. If the system cannot open the folder or browser, the action changes to **Copy path / Copy link**. Activate it again, then paste into your file manager's address bar or browser.
 English and Chinese are welcome. When possible, include game and Mod versions, steps, expected and actual results,
 solo/host/client status, other mods and relevant settings.
 Missing some details? You're still welcome to describe what happened.
@@ -157,7 +164,7 @@ Missing some details? You're still welcome to describe what happened.
 <details>
 <summary>Attach logs (Windows)</summary>
 
-Logs are generated automatically. Copy them soon after the issue, before another launch replaces older logs.
+Logs are generated automatically. Copy them soon after the issue, before another launch replaces older logs. If the game or Mod cannot start, use the locations below.
 
 | Files | Location |
 | --- | --- |
@@ -165,7 +172,7 @@ Logs are generated automatically. Copy them soon after the issue, before another
 | `Player.log` for loading failures or crashes; `Player-prev.log` if you restarted | `%USERPROFILE%\AppData\LocalLow\TEAMHORAY\Sephiria` |
 
 Use **Win+R → `shell:Personal`** to open Documents, including redirected OneDrive folders.
-Review logs for private information, ZIP them and attach them to the issue. Logs are not uploaded automatically.
+Review logs for private information and attach the `.log` files directly to the issue. Logs are not uploaded automatically.
 No save folder or game files are needed. **You can still report a problem without logs.**
 
 </details>

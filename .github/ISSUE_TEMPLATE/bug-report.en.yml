@@ -5,7 +5,8 @@ body:
     attributes:
       value: |
         Search [existing issues](https://github.com/0xMashiro/SephiriaEnhancements/issues) first and add details there if the same problem has been reported.
-        See [log locations and attachment instructions](https://github.com/0xMashiro/SephiriaEnhancements/blob/HEAD/README.md#find-and-attach-logs-windows).
+        In the Mod settings, choose **About and Updates → Open Mod log folder** to find your logs.
+        If the game or Mod cannot start, see [Feedback](https://github.com/0xMashiro/SephiriaEnhancements/blob/HEAD/README.md#feedback) for file locations.
         Missing logs or an intermittent problem should not prevent you from reporting. Write "unknown" where necessary.
   - type: input
     id: versions
@@ -28,26 +29,10 @@ body:
     validations:
       required: true
   - type: textarea
-    id: environment
-    attributes:
-      label: Settings and environment
-      description: Include OS, game language, keyboard/mouse or controller, relevant Mod settings and other mods (or none). For co-op, include player count and other players' Mod versions if known.
-  - type: textarea
-    id: reproduction
-    attributes:
-      label: Steps to reproduce
-      description: Describe what you did and how often the problem occurs. If it happened only once, describe what happened beforehand.
-      placeholder: |
-        1.
-        2.
-        Frequency:
-    validations:
-      required: true
-  - type: textarea
     id: behavior
     attributes:
-      label: Expected and actual behavior
-      description: Describe what you expected and what happened, including any on-screen error text.
+      label: What happened?
+      description: Which feature or button did you use, what did you do, and what happened? Include any error text. Mention whether it happens every time. Other mods, relevant settings and other players' versions help if known.
     validations:
       required: true
   - type: textarea
@@ -55,6 +40,6 @@ body:
     attributes:
       label: Logs, screenshots or video
       description: |
-        Attach a ZIP containing available support*.log files from Documents → `Saved Games\Sephiria\Mods\SephiriaEnhancements\Logs\Support`.
+        Use **Open Mod log folder** in the settings, attach the support*.log files here directly. Logs are optional; screenshots or video also help.
         For loading failures or crashes, also attach Player.log from `%USERPROFILE%\AppData\LocalLow\TEAMHORAY\Sephiria`, plus Player-prev.log if you restarted after the problem.
         Copy logs before restarting again. Remove private information before uploading; attachments are public. If logs are unavailable, say so. Do not upload game files or your entire save folder.

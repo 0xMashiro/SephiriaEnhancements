@@ -5,7 +5,8 @@ body:
     attributes:
       value: |
         请先搜索[已有 Issue](https://github.com/0xMashiro/SephiriaEnhancements/issues)，相同问题可以直接在原帖补充。
-        参阅[日志位置与附件说明](https://github.com/0xMashiro/SephiriaEnhancements/blob/HEAD/README.zh-CN.md#查找并附上日志windows)。
+        在 Mod 设置中选择**关于与更新 → 打开 Mod 日志文件夹**即可找到日志。
+        如果游戏或 Mod 无法启动，请参阅[问题反馈](https://github.com/0xMashiro/SephiriaEnhancements/blob/HEAD/README.zh-CN.md#问题反馈)中的文件位置。
         找不到日志或无法稳定复现也可以反馈；不清楚的内容请填写“不确定”。
   - type: input
     id: versions
@@ -28,26 +29,10 @@ body:
     validations:
       required: true
   - type: textarea
-    id: environment
-    attributes:
-      label: 设置与运行环境
-      description: 请说明操作系统、游戏语言、键鼠或手柄、相关 Mod 设置，以及其他已安装 Mod（没有则填“无”）。联机时请补充玩家人数，如已知，也请提供其他玩家的 Mod 版本。
-  - type: textarea
-    id: reproduction
-    attributes:
-      label: 复现步骤
-      description: 说明具体操作与发生频率。如果只发生过一次，请描述问题发生前做了什么。
-      placeholder: |
-        1.
-        2.
-        发生频率：
-    validations:
-      required: true
-  - type: textarea
     id: behavior
     attributes:
-      label: 预期表现与实际表现
-      description: 说明预期发生什么、实际发生什么；若有屏幕上的错误提示，请一并提供。
+      label: 遇到了什么问题？
+      description: 使用了哪个功能或按钮，做了什么操作，之后发生了什么？请附上错误提示，并说明是否每次都会发生。若知道，也可补充其他 Mod、相关设置及其他玩家的版本。
     validations:
       required: true
   - type: textarea
@@ -55,6 +40,6 @@ body:
     attributes:
       label: 日志、截图或视频
       description: |
-        将系统“文档” → `Saved Games\Sephiria\Mods\SephiriaEnhancements\Logs\Support` 中现有的 support*.log 压缩为 ZIP 并作为附件上传。
+        在设置中选择**打开 Mod 日志文件夹**，将其中的 support*.log 文件直接附在这里。日志不是必填项，也欢迎提供截图或视频。
         加载失败或崩溃时，一并提供 `%USERPROFILE%\AppData\LocalLow\TEAMHORAY\Sephiria` 中的 Player.log；问题发生后已重启过游戏时，还请附上 Player-prev.log。
         请在再次重启前复制日志。附件会公开显示，上传前请移除私人信息；找不到日志时请直接说明。无需上传游戏文件或整个存档目录。

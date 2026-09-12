@@ -11,6 +11,9 @@ namespace SephiriaEnhancements.Diagnostics
     {
         private static SupportLog file;
 
+        internal static string DirectoryPath => Path.Combine(SaveData.CommonPath, "Mods",
+            "SephiriaEnhancements", "Logs", "Support");
+
         internal static void Initialize()
         {
             Shutdown();
@@ -21,9 +24,7 @@ namespace SephiriaEnhancements.Diagnostics
                 string header = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture) +
                     " INFO mod_started version=" + version + " game=" + Application.version +
                     " build=" + BuildIdentity.Flavor;
-                file = new SupportLog(Path.Combine(SaveData.CommonPath, "Mods",
-                    "SephiriaEnhancements", "Logs", "Support", "support.log"),
-                    header);
+                file = new SupportLog(Path.Combine(DirectoryPath, "support.log"), header);
             }
             catch (Exception ex) { Disable(ex); }
         }

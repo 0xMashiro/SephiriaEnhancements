@@ -51,6 +51,7 @@ internal static class ModInformationChecks
             welcomeLanguages.Add(language);
         }, SephiriaEnhancements.Configuration.LocalizationLanguages.All);
         Require(welcomeLanguages.Count == SephiriaEnhancements.Configuration.LocalizationLanguages.All.Length, "all welcome languages verified");
+        CheckReporting();
 
         var state = new ModInformationState();
         Require(!state.BeginAutomaticCheck(true), "no automatic network request before gameplay");
@@ -76,6 +77,60 @@ internal static class ModInformationChecks
 
     private static object Release(string version, bool prerelease = false, bool draft = false, bool package = true) =>
         new { tag_name = "v" + version, prerelease, draft, assets = package ? new[] { new { name = "SephiriaEnhancements-" + version + ".zip" } } : Array.Empty<object>() };
+
+    private static void CheckReporting()
+    {
+        const string version = "0.5.0-beta.9+test&template=other#fragment";
+        foreach (string language in SephiriaEnhancements.Configuration.LocalizationLanguages.All)
+        {
+            var uri = new Uri(ModOfficialLinks.ReportIssue(language, "1.0.31", version, "Development"));
+            Require(uri.Scheme == "https" && uri.Host == "github.com" &&
+                uri.AbsolutePath == "/0xMashiro/SephiriaEnhancements/issues/new" && uri.Fragment.Length == 0,
+                "report opens an unsubmitted form at the official repository");
+            string[] query = uri.Query.TrimStart('?').Split('&');
+            string template = language is "zh-CN" or "zh-TW" ? "bug-report.zh-CN.yml" : "bug-report.en.yml";
+            Require(query.Length == 2 && query[0] == "template=" + template &&
+                Uri.UnescapeDataString(query[1]) == "versions=Sephiria 1.0.31 / Sephiria Enhancements " + version + " / Development",
+                "report safely prefills only versions and build flavor in the matching form");
+        }
+
+        var texts = new Dictionary<string, Dictionary<string, string>>();
+        void Add(string language, string key, string value)
+        {
+            if (!texts.TryGetValue(language, out var entries)) texts[language] = entries = new();
+            entries.Add(key, value);
+        }
+        var languages = SephiriaEnhancements.Configuration.LocalizationLanguages.All;
+        ModInformationLocalization.Register(Add, languages);
+        SephiriaEnhancements.Configuration.OptionsCategoryLocalization.Register(Add, languages);
+        SephiriaEnhancements.Runtime.FeatureFailureLocalization.Register(Add, languages);
+        SephiriaEnhancements.Inventory.InventoryOptimizationLocalization.Register(Add);
+        foreach (var entries in texts.Values)
+        {
+            string details = string.Format(entries[ModInformationLocalization.ReportDetails], "1.0.31", "0.5.0-beta.9", "Development");
+            Require(details.Contains("1.0.31") && details.Contains("0.5.0-beta.9") && details.Contains("Development") &&
+                !details.Contains("{0}"), "copyable report identifies the running versions and leaves the problem for the player to describe");
+            Require(entries[ModInformationLocalization.ReportIssue].Contains("GitHub"), "account-based destination is explicit before activation");
+            string category = entries[SephiriaEnhancements.Configuration.OptionsCategoryLocalization.CategoryKeys[^1]];
+            string button = entries[ModInformationLocalization.LogFolder];
+            foreach (string key in new[] {
+                SephiriaEnhancements.Runtime.FeatureFailureLocalization.SettingsHelp,
+                SephiriaEnhancements.Inventory.InventoryOptimizationLocalization.StartUnavailable,
+                SephiriaEnhancements.Inventory.InventoryOptimizationLocalization.DisabledAfterError })
+                Require(entries[key].Contains(category) && entries[key].Contains(button), "failure guidance matches the exact localized settings route");
+            Require(entries[ModInformationLocalization.LogFolderHelp].Contains("support*.log"), "log help identifies report attachments");
+        }
+        var english = texts["en-US"];
+        SephiriaEnhancements.Runtime.FeatureFailure.Reset();
+        Require(SephiriaEnhancements.Runtime.FeatureFailureLocalization.Describe(
+            new[] { SephiriaEnhancements.Runtime.FeatureId.Inventory }, key => english[key]).Contains(english[ModInformationLocalization.LogFolder]),
+            "failure points to settings when available");
+        SephiriaEnhancements.Runtime.FeatureFailure.Disable(SephiriaEnhancements.Runtime.FeatureId.Settings, new Exception());
+        Require(!SephiriaEnhancements.Runtime.FeatureFailureLocalization.Describe(
+            new[] { SephiriaEnhancements.Runtime.FeatureId.Settings }, key => english[key]).Contains(english[ModInformationLocalization.LogFolder]),
+            "settings failure must not direct players to an unavailable entry");
+        SephiriaEnhancements.Runtime.FeatureFailure.Reset();
+    }
 
     private static ModUpdateResult Read(object[] releases, string installed)
     {

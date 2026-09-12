@@ -23,6 +23,8 @@ internal static class InventoryOptimizationLocalizationChecks
                 !InventoryOptimizationLocalization.PreferenceChoiceKeys.All(
                     texts.ContainsKey) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.PositionEffectsUnavailable) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.StartUnavailable) ||
+                !texts.ContainsKey(InventoryOptimizationLocalization.ObservationUnavailable) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudComboTargets) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudLevelEditUnbound) ||
                 !texts.ContainsKey(InventoryOptimizationLocalization.HudEditGoals) ||
@@ -68,6 +70,16 @@ internal static class InventoryOptimizationLocalizationChecks
         Console.WriteLine("Inventory targets: complete editor localization passed");
         VerifyTargetConditions(inventoryTexts);
         VerifyArtifactGoalSummaries(inventoryTexts);
+        foreach (var texts in inventoryTexts.Values)
+        {
+            string waiting = texts[InventoryOptimizationLocalization.RuntimeNotReady];
+            string failed = texts[InventoryOptimizationLocalization.ObservationUnavailable];
+            string disabled = texts[InventoryOptimizationLocalization.DisabledAfterError];
+            string notice = string.Format(texts[InventoryOptimizationLocalization.StartUnavailable], waiting);
+            if (waiting == failed || failed == disabled || !notice.Contains(waiting, StringComparison.Ordinal) ||
+                notice == waiting || notice.Contains("{0}", StringComparison.Ordinal))
+                throw new InvalidOperationException("start feedback must preserve its reason and distinguish waiting, failed observation and disabled feature");
+        }
         foreach (var status in Enum.GetValues<InventoryHardConstraintStatus>())
         {
             string expected = status == InventoryHardConstraintStatus.ProvenInfeasible

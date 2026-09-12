@@ -1,4 +1,8 @@
 using SephiriaEnhancements.Runtime;
+using SephiriaEnhancements.Diagnostics;
+using System;
+using System.Diagnostics;
+using System.Reflection;
 using System.Linq;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
@@ -9,7 +13,7 @@ using static SephiriaEnhancements.Configuration.NativeOptionsRows;
 
 namespace SephiriaEnhancements.ModInformation.Integration
 {
-    internal enum ModInformationRow { Version, GameVersion, Welcome, Automatic, Check, LastChecked, Nexus, GitHub }
+    internal enum ModInformationRow { Version, GameVersion, LogFolder, CopyReport, ReportIssue, Welcome, Automatic, Check, LastChecked, Nexus, GitHub }
 
     internal static class ModInformationOptions
     {
@@ -18,6 +22,9 @@ namespace SephiriaEnhancements.ModInformation.Integration
             if (panel.GetComponentInChildren<ModInformationOption>(true) != null) return;
             Add(template, section, ModInformationRow.Version, ModInformationLocalization.Version, ModInformationLocalization.VersionHelp);
             Add(template, section, ModInformationRow.GameVersion, ModInformationLocalization.GameVersion, ModInformationLocalization.GameVersionHelp);
+            Add(template, section, ModInformationRow.LogFolder, ModInformationLocalization.LogFolder, ModInformationLocalization.LogFolderHelp);
+            Add(template, section, ModInformationRow.CopyReport, ModInformationLocalization.CopyReport, ModInformationLocalization.CopyReportHelp);
+            Add(template, section, ModInformationRow.ReportIssue, ModInformationLocalization.ReportIssue, ModInformationLocalization.ReportIssueHelp);
             Add(template, section, ModInformationRow.Welcome, ModInformationLocalization.WelcomeSetting, ModInformationLocalization.WelcomeHelp);
             Add(template, section, ModInformationRow.Automatic, ModInformationLocalization.AutomaticSetting, ModInformationLocalization.AutomaticHelp);
             Add(template, section, ModInformationRow.Check, ModInformationLocalization.Check, ModInformationLocalization.CheckHelp);
@@ -52,6 +59,12 @@ namespace SephiriaEnhancements.ModInformation.Integration
         private TextMeshProUGUI labelText;
         private TextMeshProUGUI labelReference;
         private bool IsToggle => kind == ModInformationRow.Welcome || kind == ModInformationRow.Automatic;
+        internal bool IsSupportAction => kind == ModInformationRow.LogFolder || kind == ModInformationRow.CopyReport || kind == ModInformationRow.ReportIssue;
+        private string copyTarget;
+        private string supportStatusKey;
+        private static string InstalledVersion => typeof(ModInformationOption).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        private string SupportHelpKey => kind == ModInformationRow.LogFolder ? ModInformationLocalization.LogFolderHelp :
+            kind == ModInformationRow.CopyReport ? ModInformationLocalization.CopyReportHelp : ModInformationLocalization.ReportIssueHelp;
 
         internal void Configure(ModInformationRow row, UI_HorizontalSelectionBox selection,
             UI_LocalizationStringText text, TextMeshProUGUI reference,
@@ -63,7 +76,7 @@ namespace SephiriaEnhancements.ModInformation.Integration
 
         private void OnEnable()
         {
-            if (!FeatureFailure.IsAvailable(FeatureId.ModInformation))
+            if (!IsSupportAction && !FeatureFailure.IsAvailable(FeatureId.ModInformation))
             {
                 return;
             }
@@ -84,6 +97,12 @@ namespace SephiriaEnhancements.ModInformation.Integration
         {
             if (box == null)
                 return;
+            if (IsSupportAction)
+            {
+                copyTarget = null;
+                supportStatusKey = null;
+                SetSupportHelp(SupportHelpKey);
+            }
             box.numberOfElements = IsToggle ? 2 : 1;
 
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
@@ -100,7 +119,7 @@ namespace SephiriaEnhancements.ModInformation.Integration
 
         private void LateUpdate()
         {
-            if (!FeatureFailure.IsAvailable(FeatureId.ModInformation))
+            if (!IsSupportAction && !FeatureFailure.IsAvailable(FeatureId.ModInformation))
             {
                 return;
             }
@@ -122,6 +141,16 @@ namespace SephiriaEnhancements.ModInformation.Integration
         private void Refresh()
         {
             if (box == null || valueText == null) return;
+            if (IsSupportAction)
+            {
+                box.interactable = true;
+                string supportKey = supportStatusKey ?? (kind == ModInformationRow.LogFolder ? ModInformationLocalization.OpenFolder :
+                    kind == ModInformationRow.CopyReport ? ModInformationLocalization.Copy : ModInformationLocalization.Open);
+                if (valueText.valueString.key != supportKey) valueText.UpdateKey(supportKey);
+                valueText.text.text = ModLocalization.Get(supportKey);
+                MatchFonts();
+                return;
+            }
             box.interactable = kind != ModInformationRow.Version && kind != ModInformationRow.GameVersion &&
                 kind != ModInformationRow.LastChecked &&
                 (kind != ModInformationRow.Check || (NativeModInformation.Instance != null && NativeModInformation.Result.Status != ModUpdateStatus.Checking));
@@ -139,6 +168,11 @@ namespace SephiriaEnhancements.ModInformation.Integration
                 kind == ModInformationRow.LastChecked ? (NativeModInformation.LastCheckedUtc?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? ModLocalization.Get(key)) :
                 kind == ModInformationRow.Check && NativeModInformation.Result.Status == ModUpdateStatus.UpdateAvailable ?
                 string.Format(ModLocalization.Get(key), NativeModInformation.Result.Version) : ModLocalization.Get(key);
+            MatchFonts();
+        }
+
+        private void MatchFonts()
+        {
             valueText.text.textWrappingMode = TextWrappingModes.NoWrap;
             NativeLocalizedText.MatchFontSize(valueText.text, fontReference);
             if (labelText != null && labelReference != null)
@@ -179,7 +213,8 @@ namespace SephiriaEnhancements.ModInformation.Integration
         public void OnSubmit(BaseEventData eventData)
         {
             if (box == null || !box.IsInteractable()) return;
-            if (IsToggle) Changed(box.CurrentSelection == 0 ? 1 : 0);
+            if (IsSupportAction) OpenSupportTarget();
+            else if (IsToggle) Changed(box.CurrentSelection == 0 ? 1 : 0);
             else if (kind == ModInformationRow.Check)
             {
                 NativeModInformation.Instance?.StartCheck();
@@ -187,6 +222,48 @@ namespace SephiriaEnhancements.ModInformation.Integration
             }
             else if (kind == ModInformationRow.Nexus) Application.OpenURL(ModOfficialLinks.Nexus);
             else if (kind == ModInformationRow.GitHub) Application.OpenURL(ModOfficialLinks.GitHub);
+        }
+
+        private void OpenSupportTarget()
+        {
+            string target = null;
+            bool copying = kind == ModInformationRow.CopyReport || copyTarget != null;
+            try
+            {
+                if (copying)
+                {
+                    GUIUtility.systemCopyBuffer = kind == ModInformationRow.CopyReport ?
+                        string.Format(ModLocalization.Get(ModInformationLocalization.ReportDetails), Application.version, InstalledVersion, BuildIdentity.Flavor) : copyTarget;
+                    supportStatusKey = ModInformationLocalization.Copied;
+                }
+                else
+                {
+                    target = kind == ModInformationRow.LogFolder ? SupportLogger.DirectoryPath :
+                        ModOfficialLinks.ReportIssue(LocalizationManager.Instance?.CurrentLanguage,
+                            Application.version, InstalledVersion, BuildIdentity.Flavor);
+                    using (Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })) { }
+                }
+            }
+            catch (Exception exception)
+            {
+                // Keep reporting available when the OS cannot open the folder or browser.
+                SupportLogger.Failure(copying ? "support_copy_failed" : "support_open_failed." + kind, exception);
+                copyTarget = copying ? copyTarget : target;
+                supportStatusKey = copying ? ModInformationLocalization.CopyFailed : target == null ? ModInformationLocalization.OpenFailed :
+                    kind == ModInformationRow.LogFolder ? ModInformationLocalization.CopyPath : ModInformationLocalization.CopyLink;
+                SetSupportHelp(copyTarget == null ? SupportHelpKey :
+                    (kind == ModInformationRow.LogFolder ? ModInformationLocalization.LogOpenFailedHelp : ModInformationLocalization.ReportOpenFailedHelp));
+            }
+            Refresh();
+        }
+
+        private void SetSupportHelp(string key)
+        {
+            var help = GetComponent<UI_CommonTooltipOpener>();
+            if (help == null) return;
+            help.tooltipContext = new LocalizedString(key);
+            help.UpdateTooltipData();
+            if (help.Showing) help.OnSelect(null);
         }
 
         public void OnPointerClick(PointerEventData eventData)

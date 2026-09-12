@@ -24,6 +24,8 @@ namespace SephiriaEnhancements.Inventory
             "SephiriaEnhancements.Inventory.Unavailable";
         internal const string RuntimeNotReady =
             "SephiriaEnhancements.Inventory.RuntimeNotReady";
+        internal const string StartUnavailable = "SephiriaEnhancements.Inventory.StartUnavailable";
+        internal const string ObservationUnavailable = "SephiriaEnhancements.Inventory.ObservationUnavailable";
         internal const string EmptyInventory =
             "SephiriaEnhancements.Inventory.EmptyInventory";
         internal const string ItemIdentityConflict =
@@ -298,6 +300,8 @@ namespace SephiriaEnhancements.Inventory
             ApplicationMayHaveChanged,
             HudMoveMark,
             HudArtifactPersistence,
+            StartUnavailable,
+            ObservationUnavailable,
 
 };
 

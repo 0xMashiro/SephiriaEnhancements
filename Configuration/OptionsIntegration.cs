@@ -188,6 +188,9 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_ViewDistance",
                 "Option_SephiriaEnhancements_ModInformation_Version",
                 "Option_SephiriaEnhancements_ModInformation_GameVersion",
+                "Option_SephiriaEnhancements_ModInformation_LogFolder",
+                "Option_SephiriaEnhancements_ModInformation_CopyReport",
+                "Option_SephiriaEnhancements_ModInformation_ReportIssue",
                 "Option_SephiriaEnhancements_ModInformation_Welcome",
                 "Option_SephiriaEnhancements_ModInformation_Automatic",
                 "Option_SephiriaEnhancements_ModInformation_Check",
@@ -499,8 +502,8 @@ namespace SephiriaEnhancements.Configuration
             for (int index = 0; index < members.Length; index++)
             {
                 OptionsCategoryMember member = members[index];
-                bool visible = suiteEnabled && OptionsCategoryVisibility.IsVisible(
-                    member.Category, SelectedCategory);
+                bool visible = suiteEnabled ? OptionsCategoryVisibility.IsVisible(member.Category, SelectedCategory) :
+                    member.GetComponentInChildren<ModInformation.Integration.ModInformationOption>(true)?.IsSupportAction == true;
 
                 if (!visible && selected != null &&
                     (selected == member.gameObject ||

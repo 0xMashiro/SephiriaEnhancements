@@ -389,7 +389,7 @@ namespace SephiriaEnhancements.Inventory
 
             if (runtimeKernel == null)
             {
-                ShowMessage(InventoryOptimizationLocalization.RuntimeNotReady);
+                ShowStartUnavailable(InventoryOptimizationLocalization.RuntimeNotReady, inventory);
                 return;
             }
 
@@ -397,38 +397,36 @@ namespace SephiriaEnhancements.Inventory
                     out InventorySnapshot sourceSnapshot, out RuntimeStateSnapshot sourceRuntime))
             {
                 runtimeKernel.TryGetLatestInventorySnapshot(out InventorySnapshot latest, out _);
+                RuntimeConsistencyState consistency = runtimeKernel.State?.Consistency ??
+                    RuntimeConsistencyState.Unavailable;
+                bool observationFailed = consistency == RuntimeConsistencyState.Degraded ||
+                    consistency == RuntimeConsistencyState.Invalid;
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
                 if (latest != null && !latest.SettlementValidation.LayoutProjectionReady)
                     RecordRejectedReproduction(latest);
 #endif
-                SupportLogger.Record("inventory_projection_unavailable",
-                    "consistency=" + runtimeKernel.State?.Consistency + " issues=" +
-                    string.Join(",", (latest?.SettlementValidation.Issues ?? Array.Empty<string>())
-                        .Select(issue => issue.Split(':')[0]).Distinct()), "WARN");
                 if (latest == null)
                 {
-                    ShowMessage(InventoryOptimizationLocalization.RuntimeNotReady);
+                    ShowStartUnavailable(observationFailed ? InventoryOptimizationLocalization.ObservationUnavailable
+                        : InventoryOptimizationLocalization.RuntimeNotReady, inventory);
                     return;
                 }
                 if (latest.SettlementValidation.HasItemIdentityConflict)
                 {
-                    ShowMessage(InventoryOptimizationLocalization.ItemIdentityConflict);
+                    ShowStartUnavailable(InventoryOptimizationLocalization.ItemIdentityConflict, inventory, latest);
                     return;
                 }
                 if (latest.SettlementValidation.HasPositionEffectIssue)
                 {
-                    ShowMessage(InventoryOptimizationLocalization.PositionEffectsUnavailable);
+                    ShowStartUnavailable(InventoryOptimizationLocalization.PositionEffectsUnavailable, inventory, latest);
                     return;
                 }
-                RuntimeConsistencyState consistency = runtimeKernel.State?.Consistency ??
-                    RuntimeConsistencyState.Unavailable;
                 bool settledButUnsupported = runtimeKernel.State?.
                     HasSettledInventoryObservation == true;
-                ShowMessage(settledButUnsupported ||
-                    consistency == RuntimeConsistencyState.Degraded ||
-                    consistency == RuntimeConsistencyState.Invalid
+                ShowStartUnavailable(observationFailed ? InventoryOptimizationLocalization.ObservationUnavailable
+                    : settledButUnsupported
                         ? InventoryOptimizationLocalization.Unsupported
-                        : InventoryOptimizationLocalization.RuntimeNotReady);
+                        : InventoryOptimizationLocalization.RuntimeNotReady, inventory, latest);
                 return;
             }
             if (sourceSnapshot.Items.Count == 0)
@@ -811,6 +809,28 @@ namespace SephiriaEnhancements.Inventory
                         FeatureFailure.AcknowledgeNotice(FeatureId.Inventory);
                 });
             else NativeModNotifications.ShortText(text);
+        }
+
+        private void ShowStartUnavailable(string reason, GridInventory inventory, InventorySnapshot snapshot = null)
+        {
+            RuntimeStateSnapshot state = runtimeKernel?.State;
+            SupportLogger.Record("inventory_start_unavailable",
+                "reason=" + reason + " player=" + state?.PlayerNetId +
+                " inventoryServer=" + inventory.isServer +
+                " gameplayContext=" + state?.GameplayContextEpoch +
+                " inventoryRevision=" + state?.InventoryRevision +
+                " consistency=" + state?.Consistency +
+                " capabilities=" + state?.Capabilities +
+                " capturePending=" + runtimeKernel?.InventoryCapturePending +
+                " snapshotAvailable=" + (snapshot != null) + " issues=" +
+                string.Join(",", (snapshot?.SettlementValidation.Issues ?? Array.Empty<string>())
+                    .Select(issue => issue.Split(':')[0]).Distinct()), "WARN");
+            Func<string> text = () => string.Format(
+                ModLocalization.Get(InventoryOptimizationLocalization.StartUnavailable), ModLocalization.Get(reason));
+            // Each deliberate request gets feedback; local chat repeats only after the inventory changes.
+            NativeModNotifications.ShortText(text, 4f);
+            NativeModNotifications.Important("inventory/start/" + state?.GameplayContextEpoch + "/" +
+                state?.InventoryRevision + "/" + reason, text, showShort: false);
         }
 
         private static void ShowMessage(string key)

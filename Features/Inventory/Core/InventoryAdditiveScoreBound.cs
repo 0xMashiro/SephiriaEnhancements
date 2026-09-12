@@ -12,7 +12,7 @@ namespace SephiriaEnhancements.Inventory
             ResolvedInventoryOptimizationPolicy policy, InventoryOptimizationScore score)
         {
             if (policy.ArtifactInstanceRules.Count != 0 || policy.ArtifactEntityRules.Count != 0 ||
-                policy.ComboRules.Count != 0 || snapshot.ArrangementBonusesEnabled ||
+                policy.ComboRules.Count != 0 || snapshot.BuildIntent.FruitSkewerCategoryPriorities.Count != 0 || snapshot.ArrangementBonusesEnabled ||
                 snapshot.FixedTabletSources.Count != 0 || snapshot.PositionEffects.Rules.Count != 0 ||
                 score.PositionEffectRegressions != 0 || score.SourceEnabledArtifactsDeactivated != 0 ||
                 score.ExcessArtifactLevelTotal != 0 || score.MovedItemCount != 0 || score.RotatedTabletCount != 0)

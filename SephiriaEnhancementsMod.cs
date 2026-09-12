@@ -336,6 +336,8 @@ namespace SephiriaEnhancements
                 typeof(KeyboardCarriedItemPositionPatch),
                 typeof(KeyboardMapSelectionPositionPatch),
                 typeof(MessageBoxKeyboardInitialSelectionPatch),
+                typeof(KeyboardUiNavigation.Integration.NativeTextInputKeyboardDefocusPatch),
+                typeof(KeyboardUiNavigation.Integration.NativeTextInputKeyboardClosedPatch),
                 typeof(MessageBoxKeyboardRestoredSelectionPatch),
                 typeof(OptionsKeyboardEmptyFocusPatch),
                 typeof(KeyboardControlsChangedPatch),
@@ -453,6 +455,7 @@ namespace SephiriaEnhancements
             if (activeInstance != this) return;
             activeInstance = null;
             CleanupFeature(FeatureId.Settings, () => NativeOptionsLifetime.DisposeAll());
+            CleanupFeature(FeatureId.KeyboardUiNavigation, KeyboardUiNavigation.Integration.NativeTextInputKeyboard.Reset);
             CleanupFeature(FeatureId.MultiplayerRules, () => multiplayerRules?.Shutdown());
             CleanupFeature(FeatureId.MultiplayerAccess, () => MidRunAdmissionRuntime.SetIntegrationAvailable(false));
             CleanupFeature(FeatureId.MultiplayerRules, () => EnemySpawnRoutineContext.SetRuleScopeFactory(null));

@@ -140,6 +140,7 @@ namespace SephiriaEnhancements.Runtime
             out InventorySnapshot snapshot,
             out RuntimeStateSnapshot runtimeState)
         {
+            FeatureFailure.Run(FeatureId.Inventory, RefreshNativePresetIfChanged);
             runtimeState = stateHub?.Current;
             return inventoryStateStore.TryGetProjectable(runtimeState,
                 out snapshot);
@@ -876,8 +877,15 @@ namespace SephiriaEnhancements.Runtime
             {
                 bool settled = stateHub.Current.Consistency ==
                     RuntimeConsistencyState.Consistent;
+                stateHub.MarkInventoryPending(Time.realtimeSinceStartup);
                 ScheduleInventoryCapture(settled);
             }
+        }
+
+        internal bool MatchesNativePreset(NativePresetSnapshot source)
+        {
+            FeatureFailure.Run(FeatureId.Inventory, RefreshNativePresetIfChanged);
+            return source == null ? nativePreset == null : source.ContentEquals(nativePreset);
         }
 
         private bool RefreshInventoryCatalog(UnitAvatar avatar,

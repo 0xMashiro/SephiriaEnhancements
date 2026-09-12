@@ -504,6 +504,12 @@ namespace SephiriaEnhancements.Inventory
             }
 
             InventoryOptimizationProposal result = completed.Result;
+            if (!runtimeKernel.MatchesNativePreset(sourceSnapshot.NativePreset))
+            {
+                ShowMessage(InventoryPresetIntentLocalization.Changed);
+                ResetOperationState();
+                return;
+            }
             SupportLogger.Record("inventory_search_completed", "succeeded=" + result.Succeeded +
                 " improved=" + result.Improved + " reason=" + result.TerminationReason +
                 " candidates=" + result.CandidateEvaluations + " elapsedMs=" + result.ElapsedMilliseconds);
@@ -618,6 +624,7 @@ namespace SephiriaEnhancements.Inventory
                         InventoryApplicationProgress.InventoryUnavailable => InventoryOptimizationLocalization.OptimizationUnavailable,
                         InventoryApplicationProgress.GameplayContextChanged => InventoryOptimizationLocalization.GameplayContextChanged,
                         InventoryApplicationProgress.InventoryChanged => InventoryOptimizationLocalization.Changed,
+                        InventoryApplicationProgress.PreferencesChanged => InventoryPresetIntentLocalization.Changed,
                         InventoryApplicationProgress.PositionEffectsChanged => InventoryOptimizationLocalization.PositionEffectsUnavailable,
                         InventoryApplicationProgress.StepRejected => InventoryOptimizationLocalization.VerificationFailed,
                         _ => throw new InvalidOperationException("Unexpected inventory application progress.")
@@ -682,6 +689,7 @@ namespace SephiriaEnhancements.Inventory
         {
             RuntimeStateSnapshot current = runtimeKernel?.State;
             return current != null && sourceRuntime != null &&
+                current.Consistency == RuntimeConsistencyState.Consistent &&
                 current.GameplayContextEpoch ==
                     sourceRuntime.GameplayContextEpoch &&
                 current.InventoryRevision == sourceRuntime.InventoryRevision &&
@@ -698,13 +706,21 @@ namespace SephiriaEnhancements.Inventory
             }
             bool inventoryOptimizationAvailable = TryGetOpenInventory(
                 out GridInventory currentInventory);
+            bool intentMatches = runtimeKernel?.MatchesNativePreset(search.SourceSnapshot?.NativePreset) == true;
+            if (!intentMatches)
+            {
+                ShowMessage(InventoryPresetIntentLocalization.Changed);
+                ResetOperationState();
+                return true;
+            }
             RuntimeStateSnapshot currentRuntime = runtimeKernel?.State;
             bool gameplayContextMatches = currentRuntime != null &&
                 search.SourceRuntime != null &&
                 currentRuntime.GameplayContextEpoch ==
                     search.SourceRuntime.GameplayContextEpoch &&
                 currentRuntime.PlayerNetId == search.SourceRuntime.PlayerNetId;
-            bool inventoryRevisionMatches = gameplayContextMatches &&
+            bool inventoryRevisionMatches = intentMatches && gameplayContextMatches &&
+                currentRuntime.Consistency == RuntimeConsistencyState.Consistent &&
                 currentRuntime.InventoryRevision == search.SourceRuntime.InventoryRevision;
             bool sourceLayoutMatches = inventoryOptimizationAvailable &&
                 search.SourceSnapshot != null &&

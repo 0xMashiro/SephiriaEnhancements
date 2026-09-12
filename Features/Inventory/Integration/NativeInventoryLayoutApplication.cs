@@ -11,6 +11,7 @@ namespace SephiriaEnhancements.Inventory.Integration
         InventoryUnavailable,
         GameplayContextChanged,
         InventoryChanged,
+        PreferencesChanged,
         PositionEffectsChanged,
         StepRejected,
         Completed
@@ -41,6 +42,8 @@ namespace SephiriaEnhancements.Inventory.Integration
             if (!State.MatchesGameplayContext(kernel.State))
                 return InventoryApplicationProgress.GameplayContextChanged;
             if (current != inventory) return InventoryApplicationProgress.InventoryChanged;
+            if (!State.IsUndo && !kernel.MatchesNativePreset(State.SourceSnapshot.NativePreset))
+                return InventoryApplicationProgress.PreferencesChanged;
             if (State.PendingOperation != InventoryPendingOperation.None)
                 return ConfirmPendingOperation(kernel);
 

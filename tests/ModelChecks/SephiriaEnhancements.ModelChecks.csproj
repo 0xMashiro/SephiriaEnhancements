@@ -31,6 +31,9 @@
     <Compile Include="../../Features/AutoCasting/Core/*.cs" Link="AutoCasting/%(Filename)%(Extension)" />
     <Compile Include="../../Features/AutoCasting/Integration/NativeAutoCastingBindings.cs" Link="AutoCasting/NativeAutoCastingBindings.cs" />
     <Compile Include="../../Features/Inventory/Presentation/InventoryMagicCostLocalization.cs" Link="Inventory/InventoryMagicCostLocalization.cs" />
+    <Compile Include="../../Features/Inventory/Presentation/InventoryPresetIntentLocalization.cs" Link="Inventory/InventoryPresetIntentLocalization.cs" />
+    <Compile Include="../../Features/Inventory/Core/InventoryFruitSkewerPriorities.cs" Link="Inventory/InventoryFruitSkewerPriorities.cs" />
+    <Compile Include="../../Runtime/GameBridge/Inventory/NativePresetChangeSignal.cs" Link="GameBridge/Inventory/NativePresetChangeSignal.cs" />
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
   </ItemGroup>
   <ItemGroup>

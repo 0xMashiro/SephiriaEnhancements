@@ -27,7 +27,16 @@ internal static class InventoryGpuChecks
             catch (NotSupportedException) { }
         }
         using var kernel = new DirectComputeKernel(DirectComputeKernel.Compile(InventorySettlementShader.Source));
+        var fruitSource = InventorySnapshotFixture.RowDependentArtifact();
+        var fruitSnapshot = new InventorySnapshot(fruitSource.Width, fruitSource.Storage,
+            fruitSource.Cells.ToArray(), fruitSource.Items.ToArray(),
+            nativePreset: new NativePresetSnapshot(-1, true, "", 0, "", Array.Empty<int>(), Array.Empty<string>(),
+                fruits: new[] { new NativePresetFruitSnapshot("FIRE", 2), new NativePresetFruitSnapshot("ICE", 1) }),
+            comboCategories: new[] {
+                new ComboCategorySnapshot("FIRE", 1, 1, 1, 0, 0, new[] { 1 }, Array.Empty<int>(), false, 1),
+                new ComboCategorySnapshot("ICE", 0, 0, 0, 0, 0, new[] { 1 }, Array.Empty<int>(), false, 1) });
         var snapshots = new[] {
+            fruitSnapshot,
             InventorySnapshotFixture.RowDependentArtifact(),
             InventorySnapshotFixture.ArtifactsAtLevels(new[] { -1, 0, 2, 9, 4, 1 }, new[] { 0, 1, 2 }),
             InventorySnapshotFixture.DuplicateArtifactsAtLevels(new[] { 0, 1, -1, 5, 2, 0 }, new[] { 0, 1, 2 }),

@@ -2,6 +2,8 @@ using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Runtime.GameBridge.Inventory;
 using HarmonyLib;
 using SephiriaEnhancements.DefeatRetry;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace SephiriaEnhancements.Integration
 {
@@ -63,10 +65,41 @@ namespace SephiriaEnhancements.Integration
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static void PostfixCore(bool saveCurrent, bool saveCurrentRun)
         {
-            if (saveCurrent && !saveCurrentRun)
+            if (saveCurrent)
             {
                 NativePresetChangeSignal.MarkChanged();
             }
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class NativePresetEditPatch
+    {
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            yield return AccessTools.Method(typeof(SaveData), nameof(SaveData.SetBool));
+            yield return AccessTools.Method(typeof(SaveData), nameof(SaveData.SetInt));
+            yield return AccessTools.Method(typeof(SaveData), nameof(SaveData.SetString));
+        }
+
+        private static void Postfix(SaveData __instance, string key)
+        {
+            if (!FeatureFailure.IsAvailable(FeatureId.Inventory)) return;
+            try
+            {
+                PostfixCore(__instance, key);
+            }
+            catch (System.Exception exception)
+            {
+                FeatureFailure.Disable(FeatureId.Inventory, exception);
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void PostfixCore(SaveData instance, string key)
+        {
+            if (ReferenceEquals(instance, SaveManager.Current))
+                NativePresetChangeSignal.ObserveCurrentSetupWrite(key);
         }
     }
 }

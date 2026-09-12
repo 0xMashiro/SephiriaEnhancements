@@ -873,10 +873,14 @@ namespace SephiriaEnhancements.Diagnostics
                 ",\"avoidedActive\":" + score.AvoidedTargetsActive +
                 ",\"positionEffectRegressions\":" + score.PositionEffectRegressions +
                 ",\"positionEffectUtilizationPoints\":" + score.PositionEffectUtilizationPoints +
-                ",\"presetTargetsSatisfied\":" +
-                score.PresetTargetsSatisfied +
-                ",\"presetTargetCompletionPoints\":" +
-                score.PresetTargetCompletionPoints +
+                ",\"preferredArtifactTargetsSatisfied\":" +
+                score.PreferredArtifactTargetsSatisfied +
+                ",\"preferredArtifactCompletionPoints\":" +
+                score.PreferredArtifactCompletionPoints +
+                ",\"orderedFruitSkewerComboCounts\":[" + string.Join(",", score.OrderedFruitSkewerComboCounts) + "]" +
+                ",\"orderedFruitSkewerTargetsSatisfied\":[" + string.Join(",", score.OrderedFruitSkewerTargetsSatisfied) + "]" +
+                ",\"preferredCategoryTargetsSatisfied\":" + score.PreferredCategoryTargetsSatisfied +
+                ",\"preferredCategoryCompletionPoints\":" + score.PreferredCategoryCompletionPoints +
                 ",\"sourceEnabledArtifactsDeactivated\":" +
                 score.SourceEnabledArtifactsDeactivated +
                 ",\"enabledArtifactCount\":" + score.EnabledArtifactCount +

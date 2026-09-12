@@ -24,7 +24,8 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.KeyboardUiNavigation.OptionsKeyboardTabSelectionPatch":
                     return FeatureId.OptionsNavigation;
                 case "SephiriaEnhancements.EffectStats.Integration.EffectStatsPanelPatch": return FeatureId.EffectStats;
-                case "SephiriaEnhancements.Integration.NativePresetSavePatch": return FeatureId.Inventory;
+                case "SephiriaEnhancements.Integration.NativePresetSavePatch":
+                case "SephiriaEnhancements.Integration.NativePresetEditPatch": return FeatureId.Inventory;
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingManualInputPatch":
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingOptionsPatch":
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingPanelPatch":
@@ -113,6 +114,8 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.KeyboardUiNavigation.KeyboardPointerInputPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.MenuKeyboardSelectionPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.MessageBoxKeyboardInitialSelectionPatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.Integration.NativeTextInputKeyboardDefocusPatch":
+                case "SephiriaEnhancements.KeyboardUiNavigation.Integration.NativeTextInputKeyboardClosedPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.MessageBoxKeyboardRestoredSelectionPatch":
                 case "SephiriaEnhancements.KeyboardUiNavigation.TreeShopKeyboardSecondaryActionPatch":
                     return FeatureId.KeyboardUiNavigation;

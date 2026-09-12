@@ -15,6 +15,7 @@ namespace SephiriaEnhancements.Inventory
         private readonly Dictionary<InventoryItemKey, double> positionEffectScales;
         private readonly int orderedPriorityCount;
         private readonly (string Category, int[] Thresholds)[] comboThresholds;
+        private readonly (string CategoryId, int Priority, int MaximumCount)[][] fruitSkewerPriorityGroups;
         private readonly (ResolvedArtifactOptimizationRule Rule, string Target)[] instanceTargets;
         private readonly (ResolvedArtifactOptimizationRule Rule, string Target)[] entityTargets;
         private readonly (ResolvedComboOptimizationRule Rule, string Target)[] comboTargets;
@@ -41,7 +42,11 @@ namespace SephiriaEnhancements.Inventory
                     rule.PriorityOrder).DefaultIfEmpty(-1).Max() + 1;
             comboThresholds = snapshot.ComboCategories.Select(category =>
                 (category.CategoryId, category.SetThresholds.Union(category.ComboThresholds).
-                    Where(threshold => threshold > 0).ToArray())).ToArray();
+                    Where(threshold => threshold > 0).OrderBy(threshold => threshold).ToArray())).ToArray();
+            fruitSkewerPriorityGroups = InventoryFruitSkewerPriorities.Resolve(snapshot,
+                policy.ComboRules.Values.Where(rule => rule.Source != InventoryPreferenceSource.NativePreset)
+                    .Select(rule => rule.CategoryId)).GroupBy(target => target.Priority)
+                .OrderByDescending(group => group.Key).Select(group => group.ToArray()).ToArray();
             instanceTargets = policy.ArtifactInstanceRules.Values.Select(rule =>
                 (rule, ArtifactTarget(rule.EntityId, rule.ItemKey.NativeInstanceId))).ToArray();
             entityTargets = policy.ArtifactEntityRules.Values.Select(rule =>
@@ -60,8 +65,10 @@ namespace SephiriaEnhancements.Inventory
             int priorityTargetsSatisfied = 0;
             int priorityTargetCompletionPoints = 0;
             int avoidedTargetsActive = 0;
-            int presetTargetsSatisfied = 0;
-            int presetTargetCompletionPoints = 0;
+            int preferredArtifactTargetsSatisfied = 0;
+            int preferredArtifactCompletionPoints = 0;
+            int preferredCategoryTargetsSatisfied = 0;
+            int preferredCategoryCompletionPoints = 0;
             int sourceEnabledArtifactsDeactivated = 0;
             int enabledArtifactCount = 0;
             int cappedEffectiveArtifactLevelTotal = 0;
@@ -137,8 +144,8 @@ namespace SephiriaEnhancements.Inventory
                     avoidedTargetsActive += state.Value;
                 else
                 {
-                    if (state.Reached) presetTargetsSatisfied++;
-                    presetTargetCompletionPoints += state.CompletionPoints;
+                    if (state.Reached) preferredArtifactTargetsSatisfied++;
+                    preferredArtifactCompletionPoints += state.CompletionPoints;
                 }
             }
 
@@ -170,9 +177,22 @@ namespace SephiriaEnhancements.Inventory
                         if (!targetReached) avoidedTargetsActive++;
                         break;
                     case InventoryPreferenceLevel.Priority:
-                        if (targetReached) presetTargetsSatisfied++;
-                        presetTargetCompletionPoints += completionPoints;
+                        if (targetReached) preferredCategoryTargetsSatisfied++;
+                        preferredCategoryCompletionPoints += completionPoints;
                         break;
+                }
+            }
+
+            var orderedFruitSkewerComboCounts = new long[fruitSkewerPriorityGroups.Length];
+            var orderedFruitSkewerTargetsSatisfied = new int[fruitSkewerPriorityGroups.Length];
+            for (int groupIndex = 0; groupIndex < fruitSkewerPriorityGroups.Length; groupIndex++)
+            {
+                foreach (var target in fruitSkewerPriorityGroups[groupIndex])
+                {
+                    settlement.ComboCounts.TryGetValue(target.CategoryId, out int count);
+                    orderedFruitSkewerComboCounts[groupIndex] += Math.Min(target.MaximumCount, Math.Max(0, count));
+                    if (target.MaximumCount != int.MaxValue && count >= target.MaximumCount)
+                        orderedFruitSkewerTargetsSatisfied[groupIndex]++;
                 }
             }
 
@@ -217,13 +237,17 @@ namespace SephiriaEnhancements.Inventory
             }
 
             return new InventoryOptimizationScore(
+                orderedFruitSkewerComboCounts: orderedFruitSkewerComboCounts,
+                orderedFruitSkewerTargetsSatisfied: orderedFruitSkewerTargetsSatisfied,
+                preferredCategoryTargetsSatisfied: preferredCategoryTargetsSatisfied,
+                preferredCategoryCompletionPoints: preferredCategoryCompletionPoints,
                 priorityTargetsSatisfied: priorityTargetsSatisfied,
                 priorityTargetCompletionPoints:
                     priorityTargetCompletionPoints,
                 avoidedTargetsActive: avoidedTargetsActive,
-                presetTargetsSatisfied: presetTargetsSatisfied,
-                presetTargetCompletionPoints:
-                    presetTargetCompletionPoints,
+                preferredArtifactTargetsSatisfied: preferredArtifactTargetsSatisfied,
+                preferredArtifactCompletionPoints:
+                    preferredArtifactCompletionPoints,
                 sourceEnabledArtifactsDeactivated:
                     sourceEnabledArtifactsDeactivated,
                 enabledArtifactCount: enabledArtifactCount,

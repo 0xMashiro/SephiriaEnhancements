@@ -112,11 +112,11 @@ namespace SephiriaEnhancements.Inventory
         IComparable<InventoryOptimizationScore>
     {
         // Identifies the preference comparator, independently of game mechanisms.
-        internal const string ObjectiveId = "hard-feasible-priority-support-v6";
+        internal const string ObjectiveId = "hard-feasible-fruit-skewer-priorities-v7";
         internal InventoryOptimizationScore(int priorityTargetsSatisfied,
             int priorityTargetCompletionPoints, int avoidedTargetsActive,
-            int presetTargetsSatisfied,
-            int presetTargetCompletionPoints,
+            int preferredArtifactTargetsSatisfied,
+            int preferredArtifactCompletionPoints,
             int sourceEnabledArtifactsDeactivated, int enabledArtifactCount,
             int comboBreakpointValue,
             int cappedEffectiveArtifactLevelTotal,
@@ -126,17 +126,25 @@ namespace SephiriaEnhancements.Inventory
             int positionEffectRegressions = 0, int automaticLevelRegressions = 0,
             int hardConstraintViolations = 0, int hardConstraintCompletionPoints = 0,
             double[] orderedPriorityDamageBonuses = null, int positionEffectUtilizationPoints = 0,
-            double[] orderedPrioritySupportPoints = null)
+            double[] orderedPrioritySupportPoints = null,
+            long[] orderedFruitSkewerComboCounts = null, int[] orderedFruitSkewerTargetsSatisfied = null,
+            int preferredCategoryTargetsSatisfied = 0, int preferredCategoryCompletionPoints = 0)
         {
+            OrderedFruitSkewerComboCounts = Array.AsReadOnly(orderedFruitSkewerComboCounts == null
+                ? Array.Empty<long>() : (long[])orderedFruitSkewerComboCounts.Clone());
+            OrderedFruitSkewerTargetsSatisfied = Array.AsReadOnly(orderedFruitSkewerTargetsSatisfied == null
+                ? Array.Empty<int>() : (int[])orderedFruitSkewerTargetsSatisfied.Clone());
+            PreferredCategoryTargetsSatisfied = preferredCategoryTargetsSatisfied;
+            PreferredCategoryCompletionPoints = preferredCategoryCompletionPoints;
             PositionEffectUtilizationPoints = positionEffectUtilizationPoints;
             HardConstraintViolations = hardConstraintViolations;
             HardConstraintCompletionPoints = hardConstraintCompletionPoints;
             PriorityTargetsSatisfied = priorityTargetsSatisfied;
             PriorityTargetCompletionPoints = priorityTargetCompletionPoints;
             AvoidedTargetsActive = avoidedTargetsActive;
-            PresetTargetsSatisfied = presetTargetsSatisfied;
-            PresetTargetCompletionPoints =
-                presetTargetCompletionPoints;
+            PreferredArtifactTargetsSatisfied = preferredArtifactTargetsSatisfied;
+            PreferredArtifactCompletionPoints =
+                preferredArtifactCompletionPoints;
             SourceEnabledArtifactsDeactivated =
                 sourceEnabledArtifactsDeactivated;
             EnabledArtifactCount = enabledArtifactCount;
@@ -165,8 +173,12 @@ namespace SephiriaEnhancements.Inventory
         internal bool HardConstraintsSatisfied => HardConstraintViolations == 0;
         internal int PriorityTargetCompletionPoints { get; }
         internal int AvoidedTargetsActive { get; }
-        internal int PresetTargetsSatisfied { get; }
-        internal int PresetTargetCompletionPoints { get; }
+        internal int PreferredArtifactTargetsSatisfied { get; }
+        internal int PreferredArtifactCompletionPoints { get; }
+        internal IReadOnlyList<long> OrderedFruitSkewerComboCounts { get; }
+        internal IReadOnlyList<int> OrderedFruitSkewerTargetsSatisfied { get; }
+        internal int PreferredCategoryTargetsSatisfied { get; }
+        internal int PreferredCategoryCompletionPoints { get; }
         internal int SourceEnabledArtifactsDeactivated { get; }
         internal int EnabledArtifactCount { get; }
         internal int ComboBreakpointValue { get; }
@@ -200,11 +212,27 @@ namespace SephiriaEnhancements.Inventory
                 // comparator must remain transitive for exact and bounded search alike.
                 return CompareChangesTo(other);
             }
-            comparison = PresetTargetsSatisfied.CompareTo(
-                other.PresetTargetsSatisfied);
+            comparison = PreferredArtifactTargetsSatisfied.CompareTo(
+                other.PreferredArtifactTargetsSatisfied);
             if (comparison != 0) return comparison;
-            comparison = PresetTargetCompletionPoints.CompareTo(
-                other.PresetTargetCompletionPoints);
+            comparison = PreferredArtifactCompletionPoints.CompareTo(
+                other.PreferredArtifactCompletionPoints);
+            if (comparison != 0) return comparison;
+            int fruitGroupCount = Math.Max(OrderedFruitSkewerComboCounts.Count, other.OrderedFruitSkewerComboCounts.Count);
+            for (int index = 0; index < fruitGroupCount; index++)
+            {
+                long currentCount = index < OrderedFruitSkewerComboCounts.Count ? OrderedFruitSkewerComboCounts[index] : 0;
+                long otherCount = index < other.OrderedFruitSkewerComboCounts.Count ? other.OrderedFruitSkewerComboCounts[index] : 0;
+                comparison = currentCount.CompareTo(otherCount);
+                if (comparison != 0) return comparison;
+                int currentSatisfied = index < OrderedFruitSkewerTargetsSatisfied.Count ? OrderedFruitSkewerTargetsSatisfied[index] : 0;
+                int otherSatisfied = index < other.OrderedFruitSkewerTargetsSatisfied.Count ? other.OrderedFruitSkewerTargetsSatisfied[index] : 0;
+                comparison = currentSatisfied.CompareTo(otherSatisfied);
+                if (comparison != 0) return comparison;
+            }
+            comparison = PreferredCategoryTargetsSatisfied.CompareTo(other.PreferredCategoryTargetsSatisfied);
+            if (comparison != 0) return comparison;
+            comparison = PreferredCategoryCompletionPoints.CompareTo(other.PreferredCategoryCompletionPoints);
             if (comparison != 0) return comparison;
             comparison = other.SourceEnabledArtifactsDeactivated.CompareTo(
                 SourceEnabledArtifactsDeactivated);

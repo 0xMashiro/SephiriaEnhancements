@@ -88,7 +88,7 @@ internal static class InventoryOptimizationPolicyChecks
         var automaticScore = new InventoryOptimizationScorer(snapshot, automatic).Score(current, before);
         if (automatic.ArtifactEntityRules[301].Source != InventoryPreferenceSource.NativePreset ||
             automatic.ComboRules["FIRE"].Source != InventoryPreferenceSource.NativePreset ||
-            automaticScore.PriorityTargetsSatisfied != 0 || automaticScore.PresetTargetsSatisfied != 1)
+            automaticScore.PriorityTargetsSatisfied != 0 || automaticScore.PreferredArtifactTargetsSatisfied != 1)
             throw new InvalidOperationException("native preset preferences must remain automatic, below manual targets");
 
         var preferences = new InventoryOptimizationPreferences(InventorySearchEffort.Balanced, true,
@@ -99,7 +99,8 @@ internal static class InventoryOptimizationPolicyChecks
         var beforeScore = scorer.Score(current, before);
         var afterScore = scorer.Score(moved, after);
         if (beforeScore.PriorityTargetsSatisfied != 1 || afterScore.PriorityTargetsSatisfied != 2 ||
-            beforeScore.PresetTargetsSatisfied != 1 || afterScore.PresetTargetsSatisfied != 0 ||
+            beforeScore.PreferredArtifactTargetsSatisfied != 0 || afterScore.PreferredArtifactTargetsSatisfied != 0 ||
+            beforeScore.PreferredCategoryTargetsSatisfied != 1 || afterScore.PreferredCategoryTargetsSatisfied != 0 ||
             afterScore.CompareTo(beforeScore) <= 0)
             throw new InvalidOperationException("manual goals must override preset preferences without extra player priority tiers");
 

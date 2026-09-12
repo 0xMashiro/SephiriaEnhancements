@@ -20,6 +20,15 @@ using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
+if (args.Contains("--inventory-preset-intent-only"))
+{
+    InventoryPresetIntentChecks.Run();
+    InventoryOptimizationPolicyChecks.Run();
+    InventoryReproductionChecks.Run();
+    Console.WriteLine(InventoryHudInteractionChecks.Run());
+    return;
+}
+
 if (args.Contains("--inventory-support-only"))
 {
     Console.WriteLine(InventoryOptimizationPreferencesCodecChecks.Run());
@@ -107,6 +116,7 @@ if (args.FirstOrDefault() == "--inventory-known-solutions-benchmark")
     return;
 }
 InventoryMagicCostPreferenceChecks.Run();
+InventoryPresetIntentChecks.Run();
 InventorySupportPriorityChecks.Run();
 InventoryMixedMechanismChecks.Run();
 InventoryKnownSolutionChecks.Run();

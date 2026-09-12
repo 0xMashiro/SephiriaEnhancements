@@ -32,8 +32,8 @@ internal static class InventoryEntityTargetChecks
 
         if (policy.ArtifactInstanceRules.Count != 0 ||
             policy.ArtifactEntityRules.Count != 1 ||
-            score.PresetTargetsSatisfied != 1 ||
-            score.PresetTargetCompletionPoints !=
+            score.PreferredArtifactTargetsSatisfied != 1 ||
+            score.PreferredArtifactCompletionPoints !=
                 InventoryTargetState.TargetCompletionScale ||
             evaluations.Length != 1 ||
             evaluations[0].Target != "Artifact:1000:*" ||

@@ -13,9 +13,11 @@ namespace SephiriaEnhancements.Inventory
                 tooltip.tooltipRoot == null) return;
             var nativeOwner = tooltip.Target as UI_NewInventoryIcon;
             var goalOwner = tooltip.Target as NativeInventoryArtifactTooltip;
-            if (nativeOwner == null && goalOwner == null ||
+            var preferenceOwner = tooltip.Target as UI_CommonTooltipOpener;
+            if (nativeOwner == null && goalOwner == null && preferenceOwner == null ||
                 nativeOwner != null && !nativeOwner.transform.IsChildOf(attachedInventoryZone) ||
-                goalOwner != null && !goalOwner.transform.IsChildOf(root.transform)) return;
+                goalOwner != null && !goalOwner.transform.IsChildOf(root.transform) ||
+                preferenceOwner != null && !preferenceOwner.transform.IsChildOf(root.transform)) return;
 
             // Leaving an inventory item for a board button must not leave its
             // old tooltip over the controls. Goal slots own their own tooltip.

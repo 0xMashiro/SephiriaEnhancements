@@ -468,10 +468,10 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
             }
 
             int slot = save.GetInt("Preset_SelectedSlot", 0);
-            string prefix = $"Preset_{slot}_";
-            bool enabled = save.HasKey(prefix + "PresetEnabled")
-                ? save.GetInt(prefix + "PresetEnabled", 0) != 0
-                : save.HasKey(prefix + "StartingWeaponID");
+            // Loading a native preset copies it to the unprefixed current setup.
+            // Read subsequent in-game edits too; saved slots are not the active intent.
+            string prefix = string.Empty;
+            bool enabled = true;
             var favoriteIds = new List<int>();
             var favoriteCategories = new HashSet<string>(StringComparer.Ordinal);
 

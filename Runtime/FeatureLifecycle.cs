@@ -89,6 +89,9 @@ namespace SephiriaEnhancements
             if (keyboardUiNavigation != null) keyboardUiNavigation.CancelFeatureSelection(feature);
             switch (feature)
             {
+                case FeatureId.KeyboardUiNavigation:
+                    CleanupFeature(feature, KeyboardUiNavigation.Integration.NativeTextInputKeyboard.Reset);
+                    break;
                 case FeatureId.CharacterPanelNavigation:
                     CleanupFeature(feature, () => KeyboardUiNavigation.CharacterPanelNavigationMemory.ResetAll(destroy: true));
                     break;

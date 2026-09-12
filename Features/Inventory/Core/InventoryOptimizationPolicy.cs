@@ -356,7 +356,7 @@ namespace SephiriaEnhancements.Inventory
                 {
                     artifactEntityRules[group.Key] =
                         new ResolvedArtifactOptimizationRule(-1, group.Key,
-                            InventoryPreferenceLevel.Priority, 1,
+                            InventoryPreferenceLevel.Priority, 0,
                             InventoryPreferenceSource.NativePreset);
                 }
             }

@@ -565,6 +565,9 @@ namespace SephiriaEnhancements.Inventory
             row.Choice = controls.CreateButton("Choice", rect, template,
                 new Vector2(208f, 0f), new Vector2(120f, 26f),
                 () => EditComboGoal(row, InventoryComboGoalEdit.CycleChoice), out row.ChoiceText);
+            var tooltip = row.Choice.gameObject.AddComponent<UI_CommonTooltipOpener>();
+            tooltip.tooltipContext = new LocalizedString(InventoryPresetIntentLocalization.Help);
+            tooltip.UpdateTooltipData();
             row.Decrease = controls.CreateButton("Decrease", rect, template,
                 new Vector2(260f, -28f), new Vector2(30f, 24f),
                 () => EditComboGoal(row, InventoryComboGoalEdit.DecreaseCount), out row.DecreaseText);
@@ -647,7 +650,8 @@ namespace SephiriaEnhancements.Inventory
                 SetTopRect((RectTransform)row.Root.transform, new Vector2(8f, -rowTop),
                     new Vector2(344f, rowHeight));
                 rowTop += rowHeight + InventoryOptimizationHudLayout.TargetRowGap;
-                row.Name.text = DisplayName(target);
+                row.Name.text = target.FruitSkewerPriority > 0
+                    ? $"{DisplayName(target)} · ↑{target.FruitSkewerPriority}" : DisplayName(target);
                 row.Name.color = expanded ? TitleColor : PrimaryText;
                 row.Select.interactable = editable && target.CanAdjustRequiredValue;
                 string condition = InventoryOptimizationLocalization.FormatTargetCondition(target, key => Loc._(key));

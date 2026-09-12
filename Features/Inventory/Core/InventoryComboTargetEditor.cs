@@ -17,8 +17,9 @@ namespace SephiriaEnhancements.Inventory
     {
         internal InventoryComboTarget(string categoryId, InventoryPreferenceChoice choice,
             int requiredValue, int maximumValue,
-            InventoryConstraintStrength strength = InventoryConstraintStrength.Soft)
+            InventoryConstraintStrength strength = InventoryConstraintStrength.Soft, int fruitSkewerPriority = 0)
         {
+            FruitSkewerPriority = fruitSkewerPriority;
             Strength = strength;
             CategoryId = categoryId;
             Choice = choice;
@@ -27,6 +28,7 @@ namespace SephiriaEnhancements.Inventory
         }
 
         internal string CategoryId { get; }
+        internal int FruitSkewerPriority { get; }
         internal InventoryConstraintStrength Strength { get; }
         internal InventoryPreferenceChoice Choice { get; }
         internal int RequiredValue { get; }
@@ -51,6 +53,8 @@ namespace SephiriaEnhancements.Inventory
             var rules = preferences.ComboPreferences.GroupBy(rule => rule.CategoryId, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.Last(), StringComparer.Ordinal);
             var categories = snapshot.ComboCategories.ToDictionary(category => category.CategoryId, StringComparer.Ordinal);
+            var fruitPriorities = InventoryFruitSkewerPriorities.Resolve(snapshot, rules.Keys)
+                .ToDictionary(target => target.CategoryId, target => target.Priority, StringComparer.Ordinal);
             // The preset exposes related categories, not a ranked list. Stable
             // grouping changes presentation only; explicit rules remain untouched.
             var presetCategories = new HashSet<string>(snapshot.BuildIntent?.NativePresetEnabled == true
@@ -58,7 +62,8 @@ namespace SephiriaEnhancements.Inventory
             // A saved Hard rule must remain editable even when no item currently
             // supplies its category; otherwise the player cannot clear a conflict.
             return categories.Keys.Concat(rules.Keys).Distinct(StringComparer.Ordinal)
-                .OrderBy(categoryId => presetCategories.Contains(categoryId) ? 0 : 1).Select(categoryId =>
+                .OrderByDescending(categoryId => FruitPriority(categoryId))
+                .ThenBy(categoryId => presetCategories.Contains(categoryId) ? 0 : 1).Select(categoryId =>
             {
                 rules.TryGetValue(categoryId, out var rule);
                 categories.TryGetValue(categoryId, out var category);
@@ -69,8 +74,11 @@ namespace SephiriaEnhancements.Inventory
                     rule == null ? InventoryPreferenceChoice.Automatic
                         : rule.Level == InventoryPreferenceLevel.Priority
                             ? InventoryPreferenceChoice.Priority : InventoryPreferenceChoice.Avoid,
-                    rule?.TargetCount ?? 0, maximum, rule?.Strength ?? InventoryConstraintStrength.Soft);
+                    rule?.TargetCount ?? 0, maximum, rule?.Strength ?? InventoryConstraintStrength.Soft, FruitPriority(categoryId));
             }).ToArray();
+
+            int FruitPriority(string categoryId) => fruitPriorities.TryGetValue(categoryId, out int priority) ? priority : 0;
+
         }
 
         internal static InventoryOptimizationPreferences SetChoice(InventoryOptimizationPreferences preferences,

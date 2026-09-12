@@ -15,25 +15,25 @@ namespace SephiriaEnhancements.MapEnhancements.Core
     internal static class MapLabelLayout
     {
         internal static MapLabelBounds PlaceFocused(float x, float y, float width, float height,
-            MapLabelBounds viewport)
+            MapLabelBounds viewport, float clearance = 10)
         {
             width = System.Math.Min(width, viewport.Width);
             height = System.Math.Min(height, viewport.Height);
             float left = System.Math.Max(viewport.X, System.Math.Min(x - width / 2, viewport.X + viewport.Width - width));
-            float bottom = y + 10;
-            if (bottom + height > viewport.Y + viewport.Height) bottom = y - 10 - height;
+            float bottom = y + clearance;
+            if (bottom + height > viewport.Y + viewport.Height) bottom = y - clearance - height;
             bottom = System.Math.Max(viewport.Y, System.Math.Min(bottom, viewport.Y + viewport.Height - height));
             return new MapLabelBounds(left, bottom, width, height);
         }
 
         internal static bool TryPlace(float x, float y, float width, float height,
-            MapLabelBounds viewport, List<MapLabelBounds> occupied, out MapLabelBounds result)
+            MapLabelBounds viewport, List<MapLabelBounds> occupied, out MapLabelBounds result, float clearance = 7)
         {
             // Stable alternatives avoid squeezing text or moving its actual map point.
             for (int side = 0; side < 4; side++)
             {
-                float left = side == 2 ? x + 7 : side == 3 ? x - 7 - width : x - width / 2;
-                float bottom = side == 0 ? y + 7 : side == 1 ? y - 7 - height : y - height / 2;
+                float left = side == 2 ? x + clearance : side == 3 ? x - clearance - width : x - width / 2;
+                float bottom = side == 0 ? y + clearance : side == 1 ? y - clearance - height : y - height / 2;
                 var candidate = new MapLabelBounds(left, bottom, width, height);
                 if (left < viewport.X || bottom < viewport.Y ||
                     left + width > viewport.X + viewport.Width ||

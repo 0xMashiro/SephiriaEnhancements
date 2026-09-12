@@ -43,12 +43,19 @@ internal static class MapEnhancementsLocalizationChecks
                 navigation[(language, MapNavigationLocalization.TravelUnavailable)] == navigation[(language, MapNavigationLocalization.NoLanding)] ||
                 navigation[(language, MapNavigationLocalization.MapNotReady)] == navigation[(language, MapNavigationLocalization.NoLanding)])
                 throw new InvalidOperationException("Map travel must distinguish nearby placement, authored destinations, loading and no landing found.");
-            _ = string.Format(navigation[(language, MapNavigationLocalization.Guide)], "Confirm");
-            _ = string.Format(navigation[(language, MapNavigationLocalization.DestinationGuide)], "Confirm");
+            foreach (string key in new[] { MapNavigationLocalization.Guide, MapNavigationLocalization.PointerGuide })
+                if (!string.Format(navigation[(language, key)], "BoundSubmit").Contains("BoundSubmit"))
+                    throw new InvalidOperationException("Map preview help must display the current submit binding.");
+            foreach (string key in new[] { MapNavigationLocalization.Travel, MapNavigationLocalization.RoomTravel,
+                MapNavigationLocalization.DestinationTravel })
+                if (!string.Format(navigation[(language, key)], "SelectedTarget").Contains("SelectedTarget"))
+                    throw new InvalidOperationException("Every travel action must name its selected target.");
         }
-        if (navigation[("zh-CN", MapNavigationLocalization.Travel)] != "传送到目标附近" ||
+        if (string.Format(navigation[("zh-CN", MapNavigationLocalization.Travel)], "人物") != "传送到「人物」附近" ||
             navigation[("en-US", MapNavigationLocalization.Travel)].Contains("nearest", StringComparison.OrdinalIgnoreCase) ||
-            navigation[("und", MapNavigationLocalization.DestinationGuide)] != navigation[("en-US", MapNavigationLocalization.DestinationGuide)])
+            navigation[("und", MapNavigationLocalization.PointerGuide)] != navigation[("en-US", MapNavigationLocalization.PointerGuide)] ||
+            !navigation[("zh-CN", MapNavigationLocalization.PointerGuide)].Contains("单击") ||
+            !navigation[("zh-CN", MapNavigationLocalization.PointerGuide)].Contains("悬停"))
             throw new InvalidOperationException("Nearby travel must not promise a fixed teleport point; missing languages fall back as a group.");
         Console.WriteLine("MapNavigationLocalization: nearby placement, exact destinations and distinct unavailability reasons passed");
     }

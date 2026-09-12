@@ -94,7 +94,7 @@ namespace SephiriaEnhancements.MapEnhancements
             nameText.rectTransform.sizeDelta = NameSize;
             glyph.text = HasQuest ? "!" : "•";
             glyph.rectTransform.localScale = Vector3.one * (selected ? 1.35f : 1f);
-            glyph.color = selected ? textTemplate.color * new Color(.7f, .7f, .7f, 1) : textTemplate.color;
+            glyph.color = textTemplate.color;
         }
 
         public void OnSelect(BaseEventData eventData) => Selected?.Invoke();

@@ -36,6 +36,7 @@ namespace SephiriaEnhancements.MapEnhancements
         private readonly TextMeshProUGUI helpText;
         private readonly TextMeshProUGUI focusedName;
         private readonly RectTransform focusedLabel, focusedLeader;
+        private readonly MapSelectionFrame focusedFrame;
         private readonly MapPanSurface panSurface;
         private readonly TextMeshProUGUI emptyText;
         private readonly List<MapLocationMarkerView> entries = new();
@@ -140,7 +141,7 @@ namespace SephiriaEnhancements.MapEnhancements
             fitButton = Button(uiRoot, MapNavigationLocalization.Fit, new Vector2(194, -182), new Vector2(48, 17), Fit);
             plusButton = Button(uiRoot, null, new Vector2(246, -182), new Vector2(36, 17), () => ZoomBy(1.25f));
             plusButton.text.text = "+";
-            travelButton = Button(uiRoot, MapNavigationLocalization.Travel, new Vector2(154, -201), new Vector2(314, 17), Travel);
+            travelButton = Button(uiRoot, MapNavigationLocalization.ChooseTarget, new Vector2(154, -201), new Vector2(314, 17), Travel);
             browseButton = Button(uiRoot, MapNavigationLocalization.Browse, new Vector2(286, -182), new Vector2(86, 17),
                 () => EventSystem.current?.SetSelectedGameObject(panSurface.gameObject));
             var panObject = Rect("Map Panning", viewport, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -148,10 +149,14 @@ namespace SephiriaEnhancements.MapEnhancements
             panSurface = panObject.gameObject.AddComponent<MapPanSurface>();
             panSurface.Pan = direction => { nativeScroll.StopMovement(); panel.contentsParent.anchoredPosition -= direction * 24; };
             panSurface.Return = FocusSelectedRow;
+            focusedFrame = MapSelectionFrame.Create(viewport, template.color, corners: true);
+            focusedFrame.rectTransform.anchorMin = focusedFrame.rectTransform.anchorMax = new Vector2(.5f, .5f);
+            focusedFrame.rectTransform.sizeDelta = new Vector2(28, 28);
             focusedLeader = Ink("Selected Target Link", viewport, Vector2.one);
             focusedLabel = Ink("Selected Target Name", viewport, Vector2.zero);
-            focusedLabel.GetComponent<Image>().color = new Color(.92f, .76f, .56f, .98f);
+            focusedLabel.GetComponent<Image>().color = template.color;
             focusedName = Text(focusedLabel, string.Empty);
+            focusedName.color = MapSelectionFrame.Paper;
             focusedName.rectTransform.anchorMin = Vector2.zero; focusedName.rectTransform.anchorMax = Vector2.one;
             focusedName.rectTransform.offsetMin = new Vector2(4, 2); focusedName.rectTransform.offsetMax = new Vector2(-4, -2);
             focusedName.alignment = TextAlignmentOptions.Center;
@@ -159,8 +164,9 @@ namespace SephiriaEnhancements.MapEnhancements
             trackButton = Button(uiRoot, MapNavigationLocalization.Track, new Vector2(376, -182), new Vector2(92, 17), ToggleTracking);
             helpText = Text(uiRoot, string.Empty);
             helpText.rectTransform.anchorMin = helpText.rectTransform.anchorMax = new Vector2(.5f, 0);
-            helpText.rectTransform.anchoredPosition = new Vector2(0, 20);
-            helpText.rectTransform.sizeDelta = new Vector2(445, 14);
+            helpText.rectTransform.anchoredPosition = new Vector2(0, 17);
+            helpText.rectTransform.sizeDelta = new Vector2(445, 22);
+            helpText.textWrappingMode = TextWrappingModes.Normal;
             details.rectTransform.SetParent(uiRoot, false);
             details.rectTransform.anchorMin = details.rectTransform.anchorMax = new Vector2(0, 0);
             details.rectTransform.pivot = new Vector2(0, 0);
@@ -208,7 +214,8 @@ namespace SephiriaEnhancements.MapEnhancements
             button.transition = Selectable.Transition.None;
             button.text = Text(rect, key == null ? string.Empty : ModLocalization.Get(key));
             button.text.rectTransform.anchorMin = Vector2.zero; button.text.rectTransform.anchorMax = Vector2.one;
-            button.text.rectTransform.offsetMin = new Vector2(4, 0); button.text.rectTransform.offsetMax = new Vector2(-4, 0);
+            button.text.rectTransform.offsetMin = new Vector2(7, 1); button.text.rectTransform.offsetMax = new Vector2(-4, -1);
+            rect.gameObject.AddComponent<MapButtonView>().Initialize(button, template.color);
             button.onClick.AddListener(() => click());
             rect.gameObject.SetActive(true);
             return button;
@@ -231,16 +238,10 @@ namespace SephiriaEnhancements.MapEnhancements
                 {
                     MapLocationMarkerView marker = filtered[i];
                     var row = Button(listContent, null, new Vector2(0, -i * 18), new Vector2(118, 17), () => { Select(marker, true); Travel(); });
-                    row.gameObject.AddComponent<MapNavigationSelection>().Selected = () => Select(marker, true);
+                    row.GetComponent<MapButtonView>().Selected = () => Select(marker, true);
                     rows.Add(row);
                 }
                 listContent.sizeDelta = new Vector2(0, rows.Count * 18);
-                for (int i = 0; i < rows.Count; i++)
-                {
-                    rows[i].SetForceNavUp(i > 0 ? rows[i - 1] : rows[i]);
-                    rows[i].SetForceNavDown(i + 1 < rows.Count ? rows[i + 1] : rows[i]);
-                    rows[i].SetForceNavLeft(rows[i]);
-                }
                 if (selected != null && !filtered.Contains(selected)) selected = null;
                 if (focused != null && rows.Count > 0)
                 {
@@ -402,7 +403,7 @@ namespace SephiriaEnhancements.MapEnhancements
                 panel.contentsParent.anchoredPosition -= pan * (100 * Time.unscaledDeltaTime);
             }
             foreach (var text in uiRoot.GetComponentsInChildren<TextMeshProUGUI>()) NativeLocalizedText.MatchFontSize(text, template);
-            details.text = mode != MapNavigationMode.Rooms && selected != null ? selected.Label : string.Empty;
+            details.text = string.Empty;
             travelButton.gameObject.SetActive(mode != MapNavigationMode.Rooms);
             trackButton.gameObject.SetActive(mode == MapNavigationMode.People);
             MapTravelState travelState = mode == MapNavigationMode.Rooms
@@ -413,28 +414,38 @@ namespace SephiriaEnhancements.MapEnhancements
             modeBindings.text = Binding(input?.prevTabUIAction?.action) + " / " + Binding(input?.nextTabUIAction?.action) + "  ↔";
             placesButton.text.text = ModLocalization.Get(MapNavigationLocalization.Places);
             fitButton.text.text = ModLocalization.Get(MapNavigationLocalization.Fit);
-            travelButton.text.text = ModLocalization.Get(selected?.Destination != null
+            string travelKey = selected?.Destination != null
                 ? MapNavigationLocalization.DestinationTravel
-                : geometry.Designed != null ? MapNavigationLocalization.Travel : MapNavigationLocalization.RoomTravel);
+                : geometry.Designed != null ? MapNavigationLocalization.Travel : MapNavigationLocalization.RoomTravel;
+            travelButton.text.text = selected != null
+                ? string.Format(ModLocalization.Get(travelKey), selected.Label)
+                : ModLocalization.Get(MapNavigationLocalization.ChooseTarget);
             if (selected != null && travelState != MapTravelState.Ready)
-                travelButton.text.text = ModLocalization.Get(travelState switch
+            {
+                details.text = ModLocalization.Get(travelState switch
                 {
                     MapTravelState.MapNotReady => MapNavigationLocalization.MapNotReady,
                     MapTravelState.NoNearbyLanding => MapNavigationLocalization.NoLanding,
                     _ => MapNavigationLocalization.TravelUnavailable
                 });
+            }
             emptyText.text = ModLocalization.Get(MapNavigationLocalization.Empty);
             minusButton.text.text = "− " + Binding(input?.prevTab2Action?.action);
             plusButton.text.text = "+ " + Binding(input?.nextTab2Action?.action);
             browseButton.text.text = ModLocalization.Get(MapNavigationLocalization.Browse);
             if (roomsButton != null) roomsButton.text.text = ModLocalization.Get(MapNavigationLocalization.Rooms);
-            helpText.text = EventSystem.current?.currentSelectedGameObject == panSurface.gameObject
+            GameObject focus = EventSystem.current?.currentSelectedGameObject;
+            bool targetFocused = rows.Exists(row => row.gameObject == focus) ||
+                (selected != null && selected.gameObject == focus);
+            helpText.text = focus == panSurface.gameObject
                 ? string.Format(ModLocalization.Get(MapNavigationLocalization.PanGuide), Binding(UIInputModule.currentModule?.submit?.action))
                 : IsRoomFocused()
                     ? string.Format(ModLocalization.Get(MapNavigationLocalization.SelectRoomGuide), Binding(UIInputModule.currentModule?.submit?.action))
-                    : string.Format(ModLocalization.Get(selected?.Destination != null
-                        ? MapNavigationLocalization.DestinationGuide
-                        : geometry.Designed != null ? MapNavigationLocalization.Guide : MapNavigationLocalization.RoomGuide), Binding(UIInputModule.currentModule?.submit?.action));
+                    : targetFocused
+                        ? ControlsChangeHandler.Current == null || ControlsChangeHandler.Current.IsUsingKeyboardAndMouse
+                            ? string.Format(ModLocalization.Get(MapNavigationLocalization.PointerGuide), Binding(UIInputModule.currentModule?.submit?.action))
+                            : string.Format(ModLocalization.Get(MapNavigationLocalization.Guide), Binding(UIInputModule.currentModule?.submit?.action))
+                        : ModLocalization.Get(MapNavigationLocalization.ChooseTargetGuide);
             RefreshRowText();
             LayoutLabels();
         }
@@ -461,29 +472,43 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void UpdateNavigation()
         {
-            UI_HorayButton row = rows.Count > 0 ? rows[Mathf.Max(0, rowEntries.IndexOf(selected))] : peopleButton;
-            foreach (var entry in rows)
-                entry.SetForceNavRight(entry);
-            peopleButton.SetForceNavRight(placesButton); peopleButton.SetForceNavLeft(placesButton);
-            placesButton.SetForceNavLeft(peopleButton); placesButton.SetForceNavRight(minusButton);
-            peopleButton.SetForceNavUp(fitButton); placesButton.SetForceNavUp(fitButton);
-            peopleButton.SetForceNavDown(rows.Count > 0 ? row : minusButton);
-            placesButton.SetForceNavDown(rows.Count > 0 ? row : minusButton);
-            var toolbar = new[] { minusButton, fitButton, plusButton, browseButton, trackButton };
-            for (int i = 0; i < toolbar.Length; i++)
+            UI_HorayButton category = mode == MapNavigationMode.Rooms ? roomsButton
+                : mode == MapNavigationMode.People ? peopleButton : placesButton;
+            Selectable row = mode == MapNavigationMode.Rooms
+                ? RoomSelection()?.GetComponent<Selectable>() ?? category
+                : rows.Count > 0 ? rows[Mathf.Max(0, rowEntries.IndexOf(selected))] : category;
+            bool canTravel = travelButton.gameObject.activeSelf && travelButton.interactable;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                rows[i].SetForceNavUp(i > 0 ? rows[i - 1] : category);
+                rows[i].SetForceNavDown(i + 1 < rows.Count ? rows[i + 1] : canTravel ? travelButton : minusButton);
+                rows[i].SetForceNavLeft(category);
+                rows[i].SetForceNavRight(canTravel ? travelButton : minusButton);
+            }
+            var categories = roomsButton != null ? new[] { roomsButton, peopleButton, placesButton }
+                : new[] { peopleButton, placesButton };
+            for (int i = 0; i < categories.Length; i++)
+            {
+                categories[i].SetForceNavLeft(categories[(i + categories.Length - 1) % categories.Length]);
+                categories[i].SetForceNavRight(categories[(i + 1) % categories.Length]);
+                categories[i].SetForceNavUp(fitButton);
+                categories[i].SetForceNavDown(row);
+            }
+            var toolbar = new List<UI_HorayButton> { minusButton, fitButton, plusButton, browseButton };
+            if (trackButton.gameObject.activeSelf && trackButton.interactable) toolbar.Add(trackButton);
+            for (int i = 0; i < toolbar.Count; i++)
             {
                 toolbar[i].SetForceNavLeft(i > 0 ? toolbar[i - 1] : row);
-                toolbar[i].SetForceNavRight(i + 1 < toolbar.Length ? toolbar[i + 1] : row);
+                toolbar[i].SetForceNavRight(i + 1 < toolbar.Count ? toolbar[i + 1] : row);
                 toolbar[i].SetForceNavUp(row);
-                toolbar[i].SetForceNavDown(travelButton.interactable ? travelButton : row);
+                toolbar[i].SetForceNavDown(canTravel ? travelButton : category);
             }
             travelButton.SetForceNavUp(browseButton); travelButton.SetForceNavLeft(row); travelButton.SetForceNavRight(row);
-            if (roomsButton != null)
-            {
-                placesButton.SetForceNavRight(roomsButton);
-                roomsButton.SetForceNavLeft(row); roomsButton.SetForceNavRight(browseButton);
-                roomsButton.SetForceNavUp(peopleButton); roomsButton.SetForceNavDown(browseButton);
-            }
+            travelButton.SetForceNavDown(category);
+            GameObject focus = EventSystem.current?.currentSelectedGameObject;
+            if ((focus == travelButton.gameObject && !canTravel) ||
+                (focus == trackButton.gameObject && (!trackButton.gameObject.activeSelf || !trackButton.interactable)))
+                EventSystem.current.SetSelectedGameObject(row.gameObject);
         }
 
         private static string Binding(InputAction action)
@@ -519,10 +544,8 @@ namespace SephiriaEnhancements.MapEnhancements
 
         private void SetSelectedTint(UI_HorayButton button, bool isSelected)
         {
-            Color tint = template.color;
             bool focused = EventSystem.current?.currentSelectedGameObject == button.gameObject;
-            tint.a = focused ? .4f : isSelected ? .18f : .06f;
-            button.GetComponent<Image>().color = tint;
+            button.GetComponent<MapButtonView>().Refresh(template.color, isSelected, focused);
         }
 
         private void LayoutLabels()
@@ -534,7 +557,8 @@ namespace SephiriaEnhancements.MapEnhancements
             {
                 marker.SetScale(Scale);
                 Vector2 p = viewport.InverseTransformPoint(marker.transform.position);
-                occupied.Add(new MapLabelBounds(p.x - 5, p.y - 5, 10, 10));
+                float radius = marker == selected ? 16 : 5;
+                occupied.Add(new MapLabelBounds(p.x - radius, p.y - radius, radius * 2, radius * 2));
             }
             LayoutFocusedName(bounds);
             // Selection and quest labels get first choice; all names remain in the list.
@@ -561,14 +585,17 @@ namespace SephiriaEnhancements.MapEnhancements
             focusedLabel.gameObject.SetActive(visible);
 
             focusedLeader.gameObject.SetActive(visible);
+            focusedFrame.gameObject.SetActive(visible);
             if (!visible) return;
             NativeLocalizedText.MatchFontSize(focusedName, template);
             focusedName.text = selected.Label;
             float width = Mathf.Min(bounds.Width, focusedName.GetPreferredValues(selected.Label).x + 8);
             float height = Mathf.Min(bounds.Height, focusedName.GetPreferredValues(selected.Label, Mathf.Max(1, width - 8), float.PositiveInfinity).y + 4);
             Vector2 p = viewport.InverseTransformPoint(selected.transform.position);
-            if (!MapLabelLayout.TryPlace(p.x, p.y, width, height, bounds, occupied, out var place))
-                place = MapLabelLayout.PlaceFocused(p.x, p.y, width, height, bounds);
+            focusedFrame.gameObject.SetActive(viewport.rect.Contains(p));
+            focusedFrame.rectTransform.localPosition = p;
+            if (!MapLabelLayout.TryPlace(p.x, p.y, width, height, bounds, occupied, out var place, clearance: 18))
+                place = MapLabelLayout.PlaceFocused(p.x, p.y, width, height, bounds, clearance: 18);
             occupied.Add(new MapLabelBounds(place.X - 2, place.Y - 2, place.Width + 4, place.Height + 4));
             focusedLabel.localPosition = new Vector3(place.X + place.Width / 2, place.Y + place.Height / 2, 0);
             focusedLabel.sizeDelta = new Vector2(place.Width, place.Height);
@@ -576,9 +603,9 @@ namespace SephiriaEnhancements.MapEnhancements
             Vector2 end = new Vector2(Mathf.Clamp(p.x, place.X, place.X + place.Width), Mathf.Clamp(p.y, place.Y, place.Y + place.Height));
             Vector2 delta = end - p;
             focusedLeader.localPosition = (p + end) / 2;
-            focusedLeader.sizeDelta = new Vector2(delta.magnitude, 1);
+            focusedLeader.sizeDelta = new Vector2(delta.magnitude, 2);
             focusedLeader.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
-            focusedLeader.SetAsLastSibling(); focusedLabel.SetAsLastSibling();
+            focusedLeader.SetAsLastSibling(); focusedFrame.transform.SetAsLastSibling(); focusedLabel.SetAsLastSibling();
         }
 
         private void Travel()
@@ -605,6 +632,7 @@ namespace SephiriaEnhancements.MapEnhancements
             if (focusedLabel != null) UnityEngine.Object.Destroy(focusedLabel.gameObject);
 
             if (focusedLeader != null) UnityEngine.Object.Destroy(focusedLeader.gameObject);
+            if (focusedFrame != null) UnityEngine.Object.Destroy(focusedFrame.gameObject);
             if (uiRoot != null) { uiRoot.gameObject.SetActive(false); UnityEngine.Object.Destroy(uiRoot.gameObject); }
         }
     }
@@ -615,12 +643,6 @@ namespace SephiriaEnhancements.MapEnhancements
         internal Action Return;
         public override void OnMove(AxisEventData data) { Pan?.Invoke(data.moveVector); data.Use(); }
         public void OnSubmit(BaseEventData data) { Return?.Invoke(); data.Use(); }
-    }
-
-    internal sealed class MapNavigationSelection : MonoBehaviour, ISelectHandler
-    {
-        internal Action Selected;
-        public void OnSelect(BaseEventData eventData) => Selected?.Invoke();
     }
 
     internal sealed class MapZoomWheel : MonoBehaviour, IScrollHandler

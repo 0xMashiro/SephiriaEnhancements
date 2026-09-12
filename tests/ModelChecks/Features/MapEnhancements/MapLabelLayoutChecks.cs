@@ -65,6 +65,18 @@ internal static class MapLabelLayoutChecks
         if (MapLabelLayout.TryPlace(150, -75, 60, 20, nativeViewport, occupied, out var ordinary) && ordinary.Overlaps(forced))
             throw new InvalidOperationException("Ordinary labels must yield to the focused label.");
         Console.WriteLine("Focused map labels: 75 edge/size/offscreen cases and dense priority passed.");
+        foreach (float x in new[] { -75f, 0f, 75f })
+            foreach (float y in new[] { -55f, 0f, 55f })
+            {
+                var selectionFrame = new MapLabelBounds(x - 16, y - 16, 32, 32);
+                occupied.Clear(); occupied.Add(selectionFrame);
+                if (!MapLabelLayout.TryPlace(x, y, 40, 13, viewport, occupied, out var name, clearance: 18) ||
+                    name.Overlaps(selectionFrame))
+                    throw new InvalidOperationException("Selected names must leave the target frame visible, including near edges.");
+                var fallbackName = MapLabelLayout.PlaceFocused(x, y, 40, 13, viewport, clearance: 18);
+                if (fallbackName.Overlaps(selectionFrame))
+                    throw new InvalidOperationException("Dense-map fallback must preserve space around the target frame.");
+            }
         if (NpcTrackingDirection.TryPlace(10, 20, 10, 20, 8, 5, out _))
             throw new InvalidOperationException("Visible NPCs must not produce edge arrows.");
         foreach (var target in new[] { (-100f, 20f), (100f, 20f), (10f, -100f), (10f, 100f), (100f, 100f), (-100f, -100f) })
@@ -78,13 +90,13 @@ internal static class MapLabelLayoutChecks
         var fallback = new Dictionary<string, string>();
         MapNavigationLocalization.Register((_, key, text) => english.Add(key, text), new[] { "en-US" });
         MapNavigationLocalization.Register((_, key, text) => fallback.Add(key, text), new[] { "unsupported" });
-        if (english.Count != 25 || fallback.Count != english.Count ||
+        if (english.Count != 26 || fallback.Count != english.Count ||
             english.Any(pair => fallback[pair.Key] != pair.Value))
             throw new InvalidOperationException("Map navigation must fall back as a complete language group.");
         if (english[MapNavigationLocalization.MultiplayerGate] == english[MapNavigationLocalization.TownReturnPortal])
             throw new InvalidOperationException("Multiplayer access and returning to your town are different destinations.");
         if (english[MapNavigationLocalization.RoomTravel] == english[MapNavigationLocalization.Travel] ||
-            !english[MapNavigationLocalization.RoomGuide].Contains("{0}"))
+            !english[MapNavigationLocalization.RoomTravel].Contains("{0}"))
             throw new InvalidOperationException("Room travel must have its own destination semantics and current input binding.");
     }
 }

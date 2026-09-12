@@ -206,13 +206,14 @@ namespace SephiriaEnhancements.DefeatRetry
             {
                 SerializeCurrentSession(floorGuid);
 
+                bool rebuildFloor = NativeRetryBoss.RequiresFloorRebuild(boss);
                 CaptureCheckpoint(RetryCheckpointKind.BossEncounter, current,
                     currentRun, bossName, floorGuid,
                     CaptureCheckpointPlacements(floorGuid, encounterPosition),
-                    "boss_spawner", BossRetryWorld.Capture(boss));
-                // The library encounter creates sibling golem/hand objects. Restore
-                // its serialized floor instead of retaining the later-phase world.
-                checkpoints.BossEncounter.RebuildBossFloor = NativeRetryBoss.RequiresFloorRebuild(boss);
+                    "boss_spawner", rebuildFloor ? null : BossRetryWorld.Capture(boss));
+                // Embedded floor props have no CreateProp recipe. Restore their
+                // serialized floor, as for encounters with separate phase objects.
+                checkpoints.BossEncounter.RebuildBossFloor = rebuildFloor;
             }
             catch (Exception ex)
             {
@@ -470,7 +471,7 @@ namespace SephiriaEnhancements.DefeatRetry
             try
             {
                 if (checkpoints.BossEncounter?.RebuildBossFloor == true)
-                    return NativeRetryBoss.CanRebuildLibraryFloor(checkpoints.BossEncounter.FloorGuid);
+                    return NativeRetryBoss.CanRebuildBossFloor(checkpoints.BossEncounter.FloorGuid);
                 return checkpoints.BossEncounter?.World?.CanRestore() == true;
             }
             catch (Exception ex)

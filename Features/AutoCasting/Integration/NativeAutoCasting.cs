@@ -28,6 +28,8 @@ namespace SephiriaEnhancements.AutoCasting.Integration
         private SkillController skills;
         private WeaponControllerSimple weapon;
         private bool requesting;
+        private bool retryInProgress, retryWorldPending;
+        private NetworkConnectionToServer retryConnection;
         internal bool IsPaused => rotation.IsPaused;
         internal string SelectionStateKey(Charm_Magic magic) => !IsSelected(magic) ? AutoCastingLocalization.Off :
             IsPaused ? AutoCastingLocalization.Paused : AutoCastingLocalization.On;
@@ -56,9 +58,40 @@ namespace SephiriaEnhancements.AutoCasting.Integration
 
         internal void ResetWorld()
         {
+            retryInProgress = retryWorldPending = false;
+            retryConnection = null;
             selection.Clear();
             rotation.Reset();
         }
+
+        internal void BeginRetry()
+        {
+            BindPlayer();
+            if (player == null) return;
+            retryConnection = NetworkClient.connection;
+            retryInProgress = retryWorldPending = true;
+        }
+
+        internal void ObserveWorldSession(bool saved)
+        {
+            if (saved && retryInProgress && retryWorldPending &&
+                retryConnection == NetworkClient.connection && player != null &&
+                LocalPlayerResolver.Resolve() == player)
+            {
+                retryWorldPending = false;
+                return;
+            }
+            ResetWorld();
+        }
+
+        internal void CompleteRetry()
+        {
+            retryInProgress = retryWorldPending = false;
+            retryConnection = null;
+            ResetGameplayContext();
+        }
+
+        internal void CancelRetry() { if (retryInProgress) ResetWorld(); }
 
         internal void ResetGameplayContext() => rotation.YieldToManualInput(Time.unscaledTimeAsDouble);
 
@@ -142,6 +175,9 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             BindPlayer();
             if (player == null || actions == null || skills == null || weapon == null)
                 return;
+            // Rebuilt inventory objects arrive over multiple frames. Keep artifact IDs
+            // and pause state until the local retry arrival has been confirmed.
+            if (retryInProgress || player.loadingScreenType != -1) return;
             ownedArtifacts.Clear();
             foreach (Charm_Basic charm in player.Inventory.charms.Values)
                 if (charm is Charm_Magic magic && magic.Item != null)

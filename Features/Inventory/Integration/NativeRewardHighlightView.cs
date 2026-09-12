@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using TMPro;
 using HarmonyLib;
 using SephiriaEnhancements.Integration;
 using SephiriaEnhancements.Runtime.Inventory;
@@ -21,9 +23,14 @@ namespace SephiriaEnhancements.Inventory.Integration
         private sealed class RewardHighlight
         {
             internal GameObject Marker;
-            internal CanvasGroup Group;
-            internal Vector3 FavoriteScale;
+            internal string Reason;
         }
+
+        private static readonly AccessTools.FieldRef<UI_CharmTooltip, TMP_Text> TypeText =
+            AccessTools.FieldRefAccess<UI_CharmTooltip, TMP_Text>("typeText");
+        private TMP_Text reasonText;
+        private string originalText;
+        private string renderedText;
 
         private readonly Dictionary<UI_SephiriteRewardElement, RewardHighlight> markers = new();
         private readonly List<UI_SephiriteRewardElement> removed = new();
@@ -46,6 +53,10 @@ namespace SephiriaEnhancements.Inventory.Integration
             }
 
             List<UI_SephiriteRewardElement> rewards = RewardElements(panel);
+            var opportunities = rewards.Where(reward => reward != null).ToDictionary(reward => reward,
+                reward => FindOpportunity(reward, snapshot));
+            long highestPriority = opportunities.Values.Where(value => value != null)
+                .Select(value => value.Priority).DefaultIfEmpty(0).Max();
             foreach (var entry in markers)
             {
                 if (entry.Key == null || !rewards.Contains(entry.Key))
@@ -68,40 +79,70 @@ namespace SephiriaEnhancements.Inventory.Integration
                     SaveManager.Current?.GetBool("Item_Favorite_" + entity.id, false) == true;
                 if (reward.favoriteImage != null && reward.favoriteImage.activeSelf != favorite)
                     reward.SetFavorite(favorite);
-                bool highlight = favorite || ShouldHighlight(reward, snapshot);
+                var opportunity = opportunities[reward];
+                bool supplement = opportunity != null && opportunity.Priority == highestPriority;
+                bool highlight = favorite || supplement;
                 if (!markers.TryGetValue(reward, out RewardHighlight visual))
                 {
                     if (!highlight) continue;
                     GameObject marker = CreateMarker(reward.rectTransform);
                     visual = new RewardHighlight
                     {
-                        Marker = marker,
-                        Group = marker.GetComponent<CanvasGroup>(),
-                        FavoriteScale = reward.favoriteImage != null
-                            ? reward.favoriteImage.transform.localScale : Vector3.one
+                        Marker = marker
                     };
                     markers.Add(reward, visual);
                 }
                 if (visual.Marker.activeSelf != highlight) visual.Marker.SetActive(highlight);
-                visual.Group.alpha = favorite ? 1f : 0.55f;
-                if (reward.favoriteImage != null)
-                    reward.favoriteImage.transform.localScale = visual.FavoriteScale *
-                        (favorite ? 1.25f + 0.06f * Mathf.Sin(Time.unscaledTime * 3f) : 1f);
+                visual.Reason = favorite ? Loc._(RewardHighlightLocalization.Favorite) : null;
+                if (!favorite && supplement)
+                {
+                    var category = ItemDatabase.FindItemCategory(opportunity.CategoryId);
+                    visual.Reason = string.Format(Loc._(RewardHighlightLocalization.Fruit),
+                        category.categoryName.ToString(), opportunity.CurrentCount, opportunity.TargetCount);
+                }
             }
+            UpdateReason();
         }
 
-        private static bool ShouldHighlight(UI_SephiriteRewardElement reward,
+        private static RewardComboHighlightPolicy.Opportunity FindOpportunity(UI_SephiriteRewardElement reward,
             InventorySnapshot snapshot)
         {
-            if (snapshot?.NativePreset?.Enabled != true) return false;
+            if (snapshot == null) return null;
             ItemEntity entity = ItemDatabase.FindItemById(reward.reward.entityID);
-            // Charm is the native API name for an artifact. Possible categories
-            // describe a reward before placement, not a guaranteed combo increase.
-            return entity != null && entity.type == EItemType.Charm &&
-                entity.resourcePrefab != null &&
-                entity.resourcePrefab.TryGetComponent<Charm_Basic>(out var artifact) &&
-                RewardComboHighlightPolicy.ShouldHighlight(snapshot,
-                    artifact.GetPossibleCategory(entity));
+            // GetPossibleCategory includes conditional categories. Only the base
+            // GetItemCategory contract guarantees the entity's fixed categories.
+            if (entity == null || entity.type != EItemType.Charm || entity.resourcePrefab == null ||
+                !entity.resourcePrefab.TryGetComponent<Charm_Basic>(out var artifact) ||
+                artifact.GetType().GetMethod(nameof(Charm_Basic.GetItemCategory)).DeclaringType != typeof(Charm_Basic))
+                return null;
+            return RewardComboHighlightPolicy.FindOpportunity(snapshot, entity.id, entity.categories);
+        }
+
+        private void UpdateReason()
+        {
+            var tooltip = UIManager.Instance?.GetElement<UI_CharmTooltip>();
+            if (tooltip == null || !tooltip.IsOpened ||
+                !(tooltip.Target is UI_SephiriteRewardElement reward) || !reward.Showing ||
+                !markers.TryGetValue(reward, out var visual) || !visual.Marker.activeSelf || visual.Reason == null)
+            {
+                ClearReason();
+                return;
+            }
+            TMP_Text text = TypeText(tooltip);
+            if (reasonText != text) ClearReason();
+            // Keep the native font and layout. Native refreshes replace the base
+            // text; only remove our own exact rendering when relinquishing it.
+            if (reasonText == null || text.text != renderedText) originalText = text.text;
+            reasonText = text;
+            renderedText = originalText + "\n" + visual.Reason;
+            if (text.text != renderedText) text.text = renderedText;
+        }
+
+        private void ClearReason()
+        {
+            if (reasonText != null && reasonText.text == renderedText) reasonText.text = originalText;
+            reasonText = null;
+            originalText = renderedText = null;
         }
 
         private static GameObject CreateMarker(RectTransform parent)
@@ -142,13 +183,12 @@ namespace SephiriaEnhancements.Inventory.Integration
 
         private static void Release(UI_SephiriteRewardElement reward, RewardHighlight visual)
         {
-            if (reward != null && reward.favoriteImage != null)
-                reward.favoriteImage.transform.localScale = visual.FavoriteScale;
             if (visual.Marker != null) Object.Destroy(visual.Marker);
         }
 
         internal void Clear()
         {
+            ClearReason();
             foreach (var entry in markers)
                 Release(entry.Key, entry.Value);
             markers.Clear();

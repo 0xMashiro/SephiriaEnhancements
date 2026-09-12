@@ -164,7 +164,9 @@ namespace SephiriaEnhancements.Inventory
             PersistentInventoryOptimizationPolicyPersistence.EnsureLoaded();
             InventorySnapshot hudSnapshot = null;
             runtimeKernel?.TryGetLatestInventorySnapshot(out hudSnapshot, out RuntimeStateSnapshot _);
-            rewardHighlights.Update(EnhancementsSettings.Enabled, hudSnapshot);
+            InventorySnapshot rewardSnapshot = null;
+            runtimeKernel?.TryGetProjectableInventorySnapshot(out rewardSnapshot, out RuntimeStateSnapshot _);
+            rewardHighlights.Update(EnhancementsSettings.Enabled, rewardSnapshot);
             MaintainPriorityMarking();
             MaintainArrangementHistory();
             RefreshPriorityMarkVisuals();

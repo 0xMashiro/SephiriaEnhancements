@@ -6,6 +6,7 @@ using Mirror;
 using SephiriaEnhancements.Diagnostics;
 using SephiriaEnhancements.Integration;
 using UnityEngine;
+using SephiriaEnhancements.AutoCasting.Integration;
 
 namespace SephiriaEnhancements.DefeatRetry
 {
@@ -77,6 +78,7 @@ namespace SephiriaEnhancements.DefeatRetry
             player.localDataStorage.NetworkreadyToLeave = false;
             player.localDataStorage.NetworkgoToEachOtherSessionOnGameOver_Local = 0;
             player.OnTravelPreparedClientside += OnTravelPrepared;
+            FeatureFailure.Run(FeatureId.AutoCasting, () => NativeAutoCasting.Current?.BeginRetry());
             SupportLogger.Record("retry_client_prepared", "player=" + player.netId);
         }
 
@@ -169,6 +171,7 @@ namespace SephiriaEnhancements.DefeatRetry
             }
             if (camera.Observer != player) return;
             SupportLogger.Record("retry_client_arrived", "player=" + player.netId);
+            FeatureFailure.Run(FeatureId.AutoCasting, () => NativeAutoCasting.Current?.CompleteRetry());
             DefeatRetryBridge.ReportArrival(retryId);
             Clear();
         }
@@ -185,6 +188,7 @@ namespace SephiriaEnhancements.DefeatRetry
 
         internal static void Clear()
         {
+            FeatureFailure.Run(FeatureId.AutoCasting, () => NativeAutoCasting.Current?.CancelRetry());
             if (!ReferenceEquals(player, null)) player.OnTravelPreparedClientside -= OnTravelPrepared;
             player = null;
             connection = null;

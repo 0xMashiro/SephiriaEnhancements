@@ -20,6 +20,7 @@ namespace SephiriaEnhancements.EffectStats.Integration
             internal LayoutElement Layout;
             internal UI_TooltipOpener Tooltip;
             internal string Summary;
+            internal string Title;
             internal string Details;
         }
 
@@ -179,7 +180,7 @@ namespace SephiriaEnhancements.EffectStats.Integration
                 NativeLocalizedText.MatchFontSize(group.Title, titleTemplate);
                 group.Title.text = new LocalizedString(group.TitleKey).ToString();
                 var results = ready ? NativeEffectStatsResults.Read(player, group.TitleKey)
-                    .Where(result => result.Text != null).ToList() : new List<(string Id, string Text)>();
+                    .Where(result => result.Text != null).ToList() : new List<(string Id, string Title, string Text)>();
                 var bonuses = new StringBuilder();
                 if (ready)
                     foreach (var status in group.Statuses)
@@ -188,7 +189,7 @@ namespace SephiriaEnhancements.EffectStats.Integration
                         if (value != 0) bonuses.AppendLine(NativeEffectStatsCatalog.Describe(status.Status, value));
                     }
                 if (results.Count == 0 && bonuses.Length > 0)
-                    results.Add(("bonuses", ModLocalization.Get(EffectStatsLocalization.Bonuses)));
+                    results.Add(("bonuses", group.Title.text, ModLocalization.Get(EffectStatsLocalization.Bonuses)));
                 foreach (Row obsolete in group.Rows.Where(row => !results.Any(result => result.Id == row.Id)).ToArray())
                 {
                     HideTooltip(obsolete);
@@ -202,8 +203,13 @@ namespace SephiriaEnhancements.EffectStats.Integration
                     Row row = group.Rows.FirstOrDefault(row => row.Id == result.Id) ?? AddRow(group, nativeRow, result.Id);
                     int newline = result.Text.IndexOf('\n');
                     row.Summary = newline < 0 ? result.Text : result.Text.Substring(0, newline);
-                    row.Details = (newline < 0 ? string.Empty : result.Text.Substring(newline + 1) + "\n\n") +
-                        bonuses.ToString().TrimEnd();
+                    row.Title = result.Title;
+                    // Magic details already repeat cost and charges; other summaries contain unique values.
+                    row.Details = group.TitleKey == "Status_Magic_Name" && newline >= 0
+                        ? result.Text.Substring(newline + 1) : result.Text;
+                    // Use the paragraph breaks used by native detailed attribute descriptions.
+                    row.Details = row.Details.Replace("\n", "\n\n");
+                    if (bonuses.Length > 0) row.Details += "\n\n" + bonuses.ToString().TrimEnd();
                     NativeLocalizedText.MatchFontSize(row.Text, rowTemplate);
                     row.Text.text = row.Summary;
                     row.Text.transform.SetSiblingIndex(index + 1);
@@ -227,7 +233,8 @@ namespace SephiriaEnhancements.EffectStats.Integration
                 player == null || !LocalPlayerResolver.IsLocal(player) || player.loadingScreenType != -1) return;
             RectTransform rect = row.Text.rectTransform;
             UIManager.Instance.GetElement<UI_CommonTooltip>().Open(row.Tooltip, rect, rect.rect.size * 0.5f,
-                new SimpleTooltipObject(row.Summary, row.Details));
+                new SimpleTooltipObject(row.Title, row.Details));
+            RefreshTooltip(row);
         }
 
         private static void RefreshTooltip(Row row)
@@ -235,9 +242,11 @@ namespace SephiriaEnhancements.EffectStats.Integration
             if (!row.Tooltip.Showing || !(row.Tooltip.LastTooltip is UI_CommonTooltip tooltip) ||
                 !ReferenceEquals(tooltip.Target, row.Tooltip)) return;
             // Updating the open native text avoids restarting its fade on each value refresh.
-            tooltip.titleText.text = KeywordDatabase.Convert(row.Summary, useColor: false, useSprite: false);
+            tooltip.titleText.text = KeywordDatabase.Convert(row.Title, useColor: false, useSprite: false);
             tooltip.flavorText.text = KeywordDatabase.Convert(row.Details, useColor: false, useSprite: false);
             tooltip.flavorText.gameObject.SetActive(row.Details.Length > 0);
+            // Resolve wrapped text heights before the native tooltip positions itself on screen.
+            LayoutRebuilder.ForceRebuildLayoutImmediate(tooltip.rectTransform);
         }
 
         private static void HideTooltip(Row row)

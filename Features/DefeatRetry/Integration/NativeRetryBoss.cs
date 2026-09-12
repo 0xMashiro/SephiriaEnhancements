@@ -39,15 +39,17 @@ namespace SephiriaEnhancements.DefeatRetry
             worldLoaded = false;
         }
 
-        internal static bool CanRebuildLibraryFloor(string floor)
+        internal static bool CanRebuildBossFloor(string floor)
         {
-            foreach (LibraryBossSpawner boss in UnityEngine.Object.FindObjectsByType<LibraryBossSpawner>(FindObjectsSortMode.None))
-                if (boss.parent != null && boss.parent.guid == floor && !boss.IsCleared)
+            foreach (BossSpawner boss in UnityEngine.Object.FindObjectsByType<BossSpawner>(FindObjectsSortMode.None))
+                if (boss.parent != null && boss.parent.guid == floor && !boss.IsCleared && RequiresFloorRebuild(boss))
                     return true;
             return false;
         }
 
-        internal static bool RequiresFloorRebuild(BossSpawner boss) => boss is LibraryBossSpawner;
+        internal static bool RequiresFloorRebuild(BossSpawner boss) => boss is LibraryBossSpawner ||
+            (boss != null && boss.GetType() == typeof(BossSpawner) &&
+             boss.parent is FullyDesignedFloorGenerator floor && floor.props.Contains(boss.gameObject));
 
         internal static void RestoreButtonColor(UI_HorayButton button, UI_HorayButton source)
         {

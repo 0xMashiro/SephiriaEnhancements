@@ -7,27 +7,30 @@ namespace SephiriaEnhancements.EffectStats.Integration
 {
     internal static class NativeEffectStatsResults
     {
-        internal static IEnumerable<(string Id, string Text)> Read(PlayerAvatar player, string group)
+        internal static IEnumerable<(string Id, string Title, string Text)> Read(PlayerAvatar player, string group)
         {
+            string title = new LocalizedString(group).ToString();
             switch (group)
             {
                 case "ItemCategory_FlameSword":
-                    yield return ("solar-damage", SolarDamage(player));
-                    yield return ("solar-supply", SolarSupply(player));
+                    yield return ("solar-damage", title, SolarDamage(player));
+                    yield return ("solar-supply", title, SolarSupply(player));
                     break;
                 case "ItemCategory_DarkCloud":
-                    yield return ("cloud-damage", CloudDamage(player));
-                    yield return ("cloud-supply", CloudSupply(player));
+                    yield return ("cloud-damage", title, CloudDamage(player));
+                    yield return ("cloud-supply", title, CloudSupply(player));
                     break;
                 case "Status_Magic_Name":
-                    for (int slot = 0; slot < 8; slot++)
-                        yield return ("magic-" + slot, Magic(player, slot));
+                    var slots = player.GetComponent<SkillController>()?.magicCharmsOnEachClient;
+                    if (slots == null) break;
+                    for (int slot = 0; slot < slots.Length && slot < 8; slot++)
+                        yield return ("magic-" + slot, slots[slot]?.ContainedMagic?.Name, Magic(player, slot));
                     break;
                 case "Debuff_Burn":
-                    yield return ("burn", Burn(player));
+                    yield return ("burn", title, Burn(player));
                     break;
                 case "Debuff_Electric":
-                    yield return ("electric", Electric(player));
+                    yield return ("electric", title, Electric(player));
                     break;
                 case "ItemCategory_Frost":
                 case "ItemCategory_Planet":
@@ -37,7 +40,7 @@ namespace SephiriaEnhancements.EffectStats.Integration
                             charm.netId != 0 && charm.Item?.Charm == charm).OrderBy(charm => charm.yIdx).ThenBy(charm => charm.xIdx))
                     {
                         string text = group == "ItemCategory_Frost" ? Frost(player, charm) : Planet(player, charm);
-                        if (text != null) yield return ("artifact-" + charm.Item.InstanceID, text);
+                        if (text != null) yield return ("artifact-" + charm.Item.InstanceID, charm.Item.Name, text);
                     }
                     break;
             }

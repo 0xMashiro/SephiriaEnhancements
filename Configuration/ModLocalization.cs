@@ -1270,6 +1270,7 @@ namespace SephiriaEnhancements.Configuration
             Inventory.InventoryOptimizationLocalization.Register(addText);
             Inventory.InventoryMagicCostLocalization.Register(addText);
             Inventory.InventoryPresetIntentLocalization.Register(addText);
+            Inventory.RewardHighlightLocalization.Register(addText);
             MultiplayerRulesLocalization.Register(addText, languages);
             MultiplayerAccessLocalization.Register(addText, languages);
             JoiningSupplyLocalization.Register(addText, languages);

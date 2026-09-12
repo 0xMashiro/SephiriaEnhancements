@@ -519,7 +519,7 @@ namespace SephiriaEnhancements
         {
             NativeModNotifications.ClearContext();
             FeatureFailure.Run(FeatureId.DefeatRetry, () => NativeRetryBoss.ObserveWorldSession(isSavedSession));
-            FeatureFailure.Run(FeatureId.AutoCasting, () => autoCasting?.ResetWorld());
+            FeatureFailure.Run(FeatureId.AutoCasting, () => autoCasting?.ObserveWorldSession(isSavedSession));
             FeatureFailure.Run(FeatureId.DefeatRetry, () => DefeatRetryClientRestore.ObserveWorldSession(isSavedSession));
             FeatureFailure.Run(FeatureId.DeveloperTools, () => GameLoadProfiler.ObserveClientSessionStarted(isSavedSession));
             FeatureFailure.Run(FeatureId.MultiplayerRules, MultiplayerRulesBridge.ObserveWorld);

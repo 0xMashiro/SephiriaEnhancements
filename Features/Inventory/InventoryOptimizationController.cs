@@ -24,8 +24,8 @@ namespace SephiriaEnhancements.Inventory
             new InventoryOptimizationHud();
         private readonly NativeInventoryItemSelectionView prioritySelectionView =
             new NativeInventoryItemSelectionView();
-        private readonly Integration.NativeRewardComboHighlightView rewardComboHighlights =
-            new Integration.NativeRewardComboHighlightView();
+        private readonly Integration.NativeRewardHighlightView rewardHighlights =
+            new Integration.NativeRewardHighlightView();
         private RuntimeKernel runtimeKernel;
         private Integration.Gpu.GpuInventoryLayoutOptimizer gpuOptimizer;
         private InventoryOptimizationSearch search;
@@ -69,7 +69,7 @@ namespace SephiriaEnhancements.Inventory
         {
             if (Busy) ShowOperationMessage(InventoryOptimizationLocalization.GameplayContextChanged);
             undo = null;
-            rewardComboHighlights.Clear();
+            rewardHighlights.Clear();
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             ResetOptimizationFrameMetrics();
 #endif
@@ -92,7 +92,7 @@ namespace SephiriaEnhancements.Inventory
             compatible = false;
             InventoryArtifactIntentClickPatch.SetController(null);
             undo = null;
-            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, rewardComboHighlights.Clear);
+            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, rewardHighlights.Clear);
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             ResetOptimizationFrameMetrics();
 #endif
@@ -164,7 +164,7 @@ namespace SephiriaEnhancements.Inventory
             PersistentInventoryOptimizationPolicyPersistence.EnsureLoaded();
             InventorySnapshot hudSnapshot = null;
             runtimeKernel?.TryGetLatestInventorySnapshot(out hudSnapshot, out RuntimeStateSnapshot _);
-            rewardComboHighlights.Update(EnhancementsSettings.Enabled, hudSnapshot);
+            rewardHighlights.Update(EnhancementsSettings.Enabled, hudSnapshot);
             MaintainPriorityMarking();
             MaintainArrangementHistory();
             RefreshPriorityMarkVisuals();

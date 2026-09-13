@@ -1,6 +1,7 @@
 using SephiriaEnhancements.Runtime.GameBridge.Inventory;
 using HarmonyLib;
 using System;
+using SephiriaEnhancements.CostumeAppearance.Integration;
 using SephiriaEnhancements.CombatRelationOutlines;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Combat;
@@ -180,6 +181,8 @@ namespace SephiriaEnhancements
                 runtimeKernel.Initialize();
                 runtimeKernel.GameplayContextChanged += OnLocalGameplayContextChanged;
             });
+            InitializeFeature(FeatureId.CostumeAppearance, () =>
+                AddController<NativeCostumeAppearance>(FeatureId.CostumeAppearance).Initialize());
             InitializeFeature(FeatureId.ModInformation, () =>
                 AddController<ModInformation.Integration.NativeModInformation>(FeatureId.ModInformation));
             InitializeFeature(FeatureId.Inventory, () =>
@@ -313,6 +316,9 @@ namespace SephiriaEnhancements
                 typeof(CombatTargetingInputPatch),
                 typeof(AutoCastingManualInputPatch),
                 typeof(AutoCastingPanelPatch),
+                typeof(CostumeAppearanceEquipPatch),
+                typeof(CostumeAppearancePreferencePatch),
+                typeof(CostumeAppearancePanelPatch),
                 typeof(AutoCastingOptionsPatch),
                 typeof(AutoCastingSubmitPatch),
                 typeof(CharacterPanelNavigationMovePatch),
@@ -482,6 +488,7 @@ namespace SephiriaEnhancements
             CleanupFeature(FeatureId.CombatInsights, () => UnitDeathCapture.SetController(null));
             CleanupFeature(FeatureId.CombatInsights, () => LocalFinalBlowCapture.SetController(null));
             CleanupFeature(FeatureId.ResourceBarValues, () => NativeResourceBarValueView.DisposeAll());
+            CleanupFeature(FeatureId.CostumeAppearance, () => NativeCostumeAppearance.Instance?.Shutdown());
             CleanupFeature(FeatureId.AutoCasting, () => NativeAutoCastingUi.DisposeAll());
             UnpatchFeatures();
             CleanupFeature(FeatureId.ModJournal, () => NativeModJournal.DisposeAll());

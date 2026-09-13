@@ -98,6 +98,9 @@ namespace SephiriaEnhancements
                 case FeatureId.RewardNavigation:
                     CleanupFeature(feature, KeyboardUiNavigation.RewardKeyboardNavigation.Reset);
                     break;
+                case FeatureId.CostumeAppearance:
+                    CleanupFeature(feature, () => CostumeAppearance.Integration.NativeCostumeAppearance.Instance?.Shutdown());
+                    break;
                 case FeatureId.EffectStats:
                     CleanupFeature(feature, EffectStats.Integration.NativeEffectStatsView.DisposeAll);
                     break;

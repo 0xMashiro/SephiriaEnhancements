@@ -8,6 +8,8 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Features/CostumeAppearance/AppearancePickerLayout.cs" Link="AppearancePickerLayout.cs" />
+    <Compile Include="../../Features/CostumeAppearance/CostumeAppearanceLocalization.cs" Link="CostumeAppearanceLocalization.cs" />
     <Compile Include="../../Features/MultiplayerRules/Core/MultiplayerRulesState.cs" />
     <Compile Include="../../Features/MultiplayerRules/Presentation/MultiplayerRulesSummary.cs" />
     <Compile Include="../../Features/MultiplayerRules/Presentation/MultiplayerRulesLocalization.State.cs" />

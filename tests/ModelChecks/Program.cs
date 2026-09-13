@@ -41,6 +41,12 @@ if (args.Contains("--inventory-support-only"))
     return;
 }
 
+SephiriaEnhancements.ModelChecks.Features.CostumeAppearance.AppearancePickerChecks.Run();
+if (args.Contains("--costume-appearance-only"))
+{
+    LocalizationChecks.Run();
+    return;
+}
 SephiriaEnhancements.ModelChecks.Runtime.FeatureFailureChecks.Run();
 if (args.Contains("--multiplayer-rules-only"))
 {

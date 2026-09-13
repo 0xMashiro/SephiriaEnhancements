@@ -202,6 +202,10 @@ namespace SephiriaEnhancements.Runtime
                     return FeatureId.Settings;
                 case "SephiriaEnhancements.ViewDistance.ViewDistancePatch":
                     return FeatureId.ViewDistance;
+                case "SephiriaEnhancements.CostumeAppearance.Integration.CostumeAppearanceEquipPatch":
+                case "SephiriaEnhancements.CostumeAppearance.Integration.CostumeAppearancePreferencePatch":
+                case "SephiriaEnhancements.CostumeAppearance.Integration.CostumeAppearancePanelPatch":
+                    return FeatureId.CostumeAppearance;
                 default: throw new InvalidOperationException("Patch has no feature owner: " + patchType.FullName);
             }
         }

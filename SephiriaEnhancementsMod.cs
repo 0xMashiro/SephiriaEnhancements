@@ -372,7 +372,6 @@ namespace SephiriaEnhancements
                     UniqueEffectRegistrationTracePatch),
                 typeof(MultiplayerRulesNetworkSessionEndPatch),
                 typeof(MultiplayerRulesLobbyDeparturePatch),
-                typeof(NativeMultiplayerRulesEntryPatch),
                 typeof(MultiplayerRulesExplorationStartPatch)
             })
             {

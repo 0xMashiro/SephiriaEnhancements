@@ -309,6 +309,7 @@ namespace SephiriaEnhancements
                 typeof(ApplyDefeatRetryPlacementPatch),
                 typeof(DefeatRetryPlayerRestorePatch),
                 typeof(DefeatRetryClientNotificationPatch),
+                typeof(NativeRetryPurchasePatch),
                 typeof(DefeatRetryCutscenePatch),
                 typeof(NativeRetryRestart),
                 typeof(DefeatRetryTravelRequestPatch),

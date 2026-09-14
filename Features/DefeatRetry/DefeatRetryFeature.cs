@@ -56,6 +56,7 @@ namespace SephiriaEnhancements.DefeatRetry
             internal BossRetryWorld World { get; }
             internal long StatisticsCheckpointId { get; set; }
             internal bool RebuildBossFloor { get; set; }
+            internal Dictionary<uint, NativeRetrySapphire> Sapphire { get; set; }
         }
 
         private static readonly FieldInfo CurrentField =
@@ -76,6 +77,7 @@ namespace SephiriaEnhancements.DefeatRetry
             new RetryCheckpoints<RetryCheckpoint>();
         private static BossRetryWorld pendingWorldRestore;
         private static Dictionary<uint, RetryPlacement> pendingPlacements;
+        private static Dictionary<uint, NativeRetrySapphire> pendingSapphire;
         private static string runFileName = string.Empty;
 
         internal static bool IsRetrying { get; private set; }
@@ -99,6 +101,8 @@ namespace SephiriaEnhancements.DefeatRetry
             {
                 return;
             }
+            if (!NativeRetryCapture.Prepare(floorGuid, CaptureFloorEntryCheckpoint)) return;
+            SerializeCurrentSession(floorGuid);
             CaptureCheckpoint(RetryCheckpointKind.FloorEntry, current, currentRun,
                 string.Empty, floorGuid, CaptureCheckpointPlacements(),
                 "native_run_save");
@@ -138,6 +142,7 @@ namespace SephiriaEnhancements.DefeatRetry
             {
                 return;
             }
+            if (!NativeRetryCapture.Prepare(floorGuid, () => CaptureRenderedCombatFloorFallback(floorGuid))) return;
 
             try
             {
@@ -160,6 +165,14 @@ namespace SephiriaEnhancements.DefeatRetry
                 IsBossEncounterNotStarted(boss), boss);
         }
 
+        internal static bool PrepareBossCapture(string floorGuid, Action startBattle)
+        {
+            if (NativeRetryCapture.Unavailable || !EnhancementsSettings.Enabled || !DefeatRetrySettings.Enabled ||
+                !NetworkServer.active || checkpoints.BossEncounterStarted || checkpoints.FloorEntry == null ||
+                !AllPlayersOnFloor(floorGuid)) return true;
+            return NativeRetryCapture.Prepare(floorGuid, startBattle, startBattle);
+        }
+
         internal static void CaptureSeedBossEncounterSnapshot(SeedBossSpawner boss,
             PlayerAvatar challenger)
         {
@@ -174,6 +187,11 @@ namespace SephiriaEnhancements.DefeatRetry
             Vector3 encounterPosition, string bossName, bool encounterNotStarted,
             BossSpawner boss)
         {
+            if (NativeRetryCapture.Unavailable)
+            {
+                checkpoints.BeginBoss(challenger?.currentFloorGuid, null);
+                return;
+            }
             SaveData current = SaveManager.Current;
             SaveData currentRun = SaveManager.CurrentRun;
             string floorGuid = challenger?.currentFloorGuid ?? string.Empty;
@@ -299,6 +317,9 @@ namespace SephiriaEnhancements.DefeatRetry
             long started = Stopwatch.GetTimestamp();
             var captured = new RetryCheckpoint(kind, current.Copy(),
                 currentRun.Copy(), bossName, floorGuid, placements, world);
+            captured.Sapphire = NativeRetryCapture.CapturePlayers();
+            foreach (PlayerSpawner player in PlayerSpawner.MultiplayerList)
+                captured.Sapphire[player.netId].WriteRun(captured.CurrentRun, player.currentPlayerIdxForSave);
             float elapsedMilliseconds = (float)((Stopwatch.GetTimestamp() - started) *
                 1000d / Stopwatch.Frequency);
 
@@ -385,10 +406,12 @@ namespace SephiriaEnhancements.DefeatRetry
             }
 
             checkpoints.Clear();
+            NativeRetryCapture.Cancel();
             DefeatRetryBridge.ClearArrivals();
             pendingWorldRestore = null;
             BossRetryWorld.ClearRecipes();
             pendingPlacements = null;
+            pendingSapphire = null;
             runFileName = string.Empty;
         }
 
@@ -508,6 +531,7 @@ namespace SephiriaEnhancements.DefeatRetry
 
                 pendingPlacements = new Dictionary<uint, RetryPlacement>(
                     selected.Placements);
+                pendingSapphire = selected.Sapphire;
                 pendingWorldRestore = selected.World;
                 if (selected.RebuildBossFloor) BossRetryWorld.ClearRecipes();
                 if (kind == RetryCheckpointKind.FloorEntry)
@@ -572,6 +596,16 @@ namespace SephiriaEnhancements.DefeatRetry
                 pendingPlacements.ContainsKey(avatar.netIdentity.netId);
         }
 
+        internal static NativeRetrySapphire GetPendingSapphire(PlayerAvatar avatar) =>
+            avatar != null && pendingSapphire != null && pendingSapphire.TryGetValue(avatar.netId, out var state) ? state : null;
+
+        internal static void RestorePlayerSapphire(PlayerSpawner player)
+        {
+            NativeRetrySapphire state = GetPendingSapphire(player.PlayerAvatar);
+            if (state == null) throw new InvalidOperationException("Player has no matching retry account checkpoint.");
+            state.RestorePlayer(player);
+        }
+
         internal static void ApplyPendingPlacement(PlayerAvatar avatar,
             string requestedFloorGuid, ref string spawnPoint,
             ref Vector3? overridePosition)
@@ -612,6 +646,7 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             IsRetrying = false;
             pendingPlacements = null;
+            pendingSapphire = null;
             pendingWorldRestore = null;
         }
 

@@ -34,6 +34,7 @@ namespace SephiriaEnhancements.DefeatRetry
         private void UpdateCore()
         {
             DefeatRetryBridge.Tick();
+            NativeRetryCapture.Tick();
             try
             {
                 DefeatRetryClientRestore.Tick();
@@ -63,8 +64,10 @@ namespace SephiriaEnhancements.DefeatRetry
         private static FloorGenerator requestedCameraFloor;
         private static GameCamera requestedCamera;
         internal static bool PreserveClientRun { get; private set; }
+        internal static bool IsRestoring => player != null;
+        private static NativeRetrySapphire sapphire;
 
-        internal static void Begin(string floorGuid, long id, Vector3 position)
+        internal static void Begin(string floorGuid, long id, Vector3 position, NativeRetrySapphire account)
         {
             Clear();
             NativeRetryFailure.Clear();
@@ -75,6 +78,12 @@ namespace SephiriaEnhancements.DefeatRetry
             connection = NetworkClient.connection;
             floor = floorGuid;
             retryId = id;
+            sapphire = account ?? throw new InvalidOperationException("Retry account checkpoint is missing.");
+            // Closing cancels the old settlement's delayed save callback before
+            // the retained player and the owner's persistent account are restored.
+            UI_GameOverLabel panel = UIManager.Instance?.GetElement<UI_GameOverLabel>();
+            if (panel != null && panel.IsOpened) panel.Close();
+            sapphire.RestoreOwner(player.GetComponent<PlayerSpawner>());
             player.localDataStorage.NetworkreadyToLeave = false;
             player.localDataStorage.NetworkgoToEachOtherSessionOnGameOver_Local = 0;
             player.OnTravelPreparedClientside += OnTravelPrepared;
@@ -128,12 +137,13 @@ namespace SephiriaEnhancements.DefeatRetry
             PreserveClientRun = false;
             if (!matched) return;
             if (exception != null) { ReportFailure(); Clear(); return; }
+            sapphire.RestoreOwner(player.GetComponent<PlayerSpawner>());
             // Defeat disables saving and deletes the file, but retains this object.
             if (!NetworkServer.active && SaveManager.CurrentRun != null)
             {
                 SaveManager.CurrentRun.enableSave = true;
-                SaveManager.Save(saveCurrent: false, saveCurrentRun: true);
             }
+            SaveManager.Save(saveCurrent: true, saveCurrentRun: true);
             notified = true;
         }
 
@@ -154,6 +164,8 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
             if (!notified || !traveled || !NativeRetryArrival.IsAtDestination(player, floor, destination)) return;
+            if (SaveManager.IsSaving != SaveManager.ESaveState.None) return;
+            if (!sapphire.Matches(player.GetComponent<PlayerSpawner>())) return;
             FloorGenerator generator = FloorGenerator.FindByGuid(floor);
             GameCamera camera = GameCamera.Instance;
             if (generator == null || !generator.GenerateSuccess || camera == null) return;
@@ -194,6 +206,7 @@ namespace SephiriaEnhancements.DefeatRetry
             connection = null;
             floor = null;
             runFile = null;
+            sapphire = null;
             requestedCamera = null;
             requestedCameraFloor = null;
             notified = traveled = worldLoaded = PreserveClientRun = false;

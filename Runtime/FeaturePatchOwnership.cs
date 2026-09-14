@@ -65,6 +65,7 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.DefeatRetry.BossRetryPreserveFloorPatch":
                 case "SephiriaEnhancements.DefeatRetry.BossRetryPropRecipePatch":
                 case "SephiriaEnhancements.DefeatRetry.DefeatRetryClientNotificationPatch":
+                case "SephiriaEnhancements.DefeatRetry.NativeRetryPurchasePatch":
                 case "SephiriaEnhancements.DefeatRetry.DefeatRetryCutscenePatch":
                 case "SephiriaEnhancements.DefeatRetry.DefeatRetryNewGamePatch":
                 case "SephiriaEnhancements.DefeatRetry.DefeatRetryPlayerRestorePatch":

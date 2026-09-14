@@ -62,6 +62,8 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.BlocksBossBattle)
                 return false;
+            if (!DefeatRetryFeature.PrepareBossCapture(player?.currentFloorGuid,
+                () => { if (__instance != null && player != null) __instance.StartBattle(player, position, name); })) return false;
             DefeatRetryFeature.CaptureBossEncounterSnapshot(__instance, player, position, name);
             return true;
         }
@@ -99,6 +101,8 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.BlocksBossBattle)
                 return false;
+            if (!DefeatRetryFeature.PrepareBossCapture(player?.currentFloorGuid,
+                () => { if (__instance != null && player != null) TargetMethod().Invoke(__instance, new object[] { player }); })) return false;
             DefeatRetryFeature.CaptureSeedBossEncounterSnapshot(__instance, player);
             return true;
         }

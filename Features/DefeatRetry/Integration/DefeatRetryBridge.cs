@@ -29,6 +29,8 @@ namespace SephiriaEnhancements.Integration
         private static RetryRecoveryStatus publishedStatus;
         private static long receivedRetryId;
         private static NetworkConnectionToServer receivedConnection;
+        private static bool localRecoveryPending;
+        internal static bool LocalRecoveryPending => localRecoveryPending && NetworkClient.active && receivedConnection == NetworkClient.connection;
         internal const float RecoveryTimeout = 90f;
 
         internal static void SetIntegrationAvailable(bool available) => integrationAvailable = available;
@@ -43,11 +45,13 @@ namespace SephiriaEnhancements.Integration
             internal long RetryId;
             internal Vector3 Position;
             internal RetryRecoveryFailure Failure;
+            internal NativeRetrySapphire Sapphire;
         }
 
         internal static void Initialize(CombatInsightsController value)
         {
             controller = value;
+            NativeRetryCapture.Initialize();
             Writer<Hello>.write = (writer, message) => writer.WriteByte(message.Version);
             Reader<Hello>.read = reader => new Hello { Version = reader.ReadByte() };
             Writer<Arrival>.write = (writer, message) => { writer.WriteLong(message.RetryId); writer.WriteByte(message.Success ? (byte)1 : (byte)0); };
@@ -60,12 +64,13 @@ namespace SephiriaEnhancements.Integration
                 writer.WriteLong(message.RetryId);
                 writer.WriteVector3(message.Position);
                 writer.WriteByte((byte)message.Failure);
+                NativeRetrySapphire.Write(writer, message.Sapphire);
             };
             Reader<Notification>.read = reader => new Notification
             {
                 Transition = (RetryTransition)reader.ReadByte(),
                 CheckpointId = reader.ReadLong(), FloorGuid = reader.ReadString(), RetryId = reader.ReadLong(), Position = reader.ReadVector3(),
-                Failure = (RetryRecoveryFailure)reader.ReadByte()
+                Failure = (RetryRecoveryFailure)reader.ReadByte(), Sapphire = NativeRetrySapphire.Read(reader)
             };
             Tick();
         }
@@ -78,16 +83,17 @@ namespace SephiriaEnhancements.Integration
                 {
                     NetworkServer.RegisterHandler<Hello>((connection, message) => FeatureFailure.Run(FeatureId.DefeatRetry, () =>
                     {
-                        if (message.Version == 2) peers.Add(connection);
+                        if (message.Version == 3) peers.Add(connection);
                     }));
                     NetworkServer.RegisterHandler<Arrival>((connection, message) => FeatureFailure.Run(FeatureId.DefeatRetry, () =>
                     {
                         AcceptReceipt(connection, message.RetryId, message.Success);
                     }));
                     serverRegistered = true;
+                    NativeRetryCapture.RegisterServer();
                 }
                 if (integrationAvailable && DungeonManager.Instance != null)
-                    DungeonManager.Instance.constValueDictionary[ProtocolKey] = 2;
+                    DungeonManager.Instance.constValueDictionary[ProtocolKey] = 3;
                 peers.RemoveWhere(peer => !NetworkServer.connections.TryGetValue(peer.connectionId, out var current) || current != peer);
                 if (recovery.Status == RetryRecoveryStatus.Waiting)
                 {
@@ -119,12 +125,13 @@ namespace SephiriaEnhancements.Integration
                         Receive(message);
                 }));
                 clientRegistered = true;
+                NativeRetryCapture.RegisterClient();
             }
             if (integrationAvailable && !NetworkServer.active && NetworkClient.ready && NetworkClient.connection != null &&
                 registeredConnection != NetworkClient.connection && DungeonManager.Instance != null &&
-                DungeonManager.Instance.constValueDictionary.TryGetValue(ProtocolKey, out int version) && version == 2)
+                DungeonManager.Instance.constValueDictionary.TryGetValue(ProtocolKey, out int version) && version == 3)
             {
-                NetworkClient.Send(new Hello { Version = 2 });
+                NetworkClient.Send(new Hello { Version = 3 });
                 registeredConnection = NetworkClient.connection;
             }
         }
@@ -158,18 +165,22 @@ namespace SephiriaEnhancements.Integration
             if (transition == RetryTransition.Cancel) ClearArrivals();
             var message = new Notification { Transition = transition, CheckpointId = id, FloorGuid = floorGuid, RetryId = retryId };
             destinations.TryGetValue(NetworkServer.localConnection, out message.Position);
+            if (transition == RetryTransition.RetryFloor || transition == RetryTransition.RetryBoss)
+                message.Sapphire = DefeatRetryFeature.GetPendingSapphire(LocalPlayerResolver.Resolve());
             Receive(message);
             foreach (var peer in peers)
                 if (peer.isReady && peer != NetworkServer.localConnection)
                 {
                     destinations.TryGetValue(peer, out message.Position);
+                    if (transition == RetryTransition.RetryFloor || transition == RetryTransition.RetryBoss)
+                        message.Sapphire = DefeatRetryFeature.GetPendingSapphire(peer.identity?.GetComponent<PlayerAvatar>());
                     peer.Send(message);
                 }
         }
 
         internal static bool AllPlayersReady()
         {
-            if (!integrationAvailable || recovery.BlocksBattle) return false;
+            if (!integrationAvailable || recovery.BlocksBattle || NativeRetryCapture.Pending) return false;
             foreach (var connection in NetworkServer.connections.Values)
                 if (connection != NetworkServer.localConnection &&
                     (connection == null || !connection.isReady || !peers.Contains(connection))) return false;
@@ -225,7 +236,9 @@ namespace SephiriaEnhancements.Integration
         {
             foreach (var pair in destinations)
                 if (receipts.Contains(pair.Key) && recovery.IsWaiting(pair.Key) &&
-                    NativeRetryArrival.IsAtDestination(pair.Key.identity?.GetComponent<PlayerAvatar>(), recoveryFloor, pair.Value))
+                    NativeRetryArrival.IsAtDestination(pair.Key.identity?.GetComponent<PlayerAvatar>(), recoveryFloor, pair.Value) &&
+                    DefeatRetryFeature.GetPendingSapphire(pair.Key.identity?.GetComponent<PlayerAvatar>())?
+                        .Matches(pair.Key.identity.GetComponent<PlayerSpawner>()) == true)
                     recovery.Report(retryId, pair.Key, true);
         }
 
@@ -255,15 +268,19 @@ namespace SephiriaEnhancements.Integration
             {
                 receivedConnection = NetworkClient.connection;
                 receivedRetryId = 0;
+                localRecoveryPending = false;
             }
             if (message.Transition == RetryTransition.RecoveryFailed || message.Transition == RetryTransition.RecoveryCompleted)
                 if (message.RetryId != receivedRetryId) return;
+            if (message.Transition == RetryTransition.RecoveryFailed || message.Transition == RetryTransition.RecoveryCompleted ||
+                message.Transition == RetryTransition.Cancel) localRecoveryPending = false;
             if (message.Transition == RetryTransition.RetryFloor ||
                 message.Transition == RetryTransition.RetryBoss)
             {
                 receivedRetryId = message.RetryId;
+                localRecoveryPending = true;
                 NativeRetryBoss.Begin(message.FloorGuid);
-                DefeatRetryClientRestore.Begin(message.FloorGuid, message.RetryId, message.Position);
+                DefeatRetryClientRestore.Begin(message.FloorGuid, message.RetryId, message.Position, message.Sapphire);
             }
             else if (message.Transition == RetryTransition.Cancel)
             {
@@ -300,6 +317,7 @@ namespace SephiriaEnhancements.Integration
 
         internal static void Shutdown()
         {
+            NativeRetryCapture.Shutdown();
             NetworkServer.UnregisterHandler<Hello>();
             NetworkServer.UnregisterHandler<Arrival>();
             NetworkClient.UnregisterHandler<Notification>();
@@ -308,6 +326,7 @@ namespace SephiriaEnhancements.Integration
             ClearArrivals();
             serverRegistered = clientRegistered = false;
             registeredConnection = null;
+            localRecoveryPending = false;
             DefeatRetryClientRestore.Clear();
             NativeRetryBoss.Clear();
             integrationAvailable = false;

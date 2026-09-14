@@ -51,6 +51,7 @@ namespace SephiriaEnhancements.DefeatRetry
             try
             {
                 PlayerLocalDataStorage data = __instance.LocalDataStorage;
+                DefeatRetryFeature.RestorePlayerSapphire(__instance);
                 bool initialized = (bool)InitializePlayerMethod.Invoke(__instance, new object[] { data.defaultWeapon, data.defaultCostume, data.defaultCostumeSkin, loadingScreen });
                 SupportLogger.Record("retry_player_initialized", "player=" + avatar.netId + " success=" + initialized, initialized ? "INFO" : "ERROR");
                 if (!initialized)
@@ -58,6 +59,8 @@ namespace SephiriaEnhancements.DefeatRetry
                     DefeatRetryBridge.CancelPlayer(avatar);
                     return false;
                 }
+
+                DefeatRetryFeature.RestorePlayerSapphire(__instance);
 
                 // Native RestartNewGame also grants starting items and a starting potion.
                 // A checkpoint restore already contains the player's saved items.

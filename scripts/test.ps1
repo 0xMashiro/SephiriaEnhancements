@@ -65,7 +65,7 @@ foreach ($patch in @(
     'NativeRetryPurchasePatch',
     'DamageSourcesOpenedPatch', 'DamageSourcesCurrentAreaPatch', 'DamageSourcesAllAreasPatch',
     'TrainingDirectDamagePatch', 'TrainingCompanionDamagePatch', 'TrainingPlayerTravelPatch',
-    'DefeatRetryPlayerRestorePatch', 'DefeatRetryClientNotificationPatch', 'DefeatRetryCutscenePatch', 'NativeRetryRestart', 'DefeatRetryTravelRequestPatch', 'RenderedCombatFloorRetryCheckpointPatch',
+    'DefeatRetryPlayerRestorePatch', 'DefeatRetryClientNotificationPatch', 'DefeatRetryCutscenePatch', 'NativeRetryRestart', 'DefeatRetryTravelRequestPatch', 'FloorEntryRetryCheckpointPatch',
     'BossRetryPropRecipePatch', 'BossRetryPreserveFloorPatch',
     'BossEncounterRetryCheckpointPatch', 'SeedBossEncounterRetryCheckpointPatch',
     'NativeBossEncounterCompletedPatch', 'NativeBossEncounterPausedPatch',

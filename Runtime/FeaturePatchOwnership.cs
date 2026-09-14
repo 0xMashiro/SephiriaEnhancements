@@ -76,9 +76,8 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.DefeatRetry.PreserveDefeatRetryRejoinStatePatch":
                 case "SephiriaEnhancements.DefeatRetry.PreserveDefeatRetrySaveCreationPatch":
                 case "SephiriaEnhancements.DefeatRetry.PreserveDefeatRetrySaveDeletionPatch":
-                case "SephiriaEnhancements.DefeatRetry.RenderedCombatFloorRetryCheckpointPatch":
+                case "SephiriaEnhancements.DefeatRetry.FloorEntryRetryCheckpointPatch":
                 case "SephiriaEnhancements.DefeatRetry.SeedBossEncounterRetryCheckpointPatch":
-                case "SephiriaEnhancements.Integration.NativeSaveCapturePatch":
                     return FeatureId.DefeatRetry;
                 case "SephiriaEnhancements.DeveloperConsole.DeveloperConsoleOpenPatch":
                 case "SephiriaEnhancements.DeveloperTools.DeveloperPlayerDamagePatch":

@@ -36,18 +36,6 @@ namespace SephiriaEnhancements.DefeatRetry
                     hasCurrentRunSave, runStarted) && hasFloor && hasBoss;
         }
 
-        internal static bool ShouldCaptureRenderedCombatFloorFallback(
-            bool enhancementsEnabled, bool retryEnabled, bool retrying,
-            bool serverActive, bool hasCurrentSave, bool hasCurrentRunSave,
-            bool runStarted, bool explorationActivated, bool combatThreat,
-            bool checkpointMatchesFloor)
-        {
-            return ShouldCaptureFloorEntryCheckpoint(enhancementsEnabled,
-                    retryEnabled, retrying, serverActive, hasCurrentSave,
-                    hasCurrentRunSave, runStarted) &&
-                !explorationActivated && combatThreat && !checkpointMatchesFloor;
-        }
-
         internal static RetryConclusionKind ClassifyConclusion(
             int nativeGameOverType)
         {
@@ -74,12 +62,14 @@ namespace SephiriaEnhancements.DefeatRetry
             int nativeGameOverType,
             bool gaveUp, bool saveIdle, bool nativeRestarting)
         {
-            return enhancementsEnabled && retryEnabled &&
-                hasCheckpoint && serverActive &&
-                runStarted && ClassifyConclusion(nativeGameOverType) ==
-                    RetryConclusionKind.CombatDefeat &&
-                !gaveUp && saveIdle && !nativeRestarting;
+            return ShouldPresent(enhancementsEnabled, retryEnabled, serverActive,
+                runStarted, nativeGameOverType, gaveUp) && hasCheckpoint && saveIdle && !nativeRestarting;
         }
+
+        internal static bool ShouldPresent(bool enhancementsEnabled, bool retryEnabled,
+            bool serverActive, bool runStarted, int nativeGameOverType, bool gaveUp) =>
+            enhancementsEnabled && retryEnabled && serverActive && runStarted && !gaveUp &&
+            ClassifyConclusion(nativeGameOverType) == RetryConclusionKind.CombatDefeat;
 
         internal static bool ShouldApplyPlacement(bool restorePending,
             string checkpointFloorGuid, string requestedFloorGuid)

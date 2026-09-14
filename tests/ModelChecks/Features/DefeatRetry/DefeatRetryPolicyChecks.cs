@@ -6,6 +6,14 @@ internal static class DefeatRetryPolicyChecks
 {
     internal static void Run()
     {
+        if (!DefeatRetryPolicy.ShouldPresent(true, true, true, true, 0, false) ||
+            DefeatRetryPolicy.ShouldPresent(true, true, false, true, 0, false) ||
+            DefeatRetryPolicy.ShouldPresent(true, true, true, true, 1, false) ||
+            DefeatRetryPolicy.ShouldPresent(true, true, true, true, 2, false) ||
+            DefeatRetryPolicy.ShouldPresent(true, true, true, true, 0, true) ||
+            DefeatRetryPolicy.ShouldPresent(true, false, true, true, 0, false))
+            throw new InvalidOperationException("ordinary host defeat must show retry availability even without a checkpoint");
+
         if (!DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, 0, false,
                 saveIdle: true, nativeRestarting: false) ||
             DefeatRetryPolicy.ShouldOffer(true, true, true, false, true, 0, false,
@@ -60,24 +68,6 @@ internal static class DefeatRetryPolicyChecks
                 "floor-entry checkpoints must be captured only for an enabled active host run");
         }
         Console.WriteLine("DefeatRetryPolicy: floor-entry capture gates passed");
-
-        if (!DefeatRetryPolicy.ShouldCaptureRenderedCombatFloorFallback(true, true,
-                false, true, true, true, true, explorationActivated: false,
-                combatThreat: true, checkpointMatchesFloor: false) ||
-            DefeatRetryPolicy.ShouldCaptureRenderedCombatFloorFallback(true, true,
-                false, true, true, true, true, explorationActivated: true,
-                combatThreat: true, checkpointMatchesFloor: false) ||
-            DefeatRetryPolicy.ShouldCaptureRenderedCombatFloorFallback(true, true,
-                false, true, true, true, true, explorationActivated: false,
-                combatThreat: false, checkpointMatchesFloor: false) ||
-            DefeatRetryPolicy.ShouldCaptureRenderedCombatFloorFallback(true, true,
-                false, true, true, true, true, explorationActivated: false,
-                combatThreat: true, checkpointMatchesFloor: true))
-        {
-            throw new InvalidOperationException(
-                "rendered-floor fallback must target only uncaptured scripted combat floors");
-        }
-        Console.WriteLine("DefeatRetryPolicy: scripted combat floor fallback passed");
 
         if (!DefeatRetryPolicy.ShouldCaptureBossEncounter(true, true, false,
                 true, true, true, true, hasFloor: true, hasBoss: true) ||

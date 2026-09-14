@@ -301,11 +301,10 @@ namespace SephiriaEnhancements
                 typeof(NativeLoadingStateProfilingPatch),
                 typeof(NativeFloorRenderProfilingPatch),
 #endif
-                typeof(NativeSaveCapturePatch),
                 typeof(NativePresetSavePatch),
                 typeof(BossEncounterRetryCheckpointPatch),
                 typeof(SeedBossEncounterRetryCheckpointPatch),
-                typeof(RenderedCombatFloorRetryCheckpointPatch),
+                typeof(FloorEntryRetryCheckpointPatch),
                 typeof(ApplyDefeatRetryPlacementPatch),
                 typeof(DefeatRetryPlayerRestorePatch),
                 typeof(DefeatRetryClientNotificationPatch),
@@ -392,8 +391,7 @@ namespace SephiriaEnhancements
                 else
                 {
                     failedPatchCount++;
-                    if (patchType.Namespace == "SephiriaEnhancements.DefeatRetry" ||
-                        patchType == typeof(NativeSaveCapturePatch)) retryCompatibilityAvailable = false;
+                    if (patchType.Namespace == "SephiriaEnhancements.DefeatRetry") retryCompatibilityAvailable = false;
                     if (patchType.Namespace ==
                         "SephiriaEnhancements.MultiplayerRules.Integration")
                         multiplayerRulesCompatibilityAvailable = false;

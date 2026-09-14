@@ -205,24 +205,6 @@ namespace SephiriaEnhancements.Diagnostics
             }
         }
 
-        internal static void RecordRetryFloorEvaluation(string floorGuid,
-            string floorName, string stageName, string threatType,
-            string generatorType, bool explorationActivated,
-            string checkpointKind, bool checkpointMatchesFloor, bool captured)
-        {
-            if (!IsEnabled) return;
-            WriteLine("{\"event\":\"retry_floor_evaluation\",\"time\":" +
-                TimeValue() + ",\"floorGuid\":" + Json(floorGuid) +
-                ",\"floorName\":" + Json(floorName) +
-                ",\"stageName\":" + Json(stageName) +
-                ",\"threatType\":" + Json(threatType) +
-                ",\"generatorType\":" + Json(generatorType) +
-                ",\"explorationActivated\":" + Bool(explorationActivated) +
-                ",\"checkpointKind\":" + Json(checkpointKind) +
-                ",\"checkpointMatchesFloor\":" + Bool(checkpointMatchesFloor) +
-                ",\"captured\":" + Bool(captured) + "}");
-        }
-
         internal static void RecordRetryOfferDecision(int nativeGameOverType,
             string conclusionKind, string checkpointKind, string floorGuid,
             bool hasCheckpoint, bool serverActive, bool runStarted,
@@ -1032,12 +1014,6 @@ namespace SephiriaEnhancements.Diagnostics
             string floorGuid, string floorName, string stageName,
             string threatType, string generatorType, string bossName,
             int placementCount)
-        { }
-
-        internal static void RecordRetryFloorEvaluation(string floorGuid,
-            string floorName, string stageName, string threatType,
-            string generatorType, bool explorationActivated,
-            string checkpointKind, bool checkpointMatchesFloor, bool captured)
         { }
 
         internal static void RecordRetryOfferDecision(int nativeGameOverType,

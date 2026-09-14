@@ -62,9 +62,12 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.BlocksBossBattle)
                 return false;
-            if (!DefeatRetryFeature.PrepareBossCapture(player?.currentFloorGuid,
+            if (!NativeRetryFloorEntry.BeforeBoss(player?.currentFloorGuid, __instance,
+                () => { if (__instance != null && player != null) __instance.StartBattle(player, position, name); })) return false;
+            if (!DefeatRetryFeature.PrepareBossCapture(player?.currentFloorGuid, __instance,
                 () => { if (__instance != null && player != null) __instance.StartBattle(player, position, name); })) return false;
             DefeatRetryFeature.CaptureBossEncounterSnapshot(__instance, player, position, name);
+            NativeRetryFloorEntry.CombatStarted(player?.currentFloorGuid);
             return true;
         }
     }
@@ -101,49 +104,13 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             if (DefeatRetryFeature.IsRetrying || DefeatRetryBridge.BlocksBossBattle)
                 return false;
-            if (!DefeatRetryFeature.PrepareBossCapture(player?.currentFloorGuid,
+            if (!NativeRetryFloorEntry.BeforeBoss(player?.currentFloorGuid, __instance,
+                () => { if (__instance != null && player != null) TargetMethod().Invoke(__instance, new object[] { player }); })) return false;
+            if (!DefeatRetryFeature.PrepareBossCapture(player?.currentFloorGuid, __instance,
                 () => { if (__instance != null && player != null) TargetMethod().Invoke(__instance, new object[] { player }); })) return false;
             DefeatRetryFeature.CaptureSeedBossEncounterSnapshot(__instance, player);
+            NativeRetryFloorEntry.CombatStarted(player?.currentFloorGuid);
             return true;
-        }
-    }
-
-    [HarmonyPatch]
-    internal static class RenderedCombatFloorRetryCheckpointPatch
-    {
-        private static System.Collections.Generic.IEnumerable<MethodBase>
-            TargetMethods()
-        {
-            yield return AccessTools.DeclaredMethod(typeof(PlayerLocalDataStorage),
-                nameof(PlayerLocalDataStorage.OnFloorRenderFinalizedVeryFirst),
-                new[] { typeof(string) });
-            yield return AccessTools.DeclaredMethod(typeof(PlayerLocalDataStorage),
-                nameof(PlayerLocalDataStorage.OnFloorRenderFinalized),
-                new[] { typeof(string) });
-        }
-
-        private static void Postfix(string floorGuid)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.DefeatRetry))
-            {
-                return;
-            }
-
-            try
-            {
-                PostfixCore(floorGuid);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.DefeatRetry, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static void PostfixCore(string floorGuid)
-        {
-            DefeatRetryFeature.CaptureRenderedCombatFloorFallback(floorGuid);
         }
     }
 

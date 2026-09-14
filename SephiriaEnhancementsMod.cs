@@ -201,6 +201,7 @@ namespace SephiriaEnhancements
             {
                 combatInsights = AddController<CombatInsightsController>(FeatureId.CombatInsights);
                 combatInsights.Initialize(runtimeKernel);
+                AddController<TrainingDamageStatistics>(FeatureId.CombatInsights);
                 NativeReportDismissal.SetController(combatInsights);
                 NativeStatisticsPauseEntry.SetController(combatInsights);
                 DamageFeedbackCapture.SetController(combatInsights);
@@ -251,6 +252,12 @@ namespace SephiriaEnhancements
                 typeof(LocalFinalBlowCapture),
                 typeof(NativeReportDismissal),
                 typeof(NativeStatisticsPauseEntry),
+                typeof(DamageSourcesOpenedPatch),
+                typeof(DamageSourcesCurrentAreaPatch),
+                typeof(DamageSourcesAllAreasPatch),
+                typeof(TrainingDirectDamagePatch),
+                typeof(TrainingCompanionDamagePatch),
+                typeof(TrainingPlayerTravelPatch),
                 typeof(ModJournalRefreshPatch),
                 typeof(EffectStats.Integration.EffectStatsPanelPatch),
                 typeof(ModJournalClearPatch),
@@ -467,6 +474,7 @@ namespace SephiriaEnhancements
             CleanupFeature(FeatureId.Inventory, () => inventoryOptimization?.Shutdown());
             CleanupFeature(FeatureId.DefeatRetry, () => DefeatRetryBridge.Shutdown());
             CleanupFeature(FeatureId.CombatInsights, () => combatInsights?.Shutdown());
+            CleanupFeature(FeatureId.CombatInsights, () => TrainingDamageStatistics.Instance?.Shutdown());
             CleanupFeature(FeatureId.CombatInsights, () => NativeReportDismissal.SetController(null));
             CleanupFeature(FeatureId.CombatInsights, () => NativeStatisticsPauseEntry.SetController(null));
             CleanupFeature(FeatureId.DeveloperTools, () => DeveloperLogger.Shutdown());

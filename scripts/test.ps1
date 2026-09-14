@@ -62,6 +62,8 @@ $startup = Get-Content -Raw (Join-Path $repoRoot 'SephiriaEnhancementsMod.cs')
 $patchList = [regex]::Match($startup, '(?s)foreach \(Type patchType in new\[\]\s*\{(?<types>.*?)\}\)')
 foreach ($patch in @(
     'ModLanguageLoadPatch',
+    'DamageSourcesOpenedPatch', 'DamageSourcesCurrentAreaPatch', 'DamageSourcesAllAreasPatch',
+    'TrainingDirectDamagePatch', 'TrainingCompanionDamagePatch', 'TrainingPlayerTravelPatch',
     'DefeatRetryPlayerRestorePatch', 'DefeatRetryClientNotificationPatch', 'DefeatRetryCutscenePatch', 'NativeRetryRestart', 'DefeatRetryTravelRequestPatch', 'RenderedCombatFloorRetryCheckpointPatch',
     'BossRetryPropRecipePatch', 'BossRetryPreserveFloorPatch',
     'BossEncounterRetryCheckpointPatch', 'SeedBossEncounterRetryCheckpointPatch',

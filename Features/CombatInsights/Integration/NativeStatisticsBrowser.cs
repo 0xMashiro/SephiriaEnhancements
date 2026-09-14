@@ -15,8 +15,8 @@ namespace SephiriaEnhancements.Integration
         private readonly CombatInsightsHud report = new CombatInsightsHud();
         private CombatInsightsController controller;
         private RectTransform content;
-        private Button recentTab, floorTab, closeButton;
-        private TextMeshProUGUI recentLabel, floorLabel, closeLabel, emptyLabel;
+        private Button recentTab, floorTab, closeButton, sourcesButton;
+        private TextMeshProUGUI recentLabel, floorLabel, closeLabel, emptyLabel, sourcesLabel;
         private bool ownsPause;
         private int openedFrame;
         private float nextProjection, reportHeight;
@@ -55,6 +55,16 @@ namespace SephiriaEnhancements.Integration
             recentTab = MakeButton("Recent Encounter", template, out recentLabel);
             floorTab = MakeButton("Current Floor", template, out floorLabel);
             closeButton = MakeButton("Close", template, out closeLabel);
+            sourcesButton = MakeButton("Damage Sources", template, out sourcesLabel);
+            sourcesButton.onClick.AddListener(() =>
+            {
+                UI_DamageStatsUI native = UIManager.Instance?.GetElement<UI_DamageStatsUI>();
+                if (native == null) return;
+                bool pauseGame = ownsPause;
+                Close();
+                native.Open();
+                if (pauseGame) native.GetComponent<NativeDamageSourcesPanel>()?.TakePause();
+            });
             recentTab.onClick.AddListener(() => SelectPage(false));
             floorTab.onClick.AddListener(() => SelectPage(true));
             closeButton.onClick.AddListener(Close);
@@ -62,7 +72,7 @@ namespace SephiriaEnhancements.Integration
             {
                 mode = Navigation.Mode.Explicit,
                 selectOnRight = floorTab,
-                selectOnDown = closeButton
+                selectOnDown = sourcesButton
             };
             floorTab.navigation = new Navigation
             {
@@ -73,7 +83,14 @@ namespace SephiriaEnhancements.Integration
             closeButton.navigation = new Navigation
             {
                 mode = Navigation.Mode.Explicit,
-                selectOnUp = recentTab
+                selectOnUp = floorTab,
+                selectOnLeft = sourcesButton
+            };
+            sourcesButton.navigation = new Navigation
+            {
+                mode = Navigation.Mode.Explicit,
+                selectOnUp = recentTab,
+                selectOnRight = closeButton
             };
             emptyLabel = MakeLabel("Empty", template, content);
             emptyLabel.rectTransform.sizeDelta = new Vector2(288f, 48f);
@@ -152,9 +169,11 @@ namespace SephiriaEnhancements.Integration
                 ModLocalization.CurrentFloorStatistics, floor);
             closeLabel.text = PageLabel(NativeReportDismissal.BindingLabel(),
                 ModLocalization.CloseStatistics, false);
+            sourcesLabel.text = ModLocalization.Get(DamageSourcesLocalization.Sources);
             Position(recentTab, -78f, reportHeight / 2f + 18f, 148f);
             Position(floorTab, 78f, reportHeight / 2f + 18f, 148f);
-            Position(closeButton, 0f, -reportHeight / 2f - 20f, 210f);
+            Position(sourcesButton, -82f, -reportHeight / 2f - 20f, 156f);
+            Position(closeButton, 82f, -reportHeight / 2f - 20f, 156f);
         }
 
         private static string PageLabel(string binding, string key, bool selected) =>

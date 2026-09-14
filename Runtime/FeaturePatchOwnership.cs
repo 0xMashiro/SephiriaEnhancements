@@ -32,6 +32,12 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingSubmitPatch":
                     return FeatureId.AutoCasting;
                 case "SephiriaEnhancements.Integration.DamageDetailCapture":
+                case "SephiriaEnhancements.Integration.DamageSourcesOpenedPatch":
+                case "SephiriaEnhancements.Integration.DamageSourcesCurrentAreaPatch":
+                case "SephiriaEnhancements.Integration.DamageSourcesAllAreasPatch":
+                case "SephiriaEnhancements.Integration.TrainingDirectDamagePatch":
+                case "SephiriaEnhancements.Integration.TrainingCompanionDamagePatch":
+                case "SephiriaEnhancements.Integration.TrainingPlayerTravelPatch":
                 case "SephiriaEnhancements.Integration.DamageFeedbackCapture":
                 case "SephiriaEnhancements.Integration.LocalFinalBlowCapture":
                 case "SephiriaEnhancements.Integration.NativeReportDismissal":

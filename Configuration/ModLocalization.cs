@@ -1264,6 +1264,7 @@ namespace SephiriaEnhancements.Configuration
             SettingsInteractionLocalization.Register(addText, languages);
             CombatVisualLocalization.Register(addText, languages);
             ResourceBarValues.ResourceBarValueLocalization.Register(addText, languages);
+            Combat.DamageSourcesLocalization.Register(addText, languages);
             AutoCasting.AutoCastingLocalization.Register(addText, languages);
             DefeatRetry.DefeatRetryAvailabilityLocalization.Register(addText, languages);
             DefeatRetry.DefeatRetryCutsceneLocalization.Register(addText, languages);

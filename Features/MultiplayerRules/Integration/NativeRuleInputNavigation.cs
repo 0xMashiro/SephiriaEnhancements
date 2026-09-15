@@ -23,6 +23,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private Button decrease, useOriginal, increase;
         private bool usingKeypad;
         private float originalValue;
+        private TextMeshProUGUI buttonFont;
         internal GameObject InitialSelection { get; private set; }
         private readonly System.Collections.Generic.List<Action> restore = new();
 
@@ -32,6 +33,11 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             definition = rule;
             originalValue = nativeValue;
             confirm = submit;
+            buttonFont = dialog.yesButton.GetComponentInChildren<TextMeshProUGUI>(true);
+            SetActionLabel(dialog.yesButton, MultiplayerRulesLocalization.ConfirmEdit);
+            SetActionLabel(dialog.noButton, MultiplayerRulesLocalization.CancelEdit);
+            Place((RectTransform)dialog.yesButton.transform, new Vector2(.15f, .025f), new Vector2(.48f, .115f));
+            Place((RectTransform)dialog.noButton.transform, new Vector2(.52f, .025f), new Vector2(.85f, .115f));
             var originalValidation = dialog.input.onValidateInput;
             dialog.input.onValidateInput = MultiplayerRuleInput.ValidateCharacter;
             restore.Add(() => dialog.input.onValidateInput = originalValidation);
@@ -86,8 +92,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                     new Vector2((i % 3 + 1) / 3f, 1 - (i / 3) / 4f), false);
                 ((RectTransform)go.transform).offsetMin = Vector2.one;
                 ((RectTransform)go.transform).offsetMax = -Vector2.one;
-                go.GetComponent<Image>().color = new Color(.3f, .32f, .44f);
                 var button = keys[i] = go.GetComponent<Button>();
+                NativeRuleButtonStyle.Apply(button);
                 button.onClick.AddListener(() =>
                 {
                     var text = dialog.input.text;
@@ -102,12 +108,12 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 textLabel.alignment = TextAlignmentOptions.Center;
                 textLabel.raycastTarget = false;
                 NativeLocalizedText.BindFont(textLabel, dialog.text);
-                NativeLocalizedText.MatchFontSize(textLabel, dialog.text);
+                NativeLocalizedText.MatchFontSize(textLabel, buttonFont);
             }
             for (int i = 0; i < keys.Length; i++)
                 keys[i].navigation = new Navigation { mode = Navigation.Mode.Explicit,
                     selectOnUp = i < 3 ? dialog.noButton : keys[i - 3],
-                    selectOnDown = i >= 9 ? dialog.noButton : keys[i + 3],
+                    selectOnDown = i >= 9 ? (i == 11 ? dialog.noButton : dialog.yesButton) : keys[i + 3],
                     selectOnLeft = keys[i / 3 * 3 + (i + 2) % 3],
                     selectOnRight = keys[i / 3 * 3 + (i + 1) % 3] };
             InitialSelection = ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse == false ? keys[0].gameObject : dialog.input.gameObject;
@@ -130,7 +136,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             useOriginal = AdjustmentButton(T(MultiplayerRulesLocalization.UseOriginalAction), .20f, .80f, () =>
             {
                 dialog.input.text = "";
-                if (dialog.yesButton.interactable) confirm();
+                dialog.input.ForceLabelUpdate();
             });
             increase = AdjustmentButton("+", .82f, 1, () => Adjust(1));
         }
@@ -140,8 +146,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             var go = new GameObject("Value Action", typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(adjustments.transform, false);
             Place((RectTransform)go.transform, new Vector2(left, 0), new Vector2(right, 1), false);
-            go.GetComponent<Image>().color = new Color(.3f, .32f, .44f);
             var button = go.GetComponent<Button>();
+            NativeRuleButtonStyle.Apply(button);
             button.onClick.AddListener(() => clicked());
             var textObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
             textObject.transform.SetParent(go.transform, false);
@@ -151,8 +157,26 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             text.alignment = TextAlignmentOptions.Center;
             text.raycastTarget = false;
             NativeLocalizedText.BindFont(text, dialog.text);
-            NativeLocalizedText.MatchFontSize(text, dialog.text);
+            NativeLocalizedText.MatchFontSize(text, buttonFont);
             return button;
+        }
+
+        private void SetActionLabel(Button button, string key)
+        {
+            var label = button.GetComponentInChildren<TextMeshProUGUI>(true);
+            string original = label.text;
+            var localization = label.GetComponent<UI_LocalizationStringText>();
+            if (localization != null)
+            {
+                string originalKey = localization.valueString.key;
+                restore.Add(() => localization.UpdateKey(originalKey));
+                localization.UpdateKey(key);
+            }
+            else
+            {
+                restore.Add(() => label.text = original);
+                label.text = T(key);
+            }
         }
 
         private void Adjust(int direction) => dialog.input.text = MultiplayerRuleInput.Adjust(dialog.input.text, definition, originalValue, direction);
@@ -160,16 +184,19 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private void RefreshInputMode()
         {
             usingKeypad = ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse == false;
+            var parent = (RectTransform)dialog.transform.parent;
+            dialog.rectTransform.sizeDelta = new Vector2(Mathf.Min(350, parent.rect.width * .9f),
+                Mathf.Min(usingKeypad ? 320 : 260, parent.rect.height * .9f));
             keypad.SetActive(usingKeypad);
-            Place(dialog.text.rectTransform, new Vector2(.05f, usingKeypad ? .74f : .65f), new Vector2(.95f, .97f), false);
-            Place((RectTransform)dialog.input.transform, new Vector2(.15f, usingKeypad ? .65f : .56f), new Vector2(.85f, usingKeypad ? .72f : .63f), false);
-            Place((RectTransform)adjustments.transform, new Vector2(.08f, usingKeypad ? .46f : .15f), new Vector2(.92f, usingKeypad ? .53f : .24f), false);
-            Place(feedback.rectTransform, new Vector2(.05f, usingKeypad ? .55f : .26f), new Vector2(.95f, usingKeypad ? .63f : .54f), false);
+            Place(dialog.text.rectTransform, new Vector2(.05f, .74f), new Vector2(.95f, .97f), false);
+            Place((RectTransform)dialog.input.transform, new Vector2(.15f, usingKeypad ? .65f : .58f), new Vector2(.85f, .72f), false);
+            Place((RectTransform)adjustments.transform, new Vector2(.08f, usingKeypad ? .46f : .43f), new Vector2(.92f, .53f), false);
+            Place(feedback.rectTransform, new Vector2(.05f, usingKeypad ? .55f : .15f), new Vector2(.95f, usingKeypad ? .63f : .39f), false);
             var actions = new[] { decrease, useOriginal, increase };
             for (int i = 0; i < actions.Length; i++)
                 actions[i].navigation = new Navigation { mode = Navigation.Mode.Explicit,
                     selectOnLeft = actions[(i + 2) % 3], selectOnRight = actions[(i + 1) % 3],
-                    selectOnUp = dialog.input, selectOnDown = usingKeypad ? keys[0] : dialog.yesButton };
+                    selectOnUp = dialog.input, selectOnDown = usingKeypad ? keys[i] : (i == 2 ? dialog.noButton : dialog.yesButton) };
             var inputNavigation = dialog.input.navigation;
             inputNavigation.selectOnDown = decrease;
             dialog.input.navigation = inputNavigation;
@@ -179,7 +206,9 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             }
             foreach (var button in new[] { dialog.yesButton, dialog.noButton })
             {
-                var nav = button.navigation; nav.selectOnUp = usingKeypad ? keys[10] : useOriginal; button.navigation = nav;
+                var nav = button.navigation;
+                nav.selectOnUp = usingKeypad ? keys[button == dialog.yesButton ? 9 : 11] : button == dialog.yesButton ? decrease : increase;
+                button.navigation = nav;
             }
             InitialSelection = usingKeypad ? decrease.gameObject : dialog.input.gameObject;
             if (EventSystem.current?.currentSelectedGameObject is GameObject selected &&

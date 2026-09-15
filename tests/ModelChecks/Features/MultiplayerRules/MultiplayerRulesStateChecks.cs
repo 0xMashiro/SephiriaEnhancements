@@ -41,19 +41,44 @@ internal static class MultiplayerRulesStateChecks
                     var state = new MultiplayerRulesState(allCustom, 4, true, availability, true);
                     string text = MultiplayerRulesSummary.Format(state, notice, 118, key => translations[language][key]);
                     var lines = MultiplayerRulesSummary.SplitForNativeChat(text).ToArray();
-                    Check(lines.Length <= 2 && lines.All(line => line.Length > 0 && line.Length <= 120),
-                        "even a full custom configuration must fit at most two native chat messages: " + language);
+                    Check(lines.All(line => line.Length > 0 && line.Length <= 120),
+                        "complete rule reports must respect each native chat message limit: " + language);
+                    if (availability == MultiplayerRulesAvailability.Available && notice != MultiplayerRulesNotice.Saved)
+                        foreach (var rule in MultiplayerRuleCatalog.All)
+                            Check(text.Contains(translations[language][MultiplayerRulesLocalization.RuleLabelKey(rule.Id)]),
+                                "unmodified peers must receive every active override: " + language);
                     if (availability != MultiplayerRulesAvailability.Available)
                         Check(text.Contains(translations[language][MultiplayerRulesSummary.AvailabilityKey(availability)]),
                             "announcements must preserve the actual reason custom rules do not apply");
                     summaries++;
                 }
         var health = MultiplayerRuleCatalog.Get(MultiplayerRuleId.RegularEnemyHealthMultiplier);
+        var original = ActiveExplorationMultiplayerRules.FromPreset(MultiplayerRulesPreset.Original);
+        var changed = ActiveExplorationMultiplayerRules.Custom(MultiplayerRuleSnapshot.Create((id, count) =>
+            id == health.Id && count == 3 ? MultiplayerRuleValue<float>.Override(2) : MultiplayerRuleValue<float>.UseGameBehavior()),
+            EnemyHealthModifierCombination.Additive);
+        foreach (var language in LocalizationLanguages.All)
+        {
+            string T(string key) => translations[language][key];
+            var details = MultiplayerRulesSummary.DescribeChanges(original, false, changed, true, T);
+            Check(details.Split('\n').Length == 3 && details.Contains(string.Format(T(MultiplayerRulesLocalization.ParticipantsValue), 3)) &&
+                details.Contains(T(MultiplayerRulesLocalization.RuleLabelKey(health.Id))) &&
+                details.Contains(T(MultiplayerRulesLocalization.ExternalRuleStackingSetting)), "saved reports include other team sizes and shared settings");
+            var restored = MultiplayerRulesSummary.DescribeChanges(changed, true, original, false, T);
+            Check(restored.Contains("→ " + T(MultiplayerRulesLocalization.UseGameBehavior)), "restoring native behavior is reported explicitly");
+            Check(MultiplayerRulesSummary.DescribeChanges(changed, true, changed, true, T) == "", "unchanged settings are omitted");
+        }
         Check(MultiplayerRuleInput.Adjust("2", health, 1, 1) == "2.05" &&
             MultiplayerRuleInput.Adjust("8", health, 1, 1) == "8" &&
             MultiplayerRuleInput.Adjust("0.25", health, 1, -1) == "0.25" &&
             MultiplayerRuleInput.Adjust("", health, 2, -1) == "1.95", "step buttons use native reference, legal increments and bounds");
         string unicode = new string('字', 119) + "😀" + new string('字', 119);
+        var report = MultiplayerRulesSummary.ReportLines(unicode + "\n" + unicode).ToArray();
+        Check(report.Length > 2 && report.All(line => line.Length <= 120) &&
+            report[0].StartsWith($"[1/{report.Length}] ") && report[^1].StartsWith($"[{report.Length}/{report.Length}] "),
+            "complete reports reserve space for progress and have explicit first and last parts");
+        string restoredReport = string.Concat(report.Select(line => line.Substring(line.IndexOf("] ", StringComparison.Ordinal) + 2)));
+        Check(restoredReport == unicode + unicode, "report numbering and splitting preserve every value and surrogate pair");
         var split = MultiplayerRulesSummary.SplitForNativeChat(unicode).ToArray();
         Check(string.Concat(split) == unicode && split.All(part => !char.IsHighSurrogate(part[^1]) && !char.IsLowSurrogate(part[0])),
             "native chat splitting must preserve surrogate pairs");

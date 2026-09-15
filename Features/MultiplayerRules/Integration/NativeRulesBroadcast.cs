@@ -11,10 +11,13 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
 
         internal static void SendNative(NetworkConnectionToClient peer, MultiplayerRulesState state,
             MultiplayerRulesNotice notice, int changes)
+            => SendNative(peer, Describe(state, notice, changes));
+
+        internal static void SendNative(NetworkConnectionToClient peer, string message)
         {
             var world = DungeonManager.Instance;
             if (!NetworkServer.active || world == null || peer == null || !peer.isReady) return;
-            foreach (string line in MultiplayerRulesSummary.SplitForNativeChat(Describe(state, notice, changes)))
+            foreach (string line in MultiplayerRulesSummary.SplitForNativeChat(message))
             {
                 using var writer = NetworkWriterPool.Get();
                 writer.WriteNetworkBehaviour((PlayerAvatar)null);

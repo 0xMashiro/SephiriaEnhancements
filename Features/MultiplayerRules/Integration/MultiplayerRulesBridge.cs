@@ -30,6 +30,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             internal float ReadyAt;
             internal MultiplayerRulesNotice Notice = MultiplayerRulesNotice.Summary;
             internal int Changes;
+            internal readonly Queue<string> ChatLines = new();
+            internal float NextChatAt;
         }
 
         private static readonly Dictionary<NetworkConnectionToClient, Peer> peers = new();
@@ -45,6 +47,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private static MultiplayerRulesNotice localNotice;
         private static int localChanges;
         private static float nextPublish;
+        private static readonly Queue<string> localChatLines = new();
+        private static float nextLocalChatAt;
 
         internal static MultiplayerRulesState Received => received;
         internal static bool HostSupportsRules => DungeonManager.Instance != null &&
@@ -80,6 +84,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             worldRevision = NetworkServer.active && current != null ? ++nextWorldRevision : advertised;
             if (NetworkServer.active && current != null) current.constValueDictionary[WorldRevisionKey] = worldRevision;
             peers.Clear(); published = received = null; pendingStates.Clear();
+            localChatLines.Clear();
             revision = 0; receivedRevision = -1; helloPlayer = null;
             localNotice = MultiplayerRulesNotice.None;
             if (!NetworkServer.active) MultiplayerRulesController.ClearHostRulesForClientDisplay();
@@ -168,9 +173,16 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 }
             }
             var state = NetworkServer.active ? published : received;
-            if (state != null && localNotice != MultiplayerRulesNotice.None &&
-                NativeModNotifications.Chat(() => NativeRulesBroadcast.Describe(state, localNotice, localChanges)))
+            if (state != null && localNotice != MultiplayerRulesNotice.None)
+            {
+                EnqueueReport(localChatLines, NativeRulesBroadcast.Describe(state, localNotice, localChanges));
                 localNotice = MultiplayerRulesNotice.None;
+            }
+            if (Time.unscaledTime >= nextLocalChatAt && localChatLines.Count > 0 && NativeModNotifications.Chat(() => localChatLines.Peek()))
+            {
+                localChatLines.Dequeue();
+                nextLocalChatAt = Time.unscaledTime + .8f;
+            }
         }
 
         internal static void Publish()
@@ -206,8 +218,13 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 }
                 else if (!known.Negotiated && known.Notice != MultiplayerRulesNotice.None && Time.unscaledTime >= known.ReadyAt)
                 {
-                    NativeRulesBroadcast.SendNative(peer, published, known.Notice, known.Changes);
+                    EnqueueReport(known.ChatLines, NativeRulesBroadcast.Describe(published, known.Notice, known.Changes));
                     known.Notice = MultiplayerRulesNotice.None;
+                }
+                if (Time.unscaledTime >= known.ReadyAt && Time.unscaledTime >= known.NextChatAt && known.ChatLines.Count > 0)
+                {
+                    NativeRulesBroadcast.SendNative(peer, known.ChatLines.Dequeue());
+                    known.NextChatAt = Time.unscaledTime + .8f;
                 }
             }
         }
@@ -221,6 +238,22 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             Publish();
             QueueNotice(notice, changes);
             Publish();
+        }
+
+        internal static void AnnounceSaved(int changes, string details)
+        {
+            if (!NetworkServer.active) return;
+            Publish();
+            if (published == null) return;
+            string report = NativeRulesBroadcast.Describe(published, MultiplayerRulesNotice.Saved, changes) + "\n" + details;
+            EnqueueReport(localChatLines, report);
+            foreach (var known in peers.Values) EnqueueReport(known.ChatLines, report);
+            Publish();
+        }
+
+        private static void EnqueueReport(Queue<string> queue, string report)
+        {
+            foreach (var line in Presentation.MultiplayerRulesSummary.ReportLines(report)) queue.Enqueue(line);
         }
 
         private static void QueueNotice(MultiplayerRulesNotice notice, int changes)
@@ -239,6 +272,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             serverRegistered = clientRegistered = false;
             peers.Clear(); world = null; connection = null; helloPlayer = null;
             published = received = null; pendingStates.Clear(); localNotice = MultiplayerRulesNotice.None;
+            localChatLines.Clear();
         }
     }
 }

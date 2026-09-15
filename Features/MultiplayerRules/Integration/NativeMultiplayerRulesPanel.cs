@@ -51,6 +51,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private ScrollRect scroll;
         private ScrollRect previewScroll;
         private Scrollbar detailsScrollbar;
+        private Scrollbar rulesScrollbar;
+        private Selectable detailsReturnSelection;
         private GameObject returnSelection;
         private MultiplayerRuleId selectedRule;
         private float nextRefresh;
@@ -130,7 +132,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             var divider = Rect(transform, "Divider", new Vector2(.625f, .21f), new Vector2(.627f, .90f));
             divider.gameObject.AddComponent<Image>().color = new Color(.4f, .42f, .54f);
             heading = Text(transform, "Heading", new Vector2(.02f, .91f), new Vector2(.98f, .99f));
-            var viewport = Rect(transform, "Rules", new Vector2(.02f, .21f), new Vector2(.61f, .90f));
+            var viewport = Rect(transform, "Rules", new Vector2(.02f, .21f), new Vector2(.595f, .90f));
+            viewport.gameObject.AddComponent<Image>().color = Color.clear;
             viewport.gameObject.AddComponent<RectMask2D>();
             scroll = viewport.gameObject.AddComponent<ScrollRect>();
             scroll.viewport = viewport;
@@ -145,6 +148,10 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             layout.spacing = 2;
             content.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             scroll.content = content;
+            rulesScrollbar = BuildScrollbar("Rules Scroll", .602f, .613f);
+            rulesScrollbar.navigation = new Navigation { mode = Navigation.Mode.None };
+            scroll.verticalScrollbar = rulesScrollbar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
 
             Choice(MultiplayerRulesLocalization.ParticipantsSetting, 4, () => participants - 1,
                 n => { participants = n + 1; reviewingChanges = false; Refresh(); },
@@ -193,14 +200,9 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             preview.rectTransform.pivot = new Vector2(.5f, 1);
             preview.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             previewScroll.content = preview.rectTransform;
-            var scrollbarRect = Rect(transform, "Details Scroll", new Vector2(.963f, .21f), new Vector2(.978f, .90f));
-            scrollbarRect.gameObject.AddComponent<Image>().color = new Color(.23f, .25f, .34f);
-            detailsScrollbar = scrollbarRect.gameObject.AddComponent<Scrollbar>();
-            var handle = Rect(scrollbarRect, "Handle", Vector2.zero, Vector2.one);
-            detailsScrollbar.targetGraphic = handle.gameObject.AddComponent<Image>();
-            detailsScrollbar.handleRect = handle;
-            detailsScrollbar.direction = Scrollbar.Direction.BottomToTop;
+            detailsScrollbar = BuildScrollbar("Details Scroll", .963f, .974f);
             previewScroll.verticalScrollbar = detailsScrollbar;
+            previewScroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
             preview.alignment = TextAlignmentOptions.TopLeft;
             status = Text(transform, "Review", new Vector2(.025f, .08f), new Vector2(.975f, .20f));
             Button(MultiplayerRulesLocalization.PanelSave, .02f, .32f, Save);
@@ -209,7 +211,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 reviewingChanges = true;
                 previewScroll.verticalNormalizedPosition = 1;
                 RefreshPreview();
-                EventSystem.current?.SetSelectedGameObject(detailsScrollbar.gameObject);
+                FocusDetails();
             });
             Button(MultiplayerRulesLocalization.PanelDiscard, .68f, .98f, Close);
             defaultSelectable = rows[0].Box.gameObject;
@@ -228,6 +230,11 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 row.Label.text = T(key);
                 row.Value.text = "";
                 row.Box.interactable = enabled();
+                if (EventSystem.current?.currentSelectedGameObject == row.Box.gameObject)
+                {
+                    selectedHelp = key;
+                    reviewingChanges = false;
+                }
                 foreach (var arrow in row.Root.GetComponentsInChildren<UI_HorizontalSelectionBox_Arrow>(true))
                     arrow.gameObject.SetActive(false);
             };
@@ -239,6 +246,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         {
             Row row = MakeRow(key);
             row.Box.numberOfElements = count;
+            row.Box.gameObject.AddComponent<NativeOptionActivation>().Configure(FocusDetails);
             row.Box.OnValueChanged += n => { if (enabled()) change(n); else Refresh(); };
             row.Refresh = () =>
             {
@@ -248,10 +256,13 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 row.Label.text = T(key);
                 row.Value.text = value();
                 if (EventSystem.current?.currentSelectedGameObject == row.Box.gameObject)
+                {
+                    reviewingChanges = false;
                     selectedHelp = key == MultiplayerRulesLocalization.ParticipantsSetting ? MultiplayerRulesLocalization.ParticipantsHelp
                         : key == MultiplayerRulesLocalization.HealthCombinationSetting ? MultiplayerRulesLocalization.HealthCombinationHelp
                         : key == MultiplayerRulesLocalization.ExternalRuleStackingSetting ? MultiplayerRulesLocalization.ExternalRuleStackingHelp
                         : MultiplayerRulesLocalization.RuleGroupHelp;
+                }
                 foreach (var arrow in row.Root.GetComponentsInChildren<UI_HorizontalSelectionBox_Arrow>(true))
                     arrow.gameObject.SetActive(enabled());
             };
@@ -280,7 +291,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 RefreshPreview();
                 if (!CanChangeRules || definition.Unit == MultiplayerRuleUnit.Toggle)
                 {
-                    EventSystem.current?.SetSelectedGameObject(detailsScrollbar.gameObject);
+                    FocusDetails();
                     return;
                 }
                 int count = participants;
@@ -357,6 +368,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 ? MultiplayerRulesLocalization.PanelEditing : MultiplayerRulesLocalization.PanelReadOnly);
             if (teamChanged) heading.text += "\n" + T(MultiplayerRulesLocalization.PanelTeamChanged);
             var position = content.anchoredPosition;
+            float previousHeight = content.rect.height;
             foreach (var row in rows)
             {
                 row.Refresh();
@@ -381,8 +393,10 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             NativeLocalizedText.MatchFontSize(status, fontTemplate);
             NativeLocalizedText.MatchFontSize(heading, fontTemplate);
             LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+            position.y = Mathf.Clamp(position.y, 0, Mathf.Max(0, content.rect.height - scroll.viewport.rect.height));
             content.anchoredPosition = position;
             RefreshNavigation();
+            if (!Mathf.Approximately(previousHeight, content.rect.height)) ScrollToNewSelection(true);
             RefreshPreview();
         }
 
@@ -443,6 +457,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             if (preview.text != text)
             {
                 preview.text = text;
+                NativeLocalizedText.MatchFontSize(preview, fontTemplate);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(preview.rectTransform);
                 previewScroll.StopMovement();
                 previewScroll.verticalNormalizedPosition = 1;
             }
@@ -464,8 +480,10 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             if (SynchronizeTeam()) { Refresh(); return; }
             if (!CanChangeRules) return;
             int changes = Changes();
+            string details = MultiplayerRulesSummary.DescribeChanges(saved, savedStacking,
+                draft.ToPreferred().Freeze(), draft.AllowExternalStacking, T);
             PreferredMultiplayerRulesStore.SaveDraft(draft);
-            MultiplayerRulesBridge.Announce(MultiplayerRulesNotice.Saved, changes);
+            MultiplayerRulesBridge.AnnounceSaved(changes, details);
             Close();
         }
 
@@ -515,12 +533,9 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private void Button(string key, float left, float right, Action action)
         {
             var rect = Rect(transform, key, new Vector2(left, .015f), new Vector2(right, .075f));
-            rect.gameObject.AddComponent<Image>().color = new Color(.27f, .29f, .40f);
+            rect.gameObject.AddComponent<Image>();
             var button = rect.gameObject.AddComponent<UnityEngine.UI.Button>();
-            var colors = button.colors;
-            colors.normalColor = new Color(.72f, .72f, .78f);
-            colors.selectedColor = colors.highlightedColor = Color.white;
-            button.colors = colors;
+            NativeRuleButtonStyle.Apply(button);
             button.onClick.AddListener(() => action());
             var label = Text(rect, "Label", Vector2.zero, Vector2.one);
             label.text = T(key);
@@ -531,7 +546,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         }
 
         private List<Selectable> NavigationControls() => rows.Where(r => r.Root.activeSelf && r.Box.IsInteractable())
-            .Select(r => (Selectable)r.Box).Concat(new[] { (Selectable)detailsScrollbar })
+            .Select(r => (Selectable)r.Box).Concat(detailsScrollbar.gameObject.activeInHierarchy ? new[] { (Selectable)detailsScrollbar } : Array.Empty<Selectable>())
             .Concat(buttons.Where(b => b.button.gameObject.activeSelf && b.button.IsInteractable()).Select(b => (Selectable)b.button)).ToList();
 
         private void RefreshNavigation()
@@ -543,17 +558,18 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 {
                     mode = Navigation.Mode.Explicit,
                     selectOnUp = i > 0 ? settings[i - 1] : null,
-                    selectOnDown = i + 1 < settings.Count ? settings[i + 1] : detailsScrollbar
+                    selectOnDown = i + 1 < settings.Count ? settings[i + 1] : actions.FirstOrDefault()
                 };
             detailsScrollbar.navigation = new Navigation { mode = Navigation.Mode.Explicit,
-                selectOnLeft = settings.LastOrDefault(), selectOnRight = actions.FirstOrDefault() };
+                selectOnLeft = detailsReturnSelection != null && detailsReturnSelection.gameObject.activeInHierarchy && detailsReturnSelection.IsInteractable()
+                    ? detailsReturnSelection : settings.LastOrDefault(), selectOnRight = actions.FirstOrDefault() };
             for (int i = 0; i < actions.Count; i++)
                 actions[i].navigation = new Navigation
                 {
                     mode = Navigation.Mode.Explicit,
                     selectOnLeft = i > 0 ? actions[i - 1] : null,
-                    selectOnRight = i + 1 < actions.Count ? actions[i + 1] : null,
-                    selectOnUp = detailsScrollbar
+                    selectOnRight = i + 1 < actions.Count ? actions[i + 1] : detailsScrollbar.gameObject.activeInHierarchy ? detailsScrollbar : null,
+                    selectOnUp = settings.LastOrDefault()
                 };
             var selected = EventSystem.current?.currentSelectedGameObject;
             if (ownedDialog == null && IsControlEnabled && selected != null && selected.transform.IsChildOf(transform) &&
@@ -571,19 +587,45 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             EventSystem.current.SetSelectedGameObject(controls[(index + direction + controls.Count) % controls.Count].gameObject);
         }
 
-        private void ScrollToNewSelection()
+        private void FocusDetails()
         {
+            detailsReturnSelection = EventSystem.current?.currentSelectedGameObject?.GetComponent<Selectable>();
+            Refresh();
+            Canvas.ForceUpdateCanvases();
+            if (detailsScrollbar.gameObject.activeInHierarchy)
+                EventSystem.current?.SetSelectedGameObject(detailsScrollbar.gameObject);
+        }
+
+        private Scrollbar BuildScrollbar(string name, float left, float right)
+        {
+            var rect = Rect(transform, name, new Vector2(left, .21f), new Vector2(right, .90f));
+            rect.gameObject.AddComponent<Image>().color = new Color(.23f, .25f, .34f);
+            var bar = rect.gameObject.AddComponent<Scrollbar>();
+            var handle = Rect(rect, "Handle", Vector2.zero, Vector2.one);
+            var image = handle.gameObject.AddComponent<Image>();
+            image.color = new Color(.56f, .59f, .72f);
+            bar.targetGraphic = image;
+            bar.handleRect = handle;
+            bar.direction = Scrollbar.Direction.BottomToTop;
+            return bar;
+        }
+
+        private void ScrollToNewSelection(bool layoutChanged = false)
+        {
+            if (!IsControlEnabled || ownedDialog != null) return;
             var selected = EventSystem.current?.currentSelectedGameObject;
-            if (selected == lastSelection) return;
+            if (selected == lastSelection && !layoutChanged) return;
             lastSelection = selected;
-            if (selected == null || ControlsChangeHandler.Current?.UseDefaultSelectable != true ||
-                !selected.transform.IsChildOf(content)) return;
+            if (selected == null || !selected.transform.IsChildOf(content)) return;
             var row = rows.FirstOrDefault(r => selected.transform == r.Box.transform || selected.transform.IsChildOf(r.Root.transform));
             if (row == null) return;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
             var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(scroll.viewport, row.Root.transform);
             float delta = bounds.max.y > scroll.viewport.rect.yMax ? bounds.max.y - scroll.viewport.rect.yMax
                 : bounds.min.y < scroll.viewport.rect.yMin ? bounds.min.y - scroll.viewport.rect.yMin : 0;
-            content.anchoredPosition -= new Vector2(0, delta);
+            var position = content.anchoredPosition;
+            position.y = Mathf.Clamp(position.y - delta, 0, Mathf.Max(0, content.rect.height - scroll.viewport.rect.height));
+            content.anchoredPosition = position;
             scroll.StopMovement();
         }
 

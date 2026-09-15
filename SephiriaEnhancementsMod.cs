@@ -1,5 +1,6 @@
 using SephiriaEnhancements.Runtime.GameBridge.Inventory;
 using HarmonyLib;
+using SephiriaEnhancements.StageRewardAutoClaim.Integration;
 using System;
 using SephiriaEnhancements.CostumeAppearance.Integration;
 using SephiriaEnhancements.CombatRelationOutlines;
@@ -181,6 +182,8 @@ namespace SephiriaEnhancements
                 runtimeKernel.Initialize();
                 runtimeKernel.GameplayContextChanged += OnLocalGameplayContextChanged;
             });
+            InitializeFeature(FeatureId.StageRewardAutoClaim, () =>
+                AddController<NativeStageRewardAutoClaim>(FeatureId.StageRewardAutoClaim).Initialize());
             InitializeFeature(FeatureId.CostumeAppearance, () =>
                 AddController<NativeCostumeAppearance>(FeatureId.CostumeAppearance).Initialize());
             InitializeFeature(FeatureId.ModInformation, () =>
@@ -323,6 +326,8 @@ namespace SephiriaEnhancements
                 typeof(CombatTargetingInputPatch),
                 typeof(AutoCastingManualInputPatch),
                 typeof(AutoCastingPanelPatch),
+                typeof(StageRewardTutorialPatch),
+                typeof(StageRewardCommandPatch),
                 typeof(CostumeAppearanceEquipPatch),
                 typeof(CostumeAppearancePreferencePatch),
                 typeof(CostumeAppearancePanelPatch),

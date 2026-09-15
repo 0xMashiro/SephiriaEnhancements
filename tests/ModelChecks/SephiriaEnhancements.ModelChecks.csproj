@@ -8,6 +8,8 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Features/StageRewardAutoClaim/StageRewardAutoClaimLocalization.cs" Link="StageRewardAutoClaimLocalization.cs" />
+    <Compile Include="../../Features/StageRewardAutoClaim/StageRewardAutoClaimPolicy.cs" Link="StageRewardAutoClaimPolicy.cs" />
     <Compile Include="../../Features/CombatInsights/DamageSourcesLocalization.cs" Link="Features/CombatInsights/DamageSourcesLocalization.cs" />
     <Compile Include="../../Features/CostumeAppearance/AppearancePickerLayout.cs" Link="AppearancePickerLayout.cs" />
     <Compile Include="../../Features/CostumeAppearance/CostumeAppearanceLocalization.cs" Link="CostumeAppearanceLocalization.cs" />

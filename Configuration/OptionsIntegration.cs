@@ -120,6 +120,7 @@ namespace SephiriaEnhancements.Configuration
             CombatVisualsOptions.Inject(__instance, template, section.transform);
             NativeCompanionOptions.Inject(__instance, template, section.transform);
             DefeatRetryOptions.Inject(__instance, template, section.transform);
+            StageRewardAutoClaim.Integration.StageRewardAutoClaimOptions.Inject(__instance, template, section.transform);
             MapEnhancementsOptions.Inject(__instance, template, section.transform);
             ResourceBarValuesOptions.Inject(__instance, template, section.transform);
             CombatTargetingOptions.Inject(__instance, template, section.transform);
@@ -159,6 +160,7 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_NativeCompanion",
                 "Option_SephiriaEnhancements_DefeatRetry",
                 "Option_SephiriaEnhancements_DefeatRetryCutscenes",
+                "Option_SephiriaEnhancements_StageRewardAutoClaim",
                 "Option_SephiriaEnhancements_MapEnabled",
                 "Option_SephiriaEnhancements_ShowHiddenRooms",
                 "Option_SephiriaEnhancements_DeveloperConsole",

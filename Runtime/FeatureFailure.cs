@@ -11,7 +11,7 @@ namespace SephiriaEnhancements.Runtime
         NativeCompanion, ViewDistance, ResourceBarValues, DefeatRetry,
         MultiplayerRules, MultiplayerAccess, ModJournal, Settings, ModInformation,
         DeveloperTools, EffectStats, CharacterPanelNavigation, OptionsNavigation,
-        RewardNavigation, WorldMapKeyboardScrolling, CostumeAppearance
+        RewardNavigation, WorldMapKeyboardScrolling, CostumeAppearance, StageRewardAutoClaim
     }
 
     // Failure belongs to the loaded Mod instance, not to a floor or exploration.

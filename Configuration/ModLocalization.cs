@@ -1259,6 +1259,7 @@ namespace SephiriaEnhancements.Configuration
             MapEnhancements.MapNavigationLocalization.Register(addText, languages);
             ModJournal.ModJournalLocalization.Register(addText, languages);
             CostumeAppearance.CostumeAppearanceLocalization.Register(addText, languages);
+            StageRewardAutoClaim.StageRewardAutoClaimLocalization.Register(addText, languages);
             EffectStats.EffectStatsLocalization.Register(addText, languages);
             OptionsCategoryLocalization.Register(addText, languages);
             SettingsInteractionLocalization.Register(addText, languages);

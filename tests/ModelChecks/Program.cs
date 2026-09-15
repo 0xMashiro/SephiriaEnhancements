@@ -41,6 +41,12 @@ if (args.Contains("--inventory-support-only"))
     return;
 }
 
+SephiriaEnhancements.ModelChecks.Features.StageRewardAutoClaim.StageRewardAutoClaimChecks.Run();
+if (args.Contains("--stage-rewards-only"))
+{
+    LocalizationChecks.Run();
+    return;
+}
 SephiriaEnhancements.ModelChecks.Features.CostumeAppearance.AppearancePickerChecks.Run();
 if (args.Contains("--costume-appearance-only"))
 {

@@ -211,6 +211,9 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.CostumeAppearance.Integration.CostumeAppearancePreferencePatch":
                 case "SephiriaEnhancements.CostumeAppearance.Integration.CostumeAppearancePanelPatch":
                     return FeatureId.CostumeAppearance;
+                case "SephiriaEnhancements.StageRewardAutoClaim.Integration.StageRewardTutorialPatch":
+                case "SephiriaEnhancements.StageRewardAutoClaim.Integration.StageRewardCommandPatch":
+                    return FeatureId.StageRewardAutoClaim;
                 default: throw new InvalidOperationException("Patch has no feature owner: " + patchType.FullName);
             }
         }

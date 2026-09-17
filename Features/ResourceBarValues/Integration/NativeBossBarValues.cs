@@ -39,6 +39,7 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
             if (owner is UI_LibraryBossHPBar library)
             {
                 AddHealth(view, library.golemHPBarImage, owner.nameText, () => Golem(library));
+                AddSuperArmor(view, owner.barImage, owner.nameText, () => Boss(owner));
                 TextMeshProUGUI lifeValue = AddBar(view, owner.barImage, owner.nameText, () =>
                 {
                     UnitAvatar target = Boss(owner);
@@ -75,6 +76,27 @@ namespace SephiriaEnhancements.ResourceBarValues.Integration
                 return target != null ? ResourceBarValueFormatter.HealthWithShield(
                     target.Networkhp, target.MaxHp, target.Shield) : string.Empty;
             });
+            AddSuperArmor(view, bar, template, read);
+        }
+
+        private static void AddSuperArmor(NativeResourceBarValueView view, Image bar,
+            TextMeshProUGUI template, Func<UnitAvatar> read)
+        {
+            var text = view.Add(bar.rectTransform, template, () =>
+            {
+                if (!ResourceBarValueSettings.Get(ResourceBarValueSetting.BossSuperArmorNumbers) ||
+                    !bar.gameObject.activeInHierarchy) return string.Empty;
+                UnitAvatar target = read();
+                if (target == null || target.InitializedMaxSuperArmor <= 0f) return string.Empty;
+                return Loc._("Status_SuperArmor_Name") + " " + ResourceBarValueFormatter.Ratio(
+                    target.remainingSuperArmor, target.InitializedMaxSuperArmor);
+            }, () => template.fontSize * 0.65f, "Resource Bar Values — Boss Super Armor");
+            text.color = new Color(1f, 0.87f, 0.48f);
+            RectTransform rect = text.rectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -2f);
+            rect.sizeDelta = new Vector2(160f, 8f);
         }
 
         private static TextMeshProUGUI AddBar(NativeResourceBarValueView view, Image bar,

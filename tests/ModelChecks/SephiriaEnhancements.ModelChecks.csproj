@@ -206,4 +206,8 @@
     <Compile Include="../../Features/DefeatRetry/DefeatRetryLocalization.cs" />
     <Compile Include="../../Features/CombatRelationOutlines/CombatRelationOutlinesLocalization.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../Features/ItemCommunication/Core/ItemCommunicationMessage.cs" />
+    <Compile Include="../../Features/ItemCommunication/ItemCommunicationLocalization.cs" />
+  </ItemGroup>
 </Project>

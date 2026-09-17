@@ -238,7 +238,7 @@ namespace SephiriaEnhancements.CombatTargeting
                 if (inputFrame != Time.frameCount)
                 {
                     inputFrame = Time.frameCount;
-                    InputAction action = NativeInputActions.FindShortcut(input.playerInput.actions, ModShortcuts.SwitchLockedTarget);
+                    InputAction action = NativeInputActions.FindShortcut(input.playerInput.actions, ModShortcuts.ContextAction);
                     bool pressed = action?.WasPressedThisFrame() ?? false;
                     if (keyboardScheme && pressed && action.activeControl?.device is Keyboard)
                     {

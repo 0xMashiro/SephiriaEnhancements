@@ -26,13 +26,13 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
         private readonly List<Entry> entries = new();
         private UI_HorayButton thumbnails, list, apply, cancel;
         private Image thumbnailsSelected, listSelected, preview;
-        private TextMeshProUGUI title, help, nameText;
+        private TextMeshProUGUI title, help, nameText, regionHint;
         private ScrollRect scroll;
         private RectTransform content;
         private AppearanceViewMode mode = AppearanceViewMode.Thumbnails;
         private AppearancePickerLayout layout;
         private readonly float[] scrollOffsets = new float[2];
-        private int selected;
+        private int selected, focused;
         private string language;
         private bool waiting, lastEditable;
         public override bool CanBeSearchedByTypeHash => false;
@@ -65,6 +65,7 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
             help.alignment = TextAlignmentOptions.TopLeft;
             apply = Button("Apply", 262, 276, 236, 24, Apply);
             cancel = Button("Cancel", 12, 276, 236, 24, Close);
+            regionHint = Label(12, 262, 310, 12);
         }
 
         private void BuildScroll()
@@ -104,11 +105,13 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
                 foreach (var skin in CostumeDatabase.GetAllRelatedSkins(costume.id))
                     if (NativeCostumeAppearance.Owned(skin)) skins.Add(skin);
             selected = Math.Max(0, skins.FindIndex(s => s.skinID == player.currentCostumeSkin));
+            focused = selected;
             for (int i = 0; i < skins.Count; i++)
             {
                 int index = i;
                 var button = NativeAppearanceControls.Button(content, "Appearance", () => Select(index));
-                button.gameObject.AddComponent<NativeAppearanceSelection>().Selected = () => Select(index);
+                // Native pointer hover also selects the EventSystem object; only activation changes the appearance.
+                button.gameObject.AddComponent<NativeAppearanceFocus>().Focused = () => Reveal(index);
                 var frame = SelectionFrame(button);
                 var iconRect = NativeAppearanceControls.Rect("Icon", button.transform);
                 var icon = iconRect.gameObject.AddComponent<Image>();
@@ -120,7 +123,7 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
             defaultSelectable = skins.Count == 0 ? cancel.gameObject : entries[selected].Button.gameObject;
             Open();
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(defaultSelectable);
-            RevealSelection();
+            Reveal(selected);
         }
 
         private void SetMode(AppearanceViewMode value)
@@ -184,10 +187,25 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
         {
             if (waiting || index < 0 || index >= skins.Count) return;
             selected = index;
-            UpdatePreview(); RefreshNavigation(); RevealSelection();
+            UpdatePreview(); RefreshNavigation(); Reveal(selected);
         }
 
-        private void RevealSelection() => SetScrollOffset(layout.Reveal(selected, content.anchoredPosition.y));
+        private void Reveal(int index)
+        {
+            if (waiting) return;
+            focused = index;
+            SetScrollOffset(layout.Reveal(index, content.anchoredPosition.y));
+        }
+
+        internal void SwitchRegion()
+        {
+            if (waiting || EventSystem.current == null) return;
+            var current = EventSystem.current.currentSelectedGameObject;
+            GameObject target = current == apply.gameObject || current == cancel.gameObject
+                ? (entries.Count == 0 ? thumbnails.gameObject : entries[focused].Button.gameObject)
+                : (apply.interactable ? apply.gameObject : cancel.gameObject);
+            EventSystem.current.SetSelectedGameObject(target);
+        }
         private void SetScrollOffset(float value)
         {
             scroll.StopMovement();
@@ -253,8 +271,11 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
             if (waiting && !NativeCostumeAppearance.Instance.Pending) { Close(); return; }
             if (language != LocalizationManager.Instance?.CurrentLanguage) RefreshTexts();
             if (lastEditable != (owner.CanEdit && skins.Count > 0)) RefreshAvailability();
+            regionHint.text = waiting ? string.Empty : NativeAppearanceRegionInput.Hint();
+            if (NativeAppearanceRegionInput.WasPressed(this)) SwitchRegion();
             help.text = ModLocalization.Get(waiting ? CostumeAppearanceLocalization.Waiting : CostumeAppearanceLocalization.Help);
             var buttonText = NativeAppearanceControls.ButtonTextTemplate;
+            NativeLocalizedText.MatchFontSize(regionHint, buttonText);
             if (mode == AppearanceViewMode.List)
                 foreach (var entry in entries) NativeLocalizedText.MatchFontSize(entry.Button.text, buttonText);
             NativeLocalizedText.MatchFontSize(thumbnails.text, buttonText);
@@ -315,13 +336,13 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
         }
     }
 
-    internal sealed class NativeAppearanceSelection : MonoBehaviour, ISelectHandler
+    internal sealed class NativeAppearanceFocus : MonoBehaviour, ISelectHandler
     {
-        internal Action Selected;
+        internal Action Focused;
         public void OnSelect(BaseEventData eventData)
         {
             if (!FeatureFailure.IsAvailable(FeatureId.CostumeAppearance)) return;
-            try { Selected?.Invoke(); }
+            try { Focused?.Invoke(); }
             catch (Exception exception) { FeatureFailure.Disable(FeatureId.CostumeAppearance, exception); }
         }
     }

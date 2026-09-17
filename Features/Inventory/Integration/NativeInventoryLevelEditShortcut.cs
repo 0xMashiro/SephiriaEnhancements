@@ -7,7 +7,7 @@ namespace SephiriaEnhancements.Inventory
     internal static class NativeInventoryLevelEditShortcut
     {
         private static InputAction Action => NativeInputActions.FindShortcut(
-            PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.SwitchLockedTarget);
+            PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.ContextAction);
 
         internal static InputAction PressedAction(UI_CharacterStatusPanel panel)
         {

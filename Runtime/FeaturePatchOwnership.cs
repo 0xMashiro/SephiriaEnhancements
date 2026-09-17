@@ -26,6 +26,8 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.EffectStats.Integration.EffectStatsPanelPatch": return FeatureId.EffectStats;
                 case "SephiriaEnhancements.Integration.NativePresetSavePatch":
                 case "SephiriaEnhancements.Integration.NativePresetEditPatch": return FeatureId.Inventory;
+                case "SephiriaEnhancements.ItemCommunication.Integration.ItemCommunicationNavigationPatch":
+                    return FeatureId.ItemCommunication;
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingManualInputPatch":
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingOptionsPatch":
                 case "SephiriaEnhancements.AutoCasting.Integration.AutoCastingPanelPatch":

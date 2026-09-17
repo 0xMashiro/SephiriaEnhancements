@@ -203,6 +203,7 @@ namespace SephiriaEnhancements.Configuration
             ResourceBarValues.ResourceBarValueLocalization.Register(addText, languages);
             Combat.DamageSourcesLocalization.Register(addText, languages);
             AutoCasting.AutoCastingLocalization.Register(addText, languages);
+            ItemCommunication.ItemCommunicationLocalization.Register(addText, languages);
             DefeatRetry.DefeatRetryAvailabilityLocalization.Register(addText, languages);
             DefeatRetry.DefeatRetryCutsceneLocalization.Register(addText, languages);
             DefeatRetry.RetryRecoveryLocalization.Register(addText, languages);

@@ -17,8 +17,8 @@ namespace SephiriaEnhancements.Configuration
                 NativeUiActions.EngraveTablet,
                 ControlLocalization.EngraveTablet),
             new NativeRebindDefinition(
-                ModShortcuts.SwitchLockedTarget,
-                ControlLocalization.SwitchLockedTarget),
+                ModShortcuts.ContextAction,
+                ControlLocalization.ContextAction),
             new NativeRebindDefinition(
                 ModShortcuts.ToggleCurrentFloorMapOverlay,
                 ControlLocalization.ToggleCurrentFloorMapOverlay),
@@ -44,8 +44,8 @@ namespace SephiriaEnhancements.Configuration
         private static readonly NativeRebindDefinition[] GamepadDefinitions =
         {
             new NativeRebindDefinition(
-                ModShortcuts.SwitchLockedTarget,
-                ControlLocalization.SwitchLockedTarget),
+                ModShortcuts.ContextAction,
+                ControlLocalization.ContextAction),
             new NativeRebindDefinition(
                 ModShortcuts.ToggleCurrentFloorMapOverlay,
                 ControlLocalization.ToggleCurrentFloorMapOverlay),

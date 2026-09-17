@@ -19,7 +19,14 @@ namespace SephiriaEnhancements.DefeatRetry
             catch (IOException) { return false; }
             catch (UnauthorizedAccessException) { return false; }
             var values = actual.BakedData.ToDictionary(pair => pair.Key, pair => pair.Value);
-            return values.Count == expected.BakedData.Count() && expected.BakedData.All(pair =>
+            var expectedValues = expected.BakedData.ToDictionary(pair => pair.Key, pair => pair.Value);
+            // SaveManager writes a copy. SaveData.Save updates these fields on that
+            // copy only; the live save retains the checkpoint's old metadata.
+            expectedValues["Version"] = expected.version;
+            expectedValues["SaveVersion"] = SaveManager.SaveVersion;
+            expectedValues.Remove("SaveDate");
+            if (!values.Remove("SaveDate")) return false;
+            return values.Count == expectedValues.Count && expectedValues.All(pair =>
                 values.TryGetValue(pair.Key, out object value) && Equals(value, pair.Value));
         }
     }

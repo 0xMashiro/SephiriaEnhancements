@@ -18,8 +18,8 @@ namespace SephiriaEnhancements.Configuration
         internal const string HelpViewDistance = "SephiriaEnhancements.Help.ViewDistance";
         internal const string AimVisibleTargets =
             "SephiriaEnhancements.MouseAimAssist.VisibleTargets";
-        internal const string SwitchLockedTarget =
-            "SephiriaEnhancements.Controls.SwitchLockedTarget";
+        internal const string ContextAction =
+            "SephiriaEnhancements.Controls.ContextAction";
         internal const string ToggleCurrentFloorMapOverlay =
             "SephiriaEnhancements.Controls.ToggleCurrentFloorMapOverlay";
         internal const string ToggleDamageStatistics =
@@ -136,24 +136,24 @@ namespace SephiriaEnhancements.Configuration
                     "Etkin", "Görünür hedefler")
             };
 
-        private static readonly Dictionary<string, string> SwitchLockedTargetTexts =
+        private static readonly Dictionary<string, string> ContextActionTexts =
             new Dictionary<string, string>
             {
-                ["en-US"] = "Switch locked target",
-                ["zh-CN"] = "切换锁定目标",
-                ["zh-TW"] = "切換鎖定目標",
-                ["ko-KR"] = "고정 대상 전환",
-                ["ja-JP"] = "ロック対象切替",
-                ["de-DE"] = "Festes Ziel wechseln",
-                ["es-ES"] = "Cambiar objetivo fijado",
-                ["fr-FR"] = "Changer de cible verrouillée",
-                ["it-IT"] = "Cambia bersaglio bloccato",
-                ["pl-PL"] = "Zmień zablokowany cel",
-                ["pt-BR"] = "Alternar alvo travado",
-                ["ru-RU"] = "Сменить захваченную цель",
-                ["sv-SE"] = "Byt låst mål",
-                ["th-TH"] = "สลับเป้าหมายที่ล็อก",
-                ["tr-TR"] = "Kilitli hedefi değiştir"
+                ["en-US"] = "Context action",
+                ["zh-CN"] = "情境操作",
+                ["zh-TW"] = "情境操作",
+                ["ko-KR"] = "상황별 동작",
+                ["ja-JP"] = "状況に応じた操作",
+                ["de-DE"] = "Kontextaktion",
+                ["es-ES"] = "Acción contextual",
+                ["fr-FR"] = "Action contextuelle",
+                ["it-IT"] = "Azione contestuale",
+                ["pl-PL"] = "Działanie kontekstowe",
+                ["pt-BR"] = "Ação contextual",
+                ["ru-RU"] = "Действие по ситуации",
+                ["sv-SE"] = "Kontextåtgärd",
+                ["th-TH"] = "การกระทำตามสถานการณ์",
+                ["tr-TR"] = "Bağlama göre eylem",
             };
 
         private static readonly Dictionary<string, string>
@@ -307,9 +307,9 @@ namespace SephiriaEnhancements.Configuration
         {
             string[] languages = LocalizationLanguages.All;
             LocalizationGroup.Register(addText, languages, Texts);
-            string[] keys = { SwitchLockedTarget, ToggleCurrentFloorMapOverlay, ToggleDamageStatistics,
+            string[] keys = { ContextAction, ToggleCurrentFloorMapOverlay, ToggleDamageStatistics,
                 OptimizeInventory, SecondaryUiAction, RotateItem, EngraveTablet, ShortcutsSection };
-            var columns = new[] { SwitchLockedTargetTexts, ToggleCurrentFloorMapOverlayTexts,
+            var columns = new[] { ContextActionTexts, ToggleCurrentFloorMapOverlayTexts,
                 ToggleDamageStatisticsTexts, OptimizeInventoryTexts, SecondaryUiActionTexts,
                 RotateItemTexts, EngraveTabletTexts, ShortcutSectionTexts };
             var shortcuts = new Dictionary<string, string[]>();

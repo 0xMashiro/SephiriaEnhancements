@@ -45,6 +45,7 @@ These are defaults; in-game hints follow your current bindings. Rebind Mod short
 | Action | Default control |
 | --- | --- |
 | Lock or cycle targets / release lock | Tap / hold `L` or middle mouse button |
+| Offer a reward / ask for a shop purchase | Select the item and press `L`, or middle-click it; navigate down past the items for chat buttons |
 | Toggle automatic magic casting in the backpack | Middle-click the skill, or select it and press `L`; on gamepad, use Confirm |
 | Pause / resume auto casting for selected magic | `F6` |
 | Show / hide the current-floor map overlay | `M` |
@@ -56,7 +57,7 @@ These are defaults; in-game hints follow your current bindings. Rebind Mod short
 | Switch settings tabs / backpack areas | `Tab` / `Shift+Tab` |
 
 Tapping `F7` closes an existing report first. After closing a report, press `Esc` or Start/Menu again to open the pause menu.
-Gamepad target lock and auto-casting pause have no default binding; assign them in controls.
+The shared **Context action** and auto-casting pause have no default gamepad binding; assign them in controls. Item chat also has buttons you can select and confirm.
 
 ## In-game help
 

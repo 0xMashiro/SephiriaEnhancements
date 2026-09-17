@@ -20,6 +20,8 @@ using SephiriaEnhancements.ModelChecks.Runtime.Inventory;
 using SephiriaEnhancements.ModelChecks.Runtime.State;
 using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
+SephiriaEnhancements.ModelChecks.Features.ItemCommunication.ItemCommunicationChecks.Run();
+
 if (args.Contains("--inventory-preset-intent-only"))
 {
     InventoryPresetIntentChecks.Run();

@@ -103,7 +103,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             UpdateFocus();
             UI_PlayerSkillIcon selected = EventSystem.current?.currentSelectedGameObject?.GetComponent<UI_PlayerSkillIcon>();
             UpdateHint(selected);
-            InputAction shortcut = NativeInputActions.FindShortcut(PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.SwitchLockedTarget);
+            InputAction shortcut = NativeInputActions.FindShortcut(PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.ContextAction);
             if (shortcut?.WasPressedThisFrame() != true)
                 return;
             if (shortcut.activeControl?.device is Mouse)
@@ -188,7 +188,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             bool gamepad = PlayerInputController.Instance?.playerInput?.currentControlScheme == ModShortcuts.GamepadScheme;
             InputAction action = gamepad ? UIInputModule.currentModule?.submit?.action :
                 NativeInputActions.FindShortcut(PlayerInputController.Instance?.playerInput?.actions,
-                    ModShortcuts.SwitchLockedTarget);
+                    ModShortcuts.ContextAction);
             if (action == null) return string.Empty;
             var labels = new List<string>();
             foreach (InputControl control in action.controls)

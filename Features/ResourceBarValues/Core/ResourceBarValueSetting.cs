@@ -7,6 +7,7 @@ namespace SephiriaEnhancements.ResourceBarValues
         MiniBossHealthNumbers,
         MiniBossSuperArmorNumbers,
         BossHealthNumbers,
+        BossSuperArmorNumbers,
         PropHealthNumbers,
         TeammateResourceNumbers,
         CompanionHealthNumbers,

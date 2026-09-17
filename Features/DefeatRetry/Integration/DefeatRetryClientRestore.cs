@@ -58,7 +58,7 @@ namespace SephiriaEnhancements.DefeatRetry
         private static string floor;
         private static string runFile;
         private static long retryId;
-        private static bool notified, traveled, worldLoaded, saveVerified;
+        private static bool notified, traveled, worldLoaded;
         private static Vector3 destination;
         private static NativeRetryArrival arrival;
         private static double deadline;
@@ -166,19 +166,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
             if (!notified || !traveled || !arrival.Observe()) return;
-            if (SaveManager.IsSaving != SaveManager.ESaveState.None) return;
             if (!playerState.Matches(player.GetComponent<PlayerSpawner>())) return;
-            if (!saveVerified)
-            {
-                if (!NativeRetryPersistence.Matches(SaveManager.Current) || !NativeRetryPersistence.Matches(SaveManager.CurrentRun))
-                {
-                    ReportFailure();
-                    NativeRetryFailure.Show(RetryRecoveryFailure.RestoreFailed);
-                    Clear();
-                    return;
-                }
-                saveVerified = true;
-            }
             FloorGenerator generator = FloorGenerator.FindByGuid(floor);
             GameCamera camera = GameCamera.Instance;
             if (generator == null || !generator.GenerateSuccess || camera == null) return;
@@ -195,6 +183,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
             if (camera.Observer != player) return;
+            CheckPersistence();
             SupportLogger.Record("retry_client_arrived", "player=" + player.netId);
             FeatureFailure.Run(FeatureId.AutoCasting, () => NativeAutoCasting.Current?.CompleteRetry());
             DefeatRetryBridge.ReportArrival(retryId);
@@ -202,6 +191,28 @@ namespace SephiriaEnhancements.DefeatRetry
         }
 
         internal static void ReportFailure() { if (player != null) DefeatRetryBridge.ReportArrival(retryId, success: false); }
+
+        private static void CheckPersistence()
+        {
+            // Disk persistence is diagnostic, not a prerequisite for resuming play.
+            if (SaveManager.IsSaving != SaveManager.ESaveState.None)
+            {
+                SupportLogger.Record("retry_persistence_pending", "retry=" + retryId);
+                return;
+            }
+            try
+            {
+                bool accountSaved = NativeRetryPersistence.Matches(SaveManager.Current);
+                bool runSaved = NativeRetryPersistence.Matches(SaveManager.CurrentRun);
+                if (!accountSaved || !runSaved)
+                    SupportLogger.Record("retry_persistence_mismatch",
+                        "accountSaved=" + accountSaved + " runSaved=" + runSaved, "WARN");
+            }
+            catch (Exception exception)
+            {
+                SupportLogger.Failure("retry_persistence_check_failed", exception);
+            }
+        }
 
         internal static void RecordFailureContext()
         {
@@ -223,7 +234,7 @@ namespace SephiriaEnhancements.DefeatRetry
             arrival = null;
             requestedCamera = null;
             requestedCameraFloor = null;
-            notified = traveled = worldLoaded = saveVerified = PreserveClientRun = false;
+            notified = traveled = worldLoaded = PreserveClientRun = false;
         }
     }
 

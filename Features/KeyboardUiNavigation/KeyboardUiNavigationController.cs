@@ -324,6 +324,17 @@ namespace SephiriaEnhancements.KeyboardUiNavigation
                 return;
             UIBase panel = manager.CurrentControlStack[0];
             if (!KeyboardUiSelection.IsPanelReady(panel)) return;
+            if (panel is CostumeAppearance.Integration.NativeCostumeAppearancePicker appearancePicker)
+            {
+                FeatureFailure.Run(FeatureId.CostumeAppearance, appearancePicker.SwitchRegion);
+                return;
+            }
+            if (panel is UI_CostumePanel costumePanel)
+            {
+                FeatureFailure.Run(FeatureId.CostumeAppearance, () =>
+                    costumePanel.GetComponent<CostumeAppearance.Integration.NativeCostumeAppearanceView>()?.SwitchRegion());
+                return;
+            }
             if (panel is UI_OptionsPanel)
             {
                 FeatureFailure.Run(FeatureId.OptionsNavigation, () => OptionsKeyboardNavigation.SwitchTab());

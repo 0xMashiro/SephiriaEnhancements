@@ -14,7 +14,7 @@ namespace SephiriaEnhancements.Integration
             }
 
             InputAction targetAction = FindShortcut(asset,
-                ModShortcuts.SwitchLockedTarget);
+                ModShortcuts.ContextAction);
             bool complete = targetAction != null &&
                 FindShortcut(asset, ModShortcuts.ToggleCurrentFloorMapOverlay) != null &&
                 FindShortcut(asset,
@@ -49,7 +49,7 @@ namespace SephiriaEnhancements.Integration
 
                 asset.AddActionMap(maps[0]);
                 targetAction = maps[0].FindAction(
-                    ModShortcuts.SwitchLockedTarget, throwIfNotFound: true);
+                    ModShortcuts.ContextAction, throwIfNotFound: true);
             }
             finally
             {

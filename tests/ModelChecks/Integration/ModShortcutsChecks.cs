@@ -38,7 +38,7 @@ internal static class ModShortcutsChecks
 #endif
 
             JsonElement targetGamepadBinding = bindings.EnumerateArray().Single(binding =>
-                binding.GetProperty("action").GetString() == ModShortcuts.SwitchLockedTarget &&
+                binding.GetProperty("action").GetString() == ModShortcuts.ContextAction &&
                 binding.GetProperty("groups").GetString() == ModShortcuts.GamepadScheme);
             if (targetGamepadBinding.GetProperty("path").GetString() != string.Empty)
                 throw new InvalidOperationException("target switching must not occupy the native status-panel button");

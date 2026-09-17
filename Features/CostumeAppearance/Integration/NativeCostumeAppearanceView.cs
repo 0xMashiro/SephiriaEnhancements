@@ -17,12 +17,15 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
         private RectTransform scroll, footer;
         private Vector2 originalOffset;
         private UI_HorayButton choose, follow;
+        private TextMeshProUGUI regionHint;
         private NativeCostumeAppearancePicker picker;
+        private GameObject regionReturn;
+        private Vector2 regionScrollPosition;
         private string language, preference;
 
         internal void Bind(UI_CostumePanel owner, PlayerAvatar avatar)
         {
-            panel = owner; player = avatar;
+            panel = owner; player = avatar; regionReturn = null;
             if (footer == null)
             {
                 scroll = panel.contentsZone.GetComponentInParent<ScrollRect>().transform as RectTransform;
@@ -33,12 +36,14 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
                 footer.pivot = new Vector2(.5f, 0);
                 footer.offsetMin = new Vector2(scroll.offsetMin.x, originalOffset.y);
                 float buttonHeight = ((RectTransform)NativeAppearanceControls.ButtonTemplate.transform).rect.height;
-                footer.offsetMax = new Vector2(scroll.offsetMax.x, originalOffset.y + buttonHeight);
-                scroll.offsetMin = originalOffset + new Vector2(0, buttonHeight + 4);
+                footer.offsetMax = new Vector2(scroll.offsetMax.x, originalOffset.y + buttonHeight + 14);
+                scroll.offsetMin = originalOffset + new Vector2(0, buttonHeight + 18);
+                regionHint = NativeAppearanceControls.Text(NativeAppearanceControls.ButtonTextTemplate, footer);
+                NativeAppearanceControls.Place(regionHint.transform, 0, 1, 1, 1, 0, -14, 0, 0);
                 choose = NativeAppearanceControls.Button(footer, "Choose", OpenPicker);
                 follow = NativeAppearanceControls.Button(footer, "Follow", Restore);
-                NativeAppearanceControls.Place(choose.transform, 0, 0, .64f, 1, 0, 0, -2, 0);
-                NativeAppearanceControls.Place(follow.transform, .64f, 0, 1, 1, 2, 0, 0, 0);
+                NativeAppearanceControls.Place(choose.transform, 0, 0, .64f, 1, 0, 0, -2, -14);
+                NativeAppearanceControls.Place(follow.transform, .64f, 0, 1, 1, 2, 0, 0, -14);
                 choose.SetForceNavUpGroup(panel.contentsZone);
                 follow.SetForceNavUpGroup(panel.contentsZone);
                 choose.SetForceNavRight(follow); follow.SetForceNavLeft(choose);
@@ -69,6 +74,26 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
             if (CanEdit) NativeCostumeAppearance.Instance.Request(player, "", true);
         });
 
+        internal void SwitchRegion()
+        {
+            if (!CanEdit || footer == null || !footer.gameObject.activeInHierarchy || EventSystem.current == null) return;
+            var current = EventSystem.current.currentSelectedGameObject;
+            if (current != null && current.transform.IsChildOf(footer))
+            {
+                var target = KeyboardUiNavigation.KeyboardUiSelection.FindPanelEntry(panel, regionReturn);
+                if (target == null || target.transform.IsChildOf(footer)) return;
+                EventSystem.current.SetSelectedGameObject(target);
+                if (target == regionReturn)
+                    scroll.GetComponent<ScrollRect>().content.anchoredPosition = regionScrollPosition;
+            }
+            else
+            {
+                regionReturn = KeyboardUiNavigation.KeyboardUiSelection.FindPanelEntry(panel, current);
+                regionScrollPosition = scroll.GetComponent<ScrollRect>().content.anchoredPosition;
+                EventSystem.current.SetSelectedGameObject(choose.gameObject);
+            }
+        }
+
         internal bool CanEdit => NativeCostumeAppearance.HostSupports && NativeCostumeAppearance.Instance != null &&
             !NativeCostumeAppearance.Instance.Pending && panel != null && !panel.ignoreSave &&
             LocalPlayerResolver.IsLocal(player) && player.loadingScreenType == -1;
@@ -77,10 +102,20 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
         {
             if (footer == null) return;
             footer.gameObject.SetActive(NativeCostumeAppearance.Available && !panel.ignoreSave);
+            var current = EventSystem.current?.currentSelectedGameObject;
+            if (current != null && !current.transform.IsChildOf(footer) &&
+                KeyboardUiNavigation.KeyboardUiSelection.IsInPanel(panel, current))
+            {
+                regionReturn = current;
+                regionScrollPosition = scroll.GetComponent<ScrollRect>().content.anchoredPosition;
+            }
             if (language != LocalizationManager.Instance?.CurrentLanguage || preference != NativeCostumeAppearance.Preference) Refresh();
             choose.interactable = CanEdit;
             follow.interactable = CanEdit && !string.IsNullOrEmpty(NativeCostumeAppearance.Preference);
+            regionHint.text = CanEdit ? NativeAppearanceRegionInput.Hint() : string.Empty;
+            if (NativeAppearanceRegionInput.WasPressed(panel)) SwitchRegion();
             var buttonText = NativeAppearanceControls.ButtonTextTemplate;
+            NativeLocalizedText.MatchFontSize(regionHint, buttonText);
             NativeLocalizedText.MatchFontSize(choose.text, buttonText);
             NativeLocalizedText.MatchFontSize(follow.text, buttonText);
             if (!NativeCostumeAppearance.HostSupports)

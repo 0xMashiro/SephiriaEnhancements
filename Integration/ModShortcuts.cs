@@ -3,7 +3,7 @@ namespace SephiriaEnhancements.Integration
     internal static class ModShortcuts
     {
         internal const string MapName = "SephiriaEnhancements";
-        internal const string SwitchLockedTarget = "SwitchLockedTarget";
+        internal const string ContextAction = "ContextAction";
         internal const string ToggleCurrentFloorMapOverlay =
             "ToggleCurrentFloorMapOverlay";
         internal const string ToggleDamageStatistics =
@@ -19,7 +19,7 @@ namespace SephiriaEnhancements.Integration
 
         internal static readonly string[] ActionNames =
         {
-            SwitchLockedTarget,
+            ContextAction,
             ToggleCurrentFloorMapOverlay,
             ToggleDamageStatistics,
             OptimizeInventory,
@@ -31,7 +31,7 @@ namespace SephiriaEnhancements.Integration
 
         internal const string ActionMapJson =
             "{\"maps\":[{\"name\":\"SephiriaEnhancements\",\"id\":\"b8c4ee8a-56d6-4acd-84f0-1a46396f45f7\",\"actions\":[" +
-            "{\"name\":\"SwitchLockedTarget\",\"type\":\"Button\",\"id\":\"2f42ed30-0d71-43a1-b530-c4cf3ab2fc70\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
+            "{\"name\":\"ContextAction\",\"type\":\"Button\",\"id\":\"2f42ed30-0d71-43a1-b530-c4cf3ab2fc70\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
             "{\"name\":\"ToggleCurrentFloorMapOverlay\",\"type\":\"Button\",\"id\":\"e3c17d5b-7329-48c9-bd82-7679810fba5e\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
             "{\"name\":\"ToggleDamageStatistics\",\"type\":\"Button\",\"id\":\"4463886d-62fd-434b-b63e-51a9ddd09b59\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
             "{\"name\":\"ToggleAutoCastingPause\",\"type\":\"Button\",\"id\":\"29c34155-847e-4e44-8bdc-eb8ecfb0c9cc\",\"expectedControlType\":\"Button\",\"processors\":\"\",\"interactions\":\"\"}," +
@@ -45,9 +45,9 @@ namespace SephiriaEnhancements.Integration
             "{\"name\":\"\",\"id\":\"34aec789-9638-4fa8-b074-d1656cfd119c\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"CaptureInventoryReproduction\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"8cc09c5a-a357-48d9-8b99-ecb87e3fdad6\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Gamepad\",\"action\":\"CaptureInventoryReproduction\",\"isComposite\":false,\"isPartOfComposite\":false}," +
 #endif
-            "{\"name\":\"\",\"id\":\"48ae6552-5007-43f3-955f-7393f9701dc4\",\"path\":\"<Mouse>/middleButton\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"SwitchLockedTarget\",\"isComposite\":false,\"isPartOfComposite\":false}," +
-            "{\"name\":\"\",\"id\":\"9ee0066c-129a-48fd-8c03-c8604cf487cf\",\"path\":\"<Keyboard>/l\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"SwitchLockedTarget\",\"isComposite\":false,\"isPartOfComposite\":false}," +
-            "{\"name\":\"\",\"id\":\"44f640e8-3ed3-4994-bb53-69c64b772533\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Gamepad\",\"action\":\"SwitchLockedTarget\",\"isComposite\":false,\"isPartOfComposite\":false}," +
+            "{\"name\":\"\",\"id\":\"48ae6552-5007-43f3-955f-7393f9701dc4\",\"path\":\"<Mouse>/middleButton\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"ContextAction\",\"isComposite\":false,\"isPartOfComposite\":false}," +
+            "{\"name\":\"\",\"id\":\"9ee0066c-129a-48fd-8c03-c8604cf487cf\",\"path\":\"<Keyboard>/l\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"ContextAction\",\"isComposite\":false,\"isPartOfComposite\":false}," +
+            "{\"name\":\"\",\"id\":\"44f640e8-3ed3-4994-bb53-69c64b772533\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Gamepad\",\"action\":\"ContextAction\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"3f7b4309-38ce-4ed3-83ea-589a1bf1d496\",\"path\":\"<Keyboard>/m\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"ToggleCurrentFloorMapOverlay\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"f9e20248-e2ac-4a65-95a0-ad6a56e56cd4\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Keyboard&Mouse\",\"action\":\"ToggleCurrentFloorMapOverlay\",\"isComposite\":false,\"isPartOfComposite\":false}," +
             "{\"name\":\"\",\"id\":\"04133f05-7aa8-40a7-bb65-37621bdd00e6\",\"path\":\"\",\"interactions\":\"\",\"processors\":\"\",\"groups\":\"Gamepad\",\"action\":\"ToggleCurrentFloorMapOverlay\",\"isComposite\":false,\"isPartOfComposite\":false}," +

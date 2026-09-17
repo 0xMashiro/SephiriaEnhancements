@@ -429,7 +429,7 @@ namespace SephiriaEnhancements.MapEnhancements
                     }
             lastSelection = navigationOwnsFocus ? roomSelection : null;
             UIInputModule input = UIInputModule.current;
-            InputAction trackAction = NativeInputActions.FindShortcut(PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.SwitchLockedTarget);
+            InputAction trackAction = NativeInputActions.FindShortcut(PlayerInputController.Instance?.playerInput?.actions, ModShortcuts.ContextAction);
             if (trackAction?.WasPressedThisFrame() == true) ToggleTracking();
             bool tracked = selected != null && MapEnhancementsController.TrackedNpc == selected.Target;
             trackButton.interactable = selected != null && selected.IsPerson;

@@ -223,6 +223,8 @@ namespace SephiriaEnhancements
                 combatTargeting = AddController<CombatTargetingController>(FeatureId.CombatTargeting));
             InitializeFeature(FeatureId.AutoCasting, () =>
                 autoCasting = AddController<NativeAutoCasting>(FeatureId.AutoCasting));
+            InitializeFeature(FeatureId.ItemCommunication, () =>
+                AddController<ItemCommunication.Integration.NativeItemCommunication>(FeatureId.ItemCommunication));
             InitializeFeature(FeatureId.NativeCompanion, () =>
                 nativeCompanion = AddController<NativeCompanionController>(FeatureId.NativeCompanion));
             InitializeFeature(FeatureId.KeyboardUiNavigation, () =>
@@ -249,6 +251,7 @@ namespace SephiriaEnhancements
                 DefeatRetryClientRestore.IsAvailable && DefeatRetryPlayerRestorePatch.IsAvailable);
             foreach (Type patchType in new[]
             {
+                typeof(ItemCommunication.Integration.ItemCommunicationNavigationPatch),
                 typeof(DamageFeedbackCapture),
                 typeof(DamageDetailCapture),
                 typeof(UnitDeathCapture),

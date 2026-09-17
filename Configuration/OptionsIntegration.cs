@@ -185,6 +185,7 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_MiniBossHealthNumbers",
                 "Option_SephiriaEnhancements_MiniBossSuperArmorNumbers",
                 "Option_SephiriaEnhancements_BossHealthNumbers",
+                "Option_SephiriaEnhancements_BossSuperArmorNumbers",
                 "Option_SephiriaEnhancements_PropHealthNumbers",
                 "Option_SephiriaEnhancements_TargetingMode",
                 "Option_SephiriaEnhancements_MouseAimAssist",

@@ -253,12 +253,14 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 row.Root.SetActive(visible == null || visible());
                 row.Box.ChangeValueWithoutNotify(selected());
                 row.Box.interactable = enabled();
-                row.Label.text = T(key);
+                row.Label.text = T(key == MultiplayerRulesLocalization.ParticipantsSetting && !editing
+                    ? MultiplayerRulesLocalization.ViewParticipants : key);
                 row.Value.text = value();
                 if (EventSystem.current?.currentSelectedGameObject == row.Box.gameObject)
                 {
                     reviewingChanges = false;
-                    selectedHelp = key == MultiplayerRulesLocalization.ParticipantsSetting ? MultiplayerRulesLocalization.ParticipantsHelp
+                    selectedHelp = key == MultiplayerRulesLocalization.ParticipantsSetting
+                        ? (editing ? MultiplayerRulesLocalization.ParticipantsHelp : MultiplayerRulesLocalization.ViewParticipantsHelp)
                         : key == MultiplayerRulesLocalization.HealthCombinationSetting ? MultiplayerRulesLocalization.HealthCombinationHelp
                         : key == MultiplayerRulesLocalization.ExternalRuleStackingSetting ? MultiplayerRulesLocalization.ExternalRuleStackingHelp
                         : MultiplayerRulesLocalization.RuleGroupHelp;
@@ -387,9 +389,11 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             var state = MultiplayerRulesContext.ReadState();
             string stateText = state == null ? T(MultiplayerRulesBridge.HostSupportsRules ? MultiplayerRulesLocalization.StateWaiting : MultiplayerRulesLocalization.HostRulesUnavailable)
                 : T(MultiplayerRulesSummary.AvailabilityKey(state.Availability));
+            if (!editing && NetworkServer.active && state?.Availability == MultiplayerRulesAvailability.Available)
+                stateText = T(MultiplayerRulesLocalization.HostReadOnlyHelp);
             status.text = editing ? string.Format(T(MultiplayerRulesLocalization.ReviewChanges), Changes()) + "\n" +
                 (state?.Availability != MultiplayerRulesAvailability.Available ? stateText : T(MultiplayerRulesLocalization.ReviewScope))
-                : stateText + "\n" + T(MultiplayerRulesLocalization.ParticipantsHelp);
+                : stateText + "\n" + T(MultiplayerRulesLocalization.ViewParticipantsHelp);
             NativeLocalizedText.MatchFontSize(status, fontTemplate);
             NativeLocalizedText.MatchFontSize(heading, fontTemplate);
             LayoutRebuilder.ForceRebuildLayoutImmediate(content);

@@ -25,7 +25,7 @@ internal static class OptionsCategoryChecks
             throw new InvalidOperationException(
                 "options categories must preserve enum/key alignment and complete fallback");
         }
-        string[] expected = { "General", "CombatAndDisplay", "ResourceBarValues", "ControlsAndCamera", "Multiplayer", "AboutAndUpdates" };
+        string[] expected = { "General", "CombatAndDisplay", "ResourceBarValues", "ControlsAndCamera", "Multiplayer", "GameRules", "AboutAndUpdates" };
         foreach (OptionsCategory category in Enum.GetValues<OptionsCategory>())
         {
             if (OptionsCategoryLocalization.CategoryKeys[(int)category] != "SephiriaEnhancements.OptionsCategory." + expected[(int)category])
@@ -34,7 +34,8 @@ internal static class OptionsCategoryChecks
                 if (OptionsCategoryVisibility.IsVisible(category, selected) != (category == selected))
                     throw new InvalidOperationException("Unrelated settings must not leak into the selected category.");
         }
-        if (optionsCategoryTexts[("zh-CN", OptionsCategoryLocalization.CategoryKeys[(int)OptionsCategory.ResourceBarValues])] != "血条与数值" ||
+        if (optionsCategoryTexts[("zh-CN", OptionsCategoryLocalization.CategoryKeys[(int)OptionsCategory.GameRules])] != "游戏规则" ||
+            optionsCategoryTexts[("zh-CN", OptionsCategoryLocalization.CategoryKeys[(int)OptionsCategory.ResourceBarValues])] != "血条与数值" ||
             optionsCategoryTexts[("zh-CN", OptionsCategoryLocalization.CategoryKeys[(int)OptionsCategory.AboutAndUpdates])] != "关于与更新")
             throw new InvalidOperationException("New categories must describe their contents.");
         Console.WriteLine("OptionsCategoryLocalization: category alignment and fallback passed");

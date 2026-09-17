@@ -7,7 +7,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
     internal static class MultiplayerRulesOptions
     {
         internal static void Inject(UI_OptionsPanel panel, UI_OptionBox_PartyMemberDamage template,
-            Transform section, OptionsCategoryController categoryController)
+            Transform section)
         {
             if (panel.GetComponentInChildren<MultiplayerRulesEntry>(true) != null) return;
             var row = NativeOptionsRows.CloneRow(template, section,
@@ -15,7 +15,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
                 MultiplayerRulesLocalization.PanelTitle, MultiplayerRulesLocalization.PanelEntryHelp, 2,
                 out var box, out var value);
             row.AddComponent<MultiplayerRulesEntry>().Configure(box, value);
-            NativeOptionsRows.MarkCategory(row, OptionsCategory.Multiplayer);
+            NativeOptionsRows.MarkCategory(row, OptionsCategory.GameRules);
             row.SetActive(true);
         }
     }
@@ -34,7 +34,8 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
         private void Update()
         {
             NativeHorizontalSelectionOptionState.Apply(gameObject, box, MultiplayerRulesContext.CanInspect);
-            value.UpdateKey(MultiplayerRulesLocalization.PanelTitle);
+            value.UpdateKey(MultiplayerRulesContext.CanEdit
+                ? MultiplayerRulesLocalization.ConfigureEntry : MultiplayerRulesLocalization.ViewEntry);
         }
     }
 

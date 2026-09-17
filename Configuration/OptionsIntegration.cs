@@ -141,8 +141,9 @@ namespace SephiriaEnhancements.Configuration
             if (multiplayerSection != null)
             {
                 MultiplayerAccessOptions.Inject(__instance, template, multiplayerSection.transform);
-                MultiplayerRulesOptions.Inject(__instance, template, multiplayerSection.transform, categoryController);
             }
+
+            MultiplayerRulesOptions.Inject(__instance, template, section.transform);
 
             NormalizeInjectedOrder(section, multiplayerSection);
             categoryController.RefreshVisibility();
@@ -188,6 +189,7 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_TargetingMode",
                 "Option_SephiriaEnhancements_MouseAimAssist",
                 "Option_SephiriaEnhancements_ViewDistance",
+                "Option_SephiriaEnhancements_MultiplayerRules",
                 "Option_SephiriaEnhancements_ModInformation_Version",
                 "Option_SephiriaEnhancements_ModInformation_GameVersion",
                 "Option_SephiriaEnhancements_ModInformation_LogFolder",
@@ -214,8 +216,7 @@ namespace SephiriaEnhancements.Configuration
             string[] multiplayerRows =
             {
                 "Option_SephiriaEnhancements_MidRunAdmission",
-                "Option_SephiriaEnhancements_ReconnectSupport",
-                "Option_SephiriaEnhancements_MultiplayerRules"
+                "Option_SephiriaEnhancements_ReconnectSupport"
             };
             foreach (string rowName in multiplayerRows)
             {

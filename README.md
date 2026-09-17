@@ -25,7 +25,7 @@ Uses the game's built-in AddOns system; no BepInEx required.
 - **Backpack:** arrange artifacts around your priorities and highlight rewards matching your preset's favorite combos.
 - **Appearance:** change your appearance while keeping your costume's abilities and starting equipment.
 - **Tier rewards:** automatically claim missing rewards up to this save's highest cleared tier when enabled; off by default.
-- **Other options:** combat companion, retry after defeat, mid-run joining/reconnect support and **1–4 player** team rules.
+- **Other options:** combat companion, retry after defeat, mid-run joining/reconnect support and **1–4 player** game rules.
 
 **Beta:** backpack arrangement is experimental. Retry after defeat rolls back items and progress to the selected point.
 

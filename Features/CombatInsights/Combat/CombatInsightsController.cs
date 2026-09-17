@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Combat;
 using System;
 using System.Collections.Generic;
 using Mirror;
@@ -12,33 +13,11 @@ using UnityEngine.InputSystem;
 
 namespace SephiriaEnhancements.Combat
 {
-    internal enum CombatInsightsViewMode { Hidden, Pulse, Party, Boss, Report }
-    internal enum CombatInsightsVisibilityReason
-    {
-        Visible,
-        StatisticsDisabled,
-        LocalPlayerUnavailable,
-        NativeControlOpen,
-        PresentationBlocked,
-        HiddenByUser,
-        HudUnavailable,
-        HudSuppressedByHierarchy,
-        BossOnlyOutsideBoss,
-        SmartAwaitingContribution,
-        SmartInitialDelay,
-        ReportDeferred,
-        ReportExpired,
-        NoActiveCombatOrReport,
-        RuntimeIncompatible,
-        ControllerDisabled
-    }
-
     internal sealed partial class CombatInsightsController : MonoBehaviour
     {
         private int bossSourceInstanceId;
         private const float SampleInterval = 0.2f;
         private const float EncounterFallbackQuietSeconds = 2.5f;
-        private const float SmartPulseDelaySeconds = 1.5f;
         private readonly Dictionary<long, PlayerDamageState> states = new Dictionary<long, PlayerDamageState>(4);
         private readonly BossEncounterTracker bossEncounter = new BossEncounterTracker();
         private readonly EncounterDefeatTracker defeats = new EncounterDefeatTracker();
@@ -141,37 +120,15 @@ namespace SephiriaEnhancements.Combat
             : Mathf.Max(0f, encounterEndedAt - encounterStartedAt);
         internal float LocalDps => FindLocal()?.RollingDps ?? 0f;
 
-        internal CombatInsightsViewMode ViewMode
-        {
-            get
-            {
-                if (ModSettings.DisplayPolicy ==
-                    CombatInsightsDisplayPolicy.Disabled)
-                    return CombatInsightsViewMode.Hidden;
-                if (bossEncounter.Active) return CombatInsightsViewMode.Boss;
-                if (encounterReport != null &&
-                    reportWindow.IsVisible(Time.unscaledTime))
-                    return CombatInsightsViewMode.Report;
-                if (ModSettings.DisplayPolicy ==
-                    CombatInsightsDisplayPolicy.BossOnly)
-                    return CombatInsightsViewMode.Hidden;
-                if (encounterActive)
-                {
-                    if (ModSettings.DisplayPolicy ==
-                        CombatInsightsDisplayPolicy.Smart &&
-                        encounterDamage <= 0f && defeats.DefeatedCount == 0)
-                        return CombatInsightsViewMode.Hidden;
-                    if (ModSettings.DisplayPolicy ==
-                        CombatInsightsDisplayPolicy.Smart &&
-                        !majorEncounter && EncounterElapsed < SmartPulseDelaySeconds)
-                        return CombatInsightsViewMode.Hidden;
-                    bool expanded = !IsSolo &&
-                        (majorEncounter || EncounterElapsed >= 6f);
-                    return expanded ? CombatInsightsViewMode.Party : CombatInsightsViewMode.Pulse;
-                }
-                return CombatInsightsViewMode.Hidden;
-            }
-        }
+        internal CombatInsightsViewMode ViewMode => ReadViewSelection().Mode;
+
+        private (CombatInsightsViewMode Mode, CombatInsightsVisibilityReason Reason) ReadViewSelection() =>
+            CombatInsightsViewPolicy.Select(ModSettings.DisplayPolicy,
+                bossActive: bossEncounter.Active,
+                reportVisible: encounterReport != null && reportWindow.IsVisible(Time.unscaledTime),
+                encounterActive: encounterActive,
+                awaitingContribution: encounterDamage <= 0f && defeats.DefeatedCount == 0,
+                majorEncounter: majorEncounter, elapsed: EncounterElapsed, solo: IsSolo);
 
         private void Update()
         {
@@ -278,10 +235,10 @@ namespace SephiriaEnhancements.Combat
                 hitStreakFeedback.IsRecent(now) || (local != null && local.IsInBattle);
             hud.Update(statisticsEnabled && contextAllowed && !hudHiddenByUser, this);
             hitStreakFeedback.Update(hitStreakEnabled && contextAllowed && inCombat);
-            if (notification == ModLocalization.StatisticsOpened &&
+            if (notification == CombatInsightsLocalization.StatisticsOpened &&
                 !StatisticsBrowserOpen)
                 notification = CombatInsightsNotifications.BlockedMessage(presentationBlock)
-                    ?? ModLocalization.EncounterReportHudUnavailable;
+                    ?? CombatInsightsLocalization.EncounterReportHudUnavailable;
             CombatInsightsNotifications.Show(notification);
             RecordVisibilityDiagnostic(statisticsEnabled, local, menuOpen, now);
         }
@@ -302,43 +259,13 @@ namespace SephiriaEnhancements.Combat
             }
             if (!DeveloperLogger.IsEnabled) return;
 
-            CombatInsightsViewMode viewMode = ViewMode;
-            CombatInsightsVisibilityReason reason;
-            if (!statisticsEnabled)
-                reason = CombatInsightsVisibilityReason.StatisticsDisabled;
-            else if (local == null)
-                reason = CombatInsightsVisibilityReason.LocalPlayerUnavailable;
-            else if (menuOpen)
-                reason = CombatInsightsVisibilityReason.NativeControlOpen;
-            else if (hudHiddenByUser)
-                reason = CombatInsightsVisibilityReason.HiddenByUser;
-            else if (encounterReport != null && reportWindow.IsPaused &&
-                presentationBlock != ReportPresentationBlock.None)
-                reason = CombatInsightsVisibilityReason.PresentationBlocked;
-            else if (viewMode != CombatInsightsViewMode.Hidden && !hud.IsAttached)
-                reason = CombatInsightsVisibilityReason.HudUnavailable;
-            else if (viewMode != CombatInsightsViewMode.Hidden &&
-                !hud.IsActiveInHierarchy)
-                reason = CombatInsightsVisibilityReason.HudSuppressedByHierarchy;
-            else if (viewMode != CombatInsightsViewMode.Hidden)
-                reason = CombatInsightsVisibilityReason.Visible;
-            else if (ModSettings.DisplayPolicy ==
-                CombatInsightsDisplayPolicy.BossOnly)
-                reason = CombatInsightsVisibilityReason.BossOnlyOutsideBoss;
-            else if (encounterActive && ModSettings.DisplayPolicy ==
-                CombatInsightsDisplayPolicy.Smart && encounterDamage <= 0f &&
-                defeats.DefeatedCount == 0)
-                reason = CombatInsightsVisibilityReason.SmartAwaitingContribution;
-            else if (encounterActive && ModSettings.DisplayPolicy ==
-                CombatInsightsDisplayPolicy.Smart && !majorEncounter &&
-                EncounterElapsed < SmartPulseDelaySeconds)
-                reason = CombatInsightsVisibilityReason.SmartInitialDelay;
-            else if (encounterReport != null && reportWindow.IsPaused)
-                reason = CombatInsightsVisibilityReason.ReportDeferred;
-            else if (reportWindow.HasStarted)
-                reason = CombatInsightsVisibilityReason.ReportExpired;
-            else
-                reason = CombatInsightsVisibilityReason.NoActiveCombatOrReport;
+            var selection = ReadViewSelection();
+            CombatInsightsViewMode viewMode = selection.Mode;
+            CombatInsightsVisibilityReason reason = CombatInsightsViewPolicy.VisibilityReason(selection,
+                reportWindow, hasReport: encounterReport != null, block: presentationBlock,
+                statisticsEnabled: statisticsEnabled, localPlayerReady: local != null,
+                menuOpen: menuOpen, hiddenByUser: hudHiddenByUser,
+                hudAttached: hud.IsAttached, hudActive: hud.IsActiveInHierarchy);
 
             UIManager manager = UIManager.Instance;
             var controlStack = manager?.CurrentControlStack;
@@ -413,21 +340,21 @@ namespace SephiriaEnhancements.Combat
                     if (statisticsBrowser != null) statisticsBrowser.Close();
                     hud.Hide();
                 }
-                return hudHiddenByUser ? ModLocalization.DamageStatisticsDisplayHidden
-                    : ModLocalization.DamageStatisticsDisplayRestored;
+                return hudHiddenByUser ? CombatInsightsLocalization.DamageStatisticsDisplayHidden
+                    : CombatInsightsLocalization.DamageStatisticsDisplayRestored;
             }
             if (triggered != CombatInsightsShortcutAction.ToggleStatistics) return null;
             if (statisticsBrowser != null && statisticsBrowser.IsControlEnabled)
             {
                 statisticsBrowser.Close();
-                return ModLocalization.StatisticsClosed;
+                return CombatInsightsLocalization.StatisticsClosed;
             }
             if (!hudHiddenByUser && reportWindow.TryDismiss(now))
-                return ModLocalization.StatisticsClosed;
+                return CombatInsightsLocalization.StatisticsClosed;
             if (encounterActive || bossEncounter.Active || FindLocal()?.IsInBattle == true)
                 return null;
-            return OpenStatisticsBrowser() ? ModLocalization.StatisticsOpened
-                : ModLocalization.EncounterReportHudUnavailable;
+            return OpenStatisticsBrowser() ? CombatInsightsLocalization.StatisticsOpened
+                : CombatInsightsLocalization.EncounterReportHudUnavailable;
         }
 
         internal bool OpenStatisticsBrowser(UI_PausePanel pausePanel = null)

@@ -20,8 +20,8 @@ namespace SephiriaEnhancements.CombatRelationOutlines.Integration
         {
             GameObject row = CloneRow(template, section,
                 "Option_SephiriaEnhancements_CombatRelationOutlines",
-                ModLocalization.SettingCombatRelationOutlines,
-                ModLocalization.HelpCombatRelationOutlines, 3,
+                CombatRelationOutlinesLocalization.SettingCombatRelationOutlines,
+                CombatRelationOutlinesLocalization.HelpCombatRelationOutlines, 3,
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<CombatRelationOutlinesOption>().Configure(box, valueText);

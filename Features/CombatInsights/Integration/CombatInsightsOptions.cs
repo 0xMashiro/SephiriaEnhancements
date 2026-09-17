@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Combat;
 using SephiriaEnhancements.Runtime;
 using SephiriaEnhancements.Configuration;
 using UnityEngine;
@@ -29,7 +30,7 @@ namespace SephiriaEnhancements.CombatInsights.Integration
             Transform section)
         {
             GameObject row = CloneRow(template, section, "Option_SephiriaEnhancements_DisplayPolicy",
-                ModLocalization.SettingDisplayPolicy, ModLocalization.HelpDisplayPolicy, 6,
+                CombatInsightsLocalization.SettingDisplayPolicy, CombatInsightsLocalization.HelpDisplayPolicy, 6,
                 out UI_HorizontalSelectionBox box, out UI_LocalizationStringText valueText);
             row.AddComponent<DisplayPolicyOption>().Configure(box, valueText);
             MarkCategory(row, OptionsCategory.CombatAndDisplay);
@@ -41,8 +42,8 @@ namespace SephiriaEnhancements.CombatInsights.Integration
         {
             GameObject row = CloneRow(template, section,
                 "Option_SephiriaEnhancements_HitStreakFeedback",
-                ModLocalization.SettingHitStreakFeedback,
-                ModLocalization.HelpHitStreakFeedback, 7,
+                CombatInsightsLocalization.SettingHitStreakFeedback,
+                CombatInsightsLocalization.HelpHitStreakFeedback, 7,
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<HitStreakFeedbackOption>().Configure(box, valueText);
@@ -56,8 +57,8 @@ namespace SephiriaEnhancements.CombatInsights.Integration
         {
             GameObject row = CloneRow(template, section,
                 "Option_SephiriaEnhancements_DamageStatisticsScale",
-                ModLocalization.SettingDamageStatisticsScale,
-                ModLocalization.HelpDamageStatisticsScale, 8,
+                CombatInsightsLocalization.SettingDamageStatisticsScale,
+                CombatInsightsLocalization.HelpDamageStatisticsScale, 8,
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<DamageStatisticsScaleOption>().Configure(box, valueText);
@@ -96,12 +97,12 @@ namespace SephiriaEnhancements.CombatInsights.Integration
         {
             if (box == null)
                 return;
-            box.numberOfElements = ModLocalization.DisplayPolicyKeys.Length;
+            box.numberOfElements = CombatInsightsLocalization.DisplayPolicyKeys.Length;
             box.overflowType = UI_HorizontalSelectionBox.OverflowType.Repeat;
             box.OnValueChanged += Changed;
             int value = (int)ModSettings.DisplayPolicy;
             box.ChangeValueWithoutNotify(value);
-            valueText?.UpdateKey(ModLocalization.DisplayPolicyKeys[value]);
+            valueText?.UpdateKey(CombatInsightsLocalization.DisplayPolicyKeys[value]);
         }
         private void OnDisable() { if (box != null) box.OnValueChanged -= Changed; }
         private void Changed(int value)
@@ -127,7 +128,7 @@ namespace SephiriaEnhancements.CombatInsights.Integration
         {
             ModSettings.DisplayPolicy = (CombatInsightsDisplayPolicy)value;
             ModSettings.Save();
-            valueText?.UpdateKey(ModLocalization.DisplayPolicyKeys[value]);
+            valueText?.UpdateKey(CombatInsightsLocalization.DisplayPolicyKeys[value]);
         }
     }
 
@@ -249,7 +250,7 @@ namespace SephiriaEnhancements.CombatInsights.Integration
             box.OnValueChanged += Changed;
             int value = ModSettings.DamageStatisticsScaleIndex;
             box.ChangeValueWithoutNotify(value);
-            valueText?.UpdateKey(ModLocalization.ScaleKeys[value]);
+            valueText?.UpdateKey(CombatInsightsLocalization.ScaleKeys[value]);
         }
 
         private void OnDisable()
@@ -280,7 +281,7 @@ namespace SephiriaEnhancements.CombatInsights.Integration
         {
             ModSettings.DamageStatisticsScaleIndex = value;
             ModSettings.Save();
-            valueText?.UpdateKey(ModLocalization.ScaleKeys[value]);
+            valueText?.UpdateKey(CombatInsightsLocalization.ScaleKeys[value]);
         }
     }
 }

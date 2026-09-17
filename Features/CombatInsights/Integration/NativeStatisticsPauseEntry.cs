@@ -74,7 +74,7 @@ namespace SephiriaEnhancements.Integration
                 button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
                 button.transform.SetSiblingIndex(template.transform.GetSiblingIndex() + 1);
                 var localization = button.GetComponentInChildren<UI_LocalizationStringText>(true);
-                localization?.UpdateKey(ModLocalization.ViewStatistics);
+                localization?.UpdateKey(CombatInsightsLocalization.ViewStatistics);
             }
             button.gameObject.SetActive(controller != null && controller.CanBrowseStatistics);
         }

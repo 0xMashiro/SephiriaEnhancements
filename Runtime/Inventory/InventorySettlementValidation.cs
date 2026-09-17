@@ -378,17 +378,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
                     continue;
                 }
 
-                bool criteriaSatisfied = artifact.Criteria == null ||
-                    artifact.Criteria.RuntimeState ==
-                        CriteriaEvaluationState.NotApplicable ||
-                    artifact.Criteria.RuntimeState ==
-                        CriteriaEvaluationState.Satisfied;
-                bool eligible = snapshot.ArtifactEffectsEnabled &&
-                    snapshot.GlobalActiveValue > 0 && !cell.Disabled &&
-                    cell.Level >= 0 && (cell.IgnoresCriteria || criteriaSatisfied) &&
-                    artifact.WeaponCompatible;
-                bool expectedEnabled = eligible &&
-                    (!artifact.UniqueEffect || artifact.UniqueEffectRegistered);
+                bool expectedEnabled = ExpectedArtifactEnabled(snapshot, item);
                 int expectedLimitedLevel = expectedEnabled
                     ? Math.Min(artifact.MaxLevel, cell.Level)
                     : 0;
@@ -400,6 +390,18 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 }
             }
             return valid;
+        }
+
+        internal static bool ExpectedArtifactEnabled(InventorySnapshot snapshot, InventoryItemSnapshot item)
+        {
+            var artifact = item.Artifact;
+            var cell = snapshot.Cells[item.CellIndex];
+            bool criteria = artifact.Criteria == null ||
+                artifact.Criteria.RuntimeState == CriteriaEvaluationState.NotApplicable ||
+                artifact.Criteria.RuntimeState == CriteriaEvaluationState.Satisfied;
+            return snapshot.ArtifactEffectsEnabled && snapshot.GlobalActiveValue > 0 && !cell.Disabled &&
+                cell.Level >= 0 && (cell.IgnoresCriteria || criteria) && artifact.WeaponCompatible &&
+                (!artifact.UniqueEffect || artifact.UniqueEffectRegistered);
         }
 
         private static bool ValidateComboAccounting(InventorySnapshot snapshot,
@@ -546,6 +548,10 @@ namespace SephiriaEnhancements.Runtime.Inventory
             else
             {
                 issues.Add("LayoutProjectionArtifactCriteriaUnavailable");
+                foreach (var item in snapshot.Items.Where(item => item.Artifact?.Criteria != null &&
+                    (item.Artifact.Criteria.Kind == ArtifactActivationConditionKind.Unknown ||
+                     item.Artifact.Criteria.RuntimeState == CriteriaEvaluationState.Unknown)))
+                    issues.Add("ArtifactLayoutCriteriaUnavailable:" + item.ItemKey);
             }
 
             InventoryItemSnapshot[] dynamicItems = snapshot.Items.Where(item =>
@@ -564,6 +570,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
             else
             {
                 issues.Add("LayoutProjectionDynamicCategoriesUnavailable");
+                foreach (var item in dynamicItems.Where(item => !IsCategoryRuleComplete(item.Artifact.CategoryRule)))
+                    issues.Add("ArtifactCategoryRuleUnavailable:" + item.ItemKey);
             }
 
             bool uniqueConflict = snapshot.Items.Where(item =>

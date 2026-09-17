@@ -20,8 +20,8 @@ namespace SephiriaEnhancements.DeveloperConsole.Integration
         {
             GameObject row = CloneRow(template, section,
                 "Option_SephiriaEnhancements_DeveloperConsole",
-                ModLocalization.SettingDeveloperConsole,
-                ModLocalization.HelpDeveloperConsole, 12,
+                DeveloperConsoleLocalization.SettingDeveloperConsole,
+                DeveloperConsoleLocalization.HelpDeveloperConsole, 12,
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<DeveloperConsoleOption>().Configure(box, valueText);
@@ -72,7 +72,7 @@ namespace SephiriaEnhancements.DeveloperConsole.Integration
             box.OnValueChanged += Changed;
             int value = DeveloperConsoleSettings.Enabled ? 1 : 0;
             box.ChangeValueWithoutNotify(value);
-            valueText?.UpdateKey(value == 1 ? ModLocalization.DeveloperConsoleOn : ModLocalization.DeveloperConsoleOff);
+            valueText?.UpdateKey(value == 1 ? DeveloperConsoleLocalization.DeveloperConsoleOn : DeveloperConsoleLocalization.DeveloperConsoleOff);
         }
 
         private void OnDisable()
@@ -103,7 +103,7 @@ namespace SephiriaEnhancements.DeveloperConsole.Integration
         {
             DeveloperConsoleSettings.Enabled = value == 1;
             DeveloperConsoleSettings.Save();
-            valueText?.UpdateKey(value == 1 ? ModLocalization.DeveloperConsoleOn : ModLocalization.DeveloperConsoleOff);
+            valueText?.UpdateKey(value == 1 ? DeveloperConsoleLocalization.DeveloperConsoleOn : DeveloperConsoleLocalization.DeveloperConsoleOff);
         }
     }
 }

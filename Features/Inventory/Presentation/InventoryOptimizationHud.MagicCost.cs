@@ -20,7 +20,7 @@ namespace SephiriaEnhancements.Inventory
                 new Vector2(24f, -96f), new Vector2(312f, 32f), ToggleAdditionalMagicCost, out magicCostText);
             magicCostHelp = NativeInventoryHudControls.CreateText("MagicCostHelp", parent, template,
                 new Vector2(24f, -136f), new Vector2(312f, 104f), TextAlignmentOptions.TopLeft);
-            magicCostHelp.color = SecondaryText;
+            magicCostHelp.color = NativeInventoryHudControls.SecondaryText;
             magicCostHelp.textWrappingMode = TextWrappingModes.Normal;
         }
 

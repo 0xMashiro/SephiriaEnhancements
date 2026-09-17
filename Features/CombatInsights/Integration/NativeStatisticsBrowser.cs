@@ -159,16 +159,16 @@ namespace SephiriaEnhancements.Integration
             {
                 report.Hide();
                 reportHeight = 110f;
-                emptyLabel.text = ModLocalization.Get(floor ? ModLocalization.FloorStatisticsEmpty
-                    : ModLocalization.EncounterReportUnavailable);
+                emptyLabel.text = ModLocalization.Get(floor ? CombatInsightsLocalization.FloorStatisticsEmpty
+                    : CombatInsightsLocalization.EncounterReportUnavailable);
             }
             else reportHeight = report.DrawBrowser(snapshot, floor);
             recentLabel.text = PageLabel(NativeReportDismissal.BindingLabel(previous),
-                ModLocalization.RecentEncounterStatistics, !floor);
+                CombatInsightsLocalization.RecentEncounterStatistics, !floor);
             floorLabel.text = PageLabel(NativeReportDismissal.BindingLabel(next),
-                ModLocalization.CurrentFloorStatistics, floor);
+                CombatInsightsLocalization.CurrentFloorStatistics, floor);
             closeLabel.text = PageLabel(NativeReportDismissal.BindingLabel(),
-                ModLocalization.CloseStatistics, false);
+                CombatInsightsLocalization.CloseStatistics, false);
             sourcesLabel.text = ModLocalization.Get(DamageSourcesLocalization.Sources);
             Position(recentTab, -78f, reportHeight / 2f + 18f, 148f);
             Position(floorTab, 78f, reportHeight / 2f + 18f, 148f);

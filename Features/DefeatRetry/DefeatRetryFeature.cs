@@ -407,7 +407,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 return DefeatRetryAvailabilityLocalization.PlayersNotReady;
             if (!CanRetry(panel, RetryCheckpointKind.FloorEntry))
                 return DefeatRetryAvailabilityLocalization.Preparing;
-            return ModLocalization.RetryFloor;
+            return DefeatRetryLocalization.RetryFloor;
         }
 
         internal static void AddButton(UI_GameOverLabel panel)
@@ -940,7 +940,7 @@ namespace SephiriaEnhancements.DefeatRetry
             if (bossRetryButton?.text != null)
             {
                 SetRetryButtonText(bossRetryButton, ModLocalization.Get(bossReady
-                    ? ModLocalization.RetryBossEncounter : ModLocalization.RetryBossUnavailable));
+                    ? DefeatRetryLocalization.RetryBossEncounter : DefeatRetryLocalization.RetryBossUnavailable));
             }
         }
 

@@ -127,13 +127,15 @@ namespace SephiriaEnhancements.Inventory
         internal static void PositionTooltip(UI_BaseTooltip tooltip) =>
             Current?.hud.PositionTooltip(tooltip);
 
-        private bool Busy => search != null || application != null;
+        private bool Busy => search != null || application != null || itemRecovery != ItemRecoveryPhase.None;
 
         private InventoryOptimizationHudPhase HudPhase => search != null
             ? InventoryOptimizationHudPhase.Searching
-            : application != null
+            : application != null || itemRecovery == ItemRecoveryPhase.Moving
                 ? InventoryOptimizationHudPhase.Applying
-                : InventoryOptimizationHudPhase.Ready;
+                : itemRecovery != ItemRecoveryPhase.None
+                    ? InventoryOptimizationHudPhase.CheckingItems
+                    : InventoryOptimizationHudPhase.Ready;
 
         private void Update()
         {
@@ -174,7 +176,7 @@ namespace SephiriaEnhancements.Inventory
             if (intentFeedback?.IsCurrent(runtimeKernel?.State, worldSessionIntent) != true)
                 intentFeedback = null;
             hud.ConfigureArrangementActions(RequestUndo, CanUndo);
-            hud.Update(EnhancementsSettings.Enabled && compatible, HudPhase, hudSnapshot, RequestOptimization, ReplacePreferences, prioritySelectionView.IsVisible, InventoryArtifactIntentEditor.Count(worldSessionIntent), TogglePriorityMarking, EndPriorityMarking, intentFeedback);
+            hud.Update(EnhancementsSettings.Enabled && compatible, HudPhase, hudSnapshot, RequestOptimization, ReplacePreferences, prioritySelectionView.IsVisible, TogglePriorityMarking, EndPriorityMarking, intentFeedback);
             if (!EnhancementsSettings.Enabled)
             {
                 EndPriorityMarking();
@@ -192,6 +194,8 @@ namespace SephiriaEnhancements.Inventory
                 EndPriorityMarking();
                 return;
             }
+
+            AdvanceItemRecovery();
 
             if (search != null && CancelSearchIfContextInvalid())
             {
@@ -378,7 +382,7 @@ namespace SephiriaEnhancements.Inventory
             InventoryIntentBadge.RefreshVisible(panel, current);
         }
 
-        private void TryStartOptimization()
+        private void TryStartOptimization(bool allowItemRecovery = true)
         {
             notificationOperation++;
             if (NativeInventoryIntentDrop.HasHeldItem || hud.HasArtifactPickup)
@@ -419,6 +423,11 @@ namespace SephiriaEnhancements.Inventory
                 if (latest.SettlementValidation.HasItemIdentityConflict)
                 {
                     ShowStartUnavailable(InventoryOptimizationLocalization.ItemIdentityConflict, inventory, latest);
+                    return;
+                }
+                if (allowItemRecovery && !observationFailed && runtimeKernel.State.HasSettledInventoryObservation)
+                {
+                    BeginItemRecovery(inventory);
                     return;
                 }
                 if (latest.SettlementValidation.HasPositionEffectIssue)
@@ -646,6 +655,24 @@ namespace SephiriaEnhancements.Inventory
             RuntimeStateSnapshot actualRuntime = application.ObservedRuntime;
             bool layoutMatched = application.LayoutMatched;
             InventorySettlementDifferentialReport differential = application.Verification;
+            if (!application.State.VerifyEffects)
+            {
+                SupportLogger.Record("inventory_item_layout_completed", "purpose=" + application.State.Purpose +
+                    " layoutMatched=" + layoutMatched + " effectsVerified=False swaps=" + application.State.NextSwap,
+                    layoutMatched ? "INFO" : "WARN");
+                LastAppliedOutcome = null;
+                intentFeedback = null;
+                if (!layoutMatched || !differential.Matched)
+                    ShowOperationMessage(InventoryOptimizationLocalization.Changed);
+                else if (application.State.IsUndo)
+                    ShowMessage(InventoryItemRecoveryLocalization.Restored);
+                else
+                {
+                    undo = new InventoryArrangementUndo(application.State.SourceSnapshot, actualRuntime, verifyEffects: false);
+                    ShowMessage(InventoryItemRecoveryLocalization.Grouped);
+                }
+                return;
+            }
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             InventoryReproductionReason reason = reproductionCase?.ApplicationReason(layoutMatched, differential.Matched)
                 ?? InventoryReproductionReason.None;
@@ -802,6 +829,7 @@ namespace SephiriaEnhancements.Inventory
         }
         private void ResetOperationState()
         {
+            ClearItemRecovery();
 #if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
             reproductionCase = null;
 #endif
@@ -818,7 +846,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void ShowOperationMessage(string key)
         {
-            bool hasIssuedOperation = application?.State.HasIssuedOperation == true;
+            bool hasIssuedOperation = application?.State.HasIssuedOperation == true || recoveryMoveIssued;
             SupportLogger.Record("inventory_operation_stopped", "code=" + key +
                 " operationIssued=" + hasIssuedOperation);
             Func<string> text = () => InventoryOptimizationLocalization.FormatOperationMessage(
@@ -845,7 +873,8 @@ namespace SephiriaEnhancements.Inventory
                 " capturePending=" + runtimeKernel?.InventoryCapturePending +
                 " snapshotAvailable=" + (snapshot != null) + " issues=" +
                 string.Join(",", (snapshot?.SettlementValidation.Issues ?? Array.Empty<string>())
-                    .Select(issue => issue.Split(':')[0]).Distinct()), "WARN");
+                    .Distinct()), "WARN");
+            LogItemBlockers(snapshot);
             Func<string> text = () => string.Format(
                 ModLocalization.Get(InventoryOptimizationLocalization.StartUnavailable), ModLocalization.Get(reason));
             // Each deliberate request gets feedback; local chat repeats only after the inventory changes.

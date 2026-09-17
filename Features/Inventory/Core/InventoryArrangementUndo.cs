@@ -11,11 +11,14 @@ namespace SephiriaEnhancements.Inventory
         private readonly InventorySnapshot before;
         private readonly RuntimeStateSnapshot afterRuntime;
 
-        internal InventoryArrangementUndo(InventorySnapshot before, RuntimeStateSnapshot afterRuntime)
+        internal InventoryArrangementUndo(InventorySnapshot before, RuntimeStateSnapshot afterRuntime, bool verifyEffects = true)
         {
             this.before = before;
             this.afterRuntime = afterRuntime;
+            VerifyEffects = verifyEffects;
         }
+
+        internal bool VerifyEffects { get; }
 
         internal bool Matches(RuntimeStateSnapshot? current) => current != null &&
             current.GameplayContextEpoch == afterRuntime.GameplayContextEpoch &&

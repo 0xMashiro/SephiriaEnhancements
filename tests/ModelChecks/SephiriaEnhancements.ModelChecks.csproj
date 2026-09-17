@@ -8,8 +8,12 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Features/Inventory/Core/InventoryItemGrouping.cs" />
     <Compile Include="../../Features/StageRewardAutoClaim/StageRewardAutoClaimLocalization.cs" Link="StageRewardAutoClaimLocalization.cs" />
     <Compile Include="../../Features/StageRewardAutoClaim/StageRewardAutoClaimPolicy.cs" Link="StageRewardAutoClaimPolicy.cs" />
+    <Compile Include="../../Configuration/CombatInsightsDisplayPolicy.cs" />
+    <Compile Include="../../Features/CombatInsights/Core/CombatInsightsViewPolicy.cs" />
+    <Compile Include="../../Features/CombatInsights/Core/ReportPresentationBlock.cs" />
     <Compile Include="../../Features/CombatInsights/DamageSourcesLocalization.cs" Link="Features/CombatInsights/DamageSourcesLocalization.cs" />
     <Compile Include="../../Features/CostumeAppearance/AppearancePickerLayout.cs" Link="AppearancePickerLayout.cs" />
     <Compile Include="../../Features/CostumeAppearance/CostumeAppearanceLocalization.cs" Link="CostumeAppearanceLocalization.cs" />
@@ -134,6 +138,11 @@
     <Compile Include="..\..\Runtime\Inventory\InventoryEvaluationOrderSnapshot.cs" Link="Runtime\Inventory\InventoryEvaluationOrderSnapshot.cs" />
     <Compile Include="..\..\Runtime\Inventory\BuildIntentSnapshot.cs" Link="Runtime\Inventory\BuildIntentSnapshot.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryOptimizationPolicy.cs" Link="Inventory\InventoryOptimizationPolicy.cs" />
+    <Compile Include="../../Features/Inventory/Core/InventoryArrangementBlockers.cs" Link="Inventory/InventoryArrangementBlockers.cs" />
+    <Compile Include="../../Features/Inventory/Core/InventoryRecoverySelection.cs" Link="Inventory/InventoryRecoverySelection.cs" />
+    <Compile Include="../../Features/Inventory/Core/InventoryRecoveryListLayout.cs" Link="Inventory/InventoryRecoveryListLayout.cs" />
+    <Compile Include="../../Features/Inventory/Core/InventorySubBagTransferConfirmation.cs" Link="Inventory/InventorySubBagTransferConfirmation.cs" />
+    <Compile Include="../../Features/Inventory/Presentation/InventoryItemRecoveryLocalization.cs" Link="Inventory/InventoryItemRecoveryLocalization.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryComboTargetEditor.cs" Link="Inventory\InventoryComboTargetEditor.cs" />
     <Compile Include="..\..\Features\Inventory\Core\RewardComboHighlightPolicy.cs" Link="Inventory\RewardComboHighlightPolicy.cs" />
     <Compile Include="..\..\Features\Inventory\Core\InventoryArtifactIntentEditor.cs" Link="Inventory\InventoryArtifactIntentEditor.cs" />
@@ -190,4 +199,11 @@
     <Compile Include="../../Features/Inventory/Core/InventoryLayoutRefinement.cs" />
   </ItemGroup>
   <ItemGroup><Compile Include="../../Features/EffectStats/EffectStatsLocalization.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../Features/CombatInsights/Presentation/CombatInsightsLocalization.cs" />
+    <Compile Include="../../Features/DeveloperConsole/DeveloperConsoleLocalization.cs" />
+    <Compile Include="../../Features/DeveloperTools/DeveloperPlayerDamageLocalization.cs" />
+    <Compile Include="../../Features/DefeatRetry/DefeatRetryLocalization.cs" />
+    <Compile Include="../../Features/CombatRelationOutlines/CombatRelationOutlinesLocalization.cs" />
+  </ItemGroup>
 </Project>

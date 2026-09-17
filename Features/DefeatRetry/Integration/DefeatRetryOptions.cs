@@ -27,8 +27,8 @@ namespace SephiriaEnhancements.DefeatRetry.Integration
         {
             GameObject row = CloneRow(template, section,
                 "Option_SephiriaEnhancements_DefeatRetry",
-                ModLocalization.SettingDefeatRetry,
-                ModLocalization.HelpDefeatRetry, 5,
+                DefeatRetryLocalization.SettingDefeatRetry,
+                DefeatRetryLocalization.HelpDefeatRetry, 5,
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<DefeatRetryOption>().Configure(box, valueText);
@@ -126,8 +126,8 @@ namespace SephiriaEnhancements.DefeatRetry.Integration
                 return;
             }
             valueText?.UpdateKey(value == 1
-                ? ModLocalization.DefeatRetryOn
-                : ModLocalization.DefeatRetryOff);
+                ? DefeatRetryLocalization.DefeatRetryOn
+                : DefeatRetryLocalization.DefeatRetryOff);
         }
     }
 }

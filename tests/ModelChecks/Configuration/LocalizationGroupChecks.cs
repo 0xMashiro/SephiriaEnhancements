@@ -1,4 +1,7 @@
 using SephiriaEnhancements.Configuration;
+using System.Reflection;
+using SephiriaEnhancements.Combat;
+using SephiriaEnhancements.DefeatRetry;
 
 namespace SephiriaEnhancements.ModelChecks.Configuration;
 
@@ -55,6 +58,43 @@ internal static class LocalizationGroupChecks
                 throw new InvalidOperationException("English fallback omitted a registered feature: " + text.Key);
         if (ModLocalization.GetEnglish("Unknown.Key") != "Unknown.Key")
             throw new InvalidOperationException("Unknown keys must remain visible for diagnosis");
+        CheckFeatureFallback(typeof(CombatInsightsLocalization), "ScaleTexts",
+            CombatInsightsLocalization.HelpDamageStatisticsScale,
+            CombatInsightsLocalization.SettingDamageStatisticsScale);
+        CheckFeatureFallback(typeof(DefeatRetryLocalization), "DefeatRetryTexts",
+            DefeatRetryLocalization.RetryBossEncounter,
+            DefeatRetryLocalization.SettingDefeatRetry,
+            DefeatRetryLocalization.HelpDefeatRetry,
+            DefeatRetryLocalization.RetryFloor,
+            DefeatRetryLocalization.RetryBossUnavailable);
         Console.WriteLine("Localization groups: complete/partial/blank/unknown fallback and full English lookup passed");
+    }
+
+    private static void CheckFeatureFallback(Type owner, string fieldName,
+        string missingKey, params string[] relatedKeys)
+    {
+        const BindingFlags flags = BindingFlags.Static | BindingFlags.NonPublic;
+        var table = (Dictionary<string, Dictionary<string, string>>)
+            owner.GetField(fieldName, flags)!.GetValue(null)!;
+        foreach (string language in LocalizationLanguages.All.Where(language => language != "en-US"))
+        {
+            Dictionary<string, string> translation = table[language];
+            string saved = translation[missingKey];
+            try
+            {
+                translation.Remove(missingKey);
+                var registered = new Dictionary<string, string>();
+                Action<string, string, string> capture = (_, key, value) => registered.Add(key, value);
+                owner.GetMethod("Register", flags)!.Invoke(null,
+                    new object[] { capture, new[] { language } });
+                foreach (string key in relatedKeys.Append(missingKey))
+                    if (registered[key] != table["en-US"][key])
+                        throw new InvalidOperationException($"Feature group must fall back together: {owner.Name}/{language}/{key}");
+            }
+            finally
+            {
+                translation[missingKey] = saved;
+            }
+        }
     }
 }

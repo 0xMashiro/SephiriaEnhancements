@@ -41,6 +41,10 @@ if (args.Contains("--inventory-support-only"))
     return;
 }
 
+InventoryItemRecoveryChecks.Run();
+InventoryItemGroupingChecks.Run();
+if (args.Contains("--inventory-item-recovery-only")) return;
+
 SephiriaEnhancements.ModelChecks.Features.StageRewardAutoClaim.StageRewardAutoClaimChecks.Run();
 if (args.Contains("--stage-rewards-only"))
 {
@@ -141,6 +145,7 @@ if (args.Contains("--combat-insights-only"))
     EncounterReportSnapshotChecks.Run();
     FloorCombatStatisticsChecks.Run();
     CombatInsightsInteractionChecks.Run();
+    CombatInsightsViewPolicyChecks.Run();
     ReportDisplayWindowChecks.Run();
     EncounterReportLayoutChecks.Run();
     ModShortcutsChecks.Run();
@@ -247,6 +252,7 @@ EncounterReportSnapshotChecks.Run();
 FloorCombatStatisticsChecks.Run();
 CombatInsightsInteractionChecks.Run();
 ReportDisplayWindowChecks.Run();
+CombatInsightsViewPolicyChecks.Run();
 EncounterReportLayoutChecks.Run();
 ModShortcutsChecks.Run();
 DeveloperConsoleContractChecks.Run();

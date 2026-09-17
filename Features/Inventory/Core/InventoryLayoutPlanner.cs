@@ -58,7 +58,7 @@ namespace SephiriaEnhancements.Inventory
     {
         internal static bool TryCreate(InventorySnapshot snapshot,
             InventoryLayoutProjection layout, out InventoryApplicationPlan plan,
-            out string issue, CancellationToken cancellationToken = default)
+            out string issue, CancellationToken cancellationToken = default, bool verifyEffectInputs = true)
         {
             cancellationToken.ThrowIfCancellationRequested();
             plan = null;
@@ -90,7 +90,7 @@ namespace SephiriaEnhancements.Inventory
                 targetItemAtCell[targetCell] = item.ItemKey;
             }
 
-            bool preserveMysticCount = InventorySettlementValidator.HasDynamicMysticContribution(snapshot);
+            bool preserveMysticCount = verifyEffectInputs && InventorySettlementValidator.HasDynamicMysticContribution(snapshot);
             var categoryOccupancy = preserveMysticCount ? new int[snapshot.Storage] : null;
             var swaps = new List<InventorySwapOperation>();
             var intermediate = InventoryLayoutProjection.Current(snapshot);
@@ -148,6 +148,7 @@ namespace SephiriaEnhancements.Inventory
 
             bool Safe(InventoryLayoutProjection candidate)
             {
+                if (!verifyEffectInputs) return true;
                 if (!InventorySettlementValidator.NeighborCategoryInputsIndependent(snapshot, candidate)) return false;
                 if (!preserveMysticCount) return true;
                 Array.Fill(categoryOccupancy, -1);

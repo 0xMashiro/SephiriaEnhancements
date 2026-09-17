@@ -2,14 +2,6 @@ using UnityEngine;
 
 namespace SephiriaEnhancements.Configuration
 {
-    internal enum CombatInsightsDisplayPolicy
-    {
-        Smart,
-        BossOnly,
-        AllCombat,
-        Disabled
-    }
-
     internal static class ModSettings
     {
         private static readonly float[] DamageStatisticsScales =

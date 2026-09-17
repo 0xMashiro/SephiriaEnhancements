@@ -38,7 +38,7 @@ namespace SephiriaEnhancements.Configuration
             new NativeRebindDefinition(
                 DeveloperConsoleContract.ActionMapName,
                 DeveloperConsoleContract.ActionName,
-                ModLocalization.DeveloperConsoleShortcut)
+                DeveloperConsoleLocalization.DeveloperConsoleShortcut)
         };
 
         private static readonly NativeRebindDefinition[] GamepadDefinitions =

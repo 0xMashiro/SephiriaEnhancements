@@ -10,13 +10,13 @@ namespace SephiriaEnhancements.Integration
             switch (block)
             {
                 case ReportPresentationBlock.Loading:
-                    return ModLocalization.EncounterReportLoading;
+                    return CombatInsightsLocalization.EncounterReportLoading;
                 case ReportPresentationBlock.ScreenTransition:
-                    return ModLocalization.EncounterReportScreenTransition;
+                    return CombatInsightsLocalization.EncounterReportScreenTransition;
                 case ReportPresentationBlock.Cutscene:
-                    return ModLocalization.EncounterReportCutscene;
+                    return CombatInsightsLocalization.EncounterReportCutscene;
                 case ReportPresentationBlock.Menu:
-                    return ModLocalization.EncounterReportMenu;
+                    return CombatInsightsLocalization.EncounterReportMenu;
                 default:
                     return null;
             }

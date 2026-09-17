@@ -18,11 +18,13 @@ Uses the game's built-in AddOns system; no BepInEx required.
 
 ## Features
 
-- **Combat:** damage, DPS, battle reports, hit streaks, resource values and ally/enemy outlines.
+- **Combat:** damage, DPS, battle reports, teammate damage sources, training dummy statistics, hit streaks, resource values and ally/enemy outlines.
 - **Effect attributes:** view current values and bonuses for supported effects in the character menu.
 - **Controls:** keyboard menu and reward navigation, automatic targeting, target lock and optional automatic magic casting.
 - **Exploration:** map tools, NPC tracking, fast travel where available and adjustable camera distance.
 - **Backpack:** arrange artifacts around your priorities and highlight rewards matching your preset's favorite combos.
+- **Appearance:** change your appearance while keeping your costume's abilities and starting equipment.
+- **Tier rewards:** automatically claim missing rewards up to this save's highest cleared tier when enabled; off by default.
 - **Other options:** combat companion, retry after defeat, mid-run joining/reconnect support and **1–4 player** team rules.
 
 **Beta:** backpack arrangement is experimental. Retry after defeat rolls back items and progress to the selected point.

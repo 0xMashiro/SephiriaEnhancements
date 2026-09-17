@@ -34,8 +34,8 @@ namespace SephiriaEnhancements.DeveloperTools.Integration
         {
             GameObject row = CloneRow(template, section,
                 "Option_SephiriaEnhancements_DeveloperPlayerDamage",
-                ModLocalization.SettingDeveloperPlayerDamage,
-                ModLocalization.HelpDeveloperPlayerDamage, 13,
+                DeveloperPlayerDamageLocalization.SettingDeveloperPlayerDamage,
+                DeveloperPlayerDamageLocalization.HelpDeveloperPlayerDamage, 13,
                 out UI_HorizontalSelectionBox box,
                 out UI_LocalizationStringText valueText);
             row.AddComponent<DeveloperPlayerDamageOption>().Configure(box, valueText);
@@ -86,7 +86,7 @@ namespace SephiriaEnhancements.DeveloperTools.Integration
             box.OnValueChanged += Changed;
             int value = DeveloperPlayerDamageSettings.MultiplierIndex;
             box.ChangeValueWithoutNotify(value);
-            valueText?.UpdateKey(ModLocalization.DeveloperPlayerDamageMultiplierKeys[value]);
+            valueText?.UpdateKey(DeveloperPlayerDamageLocalization.DeveloperPlayerDamageMultiplierKeys[value]);
         }
 
         private void OnDisable()
@@ -117,7 +117,7 @@ namespace SephiriaEnhancements.DeveloperTools.Integration
         {
             DeveloperPlayerDamageSettings.MultiplierIndex = value;
             DeveloperPlayerDamageSettings.Save();
-            valueText?.UpdateKey(ModLocalization.DeveloperPlayerDamageMultiplierKeys[DeveloperPlayerDamageSettings.MultiplierIndex]);
+            valueText?.UpdateKey(DeveloperPlayerDamageLocalization.DeveloperPlayerDamageMultiplierKeys[DeveloperPlayerDamageSettings.MultiplierIndex]);
         }
     }
 #endif

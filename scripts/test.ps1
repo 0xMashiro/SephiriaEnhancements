@@ -42,6 +42,18 @@ if ($notifications -match 'DungeonManager|NetworkClient\.Send|NetworkServer\.Sen
 }
 Write-Host 'Local notification boundary passed.'
 
+# HUD edits must pass through the controller's busy gate and persistence policy.
+$inventoryViews = Join-Path $repoRoot 'Features/Inventory/Presentation'
+$inventoryEditors = @('NativeInventoryArtifactIntentCommands.cs', 'NativeInventoryComboGoalEditor.cs') | ForEach-Object {
+    Join-Path $repoRoot "Features/Inventory/Integration/$_"
+}
+foreach ($source in @((Get-ChildItem -LiteralPath $inventoryViews -Filter '*.cs' -File).FullName) + $inventoryEditors) {
+    if ((Get-Content -LiteralPath $source -Raw) -match '\b(WorldSessionInventoryIntentStore|PersistentInventoryOptimizationPolicyStore)\s*\.\s*(Replace|Clear|RestorePersistentCombos)\s*\(') {
+        throw 'Inventory views and intent commands must send edits through the controller.'
+    }
+}
+Write-Host 'Inventory preference write boundary passed.'
+
 # New localization groups must participate in automatic coverage checks.
 $modelDirectory = Split-Path -Parent $modelProject
 $modelXml = [xml](Get-Content -LiteralPath $modelProject -Raw)

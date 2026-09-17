@@ -11,7 +11,8 @@ namespace SephiriaEnhancements.Inventory
 
         private bool CanUndo => !Busy && compatible && EnhancementsSettings.Enabled &&
             undo?.Matches(runtimeKernel?.State) == true &&
-            runtimeKernel.State.CanProjectInventoryLayouts;
+            runtimeKernel.State.HasSettledInventoryObservation &&
+            (!undo.VerifyEffects || runtimeKernel.State.CanProjectInventoryLayouts);
 
         private void MaintainArrangementHistory()
         {
@@ -23,16 +24,16 @@ namespace SephiriaEnhancements.Inventory
             if (!CanUndo || NativeInventoryIntentDrop.HasHeldItem || hud.HasArtifactPickup) return;
             EndPriorityMarking();
             if (!TryGetOpenInventory(out var inventory) ||
-                !runtimeKernel.TryGetProjectableInventorySnapshot(out var source, out var runtime) ||
+                !runtimeKernel.TryGetSettledInventorySnapshot(out var source, out var runtime) ||
                 !undo.Matches(runtime) || !MatchesInventory(source, inventory)) return;
             var target = undo.RestoreLayout(source);
-            if (target == null || !InventoryLayoutPlanner.TryCreate(source, target, out var plan, out _))
+            if (target == null || !InventoryLayoutPlanner.TryCreate(source, target, out var plan, out _, verifyEffectInputs: undo.VerifyEffects))
             {
                 undo = null;
                 return;
             }
-            var settlement = InventorySettlementProjector.Evaluate(source, target);
-            if (!settlement.Succeeded)
+            var settlement = undo.VerifyEffects ? InventorySettlementProjector.Evaluate(source, target) : null;
+            if (undo.VerifyEffects && !settlement.Succeeded)
             {
                 ShowMessage(InventoryOptimizationLocalization.Unsupported);
                 return;

@@ -108,7 +108,7 @@ namespace SephiriaEnhancements.Presentation
             string closeBinding = showReport && model.CanInteractWithPresentedReport
                 ? NativeReportDismissal.BindingLabel() : string.Empty;
             dismissHint.text = string.IsNullOrEmpty(closeBinding) ? string.Empty
-                : string.Format(ModLocalization.Get(ModLocalization.ReportDismissHint),
+                : string.Format(ModLocalization.Get(CombatInsightsLocalization.ReportDismissHint),
                     closeBinding);
             PresentReport(showReport);
         }
@@ -124,7 +124,7 @@ namespace SephiriaEnhancements.Presentation
             ProjectReport(snapshot, floor, false,
                 new EncounterReportLayout(snapshot.Players.Count, snapshot.LocalFinalBlows > 0));
             dismissHint.text = ModLocalization.Get(floor
-                ? ModLocalization.FloorBattleTime : ModLocalization.EncounterBattleTime);
+                ? CombatInsightsLocalization.FloorBattleTime : CombatInsightsLocalization.EncounterBattleTime);
             reportObject.SetActive(true);
             reportShadowObject.SetActive(true);
             reportRect.localScale = reportShadowRect.localScale = Vector3.one;
@@ -305,7 +305,7 @@ namespace SephiriaEnhancements.Presentation
             {
                 SetActive(ledgerObject, false);
                 SetActive(pulseObject, true);
-                pulseText.text = ModLocalization.Get(ModLocalization.Dps) +
+                pulseText.text = ModLocalization.Get(CombatInsightsLocalization.Dps) +
                     "  " + DpsFormatter.Compact(model.LocalDps);
                 return;
             }
@@ -320,7 +320,7 @@ namespace SephiriaEnhancements.Presentation
 
         private void ProjectBoss(CombatInsightsController model)
         {
-            liveKicker.text = ModLocalization.Get(ModLocalization.DamageShare);
+            liveKicker.text = ModLocalization.Get(CombatInsightsLocalization.DamageShare);
             int count = EnsureLiveRows(model.Players.Count);
             float maximum = 1f;
             for (int index = 0; index < count; index++)
@@ -378,9 +378,9 @@ namespace SephiriaEnhancements.Presentation
                 NativeInputActions.FindAction(asset, NativeUiActions.PrevTab)) : string.Empty;
             string next = allowed ? NativeReportDismissal.BindingLabel(
                 NativeInputActions.FindAction(asset, NativeUiActions.NextTab)) : string.Empty;
-            encounterPage.text = PageLabel(ModLocalization.CurrentEncounterStatistics, previous,
+            encounterPage.text = PageLabel(CombatInsightsLocalization.CurrentEncounterStatistics, previous,
                 !model.ShowFloorReport);
-            floorPage.text = PageLabel(ModLocalization.CurrentFloorStatistics, next,
+            floorPage.text = PageLabel(CombatInsightsLocalization.CurrentFloorStatistics, next,
                 model.ShowFloorReport);
             encounterPage.color = model.ShowFloorReport ? Muted : Moss;
             floorPage.color = model.ShowFloorReport ? Moss : Muted;
@@ -394,21 +394,21 @@ namespace SephiriaEnhancements.Presentation
         private void ProjectReport(CombatStatisticsSnapshot report, bool floor, bool showNavigation,
             EncounterReportLayout layout)
         {
-            string title = ModLocalization.Get(ModLocalization.CombatSummary)
+            string title = ModLocalization.Get(CombatInsightsLocalization.CombatSummary)
                 .ToUpperInvariant();
-            reportTitle.text = floor ? ModLocalization.Get(ModLocalization.CurrentFloorStatistics)
+            reportTitle.text = floor ? ModLocalization.Get(CombatInsightsLocalization.CurrentFloorStatistics)
                 : report is EncounterReportSnapshot encounter && encounter.Kind == EncounterReportKind.Boss
                 ? "BOSS  ·  " + title : title;
-            reportMeta.text = floor ? string.Format(ModLocalization.Get(ModLocalization.FloorBattleDuration),
+            reportMeta.text = floor ? string.Format(ModLocalization.Get(CombatInsightsLocalization.FloorBattleDuration),
                 DpsFormatter.Seconds(report.Duration)) : DpsFormatter.Seconds(report.Duration) +
-                "  ·  " + ModLocalization.Get(ModLocalization.Defeated) +
+                "  ·  " + ModLocalization.Get(CombatInsightsLocalization.Defeated) +
                 " ×" + report.DefeatedCount;
             damageHeading.text = ModLocalization.Get(
-                ModLocalization.ReportDamage);
+                CombatInsightsLocalization.ReportDamage);
             shareHeading.text = ModLocalization.Get(
-                ModLocalization.ReportShare);
+                CombatInsightsLocalization.ReportShare);
             averageDpsHeading.text = ModLocalization.Get(
-                ModLocalization.ReportAverageDps);
+                CombatInsightsLocalization.ReportAverageDps);
 
             int count = EnsureReportRows(report.Players.Count);
             float maximum = 1f;
@@ -422,18 +422,18 @@ namespace SephiriaEnhancements.Presentation
             }
 
             normalOutcome.Show(ModLocalization.Get(
-                ModLocalization.NormalEnemy), report.NormalDefeated);
+                CombatInsightsLocalization.NormalEnemy), report.NormalDefeated);
             minibossOutcome.Show(ModLocalization.Get(
-                ModLocalization.MinibossEnemy), report.MinibossDefeated);
+                CombatInsightsLocalization.MinibossEnemy), report.MinibossDefeated);
             bossOutcome.Show(ModLocalization.Get(
-                ModLocalization.BossEnemy), report.BossDefeated);
+                CombatInsightsLocalization.BossEnemy), report.BossDefeated);
             damageMix.text = FormatDamageMix(report);
             bool showFinalBlows = report.LocalFinalBlows > 0;
             localFinalBlows.gameObject.SetActive(showFinalBlows);
             if (showFinalBlows)
             {
                 localFinalBlows.text = "◆  " + ModLocalization.Get(
-                    ModLocalization.FinalBlows) + "  ×" +
+                    CombatInsightsLocalization.FinalBlows) + "  ×" +
                     report.LocalFinalBlows;
             }
             encounterPage.gameObject.SetActive(showNavigation);
@@ -617,7 +617,7 @@ namespace SephiriaEnhancements.Presentation
         private static string FormatDamageMix(CombatStatisticsSnapshot report)
         {
             var result = new StringBuilder();
-            result.Append(ModLocalization.Get(ModLocalization.ReportDamageMix));
+            result.Append(ModLocalization.Get(CombatInsightsLocalization.ReportDamageMix));
             float otherDamage = 0f;
             int shown = 0;
             for (int index = 0; index < report.DamageTypes.Count; index++)
@@ -639,7 +639,7 @@ namespace SephiriaEnhancements.Presentation
             if (otherDamage > 0f || shown == 0)
             {
                 result.Append("  ·  ");
-                result.Append(ModLocalization.Get(ModLocalization.DamageOther));
+                result.Append(ModLocalization.Get(CombatInsightsLocalization.DamageOther));
                 result.Append(' ');
                 result.Append(DpsFormatter.Percent(
                     otherDamage > 0f ? otherDamage : report.TotalDamage,
@@ -653,21 +653,21 @@ namespace SephiriaEnhancements.Presentation
             switch (type)
             {
                 case EncounterDamageType.Physical:
-                    return ModLocalization.Get(ModLocalization.DamagePhysical);
+                    return ModLocalization.Get(CombatInsightsLocalization.DamagePhysical);
                 case EncounterDamageType.Fire:
-                    return ModLocalization.Get(ModLocalization.DamageFire);
+                    return ModLocalization.Get(CombatInsightsLocalization.DamageFire);
                 case EncounterDamageType.Ice:
-                    return ModLocalization.Get(ModLocalization.DamageIce);
+                    return ModLocalization.Get(CombatInsightsLocalization.DamageIce);
                 case EncounterDamageType.Lightning:
-                    return ModLocalization.Get(ModLocalization.DamageLightning);
+                    return ModLocalization.Get(CombatInsightsLocalization.DamageLightning);
                 case EncounterDamageType.Chaos:
-                    return ModLocalization.Get(ModLocalization.DamageChaos);
+                    return ModLocalization.Get(CombatInsightsLocalization.DamageChaos);
                 case EncounterDamageType.Normal:
-                    return ModLocalization.Get(ModLocalization.DamageNormal);
+                    return ModLocalization.Get(CombatInsightsLocalization.DamageNormal);
                 case EncounterDamageType.Mixed:
-                    return ModLocalization.Get(ModLocalization.DamageMixed);
+                    return ModLocalization.Get(CombatInsightsLocalization.DamageMixed);
                 default:
-                    return ModLocalization.Get(ModLocalization.DamageOther);
+                    return ModLocalization.Get(CombatInsightsLocalization.DamageOther);
             }
         }
 

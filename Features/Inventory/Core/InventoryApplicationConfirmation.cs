@@ -11,12 +11,13 @@ namespace SephiriaEnhancements.Inventory
         // the last operation. Hard requirements constrain the final layout only.
         internal static InventorySettlementDifferentialReport VerifyStep(
             InventorySnapshot actual, InventorySnapshot source,
-            InventoryLayoutProjection expectedLayout)
+            InventoryLayoutProjection expectedLayout, bool verifyEffects = true)
         {
             if (!MatchesTarget(actual, source, expectedLayout))
                 return new InventorySettlementDifferentialReport(
                     new[] { "ApplicationLayoutChanged" });
 
+            if (!verifyEffects) return new InventorySettlementDifferentialReport(System.Array.Empty<string>());
             return InventorySettlementDifferentialVerifier.Compare(source,
                 expectedLayout, InventorySettlementProjector.Evaluate(source, expectedLayout), actual);
         }

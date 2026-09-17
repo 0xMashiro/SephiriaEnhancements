@@ -300,8 +300,10 @@ namespace SephiriaEnhancements.Runtime.GameBridge.Inventory
                     item.InstanceID, "Enchant"), out enchant);
             }
 
+            // Charm_Basic.Connect initializes its weapon controller only on the
+            // server. The inventory owner's controller is populated on both peers.
             bool weaponCompatible = !charm.isWeaponRelatedCharm ||
-                charm.WeaponController?.currentWeapon?.weaponType == charm.relatedWeapon;
+                inventory.UnitAvatar?.GetComponent<WeaponControllerSimple>()?.currentWeapon?.weaponType == charm.relatedWeapon;
             bool attackable = ReadIsAttackable(charm);
             MagicSnapshot magic = CaptureMagic(charm as Charm_Magic);
 

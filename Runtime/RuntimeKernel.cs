@@ -1,11 +1,9 @@
-using SephiriaEnhancements.Runtime;
 #nullable disable
 using SephiriaEnhancements.Runtime.GameBridge.Inventory;
 using SephiriaEnhancements.Runtime.GameBridge;
 using SephiriaEnhancements.Runtime.Inventory;
 
 using System;
-using System.Diagnostics;
 using System.Reflection;
 using SephiriaEnhancements.Diagnostics;
 using SephiriaEnhancements.Integration;
@@ -18,33 +16,19 @@ namespace SephiriaEnhancements.Runtime
         private const float ReconciliationInterval = 0.5f;
         private const float InitialMetricsInterval = 2f;
         private const float MetricsInterval = 30f;
-        private const int CaptureQuietFrames = 2;
-        private const int MaximumCaptureCoalescingFrames = 4;
         private readonly RuntimeMetrics metrics = new RuntimeMetrics();
         private readonly EncounterLifecycleHub encounterLifecycleHub =
             new EncounterLifecycleHub();
-        private readonly InventoryStateStore inventoryStateStore =
-            new InventoryStateStore();
         private readonly NativeLocalGameplayContext localGameplayContext =
             new NativeLocalGameplayContext();
-        private TabletProjectionReader tabletProjectionReader;
         private RuntimeStateHub stateHub;
-        private PlayerAvatar attachedPlayer;
-        private GridInventory attachedGridInventory;
-        private InventoryCatalogSnapshot inventoryCatalog;
-        private NativePresetSnapshot nativePreset;
-        private long observedNativePresetRevision;
+        private readonly NativeInventoryObservation inventoryObservation = new NativeInventoryObservation();
         private float nextReconciliationAt;
         private float nextMetricsAt;
-        private int lastCaptureFrame = -1;
-        private bool inventoryCapturePending;
-        private bool settledInventoryCapturePending;
-        private int inventoryCaptureNotBeforeFrame;
-        private int inventoryCaptureDeadlineFrame;
         private bool initialized;
 
         internal RuntimeStateSnapshot State => stateHub?.Current;
-        internal bool InventoryCapturePending => inventoryCapturePending;
+        internal bool InventoryCapturePending => inventoryObservation.InventoryCapturePending;
         internal EncounterLifecycleEvent LastEncounterLifecycleEvent =>
             encounterLifecycleHub.Current;
 
@@ -69,17 +53,12 @@ namespace SephiriaEnhancements.Runtime
                 ";unity=" + Application.unityVersion +
                 ";assembly=" + gameAssembly.GetName().Version;
             stateHub = new RuntimeStateHub(fingerprint);
-            tabletProjectionReader = new TabletProjectionReader(metrics);
-            observedNativePresetRevision = NativePresetChangeSignal.Revision;
+            inventoryObservation.Initialize(stateHub, metrics);
             stateHub.Changed += ForwardStateChanged;
             encounterLifecycleHub.Changed += ForwardEncounterLifecycleChanged;
             NativeEncounterLifecycleCapture.SetObserver(
                 ObserveEncounterLifecycle);
-            HorayModAPI.GridInventoryStartPermission +=
-                OnGridInventoryStartPermission;
-            HorayModAPI.GridInventoryEndPermission +=
-                OnGridInventoryEndPermission;
-            HorayModAPI.OnAllDatabasesReady += OnAllDatabasesReady;
+            inventoryObservation.Subscribe();
             nextReconciliationAt = Time.unscaledTime;
             nextMetricsAt = Time.unscaledTime + InitialMetricsInterval;
         }
@@ -108,14 +87,7 @@ namespace SephiriaEnhancements.Runtime
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private void BeginGameplayContextCore(LocalGameplayContextChange change)
         {
-            FeatureFailure.Run(FeatureId.Inventory, () =>
-            {
-                DetachGridInventory();
-                InventoryEvaluationOrderTraceSignal.Clear();
-                inventoryStateStore.Clear();
-                nativePreset = null;
-                tabletProjectionReader?.Clear();
-            });
+            FeatureFailure.Run(FeatureId.Inventory, inventoryObservation.ResetGameplayContext);
             RuntimeStateSnapshot runtimeState = stateHub?.BeginGameplayContext(Time.realtimeSinceStartup);
             FeatureFailure.Run(FeatureId.CombatInsights, () =>
             {
@@ -124,10 +96,8 @@ namespace SephiriaEnhancements.Runtime
             });
             nextReconciliationAt = Time.unscaledTime;
             nextMetricsAt = Math.Min(nextMetricsAt, Time.unscaledTime + InitialMetricsInterval);
-            inventoryCapturePending = false;
-            settledInventoryCapturePending = false;
-            inventoryCaptureNotBeforeFrame = 0;
-            inventoryCaptureDeadlineFrame = 0;
+            // Cancel queued work even when inventory observation has already failed.
+            inventoryObservation.CancelPendingCapture();
             FeatureFailure.Run(FeatureId.DeveloperTools, () =>
             {
                 PlayerAvatar player = localGameplayContext.Player;
@@ -136,31 +106,22 @@ namespace SephiriaEnhancements.Runtime
             GameplayContextChanged?.Invoke(change);
         }
 
-        internal bool TryGetProjectableInventorySnapshot(
-            out InventorySnapshot snapshot,
-            out RuntimeStateSnapshot runtimeState)
-        {
-            FeatureFailure.Run(FeatureId.Inventory, RefreshNativePresetIfChanged);
-            runtimeState = stateHub?.Current;
-            return inventoryStateStore.TryGetProjectable(runtimeState,
-                out snapshot);
-        }
+        internal bool TryGetProjectableInventorySnapshot(out InventorySnapshot snapshot,
+            out RuntimeStateSnapshot runtimeState) =>
+            inventoryObservation.TryGetProjectableInventorySnapshot(out snapshot, out runtimeState);
 
-        internal bool TryGetSettledInventorySnapshot(
-            out InventorySnapshot snapshot,
-            out RuntimeStateSnapshot runtimeState)
-        {
-            runtimeState = stateHub?.Current;
-            return inventoryStateStore.TryGetSettled(runtimeState,
-                out snapshot);
-        }
+        internal void RefreshInventoryForArrangement() => inventoryObservation.RefreshForArrangement();
+
+        internal bool TryGetSettledInventorySnapshot(out InventorySnapshot snapshot,
+            out RuntimeStateSnapshot runtimeState) =>
+            inventoryObservation.TryGetSettledInventorySnapshot(out snapshot, out runtimeState);
 
         internal bool TryGetLatestInventorySnapshot(out InventorySnapshot snapshot,
-            out RuntimeStateSnapshot runtimeState)
-        {
-            runtimeState = stateHub?.Current;
-            return inventoryStateStore.TryGetLatest(runtimeState, out snapshot);
-        }
+            out RuntimeStateSnapshot runtimeState) =>
+            inventoryObservation.TryGetLatestInventorySnapshot(out snapshot, out runtimeState);
+
+        internal bool MatchesNativePreset(NativePresetSnapshot source) =>
+            inventoryObservation.MatchesNativePreset(source);
 
         public void Dispose()
         {
@@ -172,15 +133,7 @@ namespace SephiriaEnhancements.Runtime
             initialized = false;
             SephiriaEnhancementsMod.CleanupFeature(FeatureId.Gameplay, localGameplayContext.Dispose);
             SephiriaEnhancementsMod.CleanupFeature(FeatureId.CombatInsights, () => NativeEncounterLifecycleCapture.SetObserver(null));
-            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, () => HorayModAPI.GridInventoryStartPermission -= OnGridInventoryStartPermission);
-            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, () => HorayModAPI.GridInventoryEndPermission -= OnGridInventoryEndPermission);
-            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, () => HorayModAPI.OnAllDatabasesReady -= OnAllDatabasesReady);
-            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, DetachGridInventory);
-            inventoryStateStore.Clear();
-            inventoryCatalog = null;
-            nativePreset = null;
-            SephiriaEnhancementsMod.CleanupFeature(FeatureId.Inventory, () => tabletProjectionReader?.Clear());
-            tabletProjectionReader = null;
+            inventoryObservation.Dispose();
             if (stateHub != null)
             {
                 stateHub.Changed -= ForwardStateChanged;
@@ -253,12 +206,12 @@ namespace SephiriaEnhancements.Runtime
             FeatureFailure.Run(FeatureId.DeveloperTools, StartupProfiler.ObserveFirstFrame);
             localGameplayContext.Poll();
             FeatureFailure.Run(FeatureId.DeveloperTools, GameLoadProfiler.Poll);
-            FeatureFailure.Run(FeatureId.Inventory, RefreshNativePresetIfChanged);
-            FeatureFailure.Run(FeatureId.Inventory, CapturePendingInventory);
+            FeatureFailure.Run(FeatureId.Inventory, inventoryObservation.RefreshNativePresetIfChanged);
+            FeatureFailure.Run(FeatureId.Inventory, inventoryObservation.CapturePendingInventory);
             if (now >= nextReconciliationAt)
             {
                 nextReconciliationAt = now + ReconciliationInterval;
-                FeatureFailure.Run(FeatureId.Inventory, ReconcileLocalPlayer);
+                FeatureFailure.Run(FeatureId.Inventory, () => inventoryObservation.ReconcileLocalPlayer(localGameplayContext.Player, localGameplayContext.IsTraveling));
             }
 
             if (now >= nextMetricsAt)
@@ -273,656 +226,6 @@ namespace SephiriaEnhancements.Runtime
                     metrics.Reset();
                 }
             }
-        }
-
-        private void ReconcileLocalPlayer()
-        {
-            metrics.RecordEvent(RuntimeEventKind.Reconciliation);
-            if (localGameplayContext.IsTraveling) return;
-            PlayerAvatar player = localGameplayContext.Player;
-            if (player == null)
-            {
-                if (attachedPlayer != null || attachedGridInventory != null)
-                {
-                    DetachGridInventory();
-                    inventoryStateStore.Clear();
-                    nativePreset = null;
-                    stateHub.Detach(Time.realtimeSinceStartup);
-                }
-                return;
-            }
-
-            if (player != attachedPlayer || player.Inventory != attachedGridInventory)
-            {
-                AttachGridInventory(player);
-            }
-        }
-
-        private void AttachGridInventory(PlayerAvatar player)
-        {
-            DetachGridInventory();
-            attachedPlayer = player;
-            attachedGridInventory = player?.Inventory;
-            if (attachedGridInventory == null)
-            {
-                stateHub.AttachPlayer(player?.netId ?? 0,
-                    RuntimeCapabilities.LocalPlayer, Time.realtimeSinceStartup);
-                return;
-            }
-
-            if (inventoryCatalog == null &&
-                !RefreshInventoryCatalog(player, invalidateInventory: false))
-            {
-                DetachGridInventory();
-                stateHub.PublishIssue("Inventory catalog capture failed.",
-                    invalid: false, Time.realtimeSinceStartup);
-                return;
-            }
-
-            nativePreset = CaptureNativePreset();
-
-            attachedGridInventory.OnItemUpdatedForClient += OnItemUpdated;
-            attachedGridInventory.OnItemAddedForClient += OnItemAdded;
-            attachedGridInventory.OnItemRemovedForClient += OnItemRemoved;
-            attachedGridInventory.OnInventoryStorageChangedClientside +=
-                OnInventoryStorageChanged;
-            attachedGridInventory.OnInventoryHeightChangedClientside +=
-                OnInventoryHeightChanged;
-            attachedGridInventory.OnUniquePairEnchantedClientside +=
-                OnUniquePairEnchanted;
-            attachedGridInventory.OnTabletRotatedClientside += OnTabletRotated;
-            attachedGridInventory.OnItemIdentified += OnItemIdentified;
-            attachedGridInventory.OnCharmEffectRefreshedForClient +=
-                OnCharmEffectRefreshed;
-            attachedGridInventory.OnClear += OnInventoryCleared;
-
-            RuntimeCapabilities capabilities = RuntimeCapabilities.LocalPlayer |
-                RuntimeCapabilities.GridInventory |
-                RuntimeCapabilities.GridInventoryEvents |
-                RuntimeCapabilities.InventoryCatalog;
-            stateHub.AttachPlayer(player.netId, capabilities,
-                Time.realtimeSinceStartup);
-            ScheduleInventoryCapture(settledObservation: true);
-        }
-
-        private void DetachGridInventory()
-        {
-            GridInventory detachingInventory = attachedGridInventory;
-            if (attachedGridInventory != null)
-            {
-                attachedGridInventory.OnItemUpdatedForClient -= OnItemUpdated;
-                attachedGridInventory.OnItemAddedForClient -= OnItemAdded;
-                attachedGridInventory.OnItemRemovedForClient -= OnItemRemoved;
-                attachedGridInventory.OnInventoryStorageChangedClientside -=
-                    OnInventoryStorageChanged;
-                attachedGridInventory.OnInventoryHeightChangedClientside -=
-                    OnInventoryHeightChanged;
-                attachedGridInventory.OnUniquePairEnchantedClientside -=
-                    OnUniquePairEnchanted;
-                attachedGridInventory.OnTabletRotatedClientside -= OnTabletRotated;
-                attachedGridInventory.OnItemIdentified -= OnItemIdentified;
-                attachedGridInventory.OnCharmEffectRefreshedForClient -=
-                    OnCharmEffectRefreshed;
-                attachedGridInventory.OnClear -= OnInventoryCleared;
-            }
-
-            attachedGridInventory = null;
-            attachedPlayer = null;
-            InventoryEvaluationOrderTraceSignal.Clear(detachingInventory);
-        }
-
-        private void OnGridInventoryStartPermission(GridInventory gridInventory, PlayerAvatar player)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnGridInventoryStartPermissionCore(gridInventory, player);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnGridInventoryStartPermissionCore(GridInventory gridInventory, PlayerAvatar player)
-        {
-            if (!IsAttachedLocalInventory(gridInventory, player))
-            {
-                return;
-            }
-
-            metrics.RecordEvent(RuntimeEventKind.GridInventoryStartPermission);
-            MarkInventoryPending();
-        }
-
-        private void OnGridInventoryEndPermission(GridInventory gridInventory, PlayerAvatar player)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnGridInventoryEndPermissionCore(gridInventory, player);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnGridInventoryEndPermissionCore(GridInventory gridInventory, PlayerAvatar player)
-        {
-            if (!IsAttachedLocalInventory(gridInventory, player))
-            {
-                return;
-            }
-
-            metrics.RecordEvent(RuntimeEventKind.GridInventoryEndPermission);
-            ScheduleInventoryCapture(settledObservation: true);
-        }
-
-        private bool IsAttachedLocalInventory(GridInventory gridInventory,
-            PlayerAvatar player)
-        {
-            if (gridInventory == null || player == null ||
-                !LocalPlayerResolver.IsLocal(player))
-            {
-                return false;
-            }
-
-            if (attachedGridInventory != gridInventory || attachedPlayer != player)
-            {
-                AttachGridInventory(player);
-            }
-            return attachedGridInventory == gridInventory;
-        }
-
-        private void OnItemUpdated(NewItemOwnInstance item, ItemPosition position)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnItemUpdatedCore(item, position);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnItemUpdatedCore(NewItemOwnInstance item, ItemPosition position)
-        {
-            metrics.RecordEvent(RuntimeEventKind.ItemUpdated);
-            MarkInventoryPending();
-        }
-
-        private void OnItemAdded(NewItemOwnInstance item)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnItemAddedCore(item);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnItemAddedCore(NewItemOwnInstance item)
-        {
-            metrics.RecordEvent(RuntimeEventKind.ItemAdded);
-            MarkInventoryPending();
-        }
-
-        private void OnItemRemoved(ItemPosition position)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnItemRemovedCore(position);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnItemRemovedCore(ItemPosition position)
-        {
-            metrics.RecordEvent(RuntimeEventKind.ItemRemoved);
-            MarkInventoryPending();
-        }
-
-        private void OnInventoryStorageChanged(int oldStorage, int newStorage)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnInventoryStorageChangedCore(oldStorage, newStorage);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnInventoryStorageChangedCore(int oldStorage, int newStorage)
-        {
-            metrics.RecordEvent(RuntimeEventKind.InventoryStorageChanged);
-            DeveloperLogger.RecordInventoryStorageChanged(attachedGridInventory?.Width ?? 0, oldStorage, newStorage);
-            tabletProjectionReader?.Clear();
-            MarkInventoryPending();
-        }
-
-        private void OnInventoryHeightChanged(int oldHeight, int newHeight)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnInventoryHeightChangedCore(oldHeight, newHeight);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnInventoryHeightChangedCore(int oldHeight, int newHeight)
-        {
-            metrics.RecordEvent(RuntimeEventKind.InventoryHeightChanged);
-            DeveloperLogger.RecordInventoryHeightChanged(oldHeight, newHeight);
-            tabletProjectionReader?.Clear();
-            MarkInventoryPending();
-        }
-
-        private void OnUniquePairEnchanted(ItemPosition position)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnUniquePairEnchantedCore(position);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnUniquePairEnchantedCore(ItemPosition position)
-        {
-            metrics.RecordEvent(RuntimeEventKind.UniquePairEnchanted);
-            MarkInventoryPending();
-        }
-
-        private void OnTabletRotated(StoneTablet tablet, int rotation)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnTabletRotatedCore(tablet, rotation);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnTabletRotatedCore(StoneTablet tablet, int rotation)
-        {
-            metrics.RecordEvent(RuntimeEventKind.TabletRotated);
-            MarkInventoryPending();
-        }
-
-        private void OnItemIdentified(EItemIdentificationResult result, Vector2Int position, NewItemOwnInstance item)
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnItemIdentifiedCore(result, position, item);
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnItemIdentifiedCore(EItemIdentificationResult result, Vector2Int position, NewItemOwnInstance item)
-        {
-            metrics.RecordEvent(RuntimeEventKind.ItemIdentified);
-            MarkInventoryPending();
-        }
-
-        private void OnCharmEffectRefreshed()
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnCharmEffectRefreshedCore();
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnCharmEffectRefreshedCore()
-        {
-            metrics.RecordEvent(RuntimeEventKind.CharmEffectRefreshed);
-            ScheduleInventoryCapture(settledObservation: true);
-        }
-
-        private void ScheduleInventoryCapture(bool settledObservation)
-        {
-            int frame = Time.frameCount;
-            if (!inventoryCapturePending)
-            {
-                inventoryCaptureDeadlineFrame = frame +
-                    MaximumCaptureCoalescingFrames;
-            }
-            inventoryCapturePending = true;
-            settledInventoryCapturePending |= settledObservation;
-            inventoryCaptureNotBeforeFrame = frame + CaptureQuietFrames;
-        }
-
-        private void CapturePendingInventory()
-        {
-            if (!inventoryCapturePending ||
-                (Time.frameCount < inventoryCaptureNotBeforeFrame &&
-                 Time.frameCount < inventoryCaptureDeadlineFrame))
-            {
-                return;
-            }
-
-            bool settledObservation = settledInventoryCapturePending;
-            inventoryCapturePending = false;
-            settledInventoryCapturePending = false;
-            CaptureInventory(settledObservation);
-        }
-
-        private void OnInventoryCleared()
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnInventoryClearedCore();
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnInventoryClearedCore()
-        {
-            metrics.RecordEvent(RuntimeEventKind.InventoryCleared);
-            MarkInventoryPending();
-        }
-
-        private void MarkInventoryPending()
-        {
-            inventoryStateStore.Clear();
-            stateHub.MarkInventoryPending(Time.realtimeSinceStartup);
-        }
-
-        private void CaptureInventory(bool settledObservation)
-        {
-            if (attachedGridInventory == null)
-            {
-                return;
-            }
-
-            if (inventoryCatalog == null)
-            {
-                stateHub.PublishIssue("Inventory catalog is unavailable.",
-                    invalid: false, Time.realtimeSinceStartup);
-                return;
-            }
-
-            int frame = Time.frameCount;
-            if (lastCaptureFrame == frame &&
-                stateHub.Current.Consistency == RuntimeConsistencyState.Consistent &&
-                (!settledObservation ||
-                    (stateHub.Current.Capabilities & RuntimeCapabilities.
-                        SettledInventoryObservation) != 0))
-            {
-                return;
-            }
-
-            long started = Stopwatch.GetTimestamp();
-            bool captured;
-            InventorySnapshot snapshot;
-            try
-            {
-                captured = InventorySnapshotReader.TryCapture(
-                    attachedGridInventory, out snapshot, nativePreset,
-                    inventoryCatalog, tabletProjectionReader);
-            }
-            catch (Exception exception)
-            {
-                float failedElapsedMilliseconds = (float)(
-                    (Stopwatch.GetTimestamp() - started) * 1000d /
-                    Stopwatch.Frequency);
-                metrics.RecordCapture(failedElapsedMilliseconds, false);
-                lastCaptureFrame = frame;
-                inventoryStateStore.Clear();
-                string failureDetails = NativeInventoryRead.FailureDetails(exception);
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                stateHub.PublishIssue(
-                    "Inventory snapshot capture failed: " +
-                    failureDetails, invalid: false,
-                    Time.realtimeSinceStartup);
-                SupportLogger.Record("inventory_capture_failed",
-                    failureDetails, "ERROR");
-                return;
-            }
-            float elapsedMilliseconds = (float)((Stopwatch.GetTimestamp() - started) *
-                1000d / Stopwatch.Frequency);
-            metrics.RecordCapture(elapsedMilliseconds, captured);
-            lastCaptureFrame = frame;
-
-            if (!captured)
-            {
-                inventoryStateStore.Clear();
-                stateHub.PublishIssue("GridInventory snapshot capture failed.",
-                    invalid: false, Time.realtimeSinceStartup);
-                return;
-            }
-
-            long publishedInventoryRevision =
-                stateHub.Current.InventoryRevision + 1;
-            inventoryStateStore.Publish(snapshot,
-                stateHub.Current.GameplayContextEpoch,
-                publishedInventoryRevision);
-            stateHub.PublishInventory(settledObservation,
-                Time.realtimeSinceStartup,
-                snapshot.SettlementValidation.CurrentLayoutVerified,
-                snapshot.SettlementValidation.LayoutProjectionReady);
-            DeveloperLogger.RecordInventorySettlementValidation(
-                snapshot.SettlementValidation, stateHub.Current);
-            DeveloperLogger.RecordInventoryEvaluationOrder(
-                snapshot.EvaluationOrder, stateHub.Current);
-            DeveloperLogger.RecordInventoryPositionEffects(
-                snapshot.PositionEffects, stateHub.Current);
-        }
-
-        private void OnAllDatabasesReady()
-        {
-            if (!FeatureFailure.IsAvailable(FeatureId.Inventory))
-            {
-                return;
-            }
-
-            try
-            {
-                OnAllDatabasesReadyCore();
-            }
-            catch (System.Exception exception)
-            {
-                FeatureFailure.Disable(FeatureId.Inventory, exception);
-                return;
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private void OnAllDatabasesReadyCore()
-        {
-            StartupProfiler.RecordMilestone("all_game_databases_ready");
-            tabletProjectionReader?.Clear();
-            inventoryCatalog = null;
-            nativePreset = null;
-            if (attachedPlayer != null)
-            {
-                if (RefreshInventoryCatalog(attachedPlayer, invalidateInventory: true))
-                {
-                    nativePreset = CaptureNativePreset();
-                }
-            }
-        }
-
-        private void RefreshNativePresetIfChanged()
-        {
-            long revision = NativePresetChangeSignal.Revision;
-            if (revision == observedNativePresetRevision)
-            {
-                return;
-            }
-
-            observedNativePresetRevision = revision;
-            if (inventoryCatalog == null)
-            {
-                return;
-            }
-
-            NativePresetSnapshot refreshed = CaptureNativePreset();
-            if ((nativePreset == null && refreshed == null) ||
-                nativePreset?.ContentEquals(refreshed) == true)
-            {
-                return;
-            }
-
-            nativePreset = refreshed;
-            metrics.RecordEvent(RuntimeEventKind.NativePresetRefreshed);
-            if (attachedGridInventory != null)
-            {
-                bool settled = stateHub.Current.Consistency ==
-                    RuntimeConsistencyState.Consistent;
-                stateHub.MarkInventoryPending(Time.realtimeSinceStartup);
-                ScheduleInventoryCapture(settled);
-            }
-        }
-
-        internal bool MatchesNativePreset(NativePresetSnapshot source)
-        {
-            FeatureFailure.Run(FeatureId.Inventory, RefreshNativePresetIfChanged);
-            return source == null ? nativePreset == null : source.ContentEquals(nativePreset);
-        }
-
-        private bool RefreshInventoryCatalog(UnitAvatar avatar,
-            bool invalidateInventory)
-        {
-            long started = Stopwatch.GetTimestamp();
-            bool captured = InventoryCatalogReader.TryCapture(avatar,
-                out InventoryCatalogSnapshot catalog);
-            float elapsedMilliseconds = (float)((Stopwatch.GetTimestamp() - started) *
-                1000d / Stopwatch.Frequency);
-            metrics.RecordCatalogCapture(elapsedMilliseconds, captured);
-            if (!captured)
-            {
-                metrics.RecordEvent(RuntimeEventKind.InventoryCatalogRefreshFailed);
-                return false;
-            }
-
-            if (invalidateInventory)
-            {
-                inventoryStateStore.Clear();
-                stateHub.MarkInventoryPending(Time.realtimeSinceStartup);
-            }
-            inventoryCatalog = catalog;
-            metrics.RecordEvent(RuntimeEventKind.InventoryCatalogRefreshed);
-            stateHub.PublishInventoryCatalog(Time.realtimeSinceStartup);
-            return true;
-        }
-
-        private NativePresetSnapshot CaptureNativePreset()
-        {
-            long started = Stopwatch.GetTimestamp();
-            NativePresetSnapshot snapshot =
-                InventorySnapshotReader.CaptureNativePreset(inventoryCatalog);
-            float elapsedMilliseconds = (float)((Stopwatch.GetTimestamp() - started) *
-                1000d / Stopwatch.Frequency);
-            metrics.RecordPresetCapture(elapsedMilliseconds, snapshot != null);
-            return snapshot;
         }
 
         private void ForwardStateChanged(RuntimeStateSnapshot snapshot)

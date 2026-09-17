@@ -32,6 +32,20 @@ namespace SephiriaEnhancements.Inventory
             this.cancelPickup = cancelPickup;
             this.changePage = changePage;
         }
+        internal static readonly Color TitleColor =
+            new(0.98f, 0.78f, 0.18f, 1f);
+
+        internal static readonly Color SecondaryText =
+            new(0.58f, 0.76f, 0.78f, 1f);
+
+        internal static Color SatisfactionColor(InventoryIntentSatisfaction state) => state switch
+        {
+            InventoryIntentSatisfaction.Satisfied => new Color(0.24f, 0.88f, 0.42f, 1f),
+            InventoryIntentSatisfaction.Partial => new Color(1f, 0.76f, 0.15f, 1f),
+            InventoryIntentSatisfaction.Unmet => new Color(0.98f, 0.25f, 0.22f, 1f),
+            _ => new Color(0.47f, 0.49f, 0.54f, 1f)
+        };
+
         internal static readonly Color ButtonColor =
             new(0.16f, 0.17f, 0.24f, 0.98f);
         internal static readonly Color PrimaryText =

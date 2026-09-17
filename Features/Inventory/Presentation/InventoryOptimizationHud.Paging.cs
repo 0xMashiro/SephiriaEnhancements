@@ -1,4 +1,3 @@
-using System.Linq;
 using SephiriaEnhancements.Integration;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -29,7 +28,7 @@ namespace SephiriaEnhancements.Inventory
             var next = (UI_HorayButton)nextPage;
             Button entry = previous.IsInteractable() ? previous : next.IsInteractable() ? next : null;
             Button content = detailsExpanded
-                ? rows.FirstOrDefault(row => row.Root.activeInHierarchy)?.Choice ?? optimize
+                ? comboEditor.FirstChoice ?? optimize
                 : editGoals.IsInteractable() ? editGoals
                 : clearArtifactPriorities.IsInteractable() ? clearArtifactPriorities : optimize;
             Button above = detailsExpanded ? preferencesToggle : avoidSlots[0].Button;

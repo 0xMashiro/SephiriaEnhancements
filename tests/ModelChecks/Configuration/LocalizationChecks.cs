@@ -1,3 +1,4 @@
+using SephiriaEnhancements.Combat;
 using System.Collections;
 using System.Globalization;
 using System.Reflection;
@@ -106,7 +107,7 @@ internal static class LocalizationChecks
             texts["zh-TW"][InventoryOptimizationLocalization.HudComboTargets] != "連招目標" ||
             texts["zh-CN"][InventoryArrangementLocalization.ComboPriorities] != "连招优先级" ||
             texts["zh-TW"][InventoryArrangementLocalization.ComboPriorities] != "連招優先順序" ||
-            texts["zh-CN"][ModLocalization.SettingHitStreakFeedback] != "连续命中提示")
+            texts["zh-CN"][CombatInsightsLocalization.SettingHitStreakFeedback] != "连续命中提示")
             throw new InvalidOperationException("artifact combos and consecutive hits must remain distinct concepts");
 
         foreach (var (language, entries) in texts)
@@ -148,10 +149,10 @@ internal static class LocalizationChecks
     private static bool SharesEnglishSpelling(string language, string key) => key switch
     {
         ModLocalization.Section or ModLocalization.SettingMasterEnabled or
-            ModLocalization.Dps or ModLocalization.ReportDamage => true,
-        ModLocalization.NormalEnemy => language is "de-DE" or "es-ES" or "fr-FR" or "pt-BR" or "tr-TR",
-        ModLocalization.MinibossEnemy => language is "it-IT" or "pl-PL" or "sv-SE",
-        ModLocalization.DamageNormal => language is "de-DE" or "es-ES" or "fr-FR" or "pt-BR" or "sv-SE" or "tr-TR",
+            CombatInsightsLocalization.Dps or CombatInsightsLocalization.ReportDamage => true,
+        CombatInsightsLocalization.NormalEnemy => language is "de-DE" or "es-ES" or "fr-FR" or "pt-BR" or "tr-TR",
+        CombatInsightsLocalization.MinibossEnemy => language is "it-IT" or "pl-PL" or "sv-SE",
+        CombatInsightsLocalization.DamageNormal => language is "de-DE" or "es-ES" or "fr-FR" or "pt-BR" or "sv-SE" or "tr-TR",
         MultiplayerRulesLocalization.OriginalPreset => language is "de-DE" or "es-ES" or "fr-FR" or "pt-BR" or "sv-SE",
         MultiplayerRulesLocalization.GroupQliphoth => language is "de-DE" or "es-ES" or "fr-FR" or "it-IT" or
             "pl-PL" or "sv-SE" or "th-TH" or "tr-TR",

@@ -42,7 +42,7 @@ namespace SephiriaEnhancements.Inventory.Integration
             if (!State.MatchesGameplayContext(kernel.State))
                 return InventoryApplicationProgress.GameplayContextChanged;
             if (current != inventory) return InventoryApplicationProgress.InventoryChanged;
-            if (!State.IsUndo && !kernel.MatchesNativePreset(State.SourceSnapshot.NativePreset))
+            if (State.VerifyEffects && !State.IsUndo && !kernel.MatchesNativePreset(State.SourceSnapshot.NativePreset))
                 return InventoryApplicationProgress.PreferencesChanged;
             if (State.PendingOperation != InventoryPendingOperation.None)
                 return ConfirmPendingOperation(kernel);
@@ -89,8 +89,10 @@ namespace SephiriaEnhancements.Inventory.Integration
             ObservedSnapshot = snapshot;
             ObservedRuntime = runtime;
             LayoutMatched = MatchesLayout(current, State.SourceSnapshot, State.TargetLayout);
-            Verification = InventorySettlementDifferentialVerifier.Compare(State.SourceSnapshot,
-                State.TargetLayout, State.ExpectedSettlement, snapshot);
+            Verification = State.VerifyEffects
+                ? InventorySettlementDifferentialVerifier.Compare(State.SourceSnapshot,
+                    State.TargetLayout, State.ExpectedSettlement, snapshot)
+                : InventoryApplicationConfirmation.VerifyStep(snapshot, State.SourceSnapshot, State.TargetLayout, verifyEffects: false);
             return InventoryApplicationProgress.Completed;
         }
 
@@ -101,9 +103,9 @@ namespace SephiriaEnhancements.Inventory.Integration
                 return InventoryApplicationProgress.Pending;
             ObservedSnapshot = snapshot;
             ObservedRuntime = runtime;
-            if (snapshot.SettlementValidation.HasPositionEffectIssue ||
+            if (State.VerifyEffects && (snapshot.SettlementValidation.HasPositionEffectIssue ||
                 !InventoryPositionEffectComparison.ParametersMatch(State.SourceSnapshot.PositionEffects,
-                    snapshot.PositionEffects))
+                    snapshot.PositionEffects)))
                 return InventoryApplicationProgress.PositionEffectsChanged;
             if (!State.TryObservePendingOperation(snapshot, runtime, out var verification))
                 return InventoryApplicationProgress.Pending;

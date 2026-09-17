@@ -1,6 +1,5 @@
 using static SephiriaEnhancements.Inventory.NativeInventoryHudControls;
 using System;
-using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -70,8 +69,7 @@ namespace SephiriaEnhancements.Inventory
             preferencesExpanded = expanded;
             detailsExpanded = showCombos;
             previewItemKey = null;
-            page = 0;
-            expandedComboCategoryId = null;
+            comboEditor.ResetPage();
             ApplyDisclosureLayout();
             PositionBesideInventory();
             RefreshNavigation();
@@ -115,7 +113,7 @@ namespace SephiriaEnhancements.Inventory
             undo.SetForceNavRight(optimize);
             undo.SetForceNavUp(preferencesExpanded && !detailsExpanded && editGoals.interactable ? editGoals : preferencesToggle);
             Button below = !preferencesExpanded ? optimize : detailsExpanded
-                ? rows.FirstOrDefault(row => row.Root.activeInHierarchy)?.Choice ?? optimize : prioritySlots[0].Button;
+                ? comboEditor.FirstChoice ?? optimize : prioritySlots[0].Button;
             toggle.SetForceNavDown(!preferencesExpanded && undoArrangement.interactable ? undoArrangement : below);
             toggle.SetForceNavRight(preferencesExpanded ? detailsExpanded ? null : markPriorities : comboPreferences);
             (comboPreferences as UI_HorayButton)?.SetForceNavLeft(preferencesToggle);
@@ -139,7 +137,7 @@ namespace SephiriaEnhancements.Inventory
                 ((UI_HorayButton)optimize).SetForceNavUp(above);
             }
             else if (detailsExpanded) ((UI_HorayButton)optimize)?.SetForceNavUp(
-                rows.LastOrDefault(row => row.Root.activeInHierarchy)?.Choice ?? preferencesToggle);
+                comboEditor.LastChoice ?? preferencesToggle);
         }
     }
 }

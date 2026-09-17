@@ -6,6 +6,7 @@ using SephiriaEnhancements.Runtime.Inventory;
 namespace SephiriaEnhancements.Inventory
 {
     internal enum InventoryPendingOperation { None, Swap, Rotation }
+    internal enum InventoryApplicationPurpose { Optimization, Grouping, Undo }
 
     internal sealed class InventoryLayoutApplication
     {
@@ -15,24 +16,32 @@ namespace SephiriaEnhancements.Inventory
         internal InventoryLayoutApplication(InventorySnapshot source, RuntimeStateSnapshot runtime,
             InventoryOptimizationProposal proposal, InventoryApplicationPlan plan,
             ProjectedInventorySettlement expectedSettlement, float deadline)
-            : this(source, runtime, proposal.Layout, proposal, plan, expectedSettlement, deadline)
+            : this(source, runtime, proposal.Layout, proposal, plan, expectedSettlement, deadline, InventoryApplicationPurpose.Optimization)
         {
         }
 
         internal InventoryLayoutApplication(InventorySnapshot source, RuntimeStateSnapshot runtime,
             InventoryLayoutProjection undoLayout, InventoryApplicationPlan plan,
             ProjectedInventorySettlement expectedSettlement, float deadline)
-            : this(source, runtime, undoLayout, null, plan, expectedSettlement, deadline)
+            : this(source, runtime, undoLayout, null, plan, expectedSettlement, deadline, InventoryApplicationPurpose.Undo)
+        {
+        }
+
+        internal InventoryLayoutApplication(InventorySnapshot source, RuntimeStateSnapshot runtime,
+            InventoryLayoutProjection groupedLayout, InventoryApplicationPlan plan, float deadline)
+            : this(source, runtime, groupedLayout, null, plan, null, deadline, InventoryApplicationPurpose.Grouping)
         {
         }
 
         private InventoryLayoutApplication(InventorySnapshot source, RuntimeStateSnapshot runtime,
             InventoryLayoutProjection targetLayout, InventoryOptimizationProposal proposal,
-            InventoryApplicationPlan plan, ProjectedInventorySettlement expectedSettlement, float deadline)
+            InventoryApplicationPlan plan, ProjectedInventorySettlement expectedSettlement, float deadline,
+            InventoryApplicationPurpose purpose)
         {
             SourceSnapshot = source;
             SourceRuntime = runtime;
             Proposal = proposal;
+            Purpose = purpose;
             TargetLayout = targetLayout;
             Plan = plan;
             ExpectedSettlement = expectedSettlement;
@@ -45,7 +54,9 @@ namespace SephiriaEnhancements.Inventory
         internal RuntimeStateSnapshot SourceRuntime { get; }
         internal InventoryOptimizationProposal Proposal { get; }
         internal InventoryLayoutProjection TargetLayout { get; }
-        internal bool IsUndo => Proposal == null;
+        internal InventoryApplicationPurpose Purpose { get; }
+        internal bool IsUndo => Purpose == InventoryApplicationPurpose.Undo;
+        internal bool VerifyEffects => ExpectedSettlement != null;
         internal InventoryApplicationPlan Plan { get; }
         internal ProjectedInventorySettlement ExpectedSettlement { get; }
         internal float Deadline { get; }
@@ -109,7 +120,7 @@ namespace SephiriaEnhancements.Inventory
                     .First(index => SourceSnapshot.Items[index].ItemKey == operation.ItemKey);
                 observedLayout = ConfirmedLayout.WithRotation(itemIndex, item.StoneTablet.Rotation);
             }
-            verification = InventoryApplicationConfirmation.VerifyStep(snapshot, SourceSnapshot, observedLayout);
+            verification = InventoryApplicationConfirmation.VerifyStep(snapshot, SourceSnapshot, observedLayout, VerifyEffects);
             if (!verification.Matched) return true;
             if (PendingOperation == InventoryPendingOperation.Swap) NextSwap++;
             else

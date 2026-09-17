@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using SephiriaEnhancements.Diagnostics;
+using SephiriaEnhancements.Integration;
 using SephiriaEnhancements.Runtime.GameBridge.Inventory;
 
 namespace SephiriaEnhancements.ModelChecks.Runtime.Diagnostics;
@@ -17,6 +18,8 @@ internal static class LoggingChecks
             VerifyOversizedRecords(directory);
             VerifyRepeatedSupportEvents(directory);
             VerifyNativeReadFailureDetails(directory);
+            VerifyLoaderFailureDetails();
+            VerifyNativeBindings();
             VerifyIoFailure(directory);
         }
         finally { Directory.Delete(directory, recursive: true); }
@@ -113,6 +116,61 @@ internal static class LoggingChecks
         Require(lines[1].Contains("operation=unique_pair_combo") && lines[3].Contains("operation=tablet_queries") &&
             lines[3].Contains("exception=System.InvalidOperationException"), "support logs lost the failed native operation");
         Require(!string.Join("\n", lines).Contains("PRIVATE_DETAIL"), "support logs copied exception messages");
+    }
+
+    private static void VerifyLoaderFailureDetails()
+    {
+        try
+        {
+            throw new TypeInitializationException("PRIVATE_DETAIL", new MissingMethodException("PRIVATE_DETAIL"));
+        }
+        catch (Exception exception)
+        {
+            string details = SupportFailureDetails.Format(exception);
+            Require(details.Contains("cause=System.MissingMethodException"), "retain the loader failure cause");
+            Require(details.Contains("System.TypeInitializationException > System.MissingMethodException"),
+                "retain the exception chain");
+            Require(details.Contains(nameof(VerifyLoaderFailureDetails)), "retain wrapper frames when the cause has no stack");
+            Require(!details.Contains("PRIVATE_DETAIL"), "do not copy exception messages or unverified type names");
+        }
+        Require(SupportFailureDetails.Format(null!).Contains("cause=unknown"), "absent failures have no invented cause");
+    }
+
+    private static void VerifyNativeBindings()
+    {
+        var instance = new BindingFixture();
+        var read = NativeBinding.Method<Func<BindingFixture, int>>(typeof(BindingFixture), "Read");
+        var write = NativeBinding.Method<Action<BindingFixture, int>>(typeof(BindingFixture), "set_Value");
+        write(instance, 7);
+        Require(read(instance) == 7, "private method and property bindings preserve their receiver");
+        var field = NativeBinding.Field<BindingFixture, int>("value");
+        field(instance) = 9;
+        Require(read(instance) == 9, "field bindings access the specified instance");
+
+        foreach (Action bind in new Action[] {
+            () => NativeBinding.Method<Func<BindingFixture, int>>(typeof(BindingFixture), "Missing"),
+            () => NativeBinding.Field<BindingFixture, int>("Missing"),
+            () => NativeBinding.Method<Action<BindingFixture, string>>(typeof(BindingFixture), "Read") })
+        {
+            try { bind(); throw new InvalidOperationException("A broken binding must fail."); }
+            catch (NativeBindingException exception)
+            {
+                var wrapped = new TypeInitializationException("PRIVATE_DETAIL", exception);
+                string details = SupportFailureDetails.Format(wrapped);
+                Require(exception.Owner == typeof(BindingFixture) && exception.InnerException != null,
+                    "binding failure retains owner and cause");
+                Require(details.Contains("binding=" + typeof(BindingFixture).FullName + "." + exception.MemberName),
+                    "the exact failed member survives type initialization wrapping");
+                Require(!details.Contains("PRIVATE_DETAIL"), "binding details exclude arbitrary wrapper text");
+            }
+        }
+    }
+
+    private sealed class BindingFixture
+    {
+        private int value;
+        private int Value { set => this.value = value; }
+        private int Read() => value;
     }
 
     private static void VerifyIoFailure(string directory)

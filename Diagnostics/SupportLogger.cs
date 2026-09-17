@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
-using System.Linq;
+using HarmonyLib;
 using UnityEngine;
 
 namespace SephiriaEnhancements.Diagnostics
@@ -21,9 +21,14 @@ namespace SephiriaEnhancements.Diagnostics
             {
                 string version = typeof(SupportLogger).Assembly
                     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+                Assembly harmony = typeof(Harmony).Assembly;
+                string product = harmony.GetCustomAttribute<AssemblyProductAttribute>()?.Product;
+                if (product != "Harmony" && product != "HarmonyX") product = "unknown";
                 string header = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture) +
                     " INFO mod_started version=" + version + " game=" + Application.version +
-                    " build=" + BuildIdentity.Flavor;
+                    " build=" + BuildIdentity.Flavor +
+                    " harmony=" + harmony.GetName().Version + " harmony_product=" + product +
+                    " harmony_mvid=" + harmony.ManifestModule.ModuleVersionId;
                 file = new SupportLog(Path.Combine(DirectoryPath, "support.log"), header);
             }
             catch (Exception ex) { Disable(ex); }
@@ -43,13 +48,7 @@ namespace SephiriaEnhancements.Diagnostics
 
         internal static void Failure(string code, Exception exception)
         {
-            // Method identities help locate the failure without copying messages, arguments or file paths.
-            var cause = exception?.GetBaseException();
-            var frames = cause == null ? null : new System.Diagnostics.StackTrace(cause, false).GetFrames();
-            string methods = frames == null ? "" : string.Join(" > ", frames.Select(frame => frame.GetMethod())
-                .Where(method => method != null).Select(method => method.DeclaringType?.FullName + "." + method.Name));
-            Record(code, "exception=" + (exception?.GetType().FullName ?? "unknown") +
-                " cause=" + (cause?.GetType().FullName ?? "unknown") + " methods=" + methods, "ERROR");
+            Record(code, SupportFailureDetails.Format(exception), "ERROR");
         }
 
         internal static void Info(string code, object message)

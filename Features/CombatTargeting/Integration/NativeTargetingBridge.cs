@@ -9,18 +9,15 @@ namespace SephiriaEnhancements.CombatTargeting
     internal static class NativeTargetingBridge
     {
         private static readonly AccessTools.FieldRef<PlayerInputController, Vector2> Movement =
-            AccessTools.FieldRefAccess<PlayerInputController, Vector2>("moveInput");
+            NativeBinding.Field<PlayerInputController, Vector2>("moveInput");
         private static readonly AccessTools.FieldRef<PlayerInputController, bool> PointerHovered =
-            AccessTools.FieldRefAccess<PlayerInputController, bool>("isAnyUIHovered");
+            NativeBinding.Field<PlayerInputController, bool>("isAnyUIHovered");
         private static readonly Func<PlayerInputController, bool> ReadPointerHover =
-            AccessTools.MethodDelegate<Func<PlayerInputController, bool>>(
-                AccessTools.Method(typeof(PlayerInputController), "IsPointerOverClickableUI"));
+            NativeBinding.Method<Func<PlayerInputController, bool>>(typeof(PlayerInputController), "IsPointerOverClickableUI");
         private static readonly Func<PlayerInputController, bool> ValidateMovement =
-            AccessTools.MethodDelegate<Func<PlayerInputController, bool>>(
-                AccessTools.Method(typeof(PlayerInputController), "ValidateScreenFader_PlayerMove"));
+            NativeBinding.Method<Func<PlayerInputController, bool>>(typeof(PlayerInputController), "ValidateScreenFader_PlayerMove");
         private static readonly Action<UnitAvatar, Vector2> SetAimedPosition =
-            AccessTools.MethodDelegate<Action<UnitAvatar, Vector2>>(
-                AccessTools.PropertySetter(typeof(UnitAvatar), nameof(UnitAvatar.AimedPosition)));
+            NativeBinding.Method<Action<UnitAvatar, Vector2>>(typeof(UnitAvatar), "set_AimedPosition");
 
         internal static Vector2 ReadMovement(PlayerInputController input) => Movement(input);
         internal static bool IsReady(PlayerInputController input) => ValidateMovement(input);

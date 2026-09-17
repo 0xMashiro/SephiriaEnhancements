@@ -12,11 +12,9 @@ namespace SephiriaEnhancements.AutoCasting.Integration
     internal sealed class NativeAutoCasting : MonoBehaviour
     {
         private static readonly Func<PlayerInputController, Vector2> AimedPosition =
-            AccessTools.MethodDelegate<Func<PlayerInputController, Vector2>>(
-                AccessTools.Method(typeof(PlayerInputController), "GetAimedPosition"));
+            NativeBinding.Method<Func<PlayerInputController, Vector2>>(typeof(PlayerInputController), "GetAimedPosition");
         private static readonly Func<PlayerInputController, bool> InputReady =
-            AccessTools.MethodDelegate<Func<PlayerInputController, bool>>(
-                AccessTools.Method(typeof(PlayerInputController), "ValidateScreenFader_PlayerMove"));
+            NativeBinding.Method<Func<PlayerInputController, bool>>(typeof(PlayerInputController), "ValidateScreenFader_PlayerMove");
         internal static NativeAutoCasting Current { get; private set; }
         internal static bool IsRequestingCast(IntegratedActionController source) =>
             Current != null && Current.requesting && Current.actions == source;
@@ -213,13 +211,12 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             // Space requests by the native global interval and the measured round trip.
             // Failed native requests may be silent; no requests are queued for later execution.
             double interval = Math.Max(0.35, NetworkTime.rtt * 2);
-            int index = rotation.Take(Time.unscaledTimeAsDouble, 11, CanRequest, interval);
-            if (index < 0 || !NativeAutoCastingCombat.IsActive(player))
-                return;
-            Vector3 aimPosition = AimedPosition(input);
-            UnitAvatar aimTarget = input.autoAimedTarget;
-            if (!CombatTargeting.CombatTargetingController.TryPrepareAutomaticCast(actions, ref aimPosition, ref aimTarget))
-                return;
+            Vector3 aimPosition = default;
+            UnitAvatar aimTarget = null;
+            bool combatChecked = false, inCombat = false;
+            bool targetingChecked = false, targetReady = false;
+            int index = rotation.Take(Time.unscaledTimeAsDouble, 11, IsReadyToCast, PrepareRequest, interval);
+            if (index < 0) return;
             requesting = true;
             try
             {
@@ -229,9 +226,41 @@ namespace SephiriaEnhancements.AutoCasting.Integration
             {
                 requesting = false;
             }
+
+            bool PrepareRequest(int slot)
+            {
+                // Share expensive native queries within this pass, never across frames or players.
+                if (!combatChecked)
+                {
+                    inCombat = NativeAutoCastingCombat.IsActive(player);
+                    combatChecked = true;
+                }
+                if (!inCombat) return false;
+                if (IsBuffMagic(MagicAt(slot)))
+                {
+                    aimPosition = AimedPosition(input);
+                    aimTarget = null;
+                    return true;
+                }
+                if (!targetingChecked)
+                {
+                    aimPosition = AimedPosition(input);
+                    aimTarget = input.autoAimedTarget;
+                    targetReady = CombatTargeting.CombatTargetingController.TryPrepareAutomaticCast(
+                        actions, ref aimPosition, ref aimTarget);
+                    targetingChecked = true;
+                }
+                return targetReady;
+            }
         }
 
-        private bool CanRequest(int index)
+        // The native game uses this same prefab component for party-buff costs.
+        // These spells apply to the caster/party; other non-attack spells may still need aim.
+        internal static bool IsBuffMagic(Charm_Magic magic) =>
+            magic != null && magic.ContainedMagic != null && magic.ContainedMagic.magicPrefab != null &&
+            magic.ContainedMagic.magicPrefab.GetComponent<ActiveSkill_Buff>() != null;
+
+        private bool IsReadyToCast(int index)
         {
             Charm_Magic magic = MagicAt(index);
             return IsSelected(magic) && magic.CanCast(player, useCooldown: true, useMp: true) ==

@@ -15,9 +15,8 @@ namespace SephiriaEnhancements.ModJournal.Integration
     {
         private const string Category = "SephiriaEnhancements";
         private static readonly Action<UI_JournalContent_Lore, UI_JournalPanel_SearchOptionButton>
-            SelectCategory = AccessTools.MethodDelegate<
-                Action<UI_JournalContent_Lore, UI_JournalPanel_SearchOptionButton>>(
-                    AccessTools.Method(typeof(UI_JournalContent_Lore), "OnLocationIconClick"));
+            SelectCategory = NativeBinding.Method<Action<UI_JournalContent_Lore, UI_JournalPanel_SearchOptionButton>>(
+                typeof(UI_JournalContent_Lore), "OnLocationIconClick");
 
         private static readonly string[] Addresses =
         {

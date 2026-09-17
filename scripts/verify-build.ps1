@@ -10,6 +10,22 @@ $pe = [Reflection.PortableExecutable.PEReader]::new($stream)
 try {
     # Read metadata without loading or executing the Mod and its game dependencies.
     $reader = [Reflection.Metadata.PEReaderExtensions]::GetMetadataReader($pe)
+    # Other Mods can load Harmony builds without the four-argument delegate overload.
+    # Check the compiled reference, since optional arguments are inserted by C#.
+    foreach ($handle in $reader.MemberReferences) {
+        $member = $reader.GetMemberReference($handle)
+        if ($reader.GetString($member.Name) -ne 'MethodDelegate' -or
+            $member.Parent.Kind -ne [Reflection.Metadata.HandleKind]::TypeReference) { continue }
+        $owner = $reader.GetTypeReference([Reflection.Metadata.TypeReferenceHandle]$member.Parent)
+        if ($reader.GetString($owner.Namespace) -ne 'HarmonyLib' -or
+            $reader.GetString($owner.Name) -ne 'AccessTools') { continue }
+        $signature = $reader.GetBlobReader($member.Signature)
+        $header = $signature.ReadByte()
+        if (($header -band 0x10) -ne 0) { $null = $signature.ReadCompressedInteger() }
+        if ($signature.ReadCompressedInteger() -eq 4) {
+            throw 'Unsupported Harmony MethodDelegate reference. Use runtime delegate binding for native methods.'
+        }
+    }
     $types = @($reader.TypeDefinitions | ForEach-Object {
         $definition = $reader.GetTypeDefinition($_)
         $reader.GetString($definition.Namespace) + '.' + $reader.GetString($definition.Name)

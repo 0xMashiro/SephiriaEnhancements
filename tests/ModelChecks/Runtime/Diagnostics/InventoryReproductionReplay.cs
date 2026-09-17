@@ -46,6 +46,19 @@ internal static class InventoryReproductionReplay
         JsonNode.DeepEquals(JsonNode.Parse(InventoryReproductionJson.Serialize(InventoryReproductionEvidence.Policy(policy))),
             JsonNode.Parse(recorded.GetRawText()));
 
+    internal static InventorySettlementDifferentialReport? ReplayApplicationDifferential(InventorySnapshot snapshot, JsonElement evidence)
+    {
+        JsonElement proposal = evidence.GetProperty("Proposal");
+        if (evidence.GetProperty("ActualSnapshot").ValueKind == JsonValueKind.Null || proposal.ValueKind == JsonValueKind.Null)
+            return null;
+        var actual = Read<InventorySnapshot>(evidence.GetProperty("ActualSnapshot"));
+        JsonElement verificationLayout = evidence.GetProperty("VerificationLayout");
+        var layout = Read<InventoryLayoutProjection>(verificationLayout.ValueKind != JsonValueKind.Null
+            ? verificationLayout : proposal.GetProperty("Layout"));
+        return InventorySettlementDifferentialVerifier.Compare(snapshot, layout,
+            InventorySettlementProjector.Evaluate(snapshot, layout), actual);
+    }
+
     internal static void Run(string[] args)
     {
         if (args.Length < 2) throw new ArgumentException("Usage: --inventory-replay <jsonl> [case-id] [--no-time-limit]");
@@ -86,15 +99,8 @@ internal static class InventoryReproductionReplay
             InventoryLayoutProjection layout = result.Layout;
             ProjectedInventorySettlement projected = InventorySettlementProjector.Evaluate(snapshot, layout);
             JsonElement recordedProposal = evidence.GetProperty("Proposal");
-            InventorySettlementDifferentialReport? differential = null;
             // Application diagnosis must use the recorded layout, not a new search result.
-            if (evidence.GetProperty("ActualSnapshot").ValueKind != JsonValueKind.Null && recordedProposal.ValueKind != JsonValueKind.Null)
-            {
-                var actual = Read<InventorySnapshot>(evidence.GetProperty("ActualSnapshot"));
-                var recordedLayout = Read<InventoryLayoutProjection>(recordedProposal.GetProperty("Layout"));
-                differential = InventorySettlementDifferentialVerifier.Compare(snapshot, recordedLayout,
-                    InventorySettlementProjector.Evaluate(snapshot, recordedLayout), actual);
-            }
+            InventorySettlementDifferentialReport? differential = ReplayApplicationDifferential(snapshot, evidence);
             Console.WriteLine(InventoryReproductionJson.Serialize(new
             {
                 CaseId = input.GetProperty("Id").GetString(),

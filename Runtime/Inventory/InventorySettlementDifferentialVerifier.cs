@@ -130,9 +130,11 @@ namespace SephiriaEnhancements.Runtime.Inventory
                         new[] { "DifferentialItemIdentityInvalid" }, coverage);
                 }
             }
+            var artifactCells = new HashSet<int>();
             for (int index = 0; index < source.Items.Count; index++)
             {
                 InventoryItemSnapshot sourceItem = source.Items[index];
+                if (sourceItem.Artifact != null) artifactCells.Add(targetLayout.GetCell(index));
                 if (!actualItems.TryGetValue(sourceItem.ItemKey,
                         out InventoryItemSnapshot actualItem))
                 {
@@ -167,7 +169,9 @@ namespace SephiriaEnhancements.Runtime.Inventory
                 InventoryCellSnapshot observed = actual.Cells[cell];
                 if (predicted.Level != observed.Level)
                     mismatches.Add("CellLevel:" + cell);
-                if (predicted.MaximumLevel != observed.MaxLevel)
+                // Vacated cells retain a path-dependent maximum cache. Only
+                // an artifact occupying the target cell gives it meaning.
+                if (artifactCells.Contains(cell) && predicted.MaximumLevel != observed.MaxLevel)
                     mismatches.Add("CellMaximumLevel:" + cell);
                 if (predicted.TemporaryLevel != observed.TemporaryLevel)
                     mismatches.Add("CellTemporaryLevel:" + cell);

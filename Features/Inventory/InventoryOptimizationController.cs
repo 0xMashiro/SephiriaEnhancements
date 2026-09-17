@@ -624,9 +624,16 @@ namespace SephiriaEnhancements.Inventory
 #endif
                     if (progress == InventoryApplicationProgress.StepRejected)
                     {
+#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
+                        RecordReproduction(application.Verification.Mismatches.Contains("ApplicationLayoutChanged")
+                                ? InventoryReproductionReason.LayoutMismatch : InventoryReproductionReason.SettlementMismatch,
+                            application.ObservedSnapshot, application.Verification,
+                            verificationLayout: application.State.VerificationLayout);
+#endif
                         DeveloperLogger.RecordInventorySettlementDifferential(application.Verification, application.ObservedRuntime);
                         SupportLogger.Record("inventory_application_step_rejected",
-                            "mismatches=" + application.Verification.Mismatches.Count, "WARN");
+                            "mismatches=" + application.Verification.Mismatches.Count +
+                            " issues=" + string.Join(",", application.Verification.Mismatches), "WARN");
                     }
                     ShowOperationMessage(progress switch
                     {

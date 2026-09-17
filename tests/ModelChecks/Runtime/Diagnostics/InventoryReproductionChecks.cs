@@ -22,8 +22,28 @@ internal static class InventoryReproductionChecks
         VerifyPolicyComparison();
         VerifyClassification();
         VerifyCaptureModes();
+        VerifyIntermediateLayoutReplay();
         VerifyWriter();
         Console.WriteLine("Inventory reproduction: input round-trip, replay, classification, separate writer and I/O failure passed");
+    }
+
+    private static void VerifyIntermediateLayoutReplay()
+    {
+        var source = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0, 1, 2 }, new[] { 0 });
+        var preferences = InventoryOptimizationPreferences.Default;
+        var policy = InventoryOptimizationPolicyResolver.Resolve(source, preferences);
+        var budget = new InventorySearchBudget(4, 100, 1000);
+        var proposal = InventoryOptimizer.Solve(source, policy, budget);
+        var intermediate = new InventoryLayoutProjection(new[] { 1 }, new[] { 0 });
+        var actual = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0, 1, 2 }, new[] { 1 });
+        Require(!proposal.Layout.ContentEquals(intermediate), "fixture must stop before the proposed layout");
+        var capture = new InventoryReproductionCase(source, preferences, policy, budget);
+        using JsonDocument record = JsonDocument.Parse(InventoryReproductionJson.Serialize(capture.Record(
+            InventoryReproductionReason.SettlementMismatch, proposal, actual,
+            verificationLayout: intermediate)));
+        Require(InventoryReproductionReplay.ReplayApplicationDifferential(source,
+            record.RootElement.GetProperty("Evidence"))?.Matched == true,
+            "partial application replay compared against the final proposal instead of the attempted step");
     }
 
     private static void VerifyRoundTrip(InventorySnapshot snapshot)

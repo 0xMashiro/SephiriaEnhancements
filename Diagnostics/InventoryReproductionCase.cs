@@ -79,7 +79,8 @@ namespace SephiriaEnhancements.Diagnostics
 
         internal object Record(InventoryReproductionReason reason, InventoryOptimizationProposal proposal = null,
             InventorySnapshot actual = null, InventorySettlementDifferentialReport differential = null,
-            Exception exception = null, int swapsCompleted = 0, int rotationsCompleted = 0) => new
+            Exception exception = null, int swapsCompleted = 0, int rotationsCompleted = 0,
+            InventoryLayoutProjection verificationLayout = null) => new
             {
                 Event = "inventory_reproduction",
                 Utc = DateTime.UtcNow.ToString("O"),
@@ -90,6 +91,7 @@ namespace SephiriaEnhancements.Diagnostics
                     Policy = InventoryReproductionEvidence.Policy(Policy),
                     SourceValidation = Snapshot?.SettlementValidation,
                     Proposal = InventoryReproductionEvidence.Proposal(proposal),
+                    VerificationLayout = verificationLayout,
                     ActualSnapshot = actual,
                     ActualValidation = actual?.SettlementValidation,
                     Differential = InventoryReproductionEvidence.Differential(differential)

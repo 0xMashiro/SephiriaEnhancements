@@ -110,11 +110,11 @@ namespace SephiriaEnhancements.Inventory
 
         private void RecordReproduction(InventoryReproductionReason reason, InventorySnapshot actual = null,
             InventorySettlementDifferentialReport differential = null, Exception exception = null,
-            InventoryOptimizationProposal proposal = null)
+            InventoryOptimizationProposal proposal = null, InventoryLayoutProjection verificationLayout = null)
         {
             if (reproductionCase != null)
                 reproductionLog?.Record(reproductionCase.Record(reason, proposal ?? application?.State.Proposal, actual, differential, exception,
-                    application?.State.NextSwap ?? 0, application?.State.NextRotation ?? 0));
+                    application?.State.NextSwap ?? 0, application?.State.NextRotation ?? 0, verificationLayout));
         }
     }
 }

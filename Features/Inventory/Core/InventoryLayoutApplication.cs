@@ -61,6 +61,7 @@ namespace SephiriaEnhancements.Inventory
         internal ProjectedInventorySettlement ExpectedSettlement { get; }
         internal float Deadline { get; }
         internal InventoryLayoutProjection ConfirmedLayout { get; private set; }
+        internal InventoryLayoutProjection VerificationLayout { get; private set; }
         internal long ConfirmedRevision { get; private set; }
         internal int NextSwap { get; private set; }
         internal int NextRotation { get; private set; }
@@ -120,6 +121,7 @@ namespace SephiriaEnhancements.Inventory
                     .First(index => SourceSnapshot.Items[index].ItemKey == operation.ItemKey);
                 observedLayout = ConfirmedLayout.WithRotation(itemIndex, item.StoneTablet.Rotation);
             }
+            VerificationLayout = observedLayout;
             verification = InventoryApplicationConfirmation.VerifyStep(snapshot, SourceSnapshot, observedLayout, VerifyEffects);
             if (!verification.Matched) return true;
             if (PendingOperation == InventoryPendingOperation.Swap) NextSwap++;

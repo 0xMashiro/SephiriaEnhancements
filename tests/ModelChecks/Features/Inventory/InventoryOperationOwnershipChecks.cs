@@ -11,6 +11,7 @@ internal static class InventoryOperationOwnershipChecks
     {
         VerifySearchCancellation();
         VerifySwapAcknowledgements();
+        VerifyVacatedCellMaximum();
         VerifyOperationContinuation();
         VerifyRotationAcknowledgements();
         Console.WriteLine("InventoryOperationOwnership: task isolation, cancellation, continuation/undo gates, stale/duplicate acknowledgements, whole-board rejection and multi-click rotations passed");
@@ -86,6 +87,7 @@ internal static class InventoryOperationOwnershipChecks
         var unrelatedMove = InventorySnapshotFixture.ArtifactsAtLevels(levels, target.CopyCells());
         Require(application.TryObservePendingOperation(unrelatedMove, Runtime(2), out var rejected) && !rejected.Matched &&
             application.NextSwap == 0 && application.ConfirmedRevision == 1 &&
+            application.VerificationLayout.ContentEquals(intermediate) &&
             application.PendingOperation == InventoryPendingOperation.Swap, "unrelated move advanced cursor");
         var wrongSettlement = InventorySnapshotFixture.ArtifactsAtLevels(new[] { -1, 0, 3, 6 }, intermediate.CopyCells());
         Require(application.TryObservePendingOperation(wrongSettlement, Runtime(2), out rejected) && !rejected.Matched &&
@@ -101,6 +103,73 @@ internal static class InventoryOperationOwnershipChecks
         var replacement = Application(source, target);
         Require(!replacement.HasIssuedOperation && replacement.NextSwap == 0 && replacement.ConfirmedRevision == 1 &&
             replacement.PendingOperation == InventoryPendingOperation.None, "application state leaked into replacement");
+    }
+
+    private static void VerifyVacatedCellMaximum()
+    {
+        foreach (bool withTablet in new[] { false, true })
+        {
+            int[] maximums = { 10, 0, 0 };
+            var source = Capture(0, maximums, withTablet ? 1 : -1);
+            var target = new InventoryLayoutProjection(withTablet ? new[] { 2, 0 } : new[] { 2 },
+                new int[withTablet ? 2 : 1]);
+            var planned = Application(source, target);
+            var key = source.Items[0].ItemKey;
+            var plan = new InventoryApplicationPlan(new[]
+            {
+                new InventorySwapOperation(0, 1, key, withTablet ? source.Items[1].ItemKey : null),
+                new InventorySwapOperation(1, 2, key, null)
+            }, Array.Empty<InventoryRotationOperation>());
+            var application = new InventoryLayoutApplication(source, Runtime(), planned.Proposal, plan,
+                planned.ExpectedSettlement, 20);
+            InventorySnapshot actual = source;
+            for (int step = 0; step < 2; step++)
+            {
+                application.BeginSwap(step + 1);
+                // Native permission acquisition clears the old artifact cell;
+                // release writes its maximum only at the new artifact cell.
+                maximums[step] = -1;
+                maximums[step + 1] = 10;
+                actual = Capture(step + 1, maximums, withTablet ? 0 : -1);
+                Require(application.TryObservePendingOperation(actual, Runtime(step + 2), out var report) && report.Matched,
+                    "vacated artifact cell cache rejected a valid move: " + string.Join(",", report?.Mismatches ?? Array.Empty<string>()));
+            }
+            Require(application.NextSwap == 2 && InventorySettlementDifferentialVerifier.Compare(source,
+                target, planned.ExpectedSettlement, actual).Matched, "final check rejected a path-dependent empty cell maximum");
+            maximums[2] = 9;
+            var wrongMaximum = Capture(2, maximums, withTablet ? 0 : -1);
+            Require(InventoryApplicationConfirmation.VerifyStep(wrongMaximum, source, target).Mismatches.Contains("CellMaximumLevel:2"),
+                "artifact maximum mismatch was ignored");
+            maximums[2] = 10;
+            var wrongLevel = Capture(2, maximums, withTablet ? 0 : -1, emptyCellLevel: 1);
+            Require(InventoryApplicationConfirmation.VerifyStep(wrongLevel, source, target).Mismatches.Contains("CellLevel:1"),
+                "empty cell level mismatch was ignored");
+        }
+
+        static InventorySnapshot Capture(int artifactCell, int[] maximums, int tabletCell, int emptyCellLevel = 0)
+        {
+            var basis = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 0, 0, 0 }, new[] { artifactCell });
+            var cells = basis.Cells.Select(cell =>
+            {
+                int level = cell.Index == 1 && artifactCell != 1 ? emptyCellLevel : 0;
+                InventoryBaselineInference.TryInfer(level, maximums[cell.Index], 0, 0, 0, 0, true,
+                    cell.Index == artifactCell, default, out var settlement);
+                return new InventoryCellSnapshot(cell.Index, cell.X, cell.Y, level, maximums[cell.Index],
+                    0, 0, 0, 0, false, settlement);
+            }).ToArray();
+            var items = basis.Items.ToList();
+            if (tabletCell >= 0)
+            {
+                var tablet = InventorySnapshotFixture.Tablets(0, 0).Items[0];
+                var rotations = Enumerable.Range(0, 4).Select(rotation => new TabletRotationProjectionSnapshot(rotation,
+                    Array.Empty<TabletAdditionSnapshot>(), Array.Empty<TabletAdditionSnapshot>(), true)).ToArray();
+                var placements = Enumerable.Range(0, 3).Select(cell => new TabletPlacementProjectionSnapshot(cell, cell, 0, rotations)).ToArray();
+                items.Add(new InventoryItemSnapshot(tablet.InstanceId, tablet.EntityId, 1, tabletCell, tabletCell, 0,
+                    "Tablet", "", "StoneTablet", "Normal", Array.Empty<string>(), InventoryItemKind.StoneTablet, null,
+                    new StoneTabletSnapshot(0, true, false, true, false, "", "", placementProjections: placements)));
+            }
+            return new InventorySnapshot(3, 3, cells, items.ToArray());
+        }
     }
 
     private static void VerifyRotationAcknowledgements()

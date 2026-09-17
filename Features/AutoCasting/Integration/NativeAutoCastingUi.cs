@@ -13,6 +13,10 @@ namespace SephiriaEnhancements.AutoCasting.Integration
 {
     internal sealed class NativeAutoCastingUi : MonoBehaviour
     {
+        private static readonly AccessTools.FieldRef<UI_CharmTooltip, RectTransform> SkillQuickSlotGuide =
+            NativeBinding.Field<UI_CharmTooltip, RectTransform>("skillQuickSlotGuide");
+        private static readonly AccessTools.FieldRef<UI_CharmTooltip, RectTransform> SkillQuickSlotGuideJoystick =
+            NativeBinding.Field<UI_CharmTooltip, RectTransform>("skillQuickSlotGuideJoystick");
         private UI_CharacterStatusPanel panel;
         private TextMeshProUGUI hint;
         private TextMeshProUGUI textTemplate;
@@ -142,30 +146,41 @@ namespace SephiriaEnhancements.AutoCasting.Integration
 
         private void UpdateHint(UI_PlayerSkillIcon selected)
         {
+            UI_CharmTooltip tooltip = UIManager.Instance.GetElement<UI_CharmTooltip>();
+            bool supported = selected != null && selected.transform.IsChildOf(panel.skillIconZone) &&
+                panel.PlayerAvatar == LocalPlayerResolver.Resolve() &&
+                NativeAutoCasting.Current?.CanSelect(selected.Magic) == true &&
+                tooltip != null && tooltip.IsOpened && ReferenceEquals(tooltip.Target, selected) && selected.Showing;
+            if (!supported)
+            {
+                if (hint != null) hint.gameObject.SetActive(false);
+                return;
+            }
             if (hint == null)
             {
-                hint = CreateText(panel.skillPanel, textTemplate, "AutoCastingHint");
-                RectTransform rect = hint.rectTransform;
-                rect.anchorMin = new Vector2(0f, 0f);
-                rect.anchorMax = new Vector2(1f, 0f);
-                rect.pivot = new Vector2(0.5f, 0f);
-                rect.offsetMin = new Vector2(7f, 23f);
-                rect.offsetMax = new Vector2(-7f, 47f);
-                hint.alignment = TextAlignmentOptions.BottomLeft;
-                UI_CommonTooltipOpener help = hint.gameObject.AddComponent<UI_CommonTooltipOpener>();
-                help.tooltipName = new LocalizedString(AutoCastingLocalization.Title);
-                help.tooltipContext = new LocalizedString(AutoCastingLocalization.Help);
-                help.UpdateTooltipData();
-                hint.raycastTarget = true;
+                RectTransform guide = SkillQuickSlotGuide(tooltip);
+                TextMeshProUGUI template = guide.GetComponentInChildren<UI_LocalizationStringText>(true).text;
+                // Keep the native language/font and pixel-size components. The tooltip's
+                // vertical layout owns width, height and spacing, including wrapped text.
+                hint = Instantiate(template, guide.parent, false);
+                hint.name = "AutoCastingHint";
+                hint.GetComponent<UI_LocalizationStringText>().enabled = false;
+                hint.transform.SetSiblingIndex(Mathf.Max(guide.GetSiblingIndex(),
+                    SkillQuickSlotGuideJoystick(tooltip).GetSiblingIndex()) + 1);
+                hint.alignment = TextAlignmentOptions.TopLeft;
+                hint.textWrappingMode = TextWrappingModes.Normal;
+                hint.raycastTarget = false;
             }
-            bool supported = selected != null && NativeAutoCasting.Current?.CanSelect(selected.Magic) == true;
-            hint.gameObject.SetActive(supported);
-            if (!supported) return;
+            hint.gameObject.SetActive(true);
             string binding = BindingLabel();
             hint.text = ModLocalization.Get(AutoCastingLocalization.Title) + ": " +
                 ModLocalization.Get(NativeAutoCasting.Current.SelectionStateKey(selected.Magic)) +
                 "\n" + string.Format(ModLocalization.Get(AutoCastingLocalization.Hint), binding);
-            NativeLocalizedText.SetShrinkOnlySize(hint, textTemplate.fontSize, textTemplate.fontSize * 0.75f);
+        }
+
+        private void OnDisable()
+        {
+            if (hint != null) hint.gameObject.SetActive(false);
         }
 
         private static string BindingLabel()

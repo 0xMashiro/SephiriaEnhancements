@@ -60,6 +60,7 @@ namespace SephiriaEnhancements.DefeatRetry
         private static long retryId;
         private static bool notified, traveled, worldLoaded, saveVerified;
         private static Vector3 destination;
+        private static NativeRetryArrival arrival;
         private static double deadline;
         private static FloorGenerator requestedCameraFloor;
         private static GameCamera requestedCamera;
@@ -77,6 +78,7 @@ namespace SephiriaEnhancements.DefeatRetry
             if (player == null) return;
             connection = NetworkClient.connection;
             floor = floorGuid;
+            arrival = new NativeRetryArrival(player, floorGuid, position);
             retryId = id;
             playerState = account ?? throw new InvalidOperationException("Retry account checkpoint is missing.");
             // Closing cancels the old settlement's delayed save callback before
@@ -111,7 +113,11 @@ namespace SephiriaEnhancements.DefeatRetry
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static void OnTravelPreparedCore() => traveled = true;
+        private static void OnTravelPreparedCore()
+        {
+            arrival?.Reset();
+            traveled = true;
+        }
 
         internal static void ObserveWorldSession(bool isSavedSession)
         {
@@ -159,7 +165,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 Clear();
                 return;
             }
-            if (!notified || !traveled || !NativeRetryArrival.IsAtDestination(player, floor, destination)) return;
+            if (!notified || !traveled || !arrival.Observe()) return;
             if (SaveManager.IsSaving != SaveManager.ESaveState.None) return;
             if (!playerState.Matches(player.GetComponent<PlayerSpawner>())) return;
             if (!saveVerified)
@@ -214,6 +220,7 @@ namespace SephiriaEnhancements.DefeatRetry
             floor = null;
             runFile = null;
             playerState = null;
+            arrival = null;
             requestedCamera = null;
             requestedCameraFloor = null;
             notified = traveled = worldLoaded = saveVerified = PreserveClientRun = false;

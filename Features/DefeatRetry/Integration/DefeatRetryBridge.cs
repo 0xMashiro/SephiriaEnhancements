@@ -24,7 +24,7 @@ namespace SephiriaEnhancements.Integration
         private static bool integrationAvailable;
         private static long retryId;
         private static readonly RetryRecovery<NetworkConnectionToClient> recovery = new RetryRecovery<NetworkConnectionToClient>();
-        private static readonly Dictionary<NetworkConnectionToClient, Vector3> destinations = new Dictionary<NetworkConnectionToClient, Vector3>();
+        private static readonly Dictionary<NetworkConnectionToClient, NativeRetryArrival> destinations = new Dictionary<NetworkConnectionToClient, NativeRetryArrival>();
         private static readonly HashSet<NetworkConnectionToClient> receipts = new HashSet<NetworkConnectionToClient>();
         private static string recoveryFloor;
         private static RetryRecoveryStatus publishedStatus;
@@ -158,7 +158,8 @@ namespace SephiriaEnhancements.Integration
                 foreach (var peer in NetworkServer.connections.Values)
                 {
                     PlayerAvatar avatar = peer.identity?.GetComponent<PlayerAvatar>();
-                    if (DefeatRetryFeature.TryGetPendingDestination(avatar, out Vector3 position)) destinations.Add(peer, position);
+                    if (DefeatRetryFeature.TryGetPendingDestination(avatar, out Vector3 position))
+                        destinations.Add(peer, new NativeRetryArrival(avatar, floorGuid, position));
                 }
                 recovery.Begin(retryId, destinations.Keys, Time.realtimeSinceStartupAsDouble + RecoveryTimeout);
                 if (destinations.Count != NetworkServer.connections.Count) recovery.Fail(RetryRecoveryFailure.RestoreFailed);
@@ -166,14 +167,15 @@ namespace SephiriaEnhancements.Integration
             }
             if (transition == RetryTransition.Cancel) ClearArrivals();
             var message = new Notification { Transition = transition, CheckpointId = id, FloorGuid = floorGuid, RetryId = retryId };
-            destinations.TryGetValue(NetworkServer.localConnection, out message.Position);
+            if (destinations.TryGetValue(NetworkServer.localConnection, out NativeRetryArrival localArrival))
+                message.Position = localArrival.Destination;
             if (transition == RetryTransition.RetryFloor || transition == RetryTransition.RetryBoss)
                 message.PlayerState = DefeatRetryFeature.GetPendingPlayerState(LocalPlayerResolver.Resolve());
             Receive(message);
             foreach (var peer in peers)
                 if (peer.isReady && peer != NetworkServer.localConnection)
                 {
-                    destinations.TryGetValue(peer, out message.Position);
+                    message.Position = destinations.TryGetValue(peer, out NativeRetryArrival arrival) ? arrival.Destination : default;
                     if (transition == RetryTransition.RetryFloor || transition == RetryTransition.RetryBoss)
                         message.PlayerState = DefeatRetryFeature.GetPendingPlayerState(peer.identity?.GetComponent<PlayerAvatar>());
                     peer.Send(message);
@@ -209,6 +211,8 @@ namespace SephiriaEnhancements.Integration
         internal static long CurrentRecoveryId => retryId;
         internal static long LocalRecoveryId => receivedRetryId;
         internal static bool HasRecoveryFailed(long id) => id == retryId && recovery.Status == RetryRecoveryStatus.Failed;
+        internal static bool CanContinueRestart(long id) => id == retryId &&
+            (recovery.Status == RetryRecoveryStatus.Waiting || recovery.Status == RetryRecoveryStatus.Completed);
         internal static void FailRecovery()
         {
             if (recovery.Status != RetryRecoveryStatus.Waiting)
@@ -227,21 +231,44 @@ namespace SephiriaEnhancements.Integration
 
         private static void AcceptReceipt(NetworkConnectionToClient peer, long id, bool success)
         {
-            if (id != retryId || !recovery.IsWaiting(peer)) return;
-            if (success) receipts.Add(peer);
-            else recovery.Report(id, peer, false);
+            if (id != retryId || recovery.Status != RetryRecoveryStatus.Waiting || !destinations.ContainsKey(peer)) return;
+            if (success)
+            {
+                if (!recovery.IsWaiting(peer)) return;
+                receipts.Add(peer);
+            }
+            else recovery.Fail(RetryRecoveryFailure.RestoreFailed);
             SupportLogger.Record("retry_client_receipt", "connection=" + peer.connectionId + " success=" + success,
                 success ? "INFO" : "ERROR");
         }
 
         private static void ConfirmDestinations()
         {
+            if (DefeatRetryFeature.IsRetrying || recovery.Status != RetryRecoveryStatus.Waiting) return;
+            // Validate every participant before the last receipt can complete
+            // the recovery; dictionary order must not decide whether failure wins.
             foreach (var pair in destinations)
-                if (receipts.Contains(pair.Key) && recovery.IsWaiting(pair.Key) &&
-                    NativeRetryArrival.IsAtDestination(pair.Key.identity?.GetComponent<PlayerAvatar>(), recoveryFloor, pair.Value) &&
-                    DefeatRetryFeature.GetPendingPlayerState(pair.Key.identity?.GetComponent<PlayerAvatar>())?
-                        .Matches(pair.Key.identity.GetComponent<PlayerSpawner>()) == true)
+            {
+                PlayerAvatar player = pair.Key.identity?.GetComponent<PlayerAvatar>();
+                if (player == null || player != pair.Value.Player ||
+                    (!recovery.IsWaiting(pair.Key) && !pair.Value.IsCurrent))
+                {
+                    recovery.Fail(RetryRecoveryFailure.RestoreFailed);
+                    return;
+                }
+            }
+            foreach (var pair in destinations)
+            {
+                if (!recovery.IsWaiting(pair.Key)) continue;
+                PlayerAvatar player = pair.Value.Player;
+                // Initialize owns the move request. Never observe the defeated
+                // world before that request has been issued for this player.
+                if (DefeatRetryFeature.HasPendingPlacement(player)) continue;
+                bool arrived = pair.Value.Observe();
+                if (arrived && receipts.Contains(pair.Key) &&
+                    DefeatRetryFeature.GetPendingPlayerState(player)?.Matches(player.GetComponent<PlayerSpawner>()) == true)
                     recovery.Report(retryId, pair.Key, true);
+            }
         }
 
         private static void PublishRecoveryResult()
@@ -253,7 +280,7 @@ namespace SephiriaEnhancements.Integration
             {
                 foreach (var pair in destinations)
                     SupportLogger.Record("retry_server_incomplete", "retry=" + retryId + " receipt=" + receipts.Contains(pair.Key) +
-                        " " + NativeRetryArrival.Describe(pair.Key.identity?.GetComponent<PlayerAvatar>(), recoveryFloor, pair.Value));
+                        " " + NativeRetryArrival.Describe(pair.Key.identity?.GetComponent<PlayerAvatar>(), recoveryFloor, pair.Value.Destination));
                 DefeatRetryFeature.AbortRecovery();
             }
             var message = new Notification { RetryId = retryId, Failure = recovery.Failure,
@@ -346,7 +373,7 @@ namespace SephiriaEnhancements.Integration
                 () => NativeRetryCapture.Cancel(continueBattle: true));
             integrationAvailable = false;
             bool restoring = DefeatRetryFeature.IsRetrying || recovery.BlocksBattle ||
-                DefeatRetryClientRestore.PreserveClientRun || NativeRetryFailure.IsPending;
+                DefeatRetryClientRestore.IsRestoring || LocalRecoveryPending || NativeRetryFailure.IsPending;
             try
             {
                 if (restoring && NetworkServer.active)
@@ -354,6 +381,7 @@ namespace SephiriaEnhancements.Integration
                     FailRecovery();
                     PublishRecoveryResult();
                 }
+                else if (LocalRecoveryPending) ReportArrival(receivedRetryId, success: false);
                 else if (restoring) DefeatRetryClientRestore.ReportFailure();
             }
             finally

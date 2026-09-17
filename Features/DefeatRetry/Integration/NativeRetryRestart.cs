@@ -8,8 +8,8 @@ using SephiriaEnhancements.Integration;
 namespace SephiriaEnhancements.DefeatRetry
 {
     // Cancel only the native restart coroutine owned by this retry, never all
-    // coroutines on the network manager. A late continuation must not rebuild
-    // a failed recovery after its placement/save guards have been released.
+    // coroutines on the network manager. Failure, cancellation or a newer retry
+    // must stop late continuations after the old placement/save guards are gone.
     [HarmonyPatch]
     internal static class NativeRetryRestart
     {
@@ -48,13 +48,13 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             try
             {
-                while (!DefeatRetryBridge.HasRecoveryFailed(id))
+                while (DefeatRetryBridge.CanContinueRestart(id))
                 {
                     bool next;
                     try { next = restart.MoveNext(); }
                     catch
                     {
-                        DefeatRetryBridge.FailRecovery();
+                        if (DefeatRetryBridge.CanContinueRestart(id)) DefeatRetryBridge.FailRecovery();
                         throw;
                     }
                     if (!next) break;
@@ -64,7 +64,8 @@ namespace SephiriaEnhancements.DefeatRetry
             finally
             {
                 (restart as IDisposable)?.Dispose();
-                if (DefeatRetryBridge.HasRecoveryFailed(id) && manager != null)
+                if (!DefeatRetryBridge.CanContinueRestart(id) &&
+                    id == DefeatRetryBridge.CurrentRecoveryId && manager != null)
                     Restarting.SetValue(manager, false);
             }
         }

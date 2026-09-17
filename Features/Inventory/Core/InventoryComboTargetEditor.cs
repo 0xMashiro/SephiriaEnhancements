@@ -108,7 +108,7 @@ namespace SephiriaEnhancements.Inventory
                     value, target.Strength));
             }
             return new InventoryOptimizationPreferences(preferences.SearchEffort, preferences.AllowStoneTabletRotation,
-                preferences.ArtifactPreferences.ToArray(), rules.ToArray(), preferences.AllowAdditionalMagicCost);
+                preferences.ArtifactPreferences.ToArray(), rules.ToArray(), preferences.AllowAdditionalMagicCost, preferences.PreferPresetCombos);
         }
 
         internal static InventoryOptimizationPreferences SetStrength(InventoryOptimizationPreferences preferences,

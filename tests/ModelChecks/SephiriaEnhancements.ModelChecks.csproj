@@ -39,6 +39,7 @@
     <Compile Include="../../Features/AutoCasting/AutoCastingLocalization.cs" Link="AutoCasting/AutoCastingLocalization.cs" />
     <Compile Include="../../Features/AutoCasting/Core/*.cs" Link="AutoCasting/%(Filename)%(Extension)" />
     <Compile Include="../../Features/AutoCasting/Integration/NativeAutoCastingBindings.cs" Link="AutoCasting/NativeAutoCastingBindings.cs" />
+    <Compile Include="../../Features/Inventory/Presentation/InventoryPresetComboLocalization.cs" />
     <Compile Include="../../Features/Inventory/Presentation/InventoryMagicCostLocalization.cs" Link="Inventory/InventoryMagicCostLocalization.cs" />
     <Compile Include="../../Features/Inventory/Presentation/InventoryPresetIntentLocalization.cs" Link="Inventory/InventoryPresetIntentLocalization.cs" />
     <Compile Include="../../Features/Inventory/Presentation/RewardHighlightLocalization.cs" Link="Inventory/RewardHighlightLocalization.cs" />

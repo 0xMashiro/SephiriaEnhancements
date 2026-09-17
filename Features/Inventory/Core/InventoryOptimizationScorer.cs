@@ -260,7 +260,9 @@ namespace SephiriaEnhancements.Inventory
                 orderedPriorityCompletionPoints:
                     orderedPriorityCompletionPoints,
                 positionEffectRegressions: CountPositionEffectRegressions(settlement),
-                automaticLevelRegressions: CountAutomaticLevelRegressions(settlement),
+                magicCostRegressions: CountLevelRegressions(settlement, magicCost: true),
+                statPenaltyRegressions: CountLevelRegressions(settlement, magicCost: false),
+                preferPresetCombos: policy.PreferPresetCombos,
                 hardConstraintViolations: hardViolations, hardConstraintCompletionPoints: hardCompletion,
                 orderedPriorityDamageBonuses: orderedDamage,
                 orderedPrioritySupportPoints: orderedSupport,
@@ -323,13 +325,15 @@ namespace SephiriaEnhancements.Inventory
             return (int)Math.Round(total * 10000, MidpointRounding.AwayFromZero);
         }
 
-        private int CountAutomaticLevelRegressions(ProjectedInventorySettlement settlement)
+        private int CountLevelRegressions(ProjectedInventorySettlement settlement, bool magicCost)
         {
             int regressions = 0;
             foreach (var artifact in settlement.Artifacts)
             {
                 var observed = itemsByKey[artifact.ItemKey].Artifact;
-                int limit = policy.AllowAdditionalMagicCost ? observed.StatPenaltySafeLevel : observed.SafeAutomaticLevel;
+                int limit = magicCost
+                    ? policy.AllowAdditionalMagicCost ? observed.MaxLevel : observed.MagicCostSafeLevel
+                    : observed.StatPenaltySafeLevel;
                 if (policy.ArtifactInstanceRules.TryGetValue(artifact.ItemKey, out var rule))
                 {
                     if (rule.Level == InventoryPreferenceLevel.Avoid) continue;

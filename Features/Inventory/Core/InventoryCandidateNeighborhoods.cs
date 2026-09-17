@@ -58,13 +58,16 @@ namespace SephiriaEnhancements.Inventory
                             if (IsApplied(projection, destination, positioned)) yield return positioned;
                             foreach (var effect in projection.Effects)
                             {
-                                if (!effect.ValidCell || effect.EffectKind != TabletEffectKind.IncreaseLevel ||
-                                    effect.LevelParameter <= 0) continue;
+                                bool bypass = effect.EffectKind == TabletEffectKind.IgnoreCriteria;
+                                if (!effect.ValidCell || (!bypass &&
+                                    (effect.EffectKind != TabletEffectKind.IncreaseLevel || effect.LevelParameter <= 0))) continue;
                                 int target = effect.Y * snapshot.Width + effect.X;
                                 if (target == destination) continue;
                                 for (int artifact = 0; artifact < current.ItemCount; artifact++)
                                 {
                                     if (snapshot.Items[artifact].Artifact == null) continue;
+                                    if (bypass && snapshot.Items[artifact].Artifact.Criteria.Kind ==
+                                        ArtifactActivationConditionKind.None) continue;
                                     int from = positioned.GetCell(artifact);
                                     if (from == target) continue;
                                     var candidate = positioned.WithCellsSwapped(from, target);

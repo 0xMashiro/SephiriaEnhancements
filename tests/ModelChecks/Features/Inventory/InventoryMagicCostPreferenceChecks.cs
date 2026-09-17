@@ -9,7 +9,7 @@ internal static class InventoryMagicCostPreferenceChecks
     internal static void Run()
     {
         var defaults = InventoryOptimizationPreferences.Default;
-        Check(!defaults.AllowAdditionalMagicCost, "default avoids additional magic cost");
+        Check(defaults.AllowAdditionalMagicCost && defaults.PreferPresetCombos, "both arrangement options default on");
         foreach (bool cost in new[] { false, true })
         {
             var preference = defaults.WithAdditionalMagicCost(cost);
@@ -32,7 +32,7 @@ internal static class InventoryMagicCostPreferenceChecks
             Check(policy.ArtifactInstanceRules[item.ItemKey].MinimumEffectiveLevel == (allowed ? 2 : 1), "cost opt-in still respects stat penalty cap");
             var moved = new InventoryLayoutProjection(new[] { 1 }, new int[1]);
             Check(new InventoryOptimizationScorer(snapshot, policy).Score(moved, InventorySettlementProjector.Evaluate(snapshot, moved))
-                .AutomaticLevelRegressions == 1, "cost opt-in must not bypass stat penalties");
+                .StatPenaltyRegressions == 1, "cost opt-in must not bypass stat penalties");
             var texts = new Dictionary<string, string>();
             InventoryOptimizationLocalization.Register((language, key, text) => { if (language == "en-US") texts[key] = text; });
             var target = preference.ArtifactPreferences.Single();

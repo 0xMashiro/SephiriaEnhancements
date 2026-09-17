@@ -36,7 +36,7 @@ namespace SephiriaEnhancements.Inventory
                 new Vector2(148f, 32f), TogglePreferences, out preferencesToggleText);
             comboPreferences = controls.CreateButton("ComboPreferences", parent, template, new Vector2(188f, -56f),
                 new Vector2(148f, 32f), () => SetPreferencesView(true, true), out comboPreferencesText);
-            CreateMagicCostToggle(parent, template);
+            CreateArrangementOptions(parent, template);
             clearArtifactPriorities = controls.CreateButton("ClearArtifactPriorities", parent, template,
                 new Vector2(188f, -InventoryOptimizationHudLayout.DetailsTop),
                 new Vector2(148f, InventoryOptimizationHudLayout.DetailsHeight),
@@ -120,19 +120,27 @@ namespace SephiriaEnhancements.Inventory
             (comboPreferences as UI_HorayButton)?.SetForceNavDown(optimize);
             (markPriorities as UI_HorayButton)?.SetForceNavDown(below);
             (markPriorities as UI_HorayButton)?.SetForceNavLeft(preferencesToggle);
-            RefreshMagicCostToggle();
+            RefreshArrangementOptions();
             if (!preferencesExpanded)
             {
-                Button next = magicCostToggle.IsInteractable() ? magicCostToggle
+                Button next = presetComboToggle.IsInteractable() ? presetComboToggle
+                    : magicCostToggle.IsInteractable() ? magicCostToggle
                     : undoArrangement.interactable ? undoArrangement : optimize;
                 toggle.SetForceNavDown(next);
                 ((UI_HorayButton)comboPreferences).SetForceNavDown(next);
                 var cost = (UI_HorayButton)magicCostToggle;
-                cost.SetForceNavUp(preferencesToggle);
+                cost.SetForceNavUp(presetComboToggle.IsInteractable() ? presetComboToggle : preferencesToggle);
+                var combo = (UI_HorayButton)presetComboToggle;
+                combo.SetForceNavUp(preferencesToggle);
+                combo.SetForceNavDown(magicCostToggle.IsInteractable() ? magicCostToggle
+                    : undoArrangement.interactable ? undoArrangement : optimize);
+                combo.SetForceNavLeft(preferencesToggle);
+                combo.SetForceNavRight(comboPreferences);
                 cost.SetForceNavDown(undoArrangement.interactable ? undoArrangement : optimize);
                 cost.SetForceNavLeft(preferencesToggle);
                 cost.SetForceNavRight(comboPreferences);
-                Button above = magicCostToggle.IsInteractable() ? magicCostToggle : preferencesToggle;
+                Button above = magicCostToggle.IsInteractable() ? magicCostToggle
+                    : presetComboToggle.IsInteractable() ? presetComboToggle : preferencesToggle;
                 undo.SetForceNavUp(above);
                 ((UI_HorayButton)optimize).SetForceNavUp(above);
             }

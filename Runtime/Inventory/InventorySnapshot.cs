@@ -169,7 +169,7 @@ namespace SephiriaEnhancements.Runtime.Inventory
             string[] possibleCategories, bool attackable,
             MagicSnapshot magic,
             ArtifactCategoryRuleSnapshot categoryRule = null,
-            int? safeAutomaticLevel = null, int? statPenaltySafeLevel = null)
+            int? magicCostSafeLevel = null, int? statPenaltySafeLevel = null)
         {
             DisplayedLevel = displayedLevel;
             MaxLevel = maxLevel;
@@ -194,8 +194,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
             Attackable = attackable;
             Magic = magic;
             CategoryRule = categoryRule ?? ArtifactCategoryRuleSnapshot.Static;
-            SafeAutomaticLevel = Math.Max(0, Math.Min(maxLevel, safeAutomaticLevel ?? maxLevel));
-            StatPenaltySafeLevel = Math.Max(SafeAutomaticLevel, Math.Min(maxLevel, statPenaltySafeLevel ?? SafeAutomaticLevel));
+            MagicCostSafeLevel = Math.Max(0, Math.Min(maxLevel, magicCostSafeLevel ?? maxLevel));
+            StatPenaltySafeLevel = Math.Max(0, Math.Min(maxLevel, statPenaltySafeLevel ?? maxLevel));
         }
 
         internal int DisplayedLevel { get; }
@@ -219,7 +219,8 @@ namespace SephiriaEnhancements.Runtime.Inventory
         internal ArtifactCategoryRuleSnapshot CategoryRule { get; }
         internal int StatPenaltySafeLevel { get; }
         // Includes both direct stat penalties and captured additional magic cost.
-        internal int SafeAutomaticLevel { get; }
+        internal int SafeAutomaticLevel => Math.Min(MagicCostSafeLevel, StatPenaltySafeLevel);
+        internal int MagicCostSafeLevel { get; }
     }
 
     internal sealed class StoneTabletSnapshot

@@ -211,6 +211,6 @@ namespace SephiriaEnhancements.Inventory
             ArtifactOptimizationPreference[] rules) => new(
                 preferences.SearchEffort,
                 preferences.AllowStoneTabletRotation, rules,
-                preferences.ComboPreferences.ToArray(), preferences.AllowAdditionalMagicCost);
+                preferences.ComboPreferences.ToArray(), preferences.AllowAdditionalMagicCost, preferences.PreferPresetCombos);
     }
 }

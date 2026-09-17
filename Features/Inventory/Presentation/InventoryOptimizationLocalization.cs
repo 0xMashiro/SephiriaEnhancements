@@ -169,7 +169,7 @@ namespace SephiriaEnhancements.Inventory
             level == 0 ? localize(HudEnabled) : string.Format(localize(HudMinimumLevel), level);
 
         internal static string FormatArtifactTarget(ArtifactOptimizationPreference rule,
-            ArtifactSnapshot artifact, Func<string, string> localize, int? targetLevel = null, bool allowAdditionalMagicCost = false)
+            ArtifactSnapshot artifact, Func<string, string> localize, int? targetLevel = null, bool allowAdditionalMagicCost = true)
         {
             if (rule.Level == InventoryPreferenceLevel.Avoid) return localize(HudAvoidGoal);
             int target = targetLevel ?? rule.ResolveTargetLevel(artifact, allowAdditionalMagicCost);
@@ -180,7 +180,7 @@ namespace SephiriaEnhancements.Inventory
         }
 
         internal static string FormatArtifactFeedback(ArtifactOptimizationPreference rule,
-            ArtifactSnapshot artifact, InventoryArtifactGoalFeedback feedback, Func<string, string> localize, bool allowAdditionalMagicCost = false)
+            ArtifactSnapshot artifact, InventoryArtifactGoalFeedback feedback, Func<string, string> localize, bool allowAdditionalMagicCost = true)
         {
             int target = feedback?.TargetLevel ?? rule.ResolveTargetLevel(artifact, allowAdditionalMagicCost);
             bool active = feedback?.Active ?? artifact.EffectEnabled;
@@ -199,7 +199,7 @@ namespace SephiriaEnhancements.Inventory
         }
 
         internal static string FormatArtifactGoalSummary(ArtifactOptimizationPreference rule,
-            ArtifactSnapshot artifact, Func<string, string> localize, bool allowAdditionalMagicCost = false) =>
+            ArtifactSnapshot artifact, Func<string, string> localize, bool allowAdditionalMagicCost = true) =>
             string.Format(localize(rule.Strength == InventoryConstraintStrength.Hard
                 ? HudGoalHardSummary : HudGoalSoftSummary), FormatArtifactTarget(rule, artifact, localize, allowAdditionalMagicCost: allowAdditionalMagicCost));
         internal const string HudArtifactPersistence = "SephiriaEnhancements.InventoryHud.ArtifactPersistence";

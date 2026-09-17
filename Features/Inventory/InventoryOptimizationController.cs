@@ -253,7 +253,7 @@ namespace SephiriaEnhancements.Inventory
             {
                 var persistent = new InventoryOptimizationPreferences(preferences.SearchEffort,
                     preferences.AllowStoneTabletRotation, Array.Empty<ArtifactOptimizationPreference>(),
-                    preferences.ComboPreferences.ToArray(), preferences.AllowAdditionalMagicCost);
+                    preferences.ComboPreferences.ToArray(), preferences.AllowAdditionalMagicCost, preferences.PreferPresetCombos);
                 PersistentInventoryOptimizationPolicyStore.Replace(persistent);
                 try
                 {

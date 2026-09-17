@@ -35,10 +35,14 @@ namespace SephiriaEnhancements.Inventory
                 var projection = snapshot.Items[source].StoneTablet.FindProjection(tablet.CellIndex, tablet.Rotation);
                 var group = new HashSet<int> { source };
                 foreach (var effect in projection.Effects.Where(effect => effect.ValidCell &&
-                             effect.EffectKind == TabletEffectKind.IncreaseLevel && effect.LevelParameter > 0))
+                             (effect.EffectKind == TabletEffectKind.IgnoreCriteria ||
+                              effect.EffectKind == TabletEffectKind.IncreaseLevel && effect.LevelParameter > 0)))
                 {
                     int target = occupants[effect.Y * snapshot.Width + effect.X];
-                    if (target >= 0 && snapshot.Items[target].Artifact != null) group.Add(target);
+                    if (target < 0 || snapshot.Items[target].Artifact == null) continue;
+                    if (effect.EffectKind == TabletEffectKind.IgnoreCriteria &&
+                        snapshot.Items[target].Artifact.Criteria.Kind == ArtifactActivationConditionKind.None) continue;
+                    group.Add(target);
                 }
                 groups.Add(group);
             }

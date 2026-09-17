@@ -9,6 +9,7 @@ internal static class InventoryOptimizerChecks
     internal static void Run()
     {
         VerifyTabletActivationSetup();
+        VerifyCriteriaBypassSetup();
         InventorySnapshot rowSnapshot = InventorySnapshotFixture.RowDependentArtifact();
         ResolvedInventoryOptimizationPolicy defaultPolicy =
             InventoryOptimizationPolicyResolver.Resolve(rowSnapshot,
@@ -134,6 +135,47 @@ internal static class InventoryOptimizerChecks
         }
         Console.WriteLine("InventoryOptimizerSelector: exact-small and bounded-neighborhood selection passed");
     }
+    private static void VerifyCriteriaBypassSetup()
+    {
+        var snapshot = InventoryNeighborhoodFixture.StoneTabletMoveAndRotation(
+            activationSetup: true, recipientCondition: true, ignoreCriteria: true);
+        var current = InventoryLayoutProjection.Current(snapshot);
+        var policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, InventoryOptimizationPreferences.Default);
+        var scorer = new InventoryOptimizationScorer(snapshot, policy);
+        var baseline = scorer.Score(current, InventorySettlementProjector.Evaluate(snapshot, current));
+        if (baseline.EnabledArtifactCount != 0)
+            throw new InvalidOperationException("bypass recipient must start inactive");
+        foreach (var candidate in InventoryCandidateNeighborhoods.Simple(snapshot, current, true))
+            if (scorer.Score(candidate, InventorySettlementProjector.Evaluate(snapshot, candidate)).CompareTo(baseline) > 0)
+                throw new InvalidOperationException("bypass setup must require more than a single move or rotation");
+        var candidates = InventoryCandidateNeighborhoods.TabletPlacementSetup(snapshot, current, true).ToArray();
+        var paired = candidates.Single(layout => layout.GetCell(1) == 4 &&
+            layout.GetCell(0) == 5 && layout.GetRotation(1) == 1);
+        var settlement = InventorySettlementProjector.Evaluate(snapshot, paired);
+        if (scorer.Score(paired, settlement).EnabledArtifactCount != 1 ||
+            InventoryCandidateNeighborhoods.TabletPlacementSetup(snapshot, current, false)
+                .Any(layout => scorer.Score(layout, InventorySettlementProjector.Evaluate(snapshot, layout))
+                    .EnabledArtifactCount > 0))
+            throw new InvalidOperationException("criteria bypass must enable its recipient and respect the rotation option");
+        var relocated = InventoryGroupRelocation.Enumerate(snapshot, paired, settlement,
+            CancellationToken.None).ToArray();
+        if (!relocated.Any(layout => layout.GetCell(1) == 3 && layout.GetCell(0) == 4) ||
+            relocated.Any(layout => layout.GetCell(0) - layout.GetCell(1) != 1 || layout.GetRotation(1) != 1))
+            throw new InvalidOperationException("criteria bypass source and recipient must relocate together");
+        if (relocated.Any(layout => scorer.Score(layout, InventorySettlementProjector.Evaluate(snapshot, layout))
+                .EnabledArtifactCount != 0))
+            throw new InvalidOperationException("relocation must not retain a bypass after its tablet condition is lost");
+        var result = InventoryOptimizer.Solve(snapshot, policy, new InventorySearchBudget(4, 100, 1000));
+        if (!result.Improved || result.BestScore.EnabledArtifactCount != 1 ||
+            !result.SearchStages.Any(stage => stage.Stage == InventorySearchStage.TabletPlacementSetup && stage.Improvements > 0))
+            throw new InvalidOperationException("criteria bypass setup must be discovered within a small search budget");
+        var exact = InventoryExhaustiveSearchOracle.Solve(snapshot, policy,
+            new InventoryExhaustiveSearchLimits(maximumCandidateLayouts: 200, maximumElapsedMilliseconds: 1000));
+        if (!exact.ProvenOptimal || result.BestScore.CompareTo(exact.BestScore) != 0)
+            throw new InvalidOperationException("criteria bypass search must match the exact optimum in the small fixture");
+        Console.WriteLine("InventoryOptimizer: criteria bypass pairing, rotation, relocation and exact optimum passed");
+    }
+
     private static void VerifyTabletActivationSetup()
     {
         foreach (bool recipientCondition in new[] { false, true })

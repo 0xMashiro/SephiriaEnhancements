@@ -10,13 +10,13 @@ namespace SephiriaEnhancements.Inventory
 {
     internal static class InventoryOptimizationPreferencesCodec
     {
-        private const string Version = "v6";
+        private const string Version = "v7";
 
         internal static string Encode(
             InventoryOptimizationPreferences preferences)
         {
             preferences ??= InventoryOptimizationPreferences.Default;
-            var lines = new List<string> { Version, $"M|{(preferences.AllowAdditionalMagicCost ? 1 : 0)}" };
+            var lines = new List<string> { Version, $"O|{(preferences.AllowAdditionalMagicCost ? 1 : 0)}|{(preferences.PreferPresetCombos ? 1 : 0)}" };
             foreach (ComboOptimizationPreference rule in preferences.
                 ComboPreferences.OrderBy(rule => rule.CategoryId,
                     StringComparer.Ordinal))
@@ -53,8 +53,8 @@ namespace SephiriaEnhancements.Inventory
 
             if (lines.Length < 2) return false;
             string[] settings = lines[1].Split('|');
-            if (settings.Length != 2 || settings[0] != "M" ||
-                (settings[1] != "0" && settings[1] != "1")) return false;
+            if (settings.Length != 3 || settings[0] != "O" ||
+                (settings[1] != "0" && settings[1] != "1") || (settings[2] != "0" && settings[2] != "1")) return false;
             var combos = new Dictionary<string,
                 ComboOptimizationPreference>(StringComparer.Ordinal);
             for (int index = 2; index < lines.Length; index++)
@@ -103,7 +103,7 @@ namespace SephiriaEnhancements.Inventory
             preferences = new InventoryOptimizationPreferences(searchEffort,
                 allowStoneTabletRotation, Array.Empty<ArtifactOptimizationPreference>(), combos.Values.OrderBy(rule =>
                         rule.CategoryId, StringComparer.Ordinal).ToArray(),
-                settings[1] == "1");
+                settings[1] == "1", settings[2] == "1");
             return true;
         }
     }

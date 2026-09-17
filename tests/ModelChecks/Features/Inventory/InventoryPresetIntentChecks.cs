@@ -15,6 +15,7 @@ internal static class InventoryPresetIntentChecks
         VerifyManualOverrides();
         VerifyChangingIntentChangesSearch();
         VerifyPrecedence();
+        VerifyPenaltyOptions();
         Console.WriteLine("Inventory preset intent: live keys, aggregation, ordered counts, manual overrides, changed search and comparator passed");
     }
 
@@ -117,16 +118,71 @@ internal static class InventoryPresetIntentChecks
 
     private static void VerifyPrecedence()
     {
-        InventoryOptimizationScore Value(int manual = 0, int loss = 0, int favorite = 0, long fruit = 0, int inferred = 0) =>
+        InventoryOptimizationScore Value(int manual = 0, int loss = 0, int favorite = 0, long fruit = 0, int inferred = 0, int penalty = 0) =>
             new(manual, 0, 0, favorite, 0, 0, 0, 0, 0, 0, 0, 0,
-                automaticLevelRegressions: loss, orderedFruitSkewerComboCounts: new[] { fruit }, preferredCategoryTargetsSatisfied: inferred);
+                magicCostRegressions: loss, orderedFruitSkewerComboCounts: new[] { fruit }, preferredCategoryTargetsSatisfied: inferred,
+                statPenaltyRegressions: penalty);
         Require(Value(manual: 1).CompareTo(Value(fruit: 1000)) > 0, "manual first");
         Require(Value().CompareTo(Value(loss: 1, fruit: 1000)) > 0, "default protections precede fruit");
-        Require(Value(favorite: 1).CompareTo(Value(fruit: 1000)) > 0, "explicit favorite before fruit");
+        Require(Value(fruit: 1).CompareTo(Value(favorite: 1)) > 0, "preset combo counts before automatic favorite activation");
+        Require(Value(fruit: 1, penalty: 1).CompareTo(Value()) > 0, "preset combo gains justify stronger stat penalties");
+        Require(Value(fruit: 1).CompareTo(Value(fruit: 1, penalty: 1)) > 0, "equal combo counts avoid stronger penalties");
+        Require(Value().CompareTo(Value(favorite: 1, penalty: 1)) > 0, "favorites alone do not authorize stronger penalties");
         Require(Value(fruit: 1).CompareTo(Value(inferred: 1000)) > 0, "fruit before inferred categories");
-        var values = new[] { Value(), Value(fruit: 1), Value(favorite: 1), Value(manual: 1), Value(loss: 1, fruit: 1000) };
+        var values = new[] { Value(), Value(fruit: 1), Value(favorite: 1), Value(manual: 1), Value(loss: 1, fruit: 1000),
+            Value(fruit: 1, penalty: 1), Value(fruit: 2, penalty: 1), Value(inferred: 1, penalty: 1) };
         foreach (var a in values) foreach (var b in values) foreach (var c in values)
             if (a.CompareTo(b) >= 0 && b.CompareTo(c) >= 0) Require(a.CompareTo(c) >= 0, "transitive comparator");
+    }
+
+    private static void VerifyPenaltyOptions()
+    {
+        foreach (bool preferCombos in new[] { false, true })
+            foreach (bool allowCost in new[] { false, true })
+                foreach (bool hasCost in new[] { false, true })
+                {
+                    var source = InventorySnapshotFixture.RowDependentArtifact(statPenaltySafeLevel: 0,
+                        magicCostSafeLevel: hasCost ? 0 : 2);
+                    var board = new InventorySnapshot(2, 3, source.Cells.Take(3).ToArray(), source.Items.ToArray(),
+                        nativePreset: new NativePresetSnapshot(-1, true, "", 0, "", Array.Empty<int>(), Array.Empty<string>(),
+                            fruits: new[] { new NativePresetFruitSnapshot("ICE", 2) }),
+                        comboCategories: new[] { Category("FIRE", 1), Category("ICE", 1) });
+                    var preferences = InventoryOptimizationPreferences.Default.WithAdditionalMagicCost(allowCost)
+                        .WithPresetComboPriority(preferCombos);
+                    Require(InventoryOptimizationPreferencesCodec.TryDecode(InventoryOptimizationPreferencesCodec.Encode(preferences),
+                        preferences.SearchEffort, true, out var decoded), "both options persist");
+                    var marked = InventoryArtifactIntentEditor.PlacePriority(preferences, 31, 301, 0);
+                    foreach (var retained in new[] { decoded, marked, InventoryArtifactIntentEditor.Clear(marked),
+                preferences.WithExecutionSettings(InventorySearchEffort.Fast, false),
+                InventoryOptimizationPreferenceComposer.Compose(preferences, InventoryOptimizationPreferences.Default, InventorySearchEffort.Fast, true) })
+                        Require(retained.PreferPresetCombos == preferCombos && retained.AllowAdditionalMagicCost == allowCost,
+                            "independent options survive save, edits and new exploration composition");
+                    var savedPolicy = PersistentInventoryOptimizationPolicyStore.Capture();
+                    var savedIntent = WorldSessionInventoryIntentStore.Capture();
+                    try
+                    {
+                        PersistentInventoryOptimizationPolicyStore.Replace(decoded);
+                        WorldSessionInventoryIntentStore.Clear();
+                        var nextExploration = WorldSessionInventoryIntentStore.Capture();
+                        Require(nextExploration.PreferPresetCombos == preferCombos && nextExploration.AllowAdditionalMagicCost == allowCost,
+                            "clearing world-session intent retains both persisted options");
+                    }
+                    finally
+                    {
+                        PersistentInventoryOptimizationPolicyStore.Replace(savedPolicy);
+                        WorldSessionInventoryIntentStore.Replace(savedIntent);
+                    }
+                    var policy = InventoryOptimizationPolicyResolver.Resolve(board, decoded);
+                    foreach (var result in new[] {
+                InventoryOptimizerSelector.Solve(board, policy, new InventorySearchBudget(4, 1000, 5000)),
+                InventoryOptimizer.Solve(board, policy, new InventorySearchBudget(4, 1000, 5000)) })
+                    {
+                        bool expected = preferCombos && (allowCost || !hasCost);
+                        var settled = InventorySettlementProjector.Evaluate(board, result.Layout);
+                        Require(result.Succeeded && (settled.ComboCounts["ICE"] == 1) == expected,
+                            "native row-category projection obeys stat and MP settings in exact and neighborhood search");
+                    }
+                }
     }
 
     private static void Require(bool value, string reason)

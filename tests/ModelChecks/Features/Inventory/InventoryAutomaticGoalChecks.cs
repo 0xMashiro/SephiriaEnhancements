@@ -102,8 +102,8 @@ internal static class InventoryAutomaticGoalChecks
         Require(ArtifactAutomaticLevelPolicy.SafeLevel(3, 0, new[] { new[] { -4, -4, -4, -5 } }) == 2,
             "safe upgrades with an unchanged penalty should remain available");
         var snapshot = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 1, 3 }, new[] { 0, 1 }, maxLevel: 3,
-            safeAutomaticLevels: new[] { ArtifactAutomaticLevelPolicy.SafeLevel(3, 1, null, new[] { 0, 25, 50, 75 }), 3 });
-        var preferences = AutoQueue(snapshot);
+            magicCostSafeLevels: new[] { ArtifactAutomaticLevelPolicy.SafeLevel(3, 1, null, new[] { 0, 25, 50, 75 }), 3 });
+        var preferences = AutoQueue(snapshot).WithAdditionalMagicCost(false);
         var policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, preferences);
         var current = InventoryLayoutProjection.Current(snapshot);
         var swapped = current.WithCellsSwapped(0, 1);
@@ -114,7 +114,7 @@ internal static class InventoryAutomaticGoalChecks
         preferences = InventoryArtifactIntentEditor.SetMinimumEffectiveLevel(preferences, snapshot, snapshot.Items[0].ItemKey, 3);
         policy = InventoryOptimizationPolicyResolver.Resolve(snapshot, preferences);
         var proposal = InventoryOptimizerSelector.Solve(snapshot, policy, new InventorySearchBudget(8, 100, 10000));
-        Require(proposal.Improved && proposal.Layout.GetCell(0) == 1 && proposal.BestScore.AutomaticLevelRegressions == 0,
+        Require(proposal.Improved && proposal.Layout.GetCell(0) == 1 && proposal.BestScore.MagicCostRegressions == 0,
             "an explicit level request must allow the user's chosen tradeoff");
     }
 

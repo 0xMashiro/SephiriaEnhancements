@@ -13,6 +13,8 @@ namespace SephiriaEnhancements.Diagnostics
         {
             policy.SearchEffort,
             policy.AllowStoneTabletRotation,
+            policy.AllowAdditionalMagicCost,
+            policy.PreferPresetCombos,
             ArtifactInstanceRules = policy.ArtifactInstanceRules.Values.OrderBy(rule => rule.EntityId)
                 .ThenBy(rule => rule.InstanceId).ToArray(),
             ArtifactEntityRules = policy.ArtifactEntityRules.Values.OrderBy(rule => rule.EntityId).ToArray(),

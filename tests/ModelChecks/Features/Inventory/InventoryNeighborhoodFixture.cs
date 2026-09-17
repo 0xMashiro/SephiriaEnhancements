@@ -15,7 +15,8 @@ internal static class InventoryNeighborhoodFixture
             }, new[] { 2, 0, 4 });
     }
 
-    internal static InventorySnapshot StoneTabletMoveAndRotation(bool activationSetup = false, bool recipientCondition = false)
+    internal static InventorySnapshot StoneTabletMoveAndRotation(bool activationSetup = false, bool recipientCondition = false,
+        bool ignoreCriteria = false)
     {
         const int storage = 6;
         var cells = new InventoryCellSnapshot[storage];
@@ -37,13 +38,13 @@ internal static class InventoryNeighborhoodFixture
 
         var artifact = new ArtifactSnapshot(displayedLevel: 0, maxLevel: 1,
             enchant: 0, effectEnabledLevel: 0,
-            limitedEffectEnabledLevel: 0, effectEnabled: true,
-            penaltyEnabled: false, weaponRestricted: false,
+            limitedEffectEnabledLevel: 0, effectEnabled: !ignoreCriteria,
+            penaltyEnabled: ignoreCriteria, weaponRestricted: false,
             requiredWeapon: string.Empty, weaponCompatible: true,
             uniqueEffect: false, uniqueEffectRegistered: false,
             calculationOrder: "Pre",
-            new CriteriaSnapshot(ArtifactActivationConditionKind.None,
-                CriteriaEvaluationState.NotApplicable,
+            new CriteriaSnapshot(ignoreCriteria ? ArtifactActivationConditionKind.BothSidesArtifacts : ArtifactActivationConditionKind.None,
+                ignoreCriteria ? CriteriaEvaluationState.Unsatisfied : CriteriaEvaluationState.NotApplicable,
                 CriteriaEvaluationState.NotApplicable),
             Array.Empty<string>(), Array.Empty<string>(), attackable: false,
             magic: null);
@@ -51,7 +52,7 @@ internal static class InventoryNeighborhoodFixture
             entityId: 201, quantity: 1, cellIndex: 2, x: 2, y: 0,
             name: "Artifact", nameKey: "Artifact", nativeItemTypeName: "Charm",
             rarity: "Normal", baseCategories: Array.Empty<string>(),
-            kind: InventoryItemKind.Artifact, artifact,
+            kind: ignoreCriteria ? InventoryItemKind.RestrictedArtifact : InventoryItemKind.Artifact, artifact,
             stoneTablet: null);
 
         var placements = new TabletPlacementProjectionSnapshot[storage];
@@ -60,7 +61,7 @@ internal static class InventoryNeighborhoodFixture
             var rotations = new TabletRotationProjectionSnapshot[4];
             for (int rotation = 0; rotation < rotations.Length; rotation++)
             {
-                TabletAdditionSnapshot[] effects = cell == 4 && rotation == (activationSetup ? 0 : 1)
+                TabletAdditionSnapshot[] effects = cell == 4 && rotation == (activationSetup && !ignoreCriteria ? 0 : 1)
                     ? new[]
                     {
                         new TabletAdditionSnapshot(activationSetup ? 5 : 2, 0, "+1",
@@ -68,8 +69,8 @@ internal static class InventoryNeighborhoodFixture
                             yWorldPosition: false, borderTop: false,
                             borderRight: false, borderBottom: false,
                             borderLeft: false,
-                            effectKind: TabletEffectKind.IncreaseLevel,
-                            levelParameter: 1)
+                            effectKind: ignoreCriteria ? TabletEffectKind.IgnoreCriteria : TabletEffectKind.IncreaseLevel,
+                            levelParameter: ignoreCriteria ? 0 : 1)
                     }
                     : Array.Empty<TabletAdditionSnapshot>();
                 rotations[rotation] = new TabletRotationProjectionSnapshot(
@@ -86,7 +87,7 @@ internal static class InventoryNeighborhoodFixture
                 x: cell, y: 0, rotations);
         }
         var stoneTablet = new StoneTabletSnapshot(rotation: 0,
-            rotatable: !activationSetup, custom: false, applied: !activationSetup,
+            rotatable: !activationSetup || ignoreCriteria, custom: false, applied: !activationSetup,
             includesCriteriaInMinMaxGrid: false,
             conditionQuery: string.Empty, effectQuery: string.Empty,
             placementProjections: placements);

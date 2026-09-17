@@ -101,7 +101,7 @@ internal static class InventoryOptimizationLocalizationChecks
     private static void VerifyArtifactGoalSummaries(Dictionary<string, Dictionary<string, string>> texts)
     {
         var artifact = Runtime.Inventory.InventorySnapshotFixture.ArtifactsAtLevels(
-            new[] { 1 }, new[] { 0 }, maxLevel: 4, safeAutomaticLevels: new[] { 2 }).Items[0].Artifact;
+            new[] { 1 }, new[] { 0 }, maxLevel: 4, statPenaltySafeLevels: new[] { 2 }).Items[0].Artifact;
         foreach (var strength in new[] { InventoryConstraintStrength.Soft, InventoryConstraintStrength.Hard })
             foreach (var mode in new[] { ArtifactLevelTargetMode.Automatic, ArtifactLevelTargetMode.ActiveOnly,
             ArtifactLevelTargetMode.SpecifiedLevel })

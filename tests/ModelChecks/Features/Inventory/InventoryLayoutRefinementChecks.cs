@@ -42,7 +42,7 @@ internal static class InventoryLayoutRefinementChecks
         Require(refined.BestScore.CompareTo(initial.BestScore) > 0 &&
             refined.SearchStages.Any(stage => stage.Stage == InventorySearchStage.GroupRelocation && stage.Improvements > 0),
             "selector must improve a five-item dependency group after the original search");
-        Require(refined.BestScore.PositionEffectRegressions == 0 && refined.BestScore.AutomaticLevelRegressions == 0 &&
+        Require(refined.BestScore.PositionEffectRegressions == 0 && refined.BestScore.MagicCostRegressions == 0 &&
             refined.TargetEvaluations.All(target => target.AfterConditionReached), "retained goals and benefits");
         Require(refined.CandidateEvaluations <= budgetWithRefinement.MaximumCandidateEvaluations &&
             InventoryLayoutPlanner.TryCreate(snapshot, refined.Layout, out _, out _), "bounded and applicable refinement");

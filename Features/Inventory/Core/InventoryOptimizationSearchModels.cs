@@ -112,7 +112,7 @@ namespace SephiriaEnhancements.Inventory
         IComparable<InventoryOptimizationScore>
     {
         // Identifies the preference comparator, independently of game mechanisms.
-        internal const string ObjectiveId = "hard-feasible-fruit-skewer-priorities-v7";
+        internal const string ObjectiveId = "preset-combos-before-stat-penalties-v8";
         internal InventoryOptimizationScore(int priorityTargetsSatisfied,
             int priorityTargetCompletionPoints, int avoidedTargetsActive,
             int preferredArtifactTargetsSatisfied,
@@ -123,12 +123,13 @@ namespace SephiriaEnhancements.Inventory
             int excessArtifactLevelTotal, int movedItemCount,
             int rotatedTabletCount,
             int[] orderedPriorityCompletionPoints = null,
-            int positionEffectRegressions = 0, int automaticLevelRegressions = 0,
+            int positionEffectRegressions = 0, int magicCostRegressions = 0,
             int hardConstraintViolations = 0, int hardConstraintCompletionPoints = 0,
             double[] orderedPriorityDamageBonuses = null, int positionEffectUtilizationPoints = 0,
             double[] orderedPrioritySupportPoints = null,
             long[] orderedFruitSkewerComboCounts = null, int[] orderedFruitSkewerTargetsSatisfied = null,
-            int preferredCategoryTargetsSatisfied = 0, int preferredCategoryCompletionPoints = 0)
+            int preferredCategoryTargetsSatisfied = 0, int preferredCategoryCompletionPoints = 0,
+            int statPenaltyRegressions = 0, bool preferPresetCombos = true)
         {
             OrderedFruitSkewerComboCounts = Array.AsReadOnly(orderedFruitSkewerComboCounts == null
                 ? Array.Empty<long>() : (long[])orderedFruitSkewerComboCounts.Clone());
@@ -155,7 +156,9 @@ namespace SephiriaEnhancements.Inventory
             MovedItemCount = movedItemCount;
             RotatedTabletCount = rotatedTabletCount;
             PositionEffectRegressions = positionEffectRegressions;
-            AutomaticLevelRegressions = automaticLevelRegressions;
+            MagicCostRegressions = magicCostRegressions;
+            StatPenaltyRegressions = statPenaltyRegressions;
+            PreferPresetCombos = preferPresetCombos;
             OrderedPriorityCompletionPoints = Array.AsReadOnly(
                 orderedPriorityCompletionPoints == null
                     ? Array.Empty<int>()
@@ -187,11 +190,14 @@ namespace SephiriaEnhancements.Inventory
         internal int MovedItemCount { get; }
         internal int RotatedTabletCount { get; }
         internal int PositionEffectRegressions { get; }
-        internal int AutomaticLevelRegressions { get; }
+        internal int MagicCostRegressions { get; }
+        internal int StatPenaltyRegressions { get; }
+        internal bool PreferPresetCombos { get; }
         internal IReadOnlyList<int> OrderedPriorityCompletionPoints { get; }
         internal IReadOnlyList<double> OrderedPriorityDamageBonuses { get; }
         internal IReadOnlyList<double> OrderedPrioritySupportPoints { get; }
-        internal bool HasDefaultProtectionTradeoff => PositionEffectRegressions > 0 || AutomaticLevelRegressions > 0;
+        internal bool HasDefaultProtectionTradeoff => PositionEffectRegressions > 0 || MagicCostRegressions > 0 ||
+            !PreferPresetCombos && StatPenaltyRegressions > 0;
 
         public int CompareTo(InventoryOptimizationScore other)
         {
@@ -212,12 +218,6 @@ namespace SephiriaEnhancements.Inventory
                 // comparator must remain transitive for exact and bounded search alike.
                 return CompareChangesTo(other);
             }
-            comparison = PreferredArtifactTargetsSatisfied.CompareTo(
-                other.PreferredArtifactTargetsSatisfied);
-            if (comparison != 0) return comparison;
-            comparison = PreferredArtifactCompletionPoints.CompareTo(
-                other.PreferredArtifactCompletionPoints);
-            if (comparison != 0) return comparison;
             int fruitGroupCount = Math.Max(OrderedFruitSkewerComboCounts.Count, other.OrderedFruitSkewerComboCounts.Count);
             for (int index = 0; index < fruitGroupCount; index++)
             {
@@ -233,6 +233,17 @@ namespace SephiriaEnhancements.Inventory
             comparison = PreferredCategoryTargetsSatisfied.CompareTo(other.PreferredCategoryTargetsSatisfied);
             if (comparison != 0) return comparison;
             comparison = PreferredCategoryCompletionPoints.CompareTo(other.PreferredCategoryCompletionPoints);
+            if (comparison != 0) return comparison;
+            // Preset combo gains may justify stronger artifact penalties. Unrelated
+            // level gains and favorites do not authorize that exchange.
+            comparison = (other.StatPenaltyRegressions > 0).CompareTo(StatPenaltyRegressions > 0);
+            if (comparison != 0) return comparison;
+            if (StatPenaltyRegressions > 0) return CompareChangesTo(other);
+            comparison = PreferredArtifactTargetsSatisfied.CompareTo(
+                other.PreferredArtifactTargetsSatisfied);
+            if (comparison != 0) return comparison;
+            comparison = PreferredArtifactCompletionPoints.CompareTo(
+                other.PreferredArtifactCompletionPoints);
             if (comparison != 0) return comparison;
             comparison = other.SourceEnabledArtifactsDeactivated.CompareTo(
                 SourceEnabledArtifactsDeactivated);

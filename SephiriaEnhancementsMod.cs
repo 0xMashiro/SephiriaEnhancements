@@ -318,6 +318,9 @@ namespace SephiriaEnhancements
                 typeof(BossRetryPropRecipePatch),
                 typeof(BossRetryPreserveFloorPatch),
                 typeof(GameOverDefeatRetryButtonPatch),
+                typeof(RetryDeathCausePatch),
+                typeof(RetryConclusionDispatchPatch),
+                typeof(RetryDisconnectCausePatch),
                 typeof(PreserveDefeatRetrySaveDeletionPatch),
                 typeof(PreserveDefeatRetrySaveCreationPatch),
                 typeof(PreserveDefeatRetryLobbyPatch),
@@ -536,6 +539,7 @@ namespace SephiriaEnhancements
         private void OnStartSessionClientside(bool isSavedSession)
         {
             NativeModNotifications.ClearContext();
+            FeatureFailure.Run(FeatureId.DefeatRetry, NativeRetryConclusion.Reset);
             FeatureFailure.Run(FeatureId.DefeatRetry, () => NativeRetryBoss.ObserveWorldSession(isSavedSession));
             FeatureFailure.Run(FeatureId.AutoCasting, () => autoCasting?.ObserveWorldSession(isSavedSession));
             FeatureFailure.Run(FeatureId.DefeatRetry, () => DefeatRetryClientRestore.ObserveWorldSession(isSavedSession));

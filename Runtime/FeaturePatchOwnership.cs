@@ -71,6 +71,9 @@ namespace SephiriaEnhancements.Runtime
                 case "SephiriaEnhancements.DefeatRetry.DefeatRetryPlayerRestorePatch":
                 case "SephiriaEnhancements.DefeatRetry.DefeatRetryTravelRequestPatch":
                 case "SephiriaEnhancements.DefeatRetry.GameOverDefeatRetryButtonPatch":
+                case "SephiriaEnhancements.DefeatRetry.RetryDeathCausePatch":
+                case "SephiriaEnhancements.DefeatRetry.RetryConclusionDispatchPatch":
+                case "SephiriaEnhancements.DefeatRetry.RetryDisconnectCausePatch":
                 case "SephiriaEnhancements.DefeatRetry.NativeRetryRestart":
                 case "SephiriaEnhancements.DefeatRetry.PreserveDefeatRetryLobbyPatch":
                 case "SephiriaEnhancements.DefeatRetry.PreserveDefeatRetryRejoinStatePatch":

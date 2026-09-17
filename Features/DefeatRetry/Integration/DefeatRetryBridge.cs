@@ -14,7 +14,7 @@ namespace SephiriaEnhancements.Integration
     {
         // The native runtime constant table is synchronized and rebuilt on world load.
         // Advertise here rather than persisting protocol state in the player's save.
-        private const byte ProtocolVersion = 5;
+        private const byte ProtocolVersion = 6;
         private const string ProtocolKey = "SephiriaEnhancements.DefeatRetryProtocol";
         private static CombatInsightsController controller;
         private static bool serverRegistered, clientRegistered;
@@ -38,6 +38,7 @@ namespace SephiriaEnhancements.Integration
 
         private struct Hello : NetworkMessage { internal byte Version; }
         private struct Arrival : NetworkMessage { internal long RetryId; internal bool Success; }
+        private struct ConclusionNotification : NetworkMessage { internal RetryConclusionKind Kind; }
         private struct Notification : NetworkMessage
         {
             internal RetryTransition Transition;
@@ -52,11 +53,14 @@ namespace SephiriaEnhancements.Integration
         internal static void Initialize(CombatInsightsController value)
         {
             controller = value;
+            NativeRetryConclusion.Reset();
             NativeRetryCapture.Initialize();
             Writer<Hello>.write = (writer, message) => writer.WriteByte(message.Version);
             Reader<Hello>.read = reader => new Hello { Version = reader.ReadByte() };
             Writer<Arrival>.write = (writer, message) => { writer.WriteLong(message.RetryId); writer.WriteByte(message.Success ? (byte)1 : (byte)0); };
             Reader<Arrival>.read = reader => new Arrival { RetryId = reader.ReadLong(), Success = reader.ReadByte() == 1 };
+            Writer<ConclusionNotification>.write = (writer, message) => writer.WriteByte((byte)message.Kind);
+            Reader<ConclusionNotification>.read = reader => new ConclusionNotification { Kind = (RetryConclusionKind)reader.ReadByte() };
             Writer<Notification>.write = (writer, message) =>
             {
                 writer.WriteByte((byte)message.Transition);
@@ -114,6 +118,7 @@ namespace SephiriaEnhancements.Integration
             }
             if (!NetworkClient.active)
             {
+                NativeRetryConclusion.Reset();
                 NativeRetryAccount.Clear();
                 clientRegistered = false;
                 registeredConnection = null;
@@ -121,6 +126,10 @@ namespace SephiriaEnhancements.Integration
             }
             if (!clientRegistered)
             {
+                NetworkClient.RegisterHandler<ConclusionNotification>(message => FeatureFailure.Run(FeatureId.DefeatRetry, () =>
+                {
+                    if (!NetworkServer.active) NativeRetryConclusion.Receive(message.Kind);
+                }));
                 NetworkClient.RegisterHandler<Notification>(message => FeatureFailure.Run(FeatureId.DefeatRetry, () =>
                 {
                     if (!NetworkServer.active && message.Transition <= RetryTransition.RecoveryCompleted)
@@ -143,6 +152,18 @@ namespace SephiriaEnhancements.Integration
             long id = ++nextCheckpointId;
             Publish(RetryTransition.CaptureBoss, id, floorGuid);
             return id;
+        }
+
+        // Sent on the reliable channel before the native game-over RPC. Clients
+        // consume the authority's cause when that RPC opens their result panel.
+        internal static void PublishConclusion(RetryConclusionKind kind)
+        {
+            if (!NetworkServer.active) return;
+            Tick();
+            NativeRetryConclusion.Receive(kind);
+            foreach (var peer in peers)
+                if (peer.isReady && peer != NetworkServer.localConnection)
+                    peer.Send(new ConclusionNotification { Kind = kind });
         }
 
         internal static void Publish(RetryTransition transition, long id, string floorGuid)
@@ -347,11 +368,13 @@ namespace SephiriaEnhancements.Integration
 
         internal static void Shutdown()
         {
+            NativeRetryConclusion.Reset();
             NativeRetryFloorEntry.Clear();
             NativeRetryCapture.Shutdown();
             NetworkServer.UnregisterHandler<Hello>();
             NetworkServer.UnregisterHandler<Arrival>();
             NetworkClient.UnregisterHandler<Notification>();
+            NetworkClient.UnregisterHandler<ConclusionNotification>();
             controller = null;
             peers.Clear();
             ClearArrivals();

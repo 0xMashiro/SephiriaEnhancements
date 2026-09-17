@@ -6,46 +6,45 @@ internal static class DefeatRetryPolicyChecks
 {
     internal static void Run()
     {
-        if (!DefeatRetryPolicy.ShouldPresent(true, true, true, true, 0, false) ||
-            DefeatRetryPolicy.ShouldPresent(true, true, false, true, 0, false) ||
-            DefeatRetryPolicy.ShouldPresent(true, true, true, true, 1, false) ||
-            DefeatRetryPolicy.ShouldPresent(true, true, true, true, 2, false) ||
-            DefeatRetryPolicy.ShouldPresent(true, true, true, true, 0, true) ||
-            DefeatRetryPolicy.ShouldPresent(true, false, true, true, 0, false))
+        if (!DefeatRetryPolicy.ShouldPresent(true, true, true, true, RetryConclusionKind.CombatDefeat, false) ||
+            DefeatRetryPolicy.ShouldPresent(true, true, false, true, RetryConclusionKind.CombatDefeat, false) ||
+            DefeatRetryPolicy.ShouldPresent(true, true, true, true, RetryConclusionKind.Victory, false) ||
+            DefeatRetryPolicy.ShouldPresent(true, true, true, true, RetryConclusionKind.ScriptedDefeat, false) ||
+            DefeatRetryPolicy.ShouldPresent(true, true, true, true, RetryConclusionKind.CombatDefeat, true) ||
+            DefeatRetryPolicy.ShouldPresent(true, false, true, true, RetryConclusionKind.CombatDefeat, false))
             throw new InvalidOperationException("ordinary host defeat must show retry availability even without a checkpoint");
 
-        if (!DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, 0, false,
+        if (!DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, RetryConclusionKind.CombatDefeat, false,
                 saveIdle: true, nativeRestarting: false) ||
-            DefeatRetryPolicy.ShouldOffer(true, true, true, false, true, 0, false,
+            DefeatRetryPolicy.ShouldOffer(true, true, true, false, true, RetryConclusionKind.CombatDefeat, false,
                 saveIdle: true, nativeRestarting: false) ||
-            DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, 1, false,
+            DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, RetryConclusionKind.Victory, false,
                 saveIdle: true, nativeRestarting: false) ||
-            DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, 2, false,
+            DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, RetryConclusionKind.ScriptedDefeat, false,
                 saveIdle: true, nativeRestarting: false) ||
-            DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, 0, true,
+            DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, RetryConclusionKind.CombatDefeat, true,
                 saveIdle: true, nativeRestarting: false) ||
-            DefeatRetryPolicy.ShouldOffer(true, true, false, true, true, 0, false,
+            DefeatRetryPolicy.ShouldOffer(true, true, false, true, true, RetryConclusionKind.CombatDefeat, false,
                 saveIdle: true, nativeRestarting: false) ||
-            DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, 0, false,
+            DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, RetryConclusionKind.CombatDefeat, false,
                 saveIdle: false, nativeRestarting: false) ||
-            DefeatRetryPolicy.ShouldOffer(true, false, true, true, true, 0, false,
+            DefeatRetryPolicy.ShouldOffer(true, false, true, true, true, RetryConclusionKind.CombatDefeat, false,
                 saveIdle: true, nativeRestarting: false))
             throw new InvalidOperationException(
                 "floor retry must be enabled, host-only, defeat-only and floor-start-snapshot-gated");
         Console.WriteLine("DefeatRetryPolicy: setting, host and checkpoint gates passed");
 
-        if (DefeatRetryPolicy.ClassifyConclusion(0) !=
-                RetryConclusionKind.CombatDefeat ||
-            DefeatRetryPolicy.ClassifyConclusion(2) !=
-                RetryConclusionKind.ScriptedDefeat ||
-            DefeatRetryPolicy.ClassifyConclusion(1) != RetryConclusionKind.Victory ||
-            DefeatRetryPolicy.ClassifyConclusion(6) != RetryConclusionKind.Victory ||
-            DefeatRetryPolicy.ClassifyConclusion(99) != RetryConclusionKind.Unknown)
+        foreach (RetryConclusionKind kind in Enum.GetValues<RetryConclusionKind>())
         {
-            throw new InvalidOperationException(
-                "native game-over types must preserve combat, scripted and victory semantics");
+            bool expected = kind == RetryConclusionKind.CombatDefeat;
+            if (DefeatRetryPolicy.ShouldPresent(true, true, true, true, kind, false) != expected ||
+                DefeatRetryPolicy.ShouldOffer(true, true, true, true, true, kind, false, true, false) != expected)
+                throw new InvalidOperationException("only a confirmed combat defeat may present or execute retry");
         }
-        Console.WriteLine("DefeatRetryPolicy: game-over semantics passed");
+        if (DefeatRetryPolicy.ShouldOffer(true, true, true, true, true,
+                RetryConclusionKind.CombatDefeat, false, true, true))
+            throw new InvalidOperationException("native restart must block another retry");
+        Console.WriteLine("DefeatRetryPolicy: conclusion and availability matrix passed");
 
         if (!DefeatRetryPolicy.ShouldCaptureFloorEntryCheckpoint(true, true, false,
                 true, true, true, true) ||

@@ -11,8 +11,10 @@ namespace SephiriaEnhancements.DefeatRetry
     {
         Unknown,
         CombatDefeat,
+        ForcedDefeat,
         ScriptedDefeat,
-        Victory
+        Victory,
+        Abandoned
     }
 
     internal static class DefeatRetryPolicy
@@ -36,40 +38,19 @@ namespace SephiriaEnhancements.DefeatRetry
                     hasCurrentRunSave, runStarted) && hasFloor && hasBoss;
         }
 
-        internal static RetryConclusionKind ClassifyConclusion(
-            int nativeGameOverType)
-        {
-            // Native type 2 is a story-directed defeat transition, not a party wipe.
-            switch (nativeGameOverType)
-            {
-                case 0:
-                    return RetryConclusionKind.CombatDefeat;
-                case 2:
-                    return RetryConclusionKind.ScriptedDefeat;
-                case 1:
-                case 3:
-                case 4:
-                case 5:
-                case 6:
-                    return RetryConclusionKind.Victory;
-                default:
-                    return RetryConclusionKind.Unknown;
-            }
-        }
-
         internal static bool ShouldOffer(bool enhancementsEnabled, bool retryEnabled,
             bool hasCheckpoint, bool serverActive, bool runStarted,
-            int nativeGameOverType,
+            RetryConclusionKind conclusion,
             bool gaveUp, bool saveIdle, bool nativeRestarting)
         {
             return ShouldPresent(enhancementsEnabled, retryEnabled, serverActive,
-                runStarted, nativeGameOverType, gaveUp) && hasCheckpoint && saveIdle && !nativeRestarting;
+                runStarted, conclusion, gaveUp) && hasCheckpoint && saveIdle && !nativeRestarting;
         }
 
         internal static bool ShouldPresent(bool enhancementsEnabled, bool retryEnabled,
-            bool serverActive, bool runStarted, int nativeGameOverType, bool gaveUp) =>
+            bool serverActive, bool runStarted, RetryConclusionKind conclusion, bool gaveUp) =>
             enhancementsEnabled && retryEnabled && serverActive && runStarted && !gaveUp &&
-            ClassifyConclusion(nativeGameOverType) == RetryConclusionKind.CombatDefeat;
+            conclusion == RetryConclusionKind.CombatDefeat;
 
         internal static bool ShouldApplyPlacement(bool restorePending,
             string checkpointFloorGuid, string requestedFloorGuid)

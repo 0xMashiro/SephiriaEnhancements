@@ -320,6 +320,7 @@ namespace SephiriaEnhancements.DefeatRetry
 
         internal static void Reset()
         {
+            NativeRetryConclusion.Reset();
             if (IsRetrying)
             {
                 return;
@@ -381,7 +382,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 DefeatRetryBridge.AllPlayersReady() &&
                 DefeatRetryPolicy.ShouldOffer(EnhancementsSettings.Enabled,
                     DefeatRetrySettings.Enabled, MatchesPlayers(checkpoints.Get(kind)),
-                    NetworkServer.active, dungeon.isRunStarted, panel.openType,
+                    NetworkServer.active, dungeon.isRunStarted, NativeRetryConclusion.Get(panel),
                     dungeon.isGiveUpRun, SaveManager.IsSaving == SaveManager.ESaveState.None,
                     nativeRestarting);
         }
@@ -393,7 +394,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 (kind == RetryCheckpointKind.FloorEntry || MatchesPlayers(checkpoints.Get(kind))) &&
                 DefeatRetryPolicy.ShouldPresent(EnhancementsSettings.Enabled,
                     DefeatRetrySettings.Enabled, NetworkServer.active, dungeon.isRunStarted,
-                    panel.openType, dungeon.isGiveUpRun);
+                    NativeRetryConclusion.Get(panel), dungeon.isGiveUpRun);
         }
 
         internal static string FloorRetryTextKey(UI_GameOverLabel panel)
@@ -471,6 +472,7 @@ namespace SephiriaEnhancements.DefeatRetry
                     BossRetryWorld.ClearRecipes();
                 }
                 IsRetrying = true;
+                NativeRetryConclusion.Reset();
                 NativeRetryTravel.CancelDefeatedWorldTravel(DungeonManager.Instance);
                 panel.button.interactable = false;
                 panel.Close();

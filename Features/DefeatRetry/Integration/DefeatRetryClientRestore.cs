@@ -6,7 +6,6 @@ using Mirror;
 using SephiriaEnhancements.Diagnostics;
 using SephiriaEnhancements.Integration;
 using UnityEngine;
-using SephiriaEnhancements.AutoCasting.Integration;
 
 namespace SephiriaEnhancements.DefeatRetry
 {
@@ -33,6 +32,7 @@ namespace SephiriaEnhancements.DefeatRetry
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private void UpdateCore()
         {
+            NativeRetryControls.Tick();
             DefeatRetryBridge.Tick();
             NativeRetryCapture.Tick();
             try
@@ -90,7 +90,7 @@ namespace SephiriaEnhancements.DefeatRetry
             player.localDataStorage.NetworkreadyToLeave = false;
             player.localDataStorage.NetworkgoToEachOtherSessionOnGameOver_Local = 0;
             player.OnTravelPreparedClientside += OnTravelPrepared;
-            FeatureFailure.Run(FeatureId.AutoCasting, () => NativeAutoCasting.Current?.BeginRetry());
+            NativeRetryControls.Begin(player, playerState.SkillArtifacts, deadline);
             SupportLogger.Record("retry_client_prepared", "player=" + player.netId);
         }
 
@@ -121,7 +121,7 @@ namespace SephiriaEnhancements.DefeatRetry
 
         internal static void ObserveWorldSession(bool isSavedSession)
         {
-            if (player == null) return;
+            if (player == null) { NativeRetryControls.Cancel(); return; }
             if (!isSavedSession || worldLoaded) Clear();
             else worldLoaded = true;
         }
@@ -151,7 +151,11 @@ namespace SephiriaEnhancements.DefeatRetry
 
         internal static void Tick()
         {
-            if (player == null) { Clear(); return; }
+            if (player == null)
+            {
+                if (!ReferenceEquals(player, null)) Clear();
+                return;
+            }
             if (!NetworkClient.active || connection != NetworkClient.connection || !LocalPlayerResolver.IsLocal(player))
             {
                 Clear();
@@ -185,9 +189,9 @@ namespace SephiriaEnhancements.DefeatRetry
             if (camera.Observer != player) return;
             CheckPersistence();
             SupportLogger.Record("retry_client_arrived", "player=" + player.netId);
-            FeatureFailure.Run(FeatureId.AutoCasting, () => NativeAutoCasting.Current?.CompleteRetry());
+            NativeRetryControls.Arrive();
             DefeatRetryBridge.ReportArrival(retryId);
-            Clear();
+            Clear(completed: true);
         }
 
         internal static void ReportFailure() { if (player != null) DefeatRetryBridge.ReportArrival(retryId, success: false); }
@@ -222,9 +226,9 @@ namespace SephiriaEnhancements.DefeatRetry
                 " traveled=" + traveled + " cameraMatches=" + (GameCamera.Instance != null && GameCamera.Instance.CurrentSeeingFloor != null && GameCamera.Instance.CurrentSeeingFloor == FloorGenerator.FindByGuid(floor)));
         }
 
-        internal static void Clear()
+        internal static void Clear(bool completed = false)
         {
-            FeatureFailure.Run(FeatureId.AutoCasting, () => NativeAutoCasting.Current?.CancelRetry());
+            if (!completed) NativeRetryControls.Cancel();
             if (!ReferenceEquals(player, null)) player.OnTravelPreparedClientside -= OnTravelPrepared;
             player = null;
             connection = null;

@@ -13,9 +13,10 @@ namespace SephiriaEnhancements.DefeatRetry
         internal readonly short DeathCount;
         private readonly int[] purchases;
         private readonly int[] charms, tablets;
+        internal readonly int[] SkillArtifacts;
 
         internal NativeRetryPlayerState(long accountCheckpointId, short deathCount, int balance, int spent, int earned, int[] purchases,
-            int[] charms, int[] tablets)
+            int[] charms, int[] tablets, int[] skillArtifacts)
         {
             AccountCheckpointId = accountCheckpointId;
             DeathCount = deathCount;
@@ -25,14 +26,17 @@ namespace SephiriaEnhancements.DefeatRetry
             this.purchases = (int[])purchases.Clone();
             this.charms = charms == null ? Array.Empty<int>() : (int[])charms.Clone();
             this.tablets = tablets == null ? Array.Empty<int>() : (int[])tablets.Clone();
+            SkillArtifacts = (int[])skillArtifacts.Clone();
         }
 
         internal static NativeRetryPlayerState Capture(PlayerLocalDataStorage data, long accountCheckpointId) => new NativeRetryPlayerState(
             accountCheckpointId, data.deathCount, data.sapphire, data.sapphireUseInRun, 0, data.purchasedPocketDimensionItem.ToArray(),
-            Array.Empty<int>(), Array.Empty<int>());
+            Array.Empty<int>(), Array.Empty<int>(), Array.Empty<int>());
 
         internal NativeRetryPlayerState WithWorld(PlayerSpawner player) => new NativeRetryPlayerState(AccountCheckpointId, DeathCount, Balance, Spent,
-            player.sapphireInRun, purchases, player.unlockedCharms.ToArray(), player.unlockedStoneTablets.ToArray());
+            player.sapphireInRun, purchases, player.unlockedCharms.ToArray(), player.unlockedStoneTablets.ToArray(),
+            player.PlayerAvatar.Inventory.charms.Values.Where(charm => charm is Charm_Magic || charm is Charm_Active)
+                .Select(charm => charm.Item.InstanceID).ToArray());
 
         internal void RestorePlayer(PlayerSpawner player)
         {
@@ -89,6 +93,8 @@ namespace SephiriaEnhancements.DefeatRetry
             foreach (int item in state.charms) writer.WriteInt(item);
             writer.WriteInt(state.tablets.Length);
             foreach (int item in state.tablets) writer.WriteInt(item);
+            writer.WriteInt(state.SkillArtifacts.Length);
+            foreach (int item in state.SkillArtifacts) writer.WriteInt(item);
         }
 
         internal static NativeRetryPlayerState Read(NetworkReader reader)
@@ -100,7 +106,7 @@ namespace SephiriaEnhancements.DefeatRetry
             if (count < 0 || count > reader.Remaining / 4) throw new InvalidOperationException("Invalid retry purchase count.");
             var purchases = new int[count];
             for (int i = 0; i < count; i++) purchases[i] = reader.ReadInt();
-            return new NativeRetryPlayerState(accountCheckpointId, deathCount, balance, spent, earned, purchases, ReadItems(reader), ReadItems(reader));
+            return new NativeRetryPlayerState(accountCheckpointId, deathCount, balance, spent, earned, purchases, ReadItems(reader), ReadItems(reader), ReadItems(reader));
         }
 
         private static int[] ReadItems(NetworkReader reader)

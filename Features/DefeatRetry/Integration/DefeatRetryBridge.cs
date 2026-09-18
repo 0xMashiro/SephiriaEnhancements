@@ -14,7 +14,7 @@ namespace SephiriaEnhancements.Integration
     {
         // The native runtime constant table is synchronized and rebuilt on world load.
         // Advertise here rather than persisting protocol state in the player's save.
-        private const byte ProtocolVersion = 6;
+        private const byte ProtocolVersion = 7;
         private const string ProtocolKey = "SephiriaEnhancements.DefeatRetryProtocol";
         private static CombatInsightsController controller;
         private static bool serverRegistered, clientRegistered;

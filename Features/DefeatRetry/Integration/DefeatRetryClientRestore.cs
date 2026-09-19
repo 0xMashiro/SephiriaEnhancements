@@ -1,4 +1,5 @@
 using SephiriaEnhancements.Runtime;
+using SephiriaEnhancements.Runtime.GameBridge;
 using System;
 using System.Reflection;
 using HarmonyLib;
@@ -32,7 +33,6 @@ namespace SephiriaEnhancements.DefeatRetry
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private void UpdateCore()
         {
-            NativeRetryControls.Tick();
             DefeatRetryBridge.Tick();
             NativeRetryCapture.Tick();
             try
@@ -41,10 +41,7 @@ namespace SephiriaEnhancements.DefeatRetry
             }
             catch (Exception exception)
             {
-                SupportLogger.Failure("retry_client_restore_failed", exception);
-                DefeatRetryClientRestore.ReportFailure();
-                DefeatRetryClientRestore.Clear();
-                throw;
+                DefeatRetryClientRestore.Fail(exception);
             }
         }
     }
@@ -67,6 +64,8 @@ namespace SephiriaEnhancements.DefeatRetry
         internal static bool PreserveClientRun { get; private set; }
         internal static bool IsRestoring => player != null;
         private static NativeRetryPlayerState playerState;
+        private static NativeRetryControls controls;
+        private static bool readyReported;
 
         internal static void Begin(string floorGuid, long id, Vector3 position, NativeRetryPlayerState account,
             long checkpointId = 0)
@@ -91,7 +90,8 @@ namespace SephiriaEnhancements.DefeatRetry
             player.localDataStorage.NetworkreadyToLeave = false;
             player.localDataStorage.NetworkgoToEachOtherSessionOnGameOver_Local = 0;
             player.OnTravelPreparedClientside += OnTravelPrepared;
-            NativeRetryControls.Begin(player, playerState.SkillArtifacts, deadline, playerState.ArtifactKeys, checkpointId, floorGuid);
+            NativeLocalPlayerData.BeginRestore(checkpointId, floorGuid);
+            controls = new NativeRetryControls(player, playerState.SkillArtifacts, playerState.ArtifactKeys);
             SupportLogger.Record("retry_client_prepared", "player=" + player.netId);
         }
 
@@ -122,8 +122,8 @@ namespace SephiriaEnhancements.DefeatRetry
 
         internal static void ObserveWorldSession(bool isSavedSession)
         {
-            if (player == null) { NativeRetryControls.Cancel(); return; }
-            if (!isSavedSession || worldLoaded) Clear();
+            if (player == null) return;
+            if (!isSavedSession || worldLoaded) { ReportFailure(); Clear(); }
             else worldLoaded = true;
         }
 
@@ -150,15 +150,18 @@ namespace SephiriaEnhancements.DefeatRetry
             notified = true;
         }
 
+        // This is the owner's single readiness boundary. Required asynchronous state
+        // joins these checks; optional presentation must not send a separate receipt.
         internal static void Tick()
         {
             if (player == null)
             {
-                if (!ReferenceEquals(player, null)) Clear();
+                if (!ReferenceEquals(player, null)) { ReportFailure(); Clear(); }
                 return;
             }
             if (!NetworkClient.active || connection != NetworkClient.connection || !LocalPlayerResolver.IsLocal(player))
             {
+                ReportFailure();
                 Clear();
                 return;
             }
@@ -168,6 +171,15 @@ namespace SephiriaEnhancements.DefeatRetry
                 ReportFailure();
                 NativeRetryFailure.Show(RetryRecoveryFailure.TimedOut);
                 Clear();
+                return;
+            }
+            if (readyReported)
+            {
+                if (!NativeLocalPlayerData.IsRestoring || !arrival.IsCurrent ||
+                    GameCamera.Instance == null || GameCamera.Instance.Observer != player ||
+                    GameCamera.Instance.CurrentSeeingFloor != FloorGenerator.FindByGuid(floor) ||
+                    !playerState.Matches(player.GetComponent<PlayerSpawner>()) || !controls.TryRestore(player))
+                { ReportFailure(); Clear(); }
                 return;
             }
             if (!notified || !traveled || !arrival.Observe()) return;
@@ -188,14 +200,36 @@ namespace SephiriaEnhancements.DefeatRetry
                 return;
             }
             if (camera.Observer != player) return;
+            NativeLocalPlayerData.LoadProgress();
+            if (!NativeLocalPlayerData.IsRestoring)
+                throw new InvalidOperationException("Local recovery ownership was invalidated.");
+            if (!controls.TryRestore(player)) return;
             CheckPersistence();
-            SupportLogger.Record("retry_client_arrived", "player=" + player.netId);
-            NativeRetryControls.Arrive();
-            DefeatRetryBridge.ReportArrival(retryId);
+            readyReported = true;
+            SupportLogger.Record("retry_client_ready", "player=" + player.netId);
+            DefeatRetryBridge.ReportReady(retryId);
+        }
+
+        internal static void Fail(Exception exception)
+        {
+            SupportLogger.Failure("retry_client_restore_failed", exception);
+            ReportFailure();
+            Clear();
+            NativeRetryFailure.Show(RetryRecoveryFailure.RestoreFailed);
+        }
+
+        internal static void Complete(long id)
+        {
+            if (id != retryId || !readyReported) return;
+            NativeLocalPlayerData.CompleteRestore();
             Clear(completed: true);
         }
 
-        internal static void ReportFailure() { if (player != null) DefeatRetryBridge.ReportArrival(retryId, success: false); }
+        internal static void ReportFailure()
+        {
+            if (!ReferenceEquals(player, null) && NetworkClient.active && connection == NetworkClient.connection)
+                DefeatRetryBridge.ReportReady(retryId, success: false);
+        }
 
         private static void CheckPersistence()
         {
@@ -229,13 +263,15 @@ namespace SephiriaEnhancements.DefeatRetry
 
         internal static void Clear(bool completed = false)
         {
-            if (!completed) NativeRetryControls.Cancel();
+            if (!completed) NativeLocalPlayerData.CancelRestore();
             if (!ReferenceEquals(player, null)) player.OnTravelPreparedClientside -= OnTravelPrepared;
             player = null;
             connection = null;
             floor = null;
             runFile = null;
             playerState = null;
+            controls = null;
+            readyReported = false;
             arrival = null;
             requestedCamera = null;
             requestedCameraFloor = null;

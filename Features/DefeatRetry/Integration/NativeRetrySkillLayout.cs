@@ -43,6 +43,18 @@ namespace SephiriaEnhancements.DefeatRetry
             return true;
         }
 
+        internal static bool HasCurrentBindings(IntegratedActionController actions, GridInventory inventory)
+        {
+            var current = new HashSet<Charm_Basic>(inventory.charms.Values);
+            for (int i = 0; i < 11; i++)
+            {
+                QuickSlotData slot = At(actions, i);
+                Charm_Basic artifact = slot.magic != null ? (Charm_Basic)slot.magic : slot.active as Charm_Active;
+                if (artifact != null && !current.Contains(artifact)) return false;
+            }
+            return true;
+        }
+
         internal int Restore(IntegratedActionController actions, GridInventory inventory, int[] expected)
         {
             // Refresh the native lists before editing. A second refresh publishes the

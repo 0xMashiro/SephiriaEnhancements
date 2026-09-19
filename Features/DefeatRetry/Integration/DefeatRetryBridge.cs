@@ -14,7 +14,7 @@ namespace SephiriaEnhancements.Integration
     {
         // The native runtime constant table is synchronized and rebuilt on world load.
         // Advertise here rather than persisting protocol state in the player's save.
-        private const byte ProtocolVersion = 8;
+        private const byte ProtocolVersion = 9;
         private const string ProtocolKey = "SephiriaEnhancements.DefeatRetryProtocol";
         private static CombatInsightsController controller;
         private static bool serverRegistered, clientRegistered;
@@ -37,7 +37,7 @@ namespace SephiriaEnhancements.Integration
         internal static void SetIntegrationAvailable(bool available) => integrationAvailable = available;
 
         private struct Hello : NetworkMessage { internal byte Version; }
-        private struct Arrival : NetworkMessage { internal long RetryId; internal bool Success; }
+        private struct ReadyReceipt : NetworkMessage { internal long RetryId; internal bool Success; }
         private struct ConclusionNotification : NetworkMessage { internal RetryConclusionKind Kind; }
         private struct Notification : NetworkMessage
         {
@@ -57,8 +57,8 @@ namespace SephiriaEnhancements.Integration
             NativeRetryCapture.Initialize();
             Writer<Hello>.write = (writer, message) => writer.WriteByte(message.Version);
             Reader<Hello>.read = reader => new Hello { Version = reader.ReadByte() };
-            Writer<Arrival>.write = (writer, message) => { writer.WriteLong(message.RetryId); writer.WriteByte(message.Success ? (byte)1 : (byte)0); };
-            Reader<Arrival>.read = reader => new Arrival { RetryId = reader.ReadLong(), Success = reader.ReadByte() == 1 };
+            Writer<ReadyReceipt>.write = (writer, message) => { writer.WriteLong(message.RetryId); writer.WriteByte(message.Success ? (byte)1 : (byte)0); };
+            Reader<ReadyReceipt>.read = reader => new ReadyReceipt { RetryId = reader.ReadLong(), Success = reader.ReadByte() == 1 };
             Writer<ConclusionNotification>.write = (writer, message) => writer.WriteByte((byte)message.Kind);
             Reader<ConclusionNotification>.read = reader => new ConclusionNotification { Kind = (RetryConclusionKind)reader.ReadByte() };
             Writer<Notification>.write = (writer, message) =>
@@ -90,9 +90,9 @@ namespace SephiriaEnhancements.Integration
                     {
                         if (message.Version == ProtocolVersion) peers.Add(connection);
                     }));
-                    NetworkServer.RegisterHandler<Arrival>((connection, message) => FeatureFailure.Run(FeatureId.DefeatRetry, () =>
+                    NetworkServer.RegisterHandler<ReadyReceipt>((connection, message) => FeatureFailure.Run(FeatureId.DefeatRetry, () =>
                     {
-                        AcceptReceipt(connection, message.RetryId, message.Success);
+                        AcceptReadyReceipt(connection, message.RetryId, message.Success);
                     }));
                     serverRegistered = true;
                     NativeRetryCapture.RegisterServer();
@@ -243,14 +243,14 @@ namespace SephiriaEnhancements.Integration
             publishedStatus = RetryRecoveryStatus.Waiting;
         }
 
-        internal static void ReportArrival(long id, bool success = true)
+        internal static void ReportReady(long id, bool success = true)
         {
-            if (NetworkServer.active) AcceptReceipt(NetworkServer.localConnection, id, success);
+            if (NetworkServer.active) AcceptReadyReceipt(NetworkServer.localConnection, id, success);
             else if (NetworkClient.active && NetworkClient.connection != null)
-                NetworkClient.Send(new Arrival { RetryId = id, Success = success });
+                NetworkClient.Send(new ReadyReceipt { RetryId = id, Success = success });
         }
 
-        private static void AcceptReceipt(NetworkConnectionToClient peer, long id, bool success)
+        private static void AcceptReadyReceipt(NetworkConnectionToClient peer, long id, bool success)
         {
             if (id != retryId || recovery.Status != RetryRecoveryStatus.Waiting || !destinations.ContainsKey(peer)) return;
             if (success)
@@ -259,7 +259,7 @@ namespace SephiriaEnhancements.Integration
                 receipts.Add(peer);
             }
             else recovery.Fail(RetryRecoveryFailure.RestoreFailed);
-            SupportLogger.Record("retry_client_receipt", "connection=" + peer.connectionId + " success=" + success,
+            SupportLogger.Record("retry_client_ready_receipt", "connection=" + peer.connectionId + " success=" + success,
                 success ? "INFO" : "ERROR");
         }
 
@@ -330,8 +330,12 @@ namespace SephiriaEnhancements.Integration
                 receivedRetryId = message.RetryId;
                 localRecoveryPending = true;
                 NativeRetryBoss.Begin(message.FloorGuid);
-                DefeatRetryClientRestore.Begin(message.FloorGuid, message.RetryId, message.Position, message.PlayerState,
-                    message.Transition == RetryTransition.RetryBoss ? message.CheckpointId : 0);
+                try
+                {
+                    DefeatRetryClientRestore.Begin(message.FloorGuid, message.RetryId, message.Position, message.PlayerState,
+                        message.Transition == RetryTransition.RetryBoss ? message.CheckpointId : 0);
+                }
+                catch (Exception exception) { DefeatRetryClientRestore.Fail(exception); }
             }
             else if (message.Transition == RetryTransition.Cancel)
             {
@@ -346,6 +350,8 @@ namespace SephiriaEnhancements.Integration
                 DefeatRetryClientRestore.Clear();
                 NativeRetryFailure.Show(message.Failure);
             }
+            if (message.Transition == RetryTransition.RecoveryCompleted)
+                DefeatRetryClientRestore.Complete(message.RetryId);
             if (message.Transition == RetryTransition.CaptureBoss)
             {
                 try { NativeLocalPlayerData.CaptureCheckpoint(message.CheckpointId, message.FloorGuid); }
@@ -365,7 +371,7 @@ namespace SephiriaEnhancements.Integration
             NativeRetryFloorEntry.Clear();
             NativeRetryCapture.Shutdown();
             NetworkServer.UnregisterHandler<Hello>();
-            NetworkServer.UnregisterHandler<Arrival>();
+            NetworkServer.UnregisterHandler<ReadyReceipt>();
             NetworkClient.UnregisterHandler<Notification>();
             NetworkClient.UnregisterHandler<ConclusionNotification>();
             controller = null;
@@ -397,7 +403,7 @@ namespace SephiriaEnhancements.Integration
                     FailRecovery();
                     PublishRecoveryResult();
                 }
-                else if (LocalRecoveryPending) ReportArrival(receivedRetryId, success: false);
+                else if (LocalRecoveryPending) ReportReady(receivedRetryId, success: false);
                 else if (restoring) DefeatRetryClientRestore.ReportFailure();
             }
             finally

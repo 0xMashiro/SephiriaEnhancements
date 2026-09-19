@@ -55,9 +55,10 @@ namespace SephiriaEnhancements.Runtime
             {
                 Disable(FeatureId.Inventory, exception);
                 Disable(FeatureId.CombatInsights, exception);
-            }
-            if (feature == FeatureId.CombatInsights)
                 Disable(FeatureId.DefeatRetry, exception);
+                Disable(FeatureId.AutoCasting, exception);
+            }
+
         }
 
         internal static bool Run(FeatureId feature, Action action)

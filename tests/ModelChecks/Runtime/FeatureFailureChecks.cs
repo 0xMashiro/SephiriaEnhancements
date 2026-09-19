@@ -32,11 +32,14 @@ internal static class FeatureFailureChecks
 
         FeatureFailure.Reset();
         FeatureFailure.Report = (_, _) => throw new InvalidOperationException();
+        FeatureFailure.Disable(FeatureId.CombatInsights, new Exception());
+        Require(FeatureFailure.IsAvailable(FeatureId.DefeatRetry), "optional statistics failure must not disable retry");
+        FeatureFailure.Reset();
         FeatureFailure.Disable(FeatureId.Gameplay, new MissingFieldException());
         Require(!FeatureFailure.IsAvailable(FeatureId.Inventory) && !FeatureFailure.IsAvailable(FeatureId.CombatInsights) &&
-            !FeatureFailure.IsAvailable(FeatureId.DefeatRetry), "shared state failure must disable its consumers");
+            !FeatureFailure.IsAvailable(FeatureId.DefeatRetry) && !FeatureFailure.IsAvailable(FeatureId.AutoCasting), "shared state failure must disable its consumers");
         Require(FeatureFailure.IsAvailable(FeatureId.MapEnhancements), "independent features must survive shared state failure");
-        Require(FeatureFailure.PendingNotices.Length == 3, "dependent failures must remain available for a combined notice");
+        Require(FeatureFailure.PendingNotices.Length == 4, "dependent failures must remain available for a combined notice");
         FeatureFailure.Reset();
         FeatureFailure.Disable(FeatureId.DeveloperTools, new Exception());
         Require(FeatureFailure.PendingNotices.Length == 0, "diagnostic failures must not notify the player");
@@ -44,6 +47,7 @@ internal static class FeatureFailureChecks
         FeatureFailure.Reset();
         Require(Enum.GetValues<FeatureId>().All(FeatureFailure.IsAvailable), "reload must clear failure state");
         CheckPatchRollback();
+        FeatureCleanupChecks.Run();
         Console.WriteLine("Feature isolation: independent execution, lifetime, dependencies, reporting, transactional patch rollback and foreign ownership passed");
     }
 

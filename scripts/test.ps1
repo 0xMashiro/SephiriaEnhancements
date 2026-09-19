@@ -87,9 +87,16 @@ Write-Host 'Localization source coverage passed.'
 
 # These hooks must be installed by normal startup, not only by a test's PatchAll.
 $startup = Get-Content -Raw (Join-Path $repoRoot 'SephiriaEnhancementsMod.cs')
-$patchList = [regex]::Match($startup, '(?s)foreach \(Type patchType in new\[\]\s*\{(?<types>.*?)\}\)')
+$registrations = Get-Content -Raw (Join-Path $repoRoot 'Runtime/FeaturePatches.cs')
+foreach ($phase in @('StartupPatches', 'MidRunAdmissionPatches', 'MultiplayerRuleBehaviorPatches')) {
+    if ($startup -notmatch ('foreach\s*\(var patch in ' + $phase + '\(\)\)')) {
+        throw "Patch installation phase is not connected: $phase"
+    }
+}
+$patchList = [regex]::Match($registrations, '(?s)StartupPatches\(\).*?new\[\]\s*\{(?<types>.*?)\};')
 foreach ($patch in @(
     'ModLanguageLoadPatch',
+    'NativePresetEditPatch',
     'StageRewardCommandPatch', 'StageRewardTutorialPatch',
     'NativeRetryPurchasePatch',
     'DamageSourcesOpenedPatch', 'DamageSourcesCurrentAreaPatch', 'DamageSourcesAllAreasPatch',
@@ -111,17 +118,17 @@ foreach ($patch in @(
     'AutoCastingOptionsPatch', 'CharacterPanelNavigationMovePatch', 'CharacterPanelNavigationTogglePatch'
     'InventoryPanelCancelPatch', 'InventoryPanelTooltipPlacementPatch'
 )) {
-    if ($patchList.Groups['types'].Value -notmatch ('typeof\(' + $patch + '\)')) {
+    if ($patchList.Groups['types'].Value -notmatch ('typeof\(global::[\w.]+\.' + $patch + '\)')) {
         throw "Required hook is missing from startup: $patch"
     }
 }
 
-$admissionPatches = [regex]::Match($startup, '(?s)MidRunAdmissionPatchTypes\s*=\s*\{(?<types>.*?)\};').Groups['types'].Value
+$admissionPatches = [regex]::Match($registrations, '(?s)MidRunAdmissionPatches\(\).*?new\[\]\s*\{(?<types>.*?)\};').Groups['types'].Value
 foreach ($source in Get-ChildItem -LiteralPath (Join-Path $repoRoot 'Features/MultiplayerAccess/Integration') -Filter '*.cs' -File) {
     foreach ($declaration in [regex]::Matches((Get-Content -LiteralPath $source.FullName -Raw),
         '(?s)\[HarmonyPatch.*?internal static class\s+(\w+)')) {
         $patch = $declaration.Groups[1].Value
-        if ($admissionPatches -notmatch ('typeof\(' + $patch + '\)')) {
+        if ($admissionPatches -notmatch ('typeof\(global::[\w.]+\.' + $patch + '\)')) {
             throw "Required admission or joining-supply hook is missing from startup: $patch"
         }
     }

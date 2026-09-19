@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using SephiriaEnhancements.Diagnostics;
 using SephiriaEnhancements.Runtime;
+using SephiriaEnhancements.Runtime.GameBridge;
+using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
 using SephiriaEnhancements.DefeatRetry;
 using SephiriaEnhancements.MultiplayerAccess;
@@ -17,6 +19,8 @@ namespace SephiriaEnhancements
     public sealed partial class SephiriaEnhancementsMod
     {
         private readonly FeaturePatchSet featurePatches = new(HarmonyId);
+        private readonly FeatureCleanup featureCleanup = new((feature, exception) =>
+            SupportLogger.Failure("feature_cleanup_failed." + feature, exception));
         private readonly Dictionary<FeatureId, List<MonoBehaviour>> featureControllers = new();
 
         private void InitializeFeature(FeatureId feature, Action initialize) =>
@@ -86,66 +90,52 @@ namespace SephiriaEnhancements
 
         private void StopFeature(FeatureId feature)
         {
-            if (keyboardUiNavigation != null) keyboardUiNavigation.CancelFeatureSelection(feature);
-            switch (feature)
+            CleanupFeature(feature, () => keyboardUiNavigation?.CancelFeatureSelection(feature));
+            featureCleanup.Stop(feature);
+        }
+
+        private void RegisterFeatureCleanup()
+        {
+            featureCleanup.Add(FeatureId.Settings, NativeOptionsLifetime.DisposeAll);
+            featureCleanup.Add(FeatureId.KeyboardUiNavigation, KeyboardUiNavigation.Integration.NativeTextInputKeyboard.Reset);
+            featureCleanup.Add(FeatureId.CharacterPanelNavigation, () => KeyboardUiNavigation.CharacterPanelNavigationMemory.ResetAll(destroy: true));
+            featureCleanup.Add(FeatureId.RewardNavigation, KeyboardUiNavigation.RewardKeyboardNavigation.Reset);
+            featureCleanup.Add(FeatureId.MultiplayerRules, () => MultiplayerRulesController.SetIntegrationAvailable(false));
+            featureCleanup.Add(FeatureId.MultiplayerRules, () => multiplayerRules?.Shutdown());
+            featureCleanup.Add(FeatureId.MultiplayerAccess, null, MultiplayerAccess.Integration.JoiningSupplyBridge.NotifyHostUnavailable);
+            featureCleanup.Add(FeatureId.MultiplayerAccess, () => MidRunAdmissionRuntime.SetIntegrationAvailable(false));
+            featureCleanup.Add(FeatureId.MultiplayerRules, () => EnemySpawnRoutineContext.SetRuleScopeFactory(null));
+            featureCleanup.Add(FeatureId.Inventory, () => inventoryOptimization?.Shutdown(), () => inventoryOptimization?.StopAfterFeatureFailure());
+            featureCleanup.Add(FeatureId.DefeatRetry, DefeatRetryBridge.Shutdown, DefeatRetryBridge.StopAfterFeatureFailure);
+            featureCleanup.Add(FeatureId.DefeatRetry, () =>
             {
-                case FeatureId.KeyboardUiNavigation:
-                    CleanupFeature(feature, KeyboardUiNavigation.Integration.NativeTextInputKeyboard.Reset);
-                    break;
-                case FeatureId.CharacterPanelNavigation:
-                    CleanupFeature(feature, () => KeyboardUiNavigation.CharacterPanelNavigationMemory.ResetAll(destroy: true));
-                    break;
-                case FeatureId.RewardNavigation:
-                    CleanupFeature(feature, KeyboardUiNavigation.RewardKeyboardNavigation.Reset);
-                    break;
-                case FeatureId.CostumeAppearance:
-                    CleanupFeature(feature, () => CostumeAppearance.Integration.NativeCostumeAppearance.Instance?.Shutdown());
-                    break;
-                case FeatureId.EffectStats:
-                    CleanupFeature(feature, EffectStats.Integration.NativeEffectStatsView.DisposeAll);
-                    break;
-                case FeatureId.Inventory:
-                    CleanupFeature(feature, () => inventoryOptimization?.StopAfterFeatureFailure());
-                    break;
-                case FeatureId.DefeatRetry:
-                    CleanupFeature(feature, DefeatRetryBridge.StopAfterFeatureFailure);
-                    CleanupFeature(feature, () =>
-                    {
-                        var button = UIManager.Instance?.GetElement<UI_GameOverLabel>()?.GetComponent<DefeatRetryButton>();
-                        if (button != null) UnityEngine.Object.DestroyImmediate(button);
-                    });
-                    break;
-                case FeatureId.MultiplayerRules:
-                    CleanupFeature(feature, () => MultiplayerRulesController.SetIntegrationAvailable(false));
-                    CleanupFeature(feature, () => EnemySpawnRoutineContext.SetRuleScopeFactory(null));
-                    CleanupFeature(feature, () => multiplayerRules?.Shutdown());
-                    break;
-                case FeatureId.MultiplayerAccess:
-                    CleanupFeature(feature, MultiplayerAccess.Integration.JoiningSupplyBridge.NotifyHostUnavailable);
-                    CleanupFeature(feature, () => MidRunAdmissionRuntime.SetIntegrationAvailable(false));
-                    break;
-                case FeatureId.Gameplay:
-                    CleanupFeature(feature, () => runtimeKernel?.Dispose());
-                    break;
-                case FeatureId.CombatInsights:
-                    CleanupFeature(feature, () => DamageFeedbackCapture.SetController(null));
-                    CleanupFeature(feature, () => DamageDetailCapture.SetController(null));
-                    CleanupFeature(feature, () => UnitDeathCapture.SetController(null));
-                    CleanupFeature(feature, () => LocalFinalBlowCapture.SetController(null));
-                    CleanupFeature(feature, () => NativeReportDismissal.SetController(null));
-                    CleanupFeature(feature, () => NativeStatisticsPauseEntry.SetController(null));
-                    CleanupFeature(feature, () => combatInsights?.Shutdown());
-                    break;
-                case FeatureId.ResourceBarValues:
-                    CleanupFeature(feature, NativeResourceBarValueView.DisposeAll);
-                    break;
-                case FeatureId.AutoCasting:
-                    CleanupFeature(feature, NativeAutoCastingUi.DisposeAll);
-                    break;
-                case FeatureId.ModJournal:
-                    CleanupFeature(feature, NativeModJournal.DisposeAll);
-                    break;
-            }
+                var button = UIManager.Instance?.GetElement<UI_GameOverLabel>()?.GetComponent<DefeatRetryButton>();
+                if (button != null) UnityEngine.Object.DestroyImmediate(button);
+            });
+            featureCleanup.Add(FeatureId.CombatInsights, () =>
+            {
+                if (combatInsights != null) DefeatRetryBridge.TeamDefeated -= combatInsights.FinishDefeatedEncounter;
+            });
+            featureCleanup.Add(FeatureId.CombatInsights, () => DamageFeedbackCapture.SetController(null));
+            featureCleanup.Add(FeatureId.CombatInsights, () => DamageDetailCapture.SetController(null));
+            featureCleanup.Add(FeatureId.CombatInsights, () => UnitDeathCapture.SetController(null));
+            featureCleanup.Add(FeatureId.CombatInsights, () => LocalFinalBlowCapture.SetController(null));
+            featureCleanup.Add(FeatureId.CombatInsights, () => NativeReportDismissal.SetController(null));
+            featureCleanup.Add(FeatureId.CombatInsights, () => NativeStatisticsPauseEntry.SetController(null));
+            featureCleanup.Add(FeatureId.CombatInsights, () => combatInsights?.Shutdown());
+            featureCleanup.Add(FeatureId.CombatInsights, () => TrainingDamageStatistics.Instance?.Shutdown());
+            featureCleanup.Add(FeatureId.Gameplay, NativeLocalPlayerData.Shutdown);
+            featureCleanup.Add(FeatureId.Gameplay, () =>
+            {
+                if (runtimeKernel != null) runtimeKernel.GameplayContextChanged -= OnLocalGameplayContextChanged;
+            });
+            featureCleanup.Add(FeatureId.Gameplay, () => runtimeKernel?.Dispose());
+            featureCleanup.Add(FeatureId.DeveloperTools, DeveloperLogger.Shutdown);
+            featureCleanup.Add(FeatureId.ResourceBarValues, NativeResourceBarValueView.DisposeAll);
+            featureCleanup.Add(FeatureId.CostumeAppearance, () => CostumeAppearance.Integration.NativeCostumeAppearance.Instance?.Shutdown());
+            featureCleanup.Add(FeatureId.AutoCasting, NativeAutoCastingUi.DisposeAll);
+            featureCleanup.Add(FeatureId.ModJournal, NativeModJournal.DisposeAll);
+            featureCleanup.Add(FeatureId.EffectStats, EffectStats.Integration.NativeEffectStatsView.DisposeAll);
         }
 
         private void UnpatchFeatures()

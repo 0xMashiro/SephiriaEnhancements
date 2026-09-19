@@ -1,7 +1,6 @@
 using SephiriaEnhancements.Runtime.GameBridge;
 using System.Collections.Generic;
 using Mirror;
-using SephiriaEnhancements.Combat;
 using SephiriaEnhancements.DefeatRetry;
 using SephiriaEnhancements.Diagnostics;
 using System;
@@ -16,7 +15,7 @@ namespace SephiriaEnhancements.Integration
         // Advertise here rather than persisting protocol state in the player's save.
         private const byte ProtocolVersion = 9;
         private const string ProtocolKey = "SephiriaEnhancements.DefeatRetryProtocol";
-        private static CombatInsightsController controller;
+        internal static event Action TeamDefeated;
         private static bool serverRegistered, clientRegistered;
         private static NetworkConnectionToServer registeredConnection;
         private static readonly HashSet<NetworkConnectionToClient> peers = new HashSet<NetworkConnectionToClient>();
@@ -50,9 +49,8 @@ namespace SephiriaEnhancements.Integration
             internal NativeRetryPlayerState PlayerState;
         }
 
-        internal static void Initialize(CombatInsightsController value)
+        internal static void Initialize()
         {
-            controller = value;
             NativeRetryConclusion.Reset();
             NativeRetryCapture.Initialize();
             Writer<Hello>.write = (writer, message) => writer.WriteByte(message.Version);
@@ -361,7 +359,7 @@ namespace SephiriaEnhancements.Integration
 
         internal static void ObserveTeamDefeat()
         {
-            try { controller?.FinishDefeatedEncounter(); }
+            try { TeamDefeated?.Invoke(); }
             catch (Exception exception) { SupportLogger.Failure("retry_statistics_failed", exception); }
         }
 
@@ -374,7 +372,7 @@ namespace SephiriaEnhancements.Integration
             NetworkServer.UnregisterHandler<ReadyReceipt>();
             NetworkClient.UnregisterHandler<Notification>();
             NetworkClient.UnregisterHandler<ConclusionNotification>();
-            controller = null;
+            TeamDefeated = null;
             peers.Clear();
             ClearArrivals();
             serverRegistered = clientRegistered = false;

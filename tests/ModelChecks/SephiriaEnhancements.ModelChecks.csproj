@@ -30,6 +30,7 @@
     <Compile Include="../../Features/MultiplayerRules/Core/MultiplayerRuleInput.cs" Link="MultiplayerRules/MultiplayerRuleInput.cs" />
     <Compile Include="../../Runtime/FeatureFailure.cs" Link="Runtime/FeatureFailure.cs" />
     <Compile Include="../../Features/MultiplayerAccess/Core/JoiningSupplyNoticeState.cs" Link="MultiplayerAccess/JoiningSupplyNoticeState.cs" />
+    <Compile Include="../../Runtime/FeatureCleanup.cs" Link="Runtime/FeatureCleanup.cs" />
     <Compile Include="../../Runtime/FeaturePatchSet.cs" Link="Runtime/FeaturePatchSet.cs" />
     <Compile Include="../../Runtime/FeatureFailureLocalization.cs" Link="Runtime/FeatureFailureLocalization.cs" />
     <Compile Include="../../Features/ModInformation/Core/*.cs" Link="ModInformation/%(Filename)%(Extension)" />

@@ -38,66 +38,6 @@ namespace SephiriaEnhancements
     {
         private const string HarmonyId = "io.github.0xmashiro.sephiria-enhancements";
         private static SephiriaEnhancementsMod activeInstance;
-        private static readonly Type[] MultiplayerRuleBehaviorPatchTypes =
-        {
-            typeof(EnemySpawnRoutineOriginPatch),
-            typeof(AvatarSpawnOriginCapturePatch),
-            typeof(NetworkSpawnOriginCapturePatch),
-            typeof(EnemyHealthInitializationPatch),
-            typeof(KrazBossSpawnOriginPatch),
-            typeof(MindEaterRootSummonOriginPatch),
-            typeof(MonsterSpawnEntryMultiplierPatch),
-            typeof(TargetedExperienceOrbDivisorPatch),
-            typeof(MoneyAwardRulePatch),
-            typeof(PlayerMoneyAwardAmountPatch),
-            typeof(StandardBossRulesPatch),
-            typeof(QliphothSealRulePatch),
-            typeof(QliphothFinalBattleGridRulePatch),
-            typeof(QliphothFinalBattleEntryTrackingRulePatch),
-            typeof(QliphothTempleTrioActiveCountRulePatch),
-            typeof(MerchantGenerationRuleContextPatch),
-            typeof(MerchantCandidateRulePatch),
-            typeof(SafeMerchantInventoryRulePatch),
-            typeof(DirectMerchantInventoryRulePatch),
-            typeof(FestivalOfBloodHealingRulePatch),
-            typeof(HiddenRoomBreakableRewardCountRulePatch),
-            typeof(HiddenRoomNativeBreakableSuppressionPatch),
-            typeof(FloorGenerationRuleContextPatch),
-            typeof(EnemyGroupDifficultyOffsetRulePatch),
-            typeof(LifeSupplyCreatePropRulePatch)
-        };
-        private static readonly Type[] MidRunAdmissionPatchTypes =
-        {
-            typeof(MidRunAuthenticationPatch),
-            typeof(MidRunDungeonAccessPatch),
-            typeof(MidRunReconnectSupportPatch),
-            typeof(FreshPlayerStartingItemPatch),
-            typeof(MidRunLobbyAvailabilityPatch),
-            typeof(FreshPlayerSaveSlotPatch),
-            typeof(MidRunDisconnectCleanupPatch),
-            typeof(MidRunServerCleanupPatch),
-            typeof(JoiningSupplyInitializationPatch),
-            typeof(JoiningSupplyExplorationPatch),
-            typeof(JoiningSupplyLoadPatch),
-            typeof(JoiningSupplySpawnPatch),
-            typeof(JoiningSupplyFinishPatch),
-            typeof(JoiningSupplyTabletPatch),
-            typeof(JoiningSupplyCheckpointPatch),
-            typeof(JoiningSupplySavePatch),
-            typeof(JoiningSupplyDisconnectPatch),
-            typeof(JoiningSupplyCommandOwnershipPatch),
-            typeof(JoiningSupplyRewardOwnershipPatch),
-            typeof(JoiningSupplyWriteSavePatch),
-            typeof(JoiningSupplyDespawnPatch),
-            typeof(JoiningSupplyFacilityDicePatch),
-            typeof(JoiningSupplyInteractionOwnershipPatch),
-            typeof(JoiningSupplyEmbeddedMiraclePatch),
-            typeof(JoiningSupplyEmbeddedAnvilPatch),
-            typeof(JoiningSupplyMiracleConfirmationPatch),
-            typeof(JoiningSupplyAnvilSelectionPatch),
-            typeof(JoiningSupplyAnvilConfirmationPatch),
-            typeof(JoiningSupplyEnchantConfirmationPatch)
-        };
 
         private GameObject controllerObject;
         private CombatRelationOutlinesController combatRelationOutlines;
@@ -133,6 +73,7 @@ namespace SephiriaEnhancements
             activeInstance?.OnModUnloaded();
             activeInstance = this;
             FeatureFailure.Reset();
+            RegisterFeatureCleanup();
             NativeModNotifications.Reset();
             FeatureFailure.Report = ReportFeatureFailure;
             SupportLogger.Initialize();
@@ -204,6 +145,7 @@ namespace SephiriaEnhancements
             {
                 combatInsights = AddController<CombatInsightsController>(FeatureId.CombatInsights);
                 combatInsights.Initialize(runtimeKernel);
+                DefeatRetryBridge.TeamDefeated += combatInsights.FinishDefeatedEncounter;
                 AddController<TrainingDamageStatistics>(FeatureId.CombatInsights);
                 NativeReportDismissal.SetController(combatInsights);
                 NativeStatisticsPauseEntry.SetController(combatInsights);
@@ -214,7 +156,7 @@ namespace SephiriaEnhancements
             });
             InitializeFeature(FeatureId.DefeatRetry, () =>
             {
-                DefeatRetryBridge.Initialize(combatInsights);
+                DefeatRetryBridge.Initialize();
                 AddController<DefeatRetryRuntime>(FeatureId.DefeatRetry);
             });
             InitializeFeature(FeatureId.MultiplayerAccess, () =>
@@ -249,176 +191,33 @@ namespace SephiriaEnhancements
             bool retryCompatibilityAvailable = ValidateFeature(FeatureId.DefeatRetry, () =>
                 NativeRetryTravel.IsAvailable && NativeRetryBoss.IsAvailable && NativeRetryRestart.IsAvailable &&
                 DefeatRetryClientRestore.IsAvailable && DefeatRetryPlayerRestorePatch.IsAvailable);
-            foreach (Type patchType in new[]
+            foreach (var patch in StartupPatches())
             {
-                typeof(ItemCommunication.Integration.ItemCommunicationNavigationPatch),
-                typeof(DamageFeedbackCapture),
-                typeof(DamageDetailCapture),
-                typeof(UnitDeathCapture),
-                typeof(LocalFinalBlowCapture),
-                typeof(NativeReportDismissal),
-                typeof(NativeStatisticsPauseEntry),
-                typeof(DamageSourcesOpenedPatch),
-                typeof(DamageSourcesCurrentAreaPatch),
-                typeof(DamageSourcesAllAreasPatch),
-                typeof(TrainingDirectDamagePatch),
-                typeof(TrainingCompanionDamagePatch),
-                typeof(TrainingPlayerTravelPatch),
-                typeof(ModJournalRefreshPatch),
-                typeof(EffectStats.Integration.EffectStatsPanelPatch),
-                typeof(ModJournalClearPatch),
-                typeof(ModJournalCategoryPatch),
-                typeof(ModJournalTutorialPatch),
-                typeof(NativeOrdinaryEncounterClearedPatch),
-                typeof(NativeBossEncounterStartedPatch),
-                typeof(NativeBossEncounterDefeatedPatch),
-                typeof(NativeBossEncounterCompletionStartedPatch),
-                typeof(NativeBossEncounterCompletedPatch),
-                typeof(NativeBossEncounterPausedPatch),
-                typeof(NativeBossEncounterResumedPatch),
-                typeof(NativeSeedBossEncounterStartedPatch),
-                typeof(NativeSeedBossEncounterDefeatedPatch),
-                typeof(NativeSeedBossEncounterCompletionStartedPatch),
-                typeof(NativeSeedBossEncounterCompletedPatch),
-                typeof(NativeBossBarValuesPatch),
-                typeof(NativeUnitBarValuesPatch),
-                typeof(NativePropBarValuesPatch),
-                typeof(NativePlayerBarValuesPatch),
-                typeof(NativeCompanionBarValuesPatch),
-                typeof(NativeManaBarValuesPatch),
-                typeof(SephiriaEnhancements.Configuration.OptionsPanelPatch),
-                typeof(ModLanguageLoadPatch),
-                typeof(SephiriaEnhancements.Configuration.NativeControlOptionsClosedPatch),
-                typeof(CombatVisualOptionReadPatch),
-                typeof(CompanionBodyTransparencyPatch),
-                typeof(CompanionBulletTransparencyPatch),
-                typeof(CompanionAreaJudgementTransparencyPatch),
-                typeof(CompanionSpreadAoeTransparencyPatch),
-                typeof(CompanionMeleeTransparencyPatch),
-                typeof(CompanionBulletTailTransparencyPatch),
-                typeof(CompanionBulletHitTransparencyPatch),
-                typeof(CompanionBulletDestroyTransparencyPatch),
-                typeof(CompanionChainLightningTransparencyPatch),
-                typeof(DeveloperConsoleOpenPatch),
-#if SEPHIRIA_ENHANCEMENTS_DEVTOOLS
-                typeof(DeveloperPlayerDamagePatch),
-                typeof(NativeStartupProfilingPatch),
-                typeof(NativeLoadingOperationProfilingPatch),
-                typeof(NativeLoadingStateProfilingPatch),
-                typeof(NativeFloorRenderProfilingPatch),
-#endif
-                typeof(NativePresetSavePatch),
-                typeof(BossEncounterRetryCheckpointPatch),
-                typeof(SeedBossEncounterRetryCheckpointPatch),
-                typeof(FloorEntryRetryCheckpointPatch),
-                typeof(ApplyDefeatRetryPlacementPatch),
-                typeof(DefeatRetryPlayerRestorePatch),
-                typeof(DefeatRetryClientNotificationPatch),
-                typeof(NativeRetryPurchasePatch),
-                typeof(DefeatRetryCutscenePatch),
-                typeof(NativeRetryRestart),
-                typeof(DefeatRetryTravelRequestPatch),
-                typeof(BossRetryPropRecipePatch),
-                typeof(BossRetryPreserveFloorPatch),
-                typeof(GameOverDefeatRetryButtonPatch),
-                typeof(RetryDeathCausePatch),
-                typeof(RetryConclusionDispatchPatch),
-                typeof(RetryDisconnectCausePatch),
-                typeof(PreserveDefeatRetrySaveDeletionPatch),
-                typeof(PreserveDefeatRetrySaveCreationPatch),
-                typeof(PreserveDefeatRetryLobbyPatch),
-                typeof(PreserveDefeatRetryRejoinStatePatch),
-                typeof(DefeatRetryNewGamePatch),
-                typeof(CombatTargetingInputPatch),
-                typeof(AutoCastingManualInputPatch),
-                typeof(AutoCastingPanelPatch),
-                typeof(StageRewardTutorialPatch),
-                typeof(StageRewardCommandPatch),
-                typeof(CostumeAppearanceEquipPatch),
-                typeof(CostumeAppearancePreferencePatch),
-                typeof(CostumeAppearancePanelPatch),
-                typeof(AutoCastingOptionsPatch),
-                typeof(AutoCastingSubmitPatch),
-                typeof(CharacterPanelNavigationMovePatch),
-                typeof(CharacterPanelNavigationTogglePatch),
-                typeof(CombatTargetingCastPatch),
-                typeof(CombatTargetingReleasePatch),
-                typeof(CombatTargetingDashPatch),
-                typeof(ViewDistancePatch),
-                typeof(MenuKeyboardSelectionPatch),
-                typeof(RewardKeyboardGeneratedSelectionPatch),
-                typeof(RewardKeyboardControlSelectionPatch),
-                typeof(RewardKeyboardInventoryOpenedSelectionPatch),
-                typeof(RewardKeyboardToggleSelectionPatch),
-                typeof(RewardKeyboardClosedSelectionPatch),
-                typeof(RewardKeyboardCancelSelectionPatch),
-                typeof(OptionsKeyboardTabSelectionPatch),
-                typeof(OptionsKeyboardMovePatch),
-                typeof(KeyboardPointerInputPatch),
-                typeof(KeyboardPointerHoverPatch),
-                typeof(KeyboardCursorVisibilityPatch),
-                typeof(KeyboardCarriedItemPositionPatch),
-                typeof(KeyboardMapSelectionPositionPatch),
-                typeof(MessageBoxKeyboardInitialSelectionPatch),
-                typeof(KeyboardUiNavigation.Integration.NativeTextInputKeyboardDefocusPatch),
-                typeof(KeyboardUiNavigation.Integration.NativeTextInputKeyboardClosedPatch),
-                typeof(MessageBoxKeyboardRestoredSelectionPatch),
-                typeof(OptionsKeyboardEmptyFocusPatch),
-                typeof(KeyboardControlsChangedPatch),
-                typeof(ItemIconKeyboardSubmitPatch),
-                typeof(ItemBoxKeyboardSecondaryActionPatch),
-                typeof(TreeShopKeyboardSecondaryActionPatch),
-                typeof(MapPanelShowPatch),
-                typeof(MapNavigationUpdatePatch),
-                typeof(MapPanelOpenedPatch),
-                typeof(MapPanelClosedPatch),
-                typeof(NativeInventoryItemSelectionModePatch),
-                typeof(InventoryArtifactIntentClickPatch),
-                typeof(InventoryArtifactIntentInputPatch),
-                typeof(InventoryPanelCancelPatch),
-                typeof(InventoryPanelTooltipPlacementPatch),
-                typeof(InventoryArtifactIntentClosedPatch),
-                typeof(InventoryArtifactIntentModePatch),
-                typeof(InventoryTemporaryItemDropPatch),
-                typeof(SephiriaEnhancements.Runtime.GameBridge.Inventory.
-                    InventoryEvaluationOrderTraceStartPatch),
-                typeof(SephiriaEnhancements.Runtime.GameBridge.Inventory.
-                    ArtifactCategoryRefreshOrderPatch),
-                typeof(SephiriaEnhancements.Runtime.GameBridge.Inventory.
-                    ArtifactRefreshOrderPatch),
-                typeof(SephiriaEnhancements.Runtime.GameBridge.Inventory.
-                    UniqueEffectRegistrationTracePatch),
-                typeof(MultiplayerRulesNetworkSessionEndPatch),
-                typeof(MultiplayerRulesLobbyDeparturePatch),
-                typeof(MultiplayerRulesExplorationStartPatch)
-            })
-            {
-                if (TryPatch(patchType, out float patchMilliseconds))
+                if (TryPatch(patch.Feature, patch.Patch, out float patchMilliseconds))
                 {
                     successfulPatchCount++;
-                    if (patchType == typeof(NativeReportDismissal))
+                    if (patch.Patch == typeof(NativeReportDismissal))
                         NativeReportDismissal.IsAvailable = true;
                 }
                 else
                 {
                     failedPatchCount++;
-                    if (patchType.Namespace == "SephiriaEnhancements.DefeatRetry") retryCompatibilityAvailable = false;
-                    if (patchType.Namespace ==
-                        "SephiriaEnhancements.MultiplayerRules.Integration")
+                    if (patch.Feature == FeatureId.DefeatRetry) retryCompatibilityAvailable = false;
+                    if (patch.Feature == FeatureId.MultiplayerRules)
                         multiplayerRulesCompatibilityAvailable = false;
                 }
                 if (patchMilliseconds > slowestPatchMilliseconds)
                 {
-                    slowestPatchName = patchType.Name;
+                    slowestPatchName = patch.Patch.Name;
                     slowestPatchMilliseconds = patchMilliseconds;
                 }
             }
             DefeatRetryBridge.SetIntegrationAvailable(retryCompatibilityAvailable);
             if (midRunAdmissionCompatibilityAvailable)
             {
-                foreach (Type patchType in MidRunAdmissionPatchTypes)
+                foreach (var patch in MidRunAdmissionPatches())
                 {
-                    if (TryPatch(patchType, out float patchMilliseconds))
+                    if (TryPatch(patch.Feature, patch.Patch, out float patchMilliseconds))
                     {
                         successfulPatchCount++;
                     }
@@ -429,7 +228,7 @@ namespace SephiriaEnhancements
                     }
                     if (patchMilliseconds > slowestPatchMilliseconds)
                     {
-                        slowestPatchName = patchType.Name;
+                        slowestPatchName = patch.Patch.Name;
                         slowestPatchMilliseconds = patchMilliseconds;
                     }
                 }
@@ -476,24 +275,7 @@ namespace SephiriaEnhancements
         {
             if (activeInstance != this) return;
             activeInstance = null;
-            CleanupFeature(FeatureId.Settings, () => NativeOptionsLifetime.DisposeAll());
-            CleanupFeature(FeatureId.KeyboardUiNavigation, KeyboardUiNavigation.Integration.NativeTextInputKeyboard.Reset);
-            CleanupFeature(FeatureId.MultiplayerRules, () => multiplayerRules?.Shutdown());
-            CleanupFeature(FeatureId.MultiplayerAccess, () => MidRunAdmissionRuntime.SetIntegrationAvailable(false));
-            CleanupFeature(FeatureId.MultiplayerRules, () => EnemySpawnRoutineContext.SetRuleScopeFactory(null));
-            CleanupFeature(FeatureId.Inventory, () => inventoryOptimization?.Shutdown());
-            CleanupFeature(FeatureId.DefeatRetry, () => DefeatRetryBridge.Shutdown());
-            CleanupFeature(FeatureId.CombatInsights, () => combatInsights?.Shutdown());
-            CleanupFeature(FeatureId.Gameplay, NativeLocalPlayerData.Shutdown);
-            CleanupFeature(FeatureId.CombatInsights, () => TrainingDamageStatistics.Instance?.Shutdown());
-            CleanupFeature(FeatureId.CombatInsights, () => NativeReportDismissal.SetController(null));
-            CleanupFeature(FeatureId.CombatInsights, () => NativeStatisticsPauseEntry.SetController(null));
-            CleanupFeature(FeatureId.DeveloperTools, () => DeveloperLogger.Shutdown());
-            if (runtimeKernel != null)
-            {
-                runtimeKernel.GameplayContextChanged -= OnLocalGameplayContextChanged;
-                CleanupFeature(FeatureId.Gameplay, () => runtimeKernel.Dispose());
-            }
+            featureCleanup.Unload();
             HorayModAPI.OnLocalizationReady -= RegisterLocalization;
             HorayModAPI.OnStartSessionClientside -= OnStartSessionClientside;
             HorayModAPI.OnFloorAllocatedClientside -= OnFloorAllocatedClientside;
@@ -501,16 +283,7 @@ namespace SephiriaEnhancements
             HorayModAPI.OnFloorAllocatedServerside -= OnFloorAllocatedServerside;
             MultiplayerRulesExplorationStartPatch.StartingExploration -=
                 OnStartingExploration;
-            CleanupFeature(FeatureId.CombatInsights, () => DamageFeedbackCapture.SetController(null));
-            CleanupFeature(FeatureId.CombatInsights, () => DamageDetailCapture.SetController(null));
-            CleanupFeature(FeatureId.CombatInsights, () => UnitDeathCapture.SetController(null));
-            CleanupFeature(FeatureId.CombatInsights, () => LocalFinalBlowCapture.SetController(null));
-            CleanupFeature(FeatureId.ResourceBarValues, () => NativeResourceBarValueView.DisposeAll());
-            CleanupFeature(FeatureId.CostumeAppearance, () => NativeCostumeAppearance.Instance?.Shutdown());
-            CleanupFeature(FeatureId.AutoCasting, () => NativeAutoCastingUi.DisposeAll());
             UnpatchFeatures();
-            CleanupFeature(FeatureId.ModJournal, () => NativeModJournal.DisposeAll());
-            CleanupFeature(FeatureId.EffectStats, EffectStats.Integration.NativeEffectStatsView.DisposeAll);
 
             multiplayerRulesCompatibilityAvailable = false;
             multiplayerRuleBehaviorPatchesAttempted = false;
@@ -633,9 +406,9 @@ namespace SephiriaEnhancements
             multiplayerRuleBehaviorPatchesAttempted = true;
             bool succeeded = true;
             long startedAt = Stopwatch.GetTimestamp();
-            foreach (Type patchType in MultiplayerRuleBehaviorPatchTypes)
+            foreach (var patch in MultiplayerRuleBehaviorPatches())
             {
-                if (!TryPatch(patchType, out _))
+                if (!TryPatch(patch.Feature, patch.Patch, out _))
                 {
                     succeeded = false;
                 }
@@ -654,14 +427,13 @@ namespace SephiriaEnhancements
                 ElapsedMilliseconds(startedAt).ToString("F1") + " ms.");
         }
 
-        private bool TryPatch(Type patchType, out float elapsedMilliseconds)
+        private bool TryPatch(FeatureId feature, Type patchType, out float elapsedMilliseconds)
         {
             long startedAt = Stopwatch.GetTimestamp();
             elapsedMilliseconds = 0f;
             float preparationMilliseconds = 0f;
             float applicationMilliseconds = 0f;
             bool succeeded = false;
-            FeatureId feature = FeaturePatchOwnership.Get(patchType);
             if (!FeatureFailure.IsAvailable(feature)) return false;
             try
             {

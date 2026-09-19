@@ -484,6 +484,7 @@ namespace SephiriaEnhancements
             CleanupFeature(FeatureId.Inventory, () => inventoryOptimization?.Shutdown());
             CleanupFeature(FeatureId.DefeatRetry, () => DefeatRetryBridge.Shutdown());
             CleanupFeature(FeatureId.CombatInsights, () => combatInsights?.Shutdown());
+            CleanupFeature(FeatureId.Gameplay, NativeLocalPlayerData.Shutdown);
             CleanupFeature(FeatureId.CombatInsights, () => TrainingDamageStatistics.Instance?.Shutdown());
             CleanupFeature(FeatureId.CombatInsights, () => NativeReportDismissal.SetController(null));
             CleanupFeature(FeatureId.CombatInsights, () => NativeStatisticsPauseEntry.SetController(null));
@@ -544,7 +545,7 @@ namespace SephiriaEnhancements
             NativeModNotifications.ClearContext();
             FeatureFailure.Run(FeatureId.DefeatRetry, NativeRetryConclusion.Reset);
             FeatureFailure.Run(FeatureId.DefeatRetry, () => NativeRetryBoss.ObserveWorldSession(isSavedSession));
-            FeatureFailure.Run(FeatureId.AutoCasting, () => autoCasting?.ObserveWorldSession(isSavedSession));
+            FeatureFailure.Run(FeatureId.Gameplay, () => NativeLocalPlayerData.ObserveWorldSession(isSavedSession));
             FeatureFailure.Run(FeatureId.DefeatRetry, () => DefeatRetryClientRestore.ObserveWorldSession(isSavedSession));
             FeatureFailure.Run(FeatureId.DeveloperTools, () => GameLoadProfiler.ObserveClientSessionStarted(isSavedSession));
             FeatureFailure.Run(FeatureId.MultiplayerRules, MultiplayerRulesBridge.ObserveWorld);

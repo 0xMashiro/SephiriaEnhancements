@@ -52,10 +52,10 @@ namespace SephiriaEnhancements.Inventory
             if (!panelOpen || !preferencesExpanded || detailsExpanded || goalEditor.Visible ||
                 !interaction.Editable || interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem) return;
             endPriorityMarking?.Invoke();
-            ReplacePreferences(InventoryArtifactIntentEditor.Clear(WorldSessionInventoryIntentStore.Capture()));
+            ReplacePreferences(InventoryArtifactIntentEditor.Clear(LocalPlayerInventoryIntentStore.Capture()));
             previewItemKey = null;
             intentPage = 0;
-            ProjectIntentBoard(WorldSessionInventoryIntentStore.Capture());
+            ProjectIntentBoard(LocalPlayerInventoryIntentStore.Capture());
             RefreshArrangementActions();
             RefreshPageNavigation();
             EventSystem.current?.SetSelectedGameObject(prioritySlots[0].Root);
@@ -88,7 +88,7 @@ namespace SephiriaEnhancements.Inventory
             clearArtifactPrioritiesText.color = SecondaryText;
             clearArtifactPriorities.gameObject.SetActive(panelOpen && preferencesExpanded && !detailsExpanded && !goalEditor.Visible);
             clearArtifactPriorities.interactable = interaction.Editable && !interaction.HasPickup &&
-                !NativeInventoryIntentDrop.HasHeldItem && WorldSessionInventoryIntentStore.Capture().ArtifactPreferences.Count > 0;
+                !NativeInventoryIntentDrop.HasHeldItem && LocalPlayerInventoryIntentStore.Capture().ArtifactPreferences.Count > 0;
             preferencesToggleText.color = SecondaryText;
             comboPreferencesText.color = SecondaryText;
             undoArrangementText.color = SecondaryText;

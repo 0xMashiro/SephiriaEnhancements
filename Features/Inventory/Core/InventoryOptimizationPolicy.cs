@@ -1,5 +1,6 @@
 #nullable disable
 using SephiriaEnhancements.Runtime.Inventory;
+using SephiriaEnhancements.Runtime;
 
 using System;
 using System.Collections.Generic;
@@ -173,51 +174,45 @@ namespace SephiriaEnhancements.Inventory
         }
     }
 
-    internal static class WorldSessionInventoryIntentStore
+    internal static class LocalPlayerInventoryIntentStore
     {
-        private static InventoryOptimizationPreferences current =
-            InventoryOptimizationPreferences.Default;
+        private static readonly LocalPlayerDataStore.LocalPlayerData<InventoryOptimizationPreferences> data =
+            LocalPlayerDataStore.Shared.Preferences(Create);
 
-        internal static InventoryOptimizationPreferences Capture() => current;
+        internal static InventoryOptimizationPreferences Capture() => data.Value;
+        internal static void Replace(InventoryOptimizationPreferences intent) =>
+            data.Value = intent ?? Create();
+        internal static void Clear() => data.Reset();
 
-        internal static void Replace(InventoryOptimizationPreferences intent)
-        {
-            current = intent ?? InventoryOptimizationPreferences.Default;
-        }
-
-        internal static void Clear()
-        {
-            current = InventoryOptimizationPreferenceComposer.Compose(
+        private static InventoryOptimizationPreferences Create() =>
+            InventoryOptimizationPreferenceComposer.Compose(
                 PersistentInventoryOptimizationPolicyStore.Capture(), InventoryOptimizationPreferences.Default,
                 InventoryOptimizationPreferences.Default.SearchEffort,
                 InventoryOptimizationPreferences.Default.AllowStoneTabletRotation);
-        }
 
-        internal static void RestorePersistentCombos()
-        {
-            current = InventoryOptimizationPreferenceComposer.Compose(
-                PersistentInventoryOptimizationPolicyStore.Capture(), current,
-                current.SearchEffort, current.AllowStoneTabletRotation);
-        }
+        internal static void RestorePersistentCombos() =>
+            data.Value = InventoryOptimizationPreferenceComposer.Compose(
+                PersistentInventoryOptimizationPolicyStore.Capture(), data.Value,
+                data.Value.SearchEffort, data.Value.AllowStoneTabletRotation);
     }
 
     internal static class InventoryOptimizationPreferenceComposer
     {
         internal static InventoryOptimizationPreferences Compose(
             InventoryOptimizationPreferences persistentPolicy,
-            InventoryOptimizationPreferences worldSessionIntent,
+            InventoryOptimizationPreferences localPlayerIntent,
             InventorySearchEffort searchEffort,
             bool allowStoneTabletRotation)
         {
             persistentPolicy ??= InventoryOptimizationPreferences.Default;
-            worldSessionIntent ??= InventoryOptimizationPreferences.Default;
+            localPlayerIntent ??= InventoryOptimizationPreferences.Default;
 
             ComboOptimizationPreference[] combos = persistentPolicy.
-                ComboPreferences.Concat(worldSessionIntent.ComboPreferences).
+                ComboPreferences.Concat(localPlayerIntent.ComboPreferences).
                 GroupBy(rule => rule.CategoryId, StringComparer.Ordinal).
                 Select(group => group.Last()).ToArray();
             return new InventoryOptimizationPreferences(searchEffort,
-                allowStoneTabletRotation, worldSessionIntent.ArtifactPreferences.ToArray(), combos,
+                allowStoneTabletRotation, localPlayerIntent.ArtifactPreferences.ToArray(), combos,
                 persistentPolicy.AllowAdditionalMagicCost, persistentPolicy.PreferPresetCombos);
         }
 

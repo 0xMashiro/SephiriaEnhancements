@@ -17,6 +17,13 @@ namespace SephiriaEnhancements.Core
 
         internal string FloorGuid => floorGuid;
 
+        internal FloorCombatStatistics Copy()
+        {
+            var result = new FloorCombatStatistics();
+            result.CopyFrom(this);
+            return result;
+        }
+
         internal void CopyFrom(FloorCombatStatistics source)
         {
             Clear();

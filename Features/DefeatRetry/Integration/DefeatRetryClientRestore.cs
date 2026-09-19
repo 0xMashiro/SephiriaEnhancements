@@ -68,7 +68,8 @@ namespace SephiriaEnhancements.DefeatRetry
         internal static bool IsRestoring => player != null;
         private static NativeRetryPlayerState playerState;
 
-        internal static void Begin(string floorGuid, long id, Vector3 position, NativeRetryPlayerState account)
+        internal static void Begin(string floorGuid, long id, Vector3 position, NativeRetryPlayerState account,
+            long checkpointId = 0)
         {
             Clear();
             NativeRetryFailure.Clear();
@@ -90,7 +91,7 @@ namespace SephiriaEnhancements.DefeatRetry
             player.localDataStorage.NetworkreadyToLeave = false;
             player.localDataStorage.NetworkgoToEachOtherSessionOnGameOver_Local = 0;
             player.OnTravelPreparedClientside += OnTravelPrepared;
-            NativeRetryControls.Begin(player, playerState.SkillArtifacts, deadline);
+            NativeRetryControls.Begin(player, playerState.SkillArtifacts, deadline, playerState.ArtifactKeys, checkpointId, floorGuid);
             SupportLogger.Record("retry_client_prepared", "player=" + player.netId);
         }
 

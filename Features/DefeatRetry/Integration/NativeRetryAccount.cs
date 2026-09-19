@@ -5,6 +5,7 @@ using HarmonyLib;
 using Mirror;
 using UnityEngine;
 using SephiriaEnhancements.Integration;
+using SephiriaEnhancements.Runtime.GameBridge;
 
 namespace SephiriaEnhancements.DefeatRetry
 {
@@ -60,6 +61,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 throw new InvalidOperationException("Owner checkpoint no longer belongs to this player.");
 
             SaveData restored = selected.Save.Copy();
+            NativeProfilePreferences.Preserve(SaveManager.Current, restored);
             if (!string.IsNullOrEmpty(selected.BossName))
                 foreach (string suffix in new[] { "", "_T1", "_T2" })
                 {

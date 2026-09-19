@@ -6,7 +6,7 @@ internal static class FloorCombatStatisticsChecks
 {
     internal static void Run()
     {
-        StatisticsRetryChecks.Run();
+        SephiriaEnhancements.ModelChecks.Runtime.State.LocalPlayerDataChecks.Run();
         var floor = new FloorCombatStatistics();
         floor.ObserveFloor("first");
         floor.UpdateClock(10f, true);

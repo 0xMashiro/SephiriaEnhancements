@@ -40,13 +40,13 @@ namespace SephiriaEnhancements.Inventory
             interaction.TryPickup(rule, dragging);
 
         internal bool ValidatePickup() => !NativeInventoryIntentDrop.HasHeldItem &&
-            interaction.Pickup != null && interaction.ValidatePickup(WorldSessionInventoryIntentStore.Capture(),
+            interaction.Pickup != null && interaction.ValidatePickup(LocalPlayerInventoryIntentStore.Capture(),
                 HasArtifact(interaction.Pickup.ItemKey));
 
         internal bool TryPlacePickup(InventoryPreferenceLevel level, int index)
         {
             var held = interaction.Pickup;
-            if (held == null || !interaction.TryPlace(WorldSessionInventoryIntentStore.Capture(),
+            if (held == null || !interaction.TryPlace(LocalPlayerInventoryIntentStore.Capture(),
                     level, index, HasArtifact(held.ItemKey), out var preferences)) return false;
             replace(preferences);
             return true;
@@ -57,7 +57,7 @@ namespace SephiriaEnhancements.Inventory
             if (!OwnsArtifact(icon) || !interaction.Editable) return false;
             var item = icon.Item;
             if (!HasArtifact(new InventoryItemKey(item.EntityID, item.InstanceID))) return false;
-            var preferences = WorldSessionInventoryIntentStore.Capture();
+            var preferences = LocalPlayerInventoryIntentStore.Capture();
             var updated = level == InventoryPreferenceLevel.Priority
                 ? InventoryArtifactIntentEditor.PlacePriority(preferences, item.InstanceID, item.EntityID, index)
                 : InventoryArtifactIntentEditor.PlaceAvoid(preferences, item.InstanceID, item.EntityID, index);
@@ -67,7 +67,7 @@ namespace SephiriaEnhancements.Inventory
 
         internal bool TryOpenGoal(InventoryItemKey key, out InventoryOptimizationPreferences preferences)
         {
-            preferences = WorldSessionInventoryIntentStore.Capture();
+            preferences = LocalPlayerInventoryIntentStore.Capture();
             // Resolve the current rule by item identity, never by a stale page index.
             var rule = preferences.ArtifactPreferences.FirstOrDefault(candidate => candidate.ItemKey == key);
             return !NativeInventoryIntentDrop.HasHeldItem && rule != null && HasArtifact(key) &&
@@ -80,7 +80,7 @@ namespace SephiriaEnhancements.Inventory
             preferences = null;
             if (NativeInventoryIntentDrop.HasHeldItem || !interaction.LevelTarget.HasValue ||
                 !HasArtifact(interaction.LevelTarget.Value) ||
-                !interaction.TryEditArtifactGoal(WorldSessionInventoryIntentStore.Capture(), snapshot, edit, out preferences))
+                !interaction.TryEditArtifactGoal(LocalPlayerInventoryIntentStore.Capture(), snapshot, edit, out preferences))
                 return false;
             replace(preferences);
             return true;
@@ -90,7 +90,7 @@ namespace SephiriaEnhancements.Inventory
         {
             if (!interaction.Editable || interaction.HasPickup || NativeInventoryIntentDrop.HasHeldItem || rule == null)
                 return false;
-            replace(InventoryArtifactIntentEditor.Remove(WorldSessionInventoryIntentStore.Capture(), rule.ItemKey));
+            replace(InventoryArtifactIntentEditor.Remove(LocalPlayerInventoryIntentStore.Capture(), rule.ItemKey));
             return true;
         }
     }

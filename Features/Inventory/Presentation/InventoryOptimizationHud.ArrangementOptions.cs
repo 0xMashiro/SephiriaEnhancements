@@ -30,7 +30,7 @@ namespace SephiriaEnhancements.Inventory
         private void ToggleAdditionalMagicCost()
         {
             if (!magicCostToggle.IsInteractable()) return;
-            var preferences = WorldSessionInventoryIntentStore.Capture();
+            var preferences = LocalPlayerInventoryIntentStore.Capture();
             ReplacePreferences(preferences.WithAdditionalMagicCost(!preferences.AllowAdditionalMagicCost));
             nextProjectionAt = 0;
         }
@@ -38,14 +38,14 @@ namespace SephiriaEnhancements.Inventory
         private void TogglePresetComboPriority()
         {
             if (!presetComboToggle.IsInteractable()) return;
-            var preferences = WorldSessionInventoryIntentStore.Capture();
+            var preferences = LocalPlayerInventoryIntentStore.Capture();
             ReplacePreferences(preferences.WithPresetComboPriority(!preferences.PreferPresetCombos));
             nextProjectionAt = 0;
         }
 
         private void RefreshArrangementOptions()
         {
-            var preferences = WorldSessionInventoryIntentStore.Capture();
+            var preferences = LocalPlayerInventoryIntentStore.Capture();
             magicCostText.text = Loc._(preferences.AllowAdditionalMagicCost
                 ? InventoryMagicCostLocalization.AllowCost : InventoryMagicCostLocalization.KeepCost);
             presetComboText.text = Loc._(preferences.PreferPresetCombos

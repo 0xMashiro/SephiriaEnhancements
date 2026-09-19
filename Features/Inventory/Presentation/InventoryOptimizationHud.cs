@@ -524,7 +524,7 @@ namespace SephiriaEnhancements.Inventory
             title.text = Loc._(!preferencesExpanded ? InventoryOptimizationLocalization.HudTitle
                 : detailsExpanded ? InventoryArrangementLocalization.ComboPriorities : InventoryArrangementLocalization.ArtifactPriorities);
             InventoryOptimizationPreferences preferences =
-                WorldSessionInventoryIntentStore.Capture();
+                LocalPlayerInventoryIntentStore.Capture();
             if (panelOpen && preferencesExpanded && !detailsExpanded)
             {
                 ProjectIntentBoard(preferences);
@@ -667,7 +667,7 @@ namespace SephiriaEnhancements.Inventory
                 {
                     canEdit = interaction.Editable && artifactCommands.HasArtifact(rule.ItemKey);
                     hint = item.Name + "\n" + InventoryOptimizationLocalization.FormatArtifactFeedback(rule, item.Artifact,
-                        resultFeedback?.Find(rule.ItemKey), key => Loc._(key), WorldSessionInventoryIntentStore.Capture().AllowAdditionalMagicCost);
+                        resultFeedback?.Find(rule.ItemKey), key => Loc._(key), LocalPlayerInventoryIntentStore.Capture().AllowAdditionalMagicCost);
                 }
             }
 
@@ -877,7 +877,7 @@ namespace SephiriaEnhancements.Inventory
             ClearArtifactPickup();
             if (!NativeInventoryIntentPickupView.UsesSelection || !panelOpen ||
                 !preferencesExpanded || detailsExpanded) return;
-            var preferences = WorldSessionInventoryIntentStore.Capture();
+            var preferences = LocalPlayerInventoryIntentStore.Capture();
             var rule = preferences.ArtifactPreferences.FirstOrDefault(candidate => candidate.ItemKey == key);
             if (rule == null) return;
             intentPage = rule.IntentSlotIndex / IntentSlots;
@@ -965,7 +965,7 @@ namespace SephiriaEnhancements.Inventory
 
         private void EditComboGoal(string categoryId, InventoryComboGoalEdit edit)
         {
-            if (!interaction.TryEditComboGoal(WorldSessionInventoryIntentStore.Capture(),
+            if (!interaction.TryEditComboGoal(LocalPlayerInventoryIntentStore.Capture(),
                     currentSnapshot, categoryId, edit, out var preferences)) return;
             ReplacePreferences(preferences);
             if (edit == InventoryComboGoalEdit.CycleChoice)
@@ -991,7 +991,7 @@ namespace SephiriaEnhancements.Inventory
             else
             {
                 intentPage = Math.Max(0, intentPage + delta);
-                ProjectIntentBoard(WorldSessionInventoryIntentStore.Capture());
+                ProjectIntentBoard(LocalPlayerInventoryIntentStore.Capture());
             }
             nextProjectionAt = 0f;
         }

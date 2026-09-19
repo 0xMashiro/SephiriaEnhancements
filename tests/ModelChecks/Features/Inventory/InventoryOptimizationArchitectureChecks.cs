@@ -8,10 +8,10 @@ internal static class InventoryOptimizationArchitectureChecks
     internal static string Run()
     {
         VerifyIntentComposition();
-        VerifyExplorationIntentLifecycle();
+        VerifyLocalPlayerIntentLifecycle();
         VerifyOptimizerDiscoveryContract();
         VerifyMechanicOwnership();
-        return "runtime mechanics, policy sources, exploration lifetime and automatic optimizer discovery passed";
+        return "runtime mechanics, policy sources, local player lifetime and automatic optimizer discovery passed";
     }
 
     private static void VerifyIntentComposition()
@@ -24,7 +24,7 @@ internal static class InventoryOptimizationArchitectureChecks
                 new ComboOptimizationPreference("FIRE",
                     InventoryPreferenceLevel.Priority, 2)
             });
-        var exploration = new InventoryOptimizationPreferences(
+        var localPlayerIntent = new InventoryOptimizationPreferences(
             InventorySearchEffort.Fast, allowStoneTabletRotation: false,
             new[]
             {
@@ -41,7 +41,7 @@ internal static class InventoryOptimizationArchitectureChecks
 
         InventoryOptimizationPreferences composed =
             InventoryOptimizationPreferenceComposer.Compose(persistent,
-                exploration, InventorySearchEffort.Thorough,
+                localPlayerIntent, InventorySearchEffort.Thorough,
                 allowStoneTabletRotation: true);
         ArtifactOptimizationPreference priorityRule = composed.
             ArtifactPreferences.Single(rule => rule.ItemKey == new InventoryItemKey(10, 502));
@@ -54,11 +54,11 @@ internal static class InventoryOptimizationArchitectureChecks
             persistent.ArtifactPreferences.Count != 0)
         {
             throw new InvalidOperationException(
-                "exploration intent must override matching persistent rules without mutating either source");
+                "local player intent must override matching persistent rules without mutating either source");
         }
     }
 
-    private static void VerifyExplorationIntentLifecycle()
+    private static void VerifyLocalPlayerIntentLifecycle()
     {
         var intent = new InventoryOptimizationPreferences(
             InventorySearchEffort.Balanced, allowStoneTabletRotation: true,
@@ -67,18 +67,18 @@ internal static class InventoryOptimizationArchitectureChecks
                 new ArtifactOptimizationPreference(503, 30,
                     InventoryPreferenceLevel.Priority, 1)
             }, Array.Empty<ComboOptimizationPreference>());
-        WorldSessionInventoryIntentStore.Replace(intent);
-        if (!ReferenceEquals(WorldSessionInventoryIntentStore.Capture(), intent))
+        LocalPlayerInventoryIntentStore.Replace(intent);
+        if (!ReferenceEquals(LocalPlayerInventoryIntentStore.Capture(), intent))
         {
             throw new InvalidOperationException(
-                "exploration intent store must retain the active exploration value");
+                "local player intent store must retain the current player value");
         }
-        WorldSessionInventoryIntentStore.Clear();
-        if (WorldSessionInventoryIntentStore.Capture().ArtifactPreferences.Count !=
+        LocalPlayerInventoryIntentStore.Clear();
+        if (LocalPlayerInventoryIntentStore.Capture().ArtifactPreferences.Count !=
             0)
         {
             throw new InvalidOperationException(
-                "exploration intent must clear at the exploration boundary");
+                "local player intent must clear at the owner or world replacement");
         }
     }
 

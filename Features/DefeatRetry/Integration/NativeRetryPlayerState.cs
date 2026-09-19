@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Mirror;
+using SephiriaEnhancements.Runtime.Inventory;
 
 namespace SephiriaEnhancements.DefeatRetry
 {
@@ -14,9 +15,10 @@ namespace SephiriaEnhancements.DefeatRetry
         private readonly int[] purchases;
         private readonly int[] charms, tablets;
         internal readonly int[] SkillArtifacts;
+        internal readonly InventoryItemKey[] ArtifactKeys;
 
         internal NativeRetryPlayerState(long accountCheckpointId, short deathCount, int balance, int spent, int earned, int[] purchases,
-            int[] charms, int[] tablets, int[] skillArtifacts)
+            int[] charms, int[] tablets, int[] skillArtifacts, InventoryItemKey[] artifactKeys)
         {
             AccountCheckpointId = accountCheckpointId;
             DeathCount = deathCount;
@@ -27,16 +29,19 @@ namespace SephiriaEnhancements.DefeatRetry
             this.charms = charms == null ? Array.Empty<int>() : (int[])charms.Clone();
             this.tablets = tablets == null ? Array.Empty<int>() : (int[])tablets.Clone();
             SkillArtifacts = (int[])skillArtifacts.Clone();
+            ArtifactKeys = (InventoryItemKey[])artifactKeys.Clone();
         }
 
         internal static NativeRetryPlayerState Capture(PlayerLocalDataStorage data, long accountCheckpointId) => new NativeRetryPlayerState(
             accountCheckpointId, data.deathCount, data.sapphire, data.sapphireUseInRun, 0, data.purchasedPocketDimensionItem.ToArray(),
-            Array.Empty<int>(), Array.Empty<int>(), Array.Empty<int>());
+            Array.Empty<int>(), Array.Empty<int>(), Array.Empty<int>(), Array.Empty<InventoryItemKey>());
 
         internal NativeRetryPlayerState WithWorld(PlayerSpawner player) => new NativeRetryPlayerState(AccountCheckpointId, DeathCount, Balance, Spent,
             player.sapphireInRun, purchases, player.unlockedCharms.ToArray(), player.unlockedStoneTablets.ToArray(),
             player.PlayerAvatar.Inventory.charms.Values.Where(charm => charm is Charm_Magic || charm is Charm_Active)
-                .Select(charm => charm.Item.InstanceID).ToArray());
+                .Select(charm => charm.Item.InstanceID).ToArray(),
+            player.PlayerAvatar.Inventory.charms.Values.Select(charm =>
+                new InventoryItemKey(charm.Item.EntityID, charm.Item.InstanceID)).ToArray());
 
         internal void RestorePlayer(PlayerSpawner player)
         {
@@ -95,6 +100,12 @@ namespace SephiriaEnhancements.DefeatRetry
             foreach (int item in state.tablets) writer.WriteInt(item);
             writer.WriteInt(state.SkillArtifacts.Length);
             foreach (int item in state.SkillArtifacts) writer.WriteInt(item);
+            writer.WriteInt(state.ArtifactKeys.Length);
+            foreach (InventoryItemKey item in state.ArtifactKeys)
+            {
+                writer.WriteInt(item.EntityId);
+                writer.WriteInt(item.NativeInstanceId);
+            }
         }
 
         internal static NativeRetryPlayerState Read(NetworkReader reader)
@@ -106,7 +117,12 @@ namespace SephiriaEnhancements.DefeatRetry
             if (count < 0 || count > reader.Remaining / 4) throw new InvalidOperationException("Invalid retry purchase count.");
             var purchases = new int[count];
             for (int i = 0; i < count; i++) purchases[i] = reader.ReadInt();
-            return new NativeRetryPlayerState(accountCheckpointId, deathCount, balance, spent, earned, purchases, ReadItems(reader), ReadItems(reader), ReadItems(reader));
+            int[] charms = ReadItems(reader), tablets = ReadItems(reader), skills = ReadItems(reader);
+            count = reader.ReadInt();
+            if (count < 0 || count > reader.Remaining / 8) throw new InvalidOperationException("Invalid retry artifact count.");
+            var artifacts = new InventoryItemKey[count];
+            for (int i = 0; i < count; i++) artifacts[i] = new InventoryItemKey(reader.ReadInt(), reader.ReadInt());
+            return new NativeRetryPlayerState(accountCheckpointId, deathCount, balance, spent, earned, purchases, charms, tablets, skills, artifacts);
         }
 
         private static int[] ReadItems(NetworkReader reader)

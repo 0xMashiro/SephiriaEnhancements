@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
-using SephiriaEnhancements.AutoCasting.Integration;
+using SephiriaEnhancements.Runtime.GameBridge;
+using SephiriaEnhancements.Runtime.Inventory;
 using SephiriaEnhancements.Diagnostics;
 using SephiriaEnhancements.Integration;
 
@@ -14,23 +16,29 @@ namespace SephiriaEnhancements.DefeatRetry
         private static NetworkConnectionToServer connection;
         private static NativeRetrySkillLayout layout;
         private static int[] expected;
+        private static InventoryItemKey[] artifacts;
         private static double deadline;
         private static bool arrived, incomplete;
 
-        internal static void Begin(PlayerAvatar owner, int[] skillArtifacts, double expires)
+        internal static void Begin(PlayerAvatar owner, int[] skillArtifacts, double expires,
+            InventoryItemKey[] artifactKeys, long checkpointId = 0, string floor = null)
         {
             player = owner;
             connection = NetworkClient.connection;
             expected = skillArtifacts;
+            artifacts = artifactKeys;
             deadline = expires;
             arrived = incomplete = false;
-            try { NativeAutoCasting.Current?.BeginRetry(); }
-            catch (Exception exception) { RecordFailure(exception); }
+            NativeLocalPlayerData.BeginRestore(checkpointId, floor ?? owner.NetworkcurrentFloorGuid);
             try { layout = new NativeRetrySkillLayout(owner.GetComponent<IntegratedActionController>(), owner.Inventory); }
             catch (Exception exception) { RecordFailure(exception); }
         }
 
-        internal static void Arrive() => arrived = true;
+        internal static void Arrive()
+        {
+            NativeLocalPlayerData.LoadProgress();
+            arrived = true;
+        }
 
         internal static void Tick()
         {
@@ -43,16 +51,18 @@ namespace SephiriaEnhancements.DefeatRetry
             if (!arrived) return;
             try
             {
-                bool ready = NativeRetrySkillLayout.IsReady(player.Inventory, expected);
+                var present = new HashSet<InventoryItemKey>();
+                foreach (Charm_Basic artifact in player.Inventory.charms.Values)
+                    if (artifact.Item != null) present.Add(new InventoryItemKey(artifact.Item.EntityID, artifact.Item.InstanceID));
+                bool ready = present.IsSupersetOf(artifacts) && NativeRetrySkillLayout.IsReady(player.Inventory, expected);
                 if (!ready && Time.realtimeSinceStartupAsDouble < deadline) return;
                 incomplete |= !ready;
                 if (layout != null)
                     incomplete |= layout.Restore(player.GetComponent<IntegratedActionController>(), player.Inventory, expected) != 0;
             }
             catch (Exception exception) { RecordFailure(exception); }
-            // Release auto casting even if the layout/UI refresh failed. Its selections
-            // still belong to item IDs; absent/unbound skills cannot cast.
-            try { NativeAutoCasting.Current?.CompleteRetry(); }
+            // Data loading is independent of native quick-slot presentation.
+            try { NativeLocalPlayerData.CompleteRestore(); }
             catch (Exception exception) { RecordFailure(exception); }
             bool notify = incomplete;
             Reset();
@@ -67,7 +77,7 @@ namespace SephiriaEnhancements.DefeatRetry
         {
             if (ReferenceEquals(player, null)) return;
             Reset();
-            try { NativeAutoCasting.Current?.CancelRetry(); }
+            try { NativeLocalPlayerData.CancelRestore(); }
             catch (Exception exception) { SupportLogger.Failure("retry_controls_cancel_failed", exception); }
         }
 
@@ -83,6 +93,7 @@ namespace SephiriaEnhancements.DefeatRetry
             connection = null;
             layout = null;
             expected = null;
+            artifacts = null;
             arrived = incomplete = false;
         }
     }

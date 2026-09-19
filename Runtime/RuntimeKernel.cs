@@ -203,6 +203,7 @@ namespace SephiriaEnhancements.Runtime
             }
 
             float now = Time.unscaledTime;
+            NativeLocalPlayerData.ObserveOwner();
             FeatureFailure.Run(FeatureId.DeveloperTools, StartupProfiler.ObserveFirstFrame);
             localGameplayContext.Poll();
             FeatureFailure.Run(FeatureId.DeveloperTools, GameLoadProfiler.Poll);

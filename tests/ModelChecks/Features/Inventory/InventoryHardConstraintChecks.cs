@@ -191,20 +191,20 @@ internal static class InventoryHardConstraintChecks
     private static void PersistentRulesRemainVisibleAndRemovable()
     {
         var oldPolicy = PersistentInventoryOptimizationPolicyStore.Capture();
-        var oldIntent = WorldSessionInventoryIntentStore.Capture();
+        var oldIntent = LocalPlayerInventoryIntentStore.Capture();
         try
         {
             var board = InventorySnapshotFixture.ArtifactsAtLevels(new[] { 6 }, new[] { 0 }, 6);
             Check(InventoryOptimizationPreferencesCodec.TryDecode("v7\nO|0|1\nC|ABSENT|1|2|1",
                 InventorySearchEffort.Balanced, true, out var saved), "fixture must decode");
             PersistentInventoryOptimizationPolicyStore.Replace(saved);
-            WorldSessionInventoryIntentStore.Replace(Queue(board));
-            WorldSessionInventoryIntentStore.RestorePersistentCombos();
-            var restored = WorldSessionInventoryIntentStore.Capture();
+            LocalPlayerInventoryIntentStore.Replace(Queue(board));
+            LocalPlayerInventoryIntentStore.RestorePersistentCombos();
+            var restored = LocalPlayerInventoryIntentStore.Capture();
             Check(restored.ArtifactPreferences.Count == 1 && restored.ComboPreferences.Single().Strength == InventoryConstraintStrength.Hard,
                 "late configuration loading must retain artifact marks and expose persisted hard rules");
-            WorldSessionInventoryIntentStore.Clear();
-            restored = WorldSessionInventoryIntentStore.Capture();
+            LocalPlayerInventoryIntentStore.Clear();
+            restored = LocalPlayerInventoryIntentStore.Capture();
             Check(restored.ArtifactPreferences.Count == 0 && restored.ComboPreferences.Single().CategoryId == "ABSENT",
                 "new exploration clears instance marks but keeps the saved category policy");
             var target = InventoryComboTargetEditor.BuildTargets(board, restored).Single();
@@ -214,15 +214,15 @@ internal static class InventoryHardConstraintChecks
             Check(InventoryOptimizationPreferencesCodec.TryDecode(InventoryOptimizationPreferencesCodec.Encode(cleared),
                 InventorySearchEffort.Balanced, true, out var reloaded), "cleared policy must persist as a valid empty configuration");
             PersistentInventoryOptimizationPolicyStore.Replace(reloaded);
-            WorldSessionInventoryIntentStore.Clear();
-            Check(InventoryComboTargetEditor.BuildTargets(board, WorldSessionInventoryIntentStore.Capture()).Count == 0 &&
-                Solve(board, WorldSessionInventoryIntentStore.Capture(), true).Succeeded,
+            LocalPlayerInventoryIntentStore.Clear();
+            Check(InventoryComboTargetEditor.BuildTargets(board, LocalPlayerInventoryIntentStore.Capture()).Count == 0 &&
+                Solve(board, LocalPlayerInventoryIntentStore.Capture(), true).Succeeded,
                 "switching to Automatic must remove the persisted conflict instead of resurrecting it in the next run");
         }
         finally
         {
             PersistentInventoryOptimizationPolicyStore.Replace(oldPolicy);
-            WorldSessionInventoryIntentStore.Replace(oldIntent);
+            LocalPlayerInventoryIntentStore.Replace(oldIntent);
         }
     }
 

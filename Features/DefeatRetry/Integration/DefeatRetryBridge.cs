@@ -1,7 +1,7 @@
+using SephiriaEnhancements.Runtime.GameBridge;
 using System.Collections.Generic;
 using Mirror;
 using SephiriaEnhancements.Combat;
-using SephiriaEnhancements.Core;
 using SephiriaEnhancements.DefeatRetry;
 using SephiriaEnhancements.Diagnostics;
 using System;
@@ -14,7 +14,7 @@ namespace SephiriaEnhancements.Integration
     {
         // The native runtime constant table is synchronized and rebuilt on world load.
         // Advertise here rather than persisting protocol state in the player's save.
-        private const byte ProtocolVersion = 7;
+        private const byte ProtocolVersion = 8;
         private const string ProtocolKey = "SephiriaEnhancements.DefeatRetryProtocol";
         private static CombatInsightsController controller;
         private static bool serverRegistered, clientRegistered;
@@ -330,7 +330,8 @@ namespace SephiriaEnhancements.Integration
                 receivedRetryId = message.RetryId;
                 localRecoveryPending = true;
                 NativeRetryBoss.Begin(message.FloorGuid);
-                DefeatRetryClientRestore.Begin(message.FloorGuid, message.RetryId, message.Position, message.PlayerState);
+                DefeatRetryClientRestore.Begin(message.FloorGuid, message.RetryId, message.Position, message.PlayerState,
+                    message.Transition == RetryTransition.RetryBoss ? message.CheckpointId : 0);
             }
             else if (message.Transition == RetryTransition.Cancel)
             {
@@ -345,19 +346,11 @@ namespace SephiriaEnhancements.Integration
                 DefeatRetryClientRestore.Clear();
                 NativeRetryFailure.Show(message.Failure);
             }
-            // Explicit mapping keeps statistics separate from recovery completion.
-            StatisticsRetryTransition statistics;
-            switch (message.Transition)
+            if (message.Transition == RetryTransition.CaptureBoss)
             {
-                case RetryTransition.CaptureBoss: statistics = StatisticsRetryTransition.CaptureBoss; break;
-                case RetryTransition.RetryBoss: statistics = StatisticsRetryTransition.RetryBoss; break;
-                case RetryTransition.RetryFloor: statistics = StatisticsRetryTransition.RetryFloor; break;
-                case RetryTransition.Cancel:
-                case RetryTransition.RecoveryFailed: statistics = StatisticsRetryTransition.Cancel; break;
-                default: return;
+                try { NativeLocalPlayerData.CaptureCheckpoint(message.CheckpointId, message.FloorGuid); }
+                catch (Exception exception) { SupportLogger.Failure("local_player_data_capture_failed", exception); }
             }
-            try { controller?.ObserveStatisticsRetry(statistics, message.CheckpointId, message.FloorGuid); }
-            catch (Exception exception) { SupportLogger.Failure("retry_statistics_failed", exception); }
         }
 
         internal static void ObserveTeamDefeat()

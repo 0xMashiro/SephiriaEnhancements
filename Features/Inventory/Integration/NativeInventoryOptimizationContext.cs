@@ -10,7 +10,8 @@ namespace SephiriaEnhancements.Inventory
             bool open = TryGetOpenPanel(out UI_CharacterStatusPanel panel);
             PlayerAvatar player = panel?.PlayerAvatar;
             inventory = player?.Inventory;
-            return open && player != null &&
+            return open && !SephiriaEnhancements.Runtime.GameBridge.NativeLocalPlayerData.IsRestoring &&
+                player != null && player.loadingScreenType == -1 &&
                 LocalPlayerResolver.IsLocal(player) && inventory != null &&
                 inventory.CurrentInventoryStorage > 1 && inventory.IsPickable;
         }

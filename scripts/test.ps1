@@ -48,11 +48,27 @@ $inventoryEditors = @('NativeInventoryArtifactIntentCommands.cs', 'NativeInvento
     Join-Path $repoRoot "Features/Inventory/Integration/$_"
 }
 foreach ($source in @((Get-ChildItem -LiteralPath $inventoryViews -Filter '*.cs' -File).FullName) + $inventoryEditors) {
-    if ((Get-Content -LiteralPath $source -Raw) -match '\b(WorldSessionInventoryIntentStore|PersistentInventoryOptimizationPolicyStore)\s*\.\s*(Replace|Clear|RestorePersistentCombos)\s*\(') {
+    if ((Get-Content -LiteralPath $source -Raw) -match '\b(LocalPlayerInventoryIntentStore|PersistentInventoryOptimizationPolicyStore)\s*\.\s*(Replace|Clear|RestorePersistentCombos)\s*\(') {
         throw 'Inventory views and intent commands must send edits through the controller.'
     }
 }
 Write-Host 'Inventory preference write boundary passed.'
+
+# Feature data uses the shared owner/load boundary, never a second retry lifecycle.
+foreach ($feature in Get-ChildItem -LiteralPath (Join-Path $repoRoot 'Features') -Directory) {
+    if ($feature.Name -eq 'DefeatRetry') { continue }
+    foreach ($source in Get-ChildItem -LiteralPath $feature.FullName -Filter '*.cs' -Recurse -File) {
+        $code = (Get-Content -LiteralPath $source.FullName -Raw) -replace '(?m)//[^\r\n]*', ''
+        if ($code -match 'using\s+SephiriaEnhancements\.DefeatRetry\b|\bDefeatRetryFeature\s*\.|\bDefeatRetryBridge\s*\.|\b(?:BeginRetry|CompleteRetry|CancelRetry|ObserveStatisticsRetry)\s*\(') {
+            throw "Feature data must use the shared local-player data boundary: $($source.Name)"
+        }
+    }
+}
+$inventoryController = Get-Content -LiteralPath (Join-Path $repoRoot 'Features/Inventory/InventoryOptimizationController.cs') -Raw
+if ($inventoryController -match 'LocalPlayerInventoryIntentStore\s*\.\s*Clear\s*\(') {
+    throw 'Inventory controller lifetime must not clear local-player preferences.'
+}
+Write-Host 'Local player data ownership boundary passed.'
 
 # New localization groups must participate in automatic coverage checks.
 $modelDirectory = Split-Path -Parent $modelProject

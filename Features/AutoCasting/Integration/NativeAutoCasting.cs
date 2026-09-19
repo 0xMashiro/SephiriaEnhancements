@@ -1,4 +1,5 @@
 using SephiriaEnhancements.Runtime;
+using SephiriaEnhancements.Runtime.GameBridge;
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -18,7 +19,9 @@ namespace SephiriaEnhancements.AutoCasting.Integration
         internal static NativeAutoCasting Current { get; private set; }
         internal static bool IsRequestingCast(IntegratedActionController source) =>
             Current != null && Current.requesting && Current.actions == source;
-        private readonly AutoCastingSelection selection = new AutoCastingSelection();
+        private readonly LocalPlayerDataStore.LocalPlayerData<AutoCastingPreferences> preferences =
+            LocalPlayerDataStore.Shared.Preferences(() => new AutoCastingPreferences());
+        private AutoCastingSelection selection => preferences.Value.Selection;
         private readonly AutoCastingRotation rotation = new AutoCastingRotation();
         private readonly List<int> ownedArtifacts = new List<int>();
         private PlayerAvatar player;
@@ -26,9 +29,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
         private SkillController skills;
         private WeaponControllerSimple weapon;
         private bool requesting;
-        private bool retryInProgress, retryWorldPending;
-        private NetworkConnectionToServer retryConnection;
-        internal bool IsPaused => rotation.IsPaused;
+        internal bool IsPaused => preferences.Value.IsPaused;
         internal string SelectionStateKey(Charm_Magic magic) => !IsSelected(magic) ? AutoCastingLocalization.Off :
             IsPaused ? AutoCastingLocalization.Paused : AutoCastingLocalization.On;
 
@@ -52,52 +53,20 @@ namespace SephiriaEnhancements.AutoCasting.Integration
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private void AwakeCore() => Current = this;
-        private void OnDestroy() { if (Current == this) Current = null; }
+        private void OnDestroy() { preferences.Dispose(); if (Current == this) Current = null; }
 
-        internal void ResetWorld()
+        internal void ResetGameplayContext()
         {
-            retryInProgress = retryWorldPending = false;
-            retryConnection = null;
-            selection.Clear();
             rotation.Reset();
+            rotation.YieldToManualInput(Time.unscaledTimeAsDouble);
         }
-
-        internal void BeginRetry()
-        {
-            BindPlayer();
-            if (player == null) return;
-            retryConnection = NetworkClient.connection;
-            retryInProgress = retryWorldPending = true;
-        }
-
-        internal void ObserveWorldSession(bool saved)
-        {
-            if (saved && retryInProgress && retryWorldPending &&
-                retryConnection == NetworkClient.connection && player != null &&
-                LocalPlayerResolver.Resolve() == player)
-            {
-                retryWorldPending = false;
-                return;
-            }
-            ResetWorld();
-        }
-
-        internal void CompleteRetry()
-        {
-            retryInProgress = retryWorldPending = false;
-            retryConnection = null;
-            ResetGameplayContext();
-        }
-
-        internal void CancelRetry() { if (retryInProgress) ResetWorld(); }
-
-        internal void ResetGameplayContext() => rotation.YieldToManualInput(Time.unscaledTimeAsDouble);
 
         private void BindPlayer()
         {
+            NativeLocalPlayerData.ObserveOwner();
             PlayerAvatar local = LocalPlayerResolver.Resolve();
             if (player == local) return;
-            ResetWorld();
+            ResetGameplayContext();
             player = local;
             actions = player != null ? player.GetComponent<IntegratedActionController>() : null;
             skills = player != null ? player.GetComponent<SkillController>() : null;
@@ -137,7 +106,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
 
         internal bool Toggle(Charm_Magic magic)
         {
-            if (!CanSelect(magic)) return false;
+            if (!CanSelect(magic) || NativeLocalPlayerData.IsRestoring) return false;
             selection.Toggle(magic.Item.InstanceID);
             rotation.YieldToManualInput(Time.unscaledTimeAsDouble);
             return true;
@@ -175,7 +144,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
                 return;
             // Rebuilt inventory objects arrive over multiple frames. Keep artifact IDs
             // and pause state until the local retry arrival has been confirmed.
-            if (retryInProgress || player.loadingScreenType != -1) return;
+            if (NativeLocalPlayerData.IsRestoring || player.loadingScreenType != -1) return;
             ownedArtifacts.Clear();
             foreach (Charm_Basic charm in player.Inventory.charms.Values)
                 if (charm is Charm_Magic magic && magic.Item != null)
@@ -197,7 +166,7 @@ namespace SephiriaEnhancements.AutoCasting.Integration
                 string message = AutoCastingLocalization.SelectFirst;
                 if (hasSelection)
                 {
-                    rotation.TogglePause();
+                    preferences.Value.IsPaused = !preferences.Value.IsPaused;
                     message = IsPaused ? AutoCastingLocalization.PausedMessage : AutoCastingLocalization.ResumedMessage;
                 }
 

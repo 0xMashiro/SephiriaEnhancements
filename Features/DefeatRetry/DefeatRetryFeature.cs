@@ -52,7 +52,7 @@ namespace SephiriaEnhancements.DefeatRetry
             internal string FloorGuid { get; }
             internal Dictionary<uint, RetryPlacement> Placements { get; }
             internal BossRetryWorld World { get; }
-            internal long StatisticsCheckpointId { get; set; }
+            internal long LocalDataCheckpointId { get; set; }
             internal bool RebuildBossFloor { get; set; }
             internal Dictionary<uint, NativeRetryPlayerState> Players { get; set; }
         }
@@ -253,7 +253,7 @@ namespace SephiriaEnhancements.DefeatRetry
             if (kind == RetryCheckpointKind.BossEncounter)
             {
                 checkpoints.CompleteBossCapture(captured);
-                captured.StatisticsCheckpointId = DefeatRetryBridge.CaptureBoss(floorGuid);
+                captured.LocalDataCheckpointId = DefeatRetryBridge.CaptureBoss(floorGuid);
             }
             runFileName = captured.CurrentRun.BindedFileName ?? string.Empty;
             FloorData floor = null;
@@ -478,7 +478,7 @@ namespace SephiriaEnhancements.DefeatRetry
                 panel.Close();
                 DefeatRetryBridge.Publish(kind == RetryCheckpointKind.BossEncounter
                     ? RetryTransition.RetryBoss : RetryTransition.RetryFloor,
-                    selected.StatisticsCheckpointId, selected.FloorGuid);
+                    selected.LocalDataCheckpointId, selected.FloorGuid);
                 (NetworkManager.singleton as HorayNetworkManager)?.RestartGame();
                 SupportLogger.Info("retry_restart_requested", "[SephiriaEnhancements] Host requested restart from the " +
                     (selected.Kind == RetryCheckpointKind.BossEncounter

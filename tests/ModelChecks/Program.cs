@@ -22,6 +22,12 @@ using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
 SephiriaEnhancements.ModelChecks.Features.ItemCommunication.ItemCommunicationChecks.Run();
 
+if (args.Contains("--local-player-data-only"))
+{
+    LocalPlayerDataChecks.Run();
+    return;
+}
+
 if (args.Contains("--inventory-preset-intent-only"))
 {
     InventoryPresetIntentChecks.Run();

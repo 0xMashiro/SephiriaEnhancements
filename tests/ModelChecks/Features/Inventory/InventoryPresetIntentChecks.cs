@@ -158,19 +158,19 @@ internal static class InventoryPresetIntentChecks
                         Require(retained.PreferPresetCombos == preferCombos && retained.AllowAdditionalMagicCost == allowCost,
                             "independent options survive save, edits and new exploration composition");
                     var savedPolicy = PersistentInventoryOptimizationPolicyStore.Capture();
-                    var savedIntent = WorldSessionInventoryIntentStore.Capture();
+                    var savedIntent = LocalPlayerInventoryIntentStore.Capture();
                     try
                     {
                         PersistentInventoryOptimizationPolicyStore.Replace(decoded);
-                        WorldSessionInventoryIntentStore.Clear();
-                        var nextExploration = WorldSessionInventoryIntentStore.Capture();
+                        LocalPlayerInventoryIntentStore.Clear();
+                        var nextExploration = LocalPlayerInventoryIntentStore.Capture();
                         Require(nextExploration.PreferPresetCombos == preferCombos && nextExploration.AllowAdditionalMagicCost == allowCost,
                             "clearing world-session intent retains both persisted options");
                     }
                     finally
                     {
                         PersistentInventoryOptimizationPolicyStore.Replace(savedPolicy);
-                        WorldSessionInventoryIntentStore.Replace(savedIntent);
+                        LocalPlayerInventoryIntentStore.Replace(savedIntent);
                     }
                     var policy = InventoryOptimizationPolicyResolver.Resolve(board, decoded);
                     foreach (var result in new[] {

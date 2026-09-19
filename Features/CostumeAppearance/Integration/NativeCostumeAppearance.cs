@@ -3,13 +3,14 @@ using Mirror;
 using SephiriaEnhancements.Configuration;
 using SephiriaEnhancements.Integration;
 using SephiriaEnhancements.Runtime;
+using SephiriaEnhancements.Runtime.GameBridge;
 using UnityEngine;
 
 namespace SephiriaEnhancements.CostumeAppearance.Integration
 {
     internal sealed class NativeCostumeAppearance : MonoBehaviour
     {
-        internal const string SaveKey = "SephiriaEnhancements.CostumeAppearance";
+        private const string PreferenceName = "CostumeAppearance";
         private const string CapabilityKey = "SephiriaEnhancements.CostumeAppearanceProtocol";
         internal static NativeCostumeAppearance Instance { get; private set; }
         private PlayerAvatar observed, requestedPlayer;
@@ -33,7 +34,7 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
                 (skin.unlockType == CostumeSkinEntity.ECostumeUnlockType.Purchase && SaveManager.Current.GetBool("SkinPurchased_" + skin.skinID, false)));
         }
 
-        internal static string Preference => SaveManager.Current?.GetString(SaveKey, "") ?? "";
+        internal static string Preference => NativeProfilePreferences.GetString(PreferenceName);
         internal static string FollowingSkin(string costume)
         {
             var skin = CostumeDatabase.GetCostumeSkinByID(SaveManager.Current?.GetString("PlayerCostume_CurrentSkin_" + costume, "") ?? "");
@@ -116,7 +117,7 @@ namespace SephiriaEnhancements.CostumeAppearance.Integration
             requestedPlayer = null; requestedSave = null; explicitRequest = false;
             if (confirmed && notify)
             {
-                SaveManager.Current.SetString(SaveKey, preference);
+                NativeProfilePreferences.SetString(PreferenceName, preference);
                 SaveManager.Save(saveCurrent: true, saveCurrentRun: false);
                 NativeModNotifications.ShortText(() => ModLocalization.Get(CostumeAppearanceLocalization.Applied));
             }

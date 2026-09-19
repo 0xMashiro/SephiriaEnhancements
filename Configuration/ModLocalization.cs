@@ -199,6 +199,7 @@ namespace SephiriaEnhancements.Configuration
             EffectStats.EffectStatsLocalization.Register(addText, languages);
             OptionsCategoryLocalization.Register(addText, languages);
             SettingsInteractionLocalization.Register(addText, languages);
+            FixedExplorationSeed.ExplorationSeedLocalization.Register(addText, languages);
             CombatVisualLocalization.Register(addText, languages);
             ResourceBarValues.ResourceBarValueLocalization.Register(addText, languages);
             Combat.DamageSourcesLocalization.Register(addText, languages);

@@ -21,6 +21,7 @@ using SephiriaEnhancements.ModelChecks.Runtime.State;
 using SephiriaEnhancements.ModelChecks.Features.ResourceBarValues;
 
 SephiriaEnhancements.ModelChecks.Features.ItemCommunication.ItemCommunicationChecks.Run();
+SephiriaEnhancements.ModelChecks.Features.FixedExplorationSeed.ExplorationSeedChecks.Run();
 
 if (args.Contains("--local-player-data-only"))
 {

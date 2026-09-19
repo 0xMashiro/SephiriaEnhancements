@@ -1,53 +1,52 @@
 using System;
-using UnityEngine.EventSystems;
+using SephiriaEnhancements.Configuration;
+using SephiriaEnhancements.Integration;
+using SephiriaEnhancements.MultiplayerRules.Presentation;
+using UnityEngine.InputSystem;
 
 namespace SephiriaEnhancements.MultiplayerRules.Integration
 {
     internal static class NativeRuleInputDialog
     {
         internal static UI_MessageBox_InputYesNo Open(string prompt, string initial, MultiplayerRuleDefinition definition, float originalValue,
-            Func<bool> canEdit, Action<MultiplayerRuleValue<float>> save,
-            UnityEngine.GameObject returnSelection)
+            Func<bool> canEdit, Action<MultiplayerRuleValue<float>> save, UnityEngine.GameObject returnSelection)
         {
-            var dialog = UIManager.Instance?.GetElement<UI_MessageBox_InputYesNo>();
-            if (dialog == null || dialog.IsOpened) return null;
-            dialog.Open(prompt,
-                text =>
-                {
-                    if (canEdit() && MultiplayerRuleInput.TryParse(text, definition, out var value)) save(value);
-                }, null, initial, "", true);
-            int characterLimit = dialog.input.characterLimit;
-            var defaultSelectable = dialog.defaultSelectable;
-            dialog.input.characterLimit = 16;
-            var navigation = dialog.gameObject.AddComponent<NativeRuleInputNavigation>();
-            navigation.Configure(dialog, definition, originalValue, () => dialog.yesButton.onClick.Invoke());
-            UnityEngine.Events.UnityAction<string> submit = navigation.Submit;
-            dialog.input.onSubmit.AddListener(submit);
-            UnityEngine.Events.UnityAction<string> validate = text =>
+            return NativeNumberInputDialog.Open(new NumberInputOptions
             {
-                dialog.yesButton.interactable = canEdit() && MultiplayerRuleInput.TryParse(text, definition, out _);
-                navigation.RefreshFeedback(text);
-            };
-            dialog.input.onValueChanged.AddListener(validate);
-            validate(initial);
-            dialog.defaultSelectable = navigation.InitialSelection;
-            if (EventSystem.current != null)
-                EventSystem.current.SetSelectedGameObject(navigation.InitialSelection);
-            Action<UI_MessageBox> closed = null;
-            closed = _ =>
-            {
-                dialog.input.onValueChanged.RemoveListener(validate);
-                dialog.input.onSubmit.RemoveListener(submit);
-                navigation.Release();
-                dialog.onCloseMessageBox -= closed;
-                dialog.yesButton.interactable = true;
-                dialog.input.characterLimit = characterLimit;
-                dialog.defaultSelectable = defaultSelectable;
-                if (returnSelection != null && returnSelection.activeInHierarchy && EventSystem.current != null)
-                    EventSystem.current.SetSelectedGameObject(returnSelection);
-            };
-            dialog.onCloseMessageBox += closed;
-            return dialog;
+                Prompt = prompt, Initial = initial, Placeholder = "", CharacterLimit = 16,
+                ConfirmKey = MultiplayerRulesLocalization.ConfirmEdit,
+                CancelKey = MultiplayerRulesLocalization.CancelEdit,
+                ClearKey = MultiplayerRulesLocalization.UseOriginalAction,
+                CanEdit = canEdit,
+                ValidateCharacter = MultiplayerRuleInput.ValidateCharacter,
+                IsValid = text => MultiplayerRuleInput.TryParse(text, definition, out _),
+                Adjust = (text, direction) => MultiplayerRuleInput.Adjust(text, definition, originalValue, direction),
+                Save = text => { if (MultiplayerRuleInput.TryParse(text, definition, out var value)) save(value); },
+                Feedback = text => Feedback(text, definition)
+            }, returnSelection);
         }
+
+        private static string Feedback(string text, MultiplayerRuleDefinition definition)
+        {
+            var error = MultiplayerRuleInput.Validate(text, definition, out _);
+            string message = error switch
+            {
+                MultiplayerRuleInputError.Number => T(MultiplayerRulesLocalization.InvalidNumber),
+                MultiplayerRuleInputError.Range => string.Format(T(MultiplayerRulesLocalization.InvalidRange),
+                    MultiplayerRulesLocalization.FormatValue(definition.Minimum, definition.Unit),
+                    MultiplayerRulesLocalization.FormatValue(definition.Maximum, definition.Unit)),
+                MultiplayerRuleInputError.Step => string.Format(T(MultiplayerRulesLocalization.InvalidStep),
+                    MultiplayerRulesLocalization.FormatValue(definition.Step, definition.Unit),
+                    MultiplayerRulesLocalization.FormatValue(definition.Minimum, definition.Unit)),
+                _ => T(string.IsNullOrWhiteSpace(text) ? MultiplayerRulesLocalization.InputDefault : MultiplayerRulesLocalization.InputValid)
+            };
+            var keyboard = Keyboard.current;
+            if (keyboard != null && ControlsChangeHandler.Current?.IsUsingKeyboardAndMouse != false)
+                message += "\n" + string.Format(T(MultiplayerRulesLocalization.InputActions),
+                    keyboard.enterKey.displayName, keyboard.escapeKey.displayName, keyboard.tabKey.displayName, keyboard.leftShiftKey.displayName);
+            return message;
+        }
+
+        private static string T(string key) => ModLocalization.Get(key);
     }
 }

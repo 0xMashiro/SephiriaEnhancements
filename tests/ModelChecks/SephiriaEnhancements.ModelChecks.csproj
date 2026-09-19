@@ -8,6 +8,9 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Features/FixedExplorationSeed/ExplorationSeedInput.cs" />
+    <Compile Include="../../Features/FixedExplorationSeed/ExplorationSeedLocalization.cs" />
+    <Compile Include="../../Integration/NumberInputEditing.cs" />
     <Compile Include="../../Runtime/State/LocalPlayerDataStore.cs" />
     <Compile Include="../../Features/Inventory/Core/InventoryItemGrouping.cs" />
     <Compile Include="../../Features/StageRewardAutoClaim/StageRewardAutoClaimLocalization.cs" Link="StageRewardAutoClaimLocalization.cs" />

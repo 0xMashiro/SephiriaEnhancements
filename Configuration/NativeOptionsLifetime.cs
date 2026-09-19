@@ -16,6 +16,7 @@ namespace SephiriaEnhancements.Configuration
 
         internal static void DisposeAll()
         {
+            Integration.NativeNumberInputDialog.CloseActive();
             foreach (UI_OptionsPanel panel in Panels)
             {
                 if (panel == null) continue;

@@ -144,6 +144,7 @@ namespace SephiriaEnhancements.Configuration
             }
 
             MultiplayerRulesOptions.Inject(__instance, template, section.transform);
+            FixedExplorationSeed.Integration.ExplorationSeedOptions.Inject(__instance, template, section.transform);
 
             NormalizeInjectedOrder(section, multiplayerSection);
             categoryController.RefreshVisibility();
@@ -191,6 +192,7 @@ namespace SephiriaEnhancements.Configuration
                 "Option_SephiriaEnhancements_MouseAimAssist",
                 "Option_SephiriaEnhancements_ViewDistance",
                 "Option_SephiriaEnhancements_MultiplayerRules",
+                "Option_SephiriaEnhancements_ExplorationSeed",
                 "Option_SephiriaEnhancements_ModInformation_Version",
                 "Option_SephiriaEnhancements_ModInformation_GameVersion",
                 "Option_SephiriaEnhancements_ModInformation_LogFolder",

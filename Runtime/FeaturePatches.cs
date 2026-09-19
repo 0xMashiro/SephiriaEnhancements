@@ -9,6 +9,7 @@ namespace SephiriaEnhancements
         private static (FeatureId Feature, Type Patch)[] StartupPatches() =>
             new[]
             {
+                (FeatureId.FixedExplorationSeed, typeof(global::SephiriaEnhancements.FixedExplorationSeed.Integration.ExplorationSeedNewWorldPatch)),
                 (FeatureId.ItemCommunication, typeof(global::SephiriaEnhancements.ItemCommunication.Integration.ItemCommunicationNavigationPatch)),
                 (FeatureId.CombatInsights, typeof(global::SephiriaEnhancements.Integration.DamageFeedbackCapture)),
                 (FeatureId.CombatInsights, typeof(global::SephiriaEnhancements.Integration.DamageDetailCapture)),

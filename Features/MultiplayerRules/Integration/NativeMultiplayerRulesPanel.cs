@@ -539,7 +539,7 @@ namespace SephiriaEnhancements.MultiplayerRules.Integration
             var rect = Rect(transform, key, new Vector2(left, .015f), new Vector2(right, .075f));
             rect.gameObject.AddComponent<Image>();
             var button = rect.gameObject.AddComponent<UnityEngine.UI.Button>();
-            NativeRuleButtonStyle.Apply(button);
+            global::SephiriaEnhancements.Integration.NativeActionButtonStyle.Apply(button);
             button.onClick.AddListener(() => action());
             var label = Text(rect, "Label", Vector2.zero, Vector2.one);
             label.text = T(key);

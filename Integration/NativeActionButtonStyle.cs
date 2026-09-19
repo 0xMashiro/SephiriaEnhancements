@@ -1,9 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace SephiriaEnhancements.MultiplayerRules.Integration
+namespace SephiriaEnhancements.Integration
 {
-    internal static class NativeRuleButtonStyle
+    internal static class NativeActionButtonStyle
     {
         internal static void Apply(Button button)
         {
